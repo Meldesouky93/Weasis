@@ -1,0 +1,415 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>Thumbnail.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.media.data</a> &gt; <span class="el_source">Thumbnail.java</span></div><h1>Thumbnail.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.media.data;
+
+import com.formdev.flatlaf.extras.FlatSVGIcon;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.event.KeyListener;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+import java.awt.event.MouseWheelListener;
+import java.awt.geom.AffineTransform;
+import java.io.File;
+import java.io.IOException;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+import javax.swing.JLabel;
+import javax.swing.SwingConstants;
+import javax.swing.SwingWorker;
+import org.opencv.core.MatOfInt;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.AppProperties;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.image.OpManager;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.api.util.ResourceUtil.FileIcon;
+import org.weasis.core.api.util.ThreadUtil;
+import org.weasis.core.util.FileUtil;
+import org.weasis.core.util.StringUtil;
+import org.weasis.opencv.data.PlanarImage;
+import org.weasis.opencv.op.ImageConversion;
+import org.weasis.opencv.op.ImageProcessor;
+
+public class Thumbnail extends JLabel implements Thumbnailable {
+<span class="nc" id="L54">  private static final Logger LOGGER = LoggerFactory.getLogger(Thumbnail.class);</span>
+
+<span class="nc" id="L56">  public static final File THUMBNAIL_CACHE_DIR =</span>
+<span class="nc" id="L57">      AppProperties.buildAccessibleTempDirectory(</span>
+<span class="nc" id="L58">          AppProperties.FILE_CACHE_DIR.getName(), &quot;thumb&quot;); // NON-NLS</span>
+<span class="nc" id="L59">  public static final ExecutorService THUMB_LOADER =</span>
+<span class="nc" id="L60">      ThreadUtil.buildNewSingleThreadExecutor(&quot;Thumbnail Loader&quot;); // NON-NLS</span>
+
+  public static final String KEY_SIZE = &quot;explorer.thumbnail.size&quot;;
+  public static final int MIN_SIZE = 48;
+  public static final int DEFAULT_SIZE = 144;
+  public static final int MAX_SIZE = 256;
+
+<span class="nc" id="L67">  private static final NativeCache&lt;Thumbnail, PlanarImage&gt; mCache =</span>
+<span class="nc" id="L68">      new NativeCache&lt;&gt;(30_000_000) {</span>
+
+        @Override
+        protected void afterEntryRemove(Thumbnail key, PlanarImage img) {
+<span class="nc bnc" id="L72" title="All 2 branches missed.">          if (img != null) {</span>
+<span class="nc" id="L73">            img.release();</span>
+          }
+<span class="nc" id="L75">        }</span>
+      };
+
+<span class="nc" id="L78">  protected volatile boolean readable = true;</span>
+<span class="nc" id="L79">  protected AtomicBoolean loading = new AtomicBoolean(false);</span>
+<span class="nc" id="L80">  protected File thumbnailPath = null;</span>
+  protected int thumbnailSize;
+
+  public Thumbnail(int thumbnailSize) {
+<span class="nc" id="L84">    super(null, null, SwingConstants.CENTER);</span>
+<span class="nc" id="L85">    this.thumbnailSize = GuiUtils.getScaleLength(thumbnailSize);</span>
+<span class="nc" id="L86">  }</span>
+
+  public Thumbnail(
+      final MediaElement media, int thumbnailSize, boolean keepMediaCache, OpManager opManager) {
+<span class="nc" id="L90">    super(null, null, SwingConstants.CENTER);</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">    if (media == null) {</span>
+<span class="nc" id="L92">      throw new IllegalArgumentException(&quot;image cannot be null&quot;);</span>
+    }
+<span class="nc" id="L94">    this.thumbnailSize = GuiUtils.getScaleLength(thumbnailSize);</span>
+<span class="nc" id="L95">    init(media, keepMediaCache, opManager);</span>
+<span class="nc" id="L96">  }</span>
+
+  /**
+   * @param media the {@link MediaElement} value
+   * @param keepMediaCache if true will remove the media from cache after building the thumbnail.
+   *     Only when media is an image.
+   */
+  protected void init(MediaElement media, boolean keepMediaCache, OpManager opManager) {
+<span class="nc" id="L104">    buildThumbnail(media, keepMediaCache, opManager);</span>
+<span class="nc" id="L105">  }</span>
+
+  @Override
+  public void registerListeners() {
+<span class="nc" id="L109">    removeMouseAndKeyListener();</span>
+<span class="nc" id="L110">  }</span>
+
+  public static PlanarImage createThumbnail(PlanarImage source) {
+<span class="nc bnc" id="L113" title="All 2 branches missed.">    if (source == null) {</span>
+<span class="nc" id="L114">      return null;</span>
+    }
+<span class="nc" id="L116">    return ImageProcessor.buildThumbnail(</span>
+        source, new Dimension(Thumbnail.MAX_SIZE, Thumbnail.MAX_SIZE), true);
+  }
+
+  protected synchronized void buildThumbnail(
+      MediaElement media, boolean keepMediaCache, OpManager opManager) {
+<span class="nc" id="L122">    FileIcon fileIcon = null;</span>
+<span class="nc" id="L123">    String type = &quot;&quot;;</span>
+<span class="nc bnc" id="L124" title="All 2 branches missed.">    if (media != null) {</span>
+<span class="nc" id="L125">      String mime = media.getMimeType();</span>
+<span class="nc bnc" id="L126" title="All 2 branches missed.">      if (mime != null) {</span>
+<span class="nc bnc" id="L127" title="All 2 branches missed.">        if (mime.startsWith(&quot;image&quot;)) {</span>
+<span class="nc" id="L128">          type = Messages.getString(&quot;Thumbnail.img&quot;);</span>
+<span class="nc" id="L129">          fileIcon = FileIcon.IMAGE;</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">        } else if (mime.startsWith(&quot;video&quot;)) { // NON-NLS</span>
+<span class="nc" id="L131">          type = Messages.getString(&quot;Thumbnail.video&quot;);</span>
+<span class="nc" id="L132">          fileIcon = FileIcon.VIDEO;</span>
+<span class="nc bnc" id="L133" title="All 2 branches missed.">        } else if (mime.equals(&quot;sr/dicom&quot;)) { // NON-NLS</span>
+<span class="nc" id="L134">          type = Messages.getString(&quot;Thumbnail.dicom_sr&quot;);</span>
+<span class="nc" id="L135">          fileIcon = FileIcon.TEXT;</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">        } else if (mime.startsWith(&quot;txt&quot;)) {</span>
+<span class="nc" id="L137">          type = Messages.getString(&quot;Thumbnail.text&quot;);</span>
+<span class="nc" id="L138">          fileIcon = FileIcon.TEXT;</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">        } else if (mime.endsWith(&quot;html&quot;)) {</span>
+<span class="nc" id="L140">          type = Messages.getString(&quot;Thumbnail.html&quot;);</span>
+<span class="nc" id="L141">          fileIcon = FileIcon.XML;</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">        } else if (mime.equals(&quot;application/pdf&quot;)) {</span>
+<span class="nc" id="L143">          type = Messages.getString(&quot;Thumbnail.pdf&quot;);</span>
+<span class="nc" id="L144">          fileIcon = FileIcon.PDF;</span>
+<span class="nc bnc" id="L145" title="All 2 branches missed.">        } else if (mime.equals(&quot;wf/dicom&quot;)) { // NON-NLS</span>
+<span class="nc" id="L146">          type = &quot;ECG&quot;;</span>
+<span class="nc" id="L147">          fileIcon = FileIcon.ECG;</span>
+<span class="nc bnc" id="L148" title="All 4 branches missed.">        } else if (mime.startsWith(&quot;audio&quot;) || mime.equals(&quot;au/dicom&quot;)) { // NON-NLS</span>
+<span class="nc" id="L149">          type = Messages.getString(&quot;Thumbnail.audio&quot;);</span>
+<span class="nc" id="L150">          fileIcon = FileIcon.AUDIO;</span>
+        } else {
+<span class="nc" id="L152">          type = mime;</span>
+        }
+      }
+    }
+
+<span class="nc bnc" id="L157" title="All 2 branches missed.">    if (fileIcon == null) {</span>
+<span class="nc" id="L158">      fileIcon = FileIcon.UNKNOWN;</span>
+    }
+<span class="nc" id="L160">    setIcon(media, ResourceUtil.getIcon(fileIcon, 64, 64), type, keepMediaCache, opManager);</span>
+<span class="nc" id="L161">  }</span>
+
+  private void setIcon(
+      final MediaElement media,
+      final FlatSVGIcon mimeIcon,
+      final String description,
+      final boolean keepMediaCache,
+      OpManager opManager) {
+<span class="nc" id="L169">    this.setSize(thumbnailSize, thumbnailSize);</span>
+
+<span class="nc" id="L171">    ImageIcon imageIcon =</span>
+<span class="nc" id="L172">        new ImageIcon() {</span>
+
+          @Override
+          public synchronized void paintIcon(Component c, Graphics g, int x, int y) {
+<span class="nc" id="L176">            Graphics2D g2d = (Graphics2D) g;</span>
+<span class="nc" id="L177">            int width = thumbnailSize;</span>
+<span class="nc" id="L178">            int height = thumbnailSize;</span>
+<span class="nc" id="L179">            final PlanarImage thumbnail = Thumbnail.this.getImage(media, keepMediaCache, opManager);</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">            if (thumbnail == null) {</span>
+<span class="nc" id="L181">              FontMetrics fm = g2d.getFontMetrics();</span>
+<span class="nc" id="L182">              Icon icon = mimeIcon;</span>
+<span class="nc" id="L183">              int insetY = 5;</span>
+<span class="nc" id="L184">              int textLength = fm.stringWidth(description);</span>
+<span class="nc" id="L185">              int fontHeight = 0;</span>
+<span class="nc bnc" id="L186" title="All 4 branches missed.">              boolean displayText = StringUtil.hasText(description) &amp;&amp; textLength + insetY &lt; width;</span>
+<span class="nc bnc" id="L187" title="All 2 branches missed.">              if (displayText) {</span>
+<span class="nc" id="L188">                fontHeight = fm.getHeight();</span>
+              }
+<span class="nc" id="L190">              int fy = y + (thumbnailSize - fontHeight - icon.getIconHeight()) / 2;</span>
+<span class="nc" id="L191">              icon.paintIcon(c, g2d, x + (thumbnailSize - icon.getIconWidth()) / 2, fy);</span>
+
+<span class="nc bnc" id="L193" title="All 2 branches missed.">              if (displayText) {</span>
+<span class="nc" id="L194">                Object[] oldRenderingHints = GuiUtils.setRenderingHints(g2d, true, false, true);</span>
+<span class="nc" id="L195">                int startX = x + (thumbnailSize - textLength) / 2;</span>
+<span class="nc" id="L196">                int startY = fm.getAscent() - fm.getDescent() - fm.getLeading();</span>
+<span class="nc" id="L197">                g2d.drawString(description, startX, fy + icon.getIconHeight() + startY + insetY);</span>
+<span class="nc" id="L198">                GuiUtils.resetRenderingHints(g2d, oldRenderingHints);</span>
+              }
+<span class="nc" id="L200">            } else {</span>
+<span class="nc" id="L201">              width = thumbnail.width();</span>
+<span class="nc" id="L202">              height = thumbnail.height();</span>
+<span class="nc" id="L203">              x += (thumbnailSize - width) / 2;</span>
+<span class="nc" id="L204">              y += (thumbnailSize - height) / 2;</span>
+<span class="nc bnc" id="L205" title="All 2 branches missed.">              if (g2d.getDeviceConfiguration().getDefaultTransform().getScaleX() &gt; 1.0) {</span>
+<span class="nc" id="L206">                g2d.setRenderingHint(</span>
+                    RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+              }
+<span class="nc" id="L209">              g2d.drawImage(</span>
+<span class="nc" id="L210">                  ImageConversion.toBufferedImage(thumbnail),</span>
+<span class="nc" id="L211">                  AffineTransform.getTranslateInstance(x, y),</span>
+                  null);
+            }
+<span class="nc" id="L214">            drawOverIcon(g2d, x, y, width, height);</span>
+<span class="nc" id="L215">          }</span>
+
+          @Override
+          public int getIconWidth() {
+<span class="nc" id="L219">            return thumbnailSize;</span>
+          }
+
+          @Override
+          public int getIconHeight() {
+<span class="nc" id="L224">            return thumbnailSize;</span>
+          }
+        };
+<span class="nc" id="L227">    setIcon(imageIcon);</span>
+<span class="nc" id="L228">  }</span>
+
+  protected void drawOverIcon(Graphics2D g2d, int x, int y, int width, int height) {
+    // Do nothing
+<span class="nc" id="L232">  }</span>
+
+  @Override
+  public File getThumbnailPath() {
+<span class="nc" id="L236">    return thumbnailPath;</span>
+  }
+
+  protected synchronized PlanarImage getImage(
+      final MediaElement media, final boolean keepMediaCache, final OpManager opManager) {
+    PlanarImage cacheImage;
+<span class="nc bnc" id="L242" title="All 6 branches missed.">    if ((cacheImage = mCache.get(this)) == null &amp;&amp; readable &amp;&amp; loading.compareAndSet(false, true)) {</span>
+      try {
+<span class="nc" id="L244">        SwingWorker&lt;Boolean, String&gt; thumbnailReader =</span>
+<span class="nc" id="L245">            new SwingWorker&lt;&gt;() {</span>
+              @Override
+              protected void done() {
+<span class="nc" id="L248">                repaint();</span>
+<span class="nc" id="L249">              }</span>
+
+              @Override
+              protected Boolean doInBackground() {
+<span class="nc" id="L253">                loadThumbnail(media, keepMediaCache, opManager);</span>
+<span class="nc" id="L254">                return Boolean.TRUE;</span>
+              }
+            };
+<span class="nc" id="L257">        THUMB_LOADER.execute(thumbnailReader);</span>
+<span class="nc" id="L258">      } catch (Exception e) {</span>
+<span class="nc" id="L259">        LOGGER.error(&quot;Cannot build thumbnail!&quot;, e);</span>
+<span class="nc" id="L260">        loading.set(false);</span>
+<span class="nc" id="L261">      }</span>
+    }
+<span class="nc" id="L263">    return cacheImage;</span>
+  }
+
+  private void loadThumbnail(
+      final MediaElement media, final boolean keepMediaCache, final OpManager opManager) {
+    try {
+<span class="nc" id="L269">      File file = thumbnailPath;</span>
+<span class="nc bnc" id="L270" title="All 4 branches missed.">      boolean noPath = file == null || !file.canRead();</span>
+<span class="nc bnc" id="L271" title="All 4 branches missed.">      if (noPath &amp;&amp; media != null) {</span>
+<span class="nc" id="L272">        String path = (String) media.getTagValue(TagW.ThumbnailPath);</span>
+<span class="nc bnc" id="L273" title="All 2 branches missed.">        if (path != null) {</span>
+<span class="nc" id="L274">          file = new File(path);</span>
+<span class="nc bnc" id="L275" title="All 2 branches missed.">          if (file.canRead()) {</span>
+<span class="nc" id="L276">            noPath = false;</span>
+<span class="nc" id="L277">            thumbnailPath = file;</span>
+          }
+        }
+      }
+<span class="nc bnc" id="L281" title="All 2 branches missed.">      if (noPath) {</span>
+<span class="nc bnc" id="L282" title="All 2 branches missed.">        if (media instanceof final ImageElement image) {</span>
+<span class="nc" id="L283">          PlanarImage imgPl = image.getImage(opManager);</span>
+<span class="nc bnc" id="L284" title="All 2 branches missed.">          if (imgPl != null) {</span>
+<span class="nc" id="L285">            PlanarImage img = image.getRenderedImage(imgPl);</span>
+<span class="nc" id="L286">            final PlanarImage thumb = createThumbnail(img);</span>
+<span class="nc bnc" id="L287" title="All 2 branches missed.">            if (thumb != null) {</span>
+              try {
+<span class="nc" id="L289">                file =</span>
+<span class="nc" id="L290">                    File.createTempFile(&quot;tumb_&quot;, &quot;.jpg&quot;, Thumbnail.THUMBNAIL_CACHE_DIR); // NON-NLS</span>
+<span class="nc" id="L291">              } catch (IOException e) {</span>
+<span class="nc" id="L292">                LOGGER.error(&quot;Cannot create file for thumbnail!&quot;, e);</span>
+<span class="nc" id="L293">              }</span>
+            }
+            try {
+<span class="nc bnc" id="L296" title="All 6 branches missed.">              if (thumb != null &amp;&amp; file != null &amp;&amp; thumb.width() &gt; 0) {</span>
+<span class="nc" id="L297">                MatOfInt map = new MatOfInt(Imgcodecs.IMWRITE_JPEG_QUALITY, 80);</span>
+<span class="nc bnc" id="L298" title="All 2 branches missed.">                if (ImageProcessor.writeImage(thumb.toMat(), file, map)) {</span>
+                  /*
+                   * Write the thumbnail in temp folder, better than handling the thumbnail in memory.
+                   *
+                   * If writeImage returns false, it could be an out of memory exception.
+                   */
+<span class="nc" id="L304">                  image.setTag(TagW.ThumbnailPath, file.getPath());</span>
+<span class="nc" id="L305">                  thumbnailPath = file;</span>
+<span class="nc" id="L306">                  return;</span>
+                }
+              }
+
+<span class="nc bnc" id="L310" title="All 4 branches missed.">              if (thumb == null || thumb.width() &lt;= 0) {</span>
+<span class="nc" id="L311">                readable = false;</span>
+<span class="nc" id="L312">                ImageConversion.releasePlanarImage(thumb);</span>
+              } else {
+<span class="nc" id="L314">                mCache.put(this, thumb);</span>
+              }
+            } finally {
+<span class="nc bnc" id="L317" title="All 2 branches missed.">              if (!keepMediaCache) {</span>
+                // Prevent to many files open on Linux (Ubuntu =&gt; 1024) and close image stream
+<span class="nc" id="L319">                image.removeImageFromCache();</span>
+              }
+            }
+<span class="nc" id="L322">          } else {</span>
+<span class="nc" id="L323">            readable = false;</span>
+          }
+<span class="nc" id="L325">        }</span>
+      } else {
+<span class="nc" id="L327">        Load ref = new Load(file);</span>
+        // loading images sequentially, only one thread pool
+<span class="nc" id="L329">        Future&lt;PlanarImage&gt; future = ImageElement.IMAGE_LOADER.submit(ref);</span>
+<span class="nc" id="L330">        PlanarImage thumb = null;</span>
+        try {
+<span class="nc" id="L332">          PlanarImage img = future.get();</span>
+<span class="nc bnc" id="L333" title="All 2 branches missed.">          if (img != null) {</span>
+<span class="nc" id="L334">            int width = img.width();</span>
+<span class="nc" id="L335">            int height = img.height();</span>
+<span class="nc bnc" id="L336" title="All 4 branches missed.">            if (width &gt; thumbnailSize || height &gt; thumbnailSize) {</span>
+<span class="nc" id="L337">              thumb =</span>
+<span class="nc" id="L338">                  ImageProcessor.buildThumbnail(</span>
+                      img, new Dimension(thumbnailSize, thumbnailSize), true);
+            } else {
+<span class="nc" id="L341">              thumb = img;</span>
+            }
+          }
+
+<span class="nc" id="L345">        } catch (InterruptedException e) {</span>
+          // Re-assert the thread's interrupted status
+<span class="nc" id="L347">          Thread.currentThread().interrupt();</span>
+          // We don't need the result, so cancel the task too
+<span class="nc" id="L349">          future.cancel(true);</span>
+<span class="nc" id="L350">        } catch (ExecutionException e) {</span>
+<span class="nc" id="L351">          LOGGER.error(&quot;Cannot read thumbnail pixel data!: {}&quot;, file, e);</span>
+<span class="nc" id="L352">        }</span>
+<span class="nc bnc" id="L353" title="All 4 branches missed.">        if (thumb == null || thumb.width() &lt;= 0) {</span>
+<span class="nc" id="L354">          readable = false;</span>
+        } else {
+<span class="nc" id="L356">          mCache.put(this, thumb);</span>
+        }
+      }
+    } finally {
+<span class="nc" id="L360">      loading.set(false);</span>
+    }
+<span class="nc" id="L362">  }</span>
+
+  protected void removeImageFromCache() {
+    // Unload image from memory
+<span class="nc" id="L366">    mCache.remove(this);</span>
+<span class="nc" id="L367">  }</span>
+
+  @Override
+  public void dispose() {
+<span class="nc" id="L371">    removeImageFromCache();</span>
+
+<span class="nc bnc" id="L373" title="All 2 branches missed.">    if (thumbnailPath != null</span>
+<span class="nc bnc" id="L374" title="All 2 branches missed.">        &amp;&amp; thumbnailPath.getPath().startsWith(AppProperties.FILE_CACHE_DIR.getPath())) {</span>
+<span class="nc" id="L375">      FileUtil.delete(thumbnailPath);</span>
+    }
+
+<span class="nc" id="L378">    removeMouseAndKeyListener();</span>
+<span class="nc" id="L379">  }</span>
+
+  @Override
+  public void removeMouseAndKeyListener() {
+<span class="nc" id="L383">    MouseListener[] listener = this.getMouseListeners();</span>
+<span class="nc" id="L384">    MouseMotionListener[] motionListeners = this.getMouseMotionListeners();</span>
+<span class="nc" id="L385">    KeyListener[] keyListeners = this.getKeyListeners();</span>
+<span class="nc" id="L386">    MouseWheelListener[] wheelListeners = this.getMouseWheelListeners();</span>
+<span class="nc bnc" id="L387" title="All 2 branches missed.">    for (MouseListener mouseListener : listener) {</span>
+<span class="nc" id="L388">      this.removeMouseListener(mouseListener);</span>
+    }
+<span class="nc bnc" id="L390" title="All 2 branches missed.">    for (MouseMotionListener motionListener : motionListeners) {</span>
+<span class="nc" id="L391">      this.removeMouseMotionListener(motionListener);</span>
+    }
+<span class="nc bnc" id="L393" title="All 2 branches missed.">    for (KeyListener keyListener : keyListeners) {</span>
+<span class="nc" id="L394">      this.removeKeyListener(keyListener);</span>
+    }
+<span class="nc bnc" id="L396" title="All 2 branches missed.">    for (MouseWheelListener wheelListener : wheelListeners) {</span>
+<span class="nc" id="L397">      this.removeMouseWheelListener(wheelListener);</span>
+    }
+<span class="nc" id="L399">  }</span>
+
+  static class Load implements Callable&lt;PlanarImage&gt; {
+
+    private final File path;
+
+<span class="nc" id="L405">    public Load(File path) {</span>
+<span class="nc" id="L406">      this.path = path;</span>
+<span class="nc" id="L407">    }</span>
+
+    @Override
+    public PlanarImage call() throws Exception {
+<span class="nc" id="L411">      return ImageProcessor.readImageWithCvException(path, null);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

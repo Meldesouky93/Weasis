@@ -1,0 +1,508 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ViewerToolBar.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image</a> &gt; <span class="el_source">ViewerToolBar.java</span></div><h1>ViewerToolBar.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image;
+
+import com.formdev.flatlaf.extras.FlatSVGIcon;
+import com.formdev.flatlaf.extras.FlatSVGIcon.ColorFilter;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Graphics;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.InputEvent;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import javax.swing.AbstractButton;
+import javax.swing.ButtonGroup;
+import javax.swing.Icon;
+import javax.swing.JButton;
+import javax.swing.JMenu;
+import javax.swing.JPopupMenu;
+import javax.swing.JRadioButtonMenuItem;
+import javax.swing.KeyStroke;
+import javax.swing.UIManager;
+import javax.swing.event.ListDataEvent;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.ActionW;
+import org.weasis.core.api.gui.util.ComboItemListener;
+import org.weasis.core.api.gui.util.DropButtonIcon;
+import org.weasis.core.api.gui.util.DropDownButton;
+import org.weasis.core.api.gui.util.Feature;
+import org.weasis.core.api.gui.util.GroupPopup;
+import org.weasis.core.api.gui.util.GroupRadioMenu;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.image.GridBagLayoutModel;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.service.WProperties;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.api.util.ResourceUtil.ActionIcon;
+import org.weasis.core.ui.util.WtoolBar;
+
+public class ViewerToolBar&lt;E extends ImageElement&gt; extends WtoolBar implements ActionListener {
+
+<span class="nc" id="L53">  protected static final List&lt;Feature&lt;?&gt;&gt; actionsButtons =</span>
+<span class="nc" id="L54">      Collections.synchronizedList(</span>
+          new ArrayList&lt;&gt;(
+<span class="nc" id="L56">              Arrays.asList(</span>
+                  ActionW.PAN,
+                  ActionW.WINLEVEL,
+                  ActionW.SCROLL_SERIES,
+                  ActionW.ZOOM,
+                  ActionW.ROTATION,
+                  ActionW.MEASURE,
+                  ActionW.DRAW,
+                  ActionW.CONTEXTMENU,
+                  ActionW.CROSSHAIR,
+                  ActionW.NO_ACTION)));
+
+<span class="nc" id="L68">  protected static final Feature&lt;?&gt;[] actionsScroll = {</span>
+    ActionW.SCROLL_SERIES, ActionW.ZOOM, ActionW.ROTATION, ActionW.NO_ACTION
+  };
+<span class="nc" id="L71">  public static final FlatSVGIcon MouseLeftIcon =</span>
+<span class="nc" id="L72">      ResourceUtil.getToolBarIcon(ActionIcon.MOUSE_LEFT);</span>
+<span class="nc" id="L73">  public static final FlatSVGIcon MouseRightIcon =</span>
+<span class="nc" id="L74">      ResourceUtil.getToolBarIcon(ActionIcon.MOUSE_RIGHT);</span>
+<span class="nc" id="L75">  public static final FlatSVGIcon MouseMiddleIcon =</span>
+<span class="nc" id="L76">      ResourceUtil.getToolBarIcon(ActionIcon.MOUSE_MIDDLE);</span>
+<span class="nc" id="L77">  public static final FlatSVGIcon MouseWheelIcon =</span>
+<span class="nc" id="L78">      ResourceUtil.getToolBarIcon(ActionIcon.MOUSE_WHEEL);</span>
+
+  protected final ImageViewerEventManager&lt;E&gt; eventManager;
+  private final DropDownButton mouseLeft;
+  private final DropDownButton mouseMiddle;
+  private final DropDownButton mouseRight;
+  private final DropDownButton mouseWheel;
+  private final DropDownButton synchButton;
+
+  public ViewerToolBar(
+      final ImageViewerEventManager&lt;E&gt; eventManager,
+      int activeMouse,
+      WProperties props,
+      int index) {
+<span class="nc" id="L92">    super(Messages.getString(&quot;ViewerToolBar.title&quot;), index);</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">    if (eventManager == null) {</span>
+<span class="nc" id="L94">      throw new IllegalArgumentException(&quot;EventManager cannot be null&quot;);</span>
+    }
+<span class="nc" id="L96">    this.eventManager = eventManager;</span>
+
+<span class="nc" id="L98">    MouseActions actions = eventManager.getMouseActions();</span>
+
+<span class="nc bnc" id="L100" title="All 2 branches missed.">    if ((activeMouse &amp; InputEvent.BUTTON1_DOWN_MASK) == InputEvent.BUTTON1_DOWN_MASK) {</span>
+<span class="nc" id="L101">      mouseLeft = buildMouseButton(actions, MouseActions.T_LEFT);</span>
+<span class="nc" id="L102">      mouseLeft.setToolTipText(</span>
+<span class="nc" id="L103">          Messages.getString(&quot;ViewerToolBar.change&quot;)</span>
+              + &quot; &quot;
+<span class="nc" id="L105">              + Messages.getString(&quot;ViewerToolBar.m_action&quot;));</span>
+<span class="nc" id="L106">      add(mouseLeft);</span>
+    } else {
+<span class="nc" id="L108">      mouseLeft = null;</span>
+    }
+
+<span class="nc bnc" id="L111" title="All 2 branches missed.">    if ((activeMouse &amp; InputEvent.BUTTON3_DOWN_MASK) == InputEvent.BUTTON3_DOWN_MASK) {</span>
+<span class="nc" id="L112">      mouseRight = buildMouseButton(actions, MouseActions.T_RIGHT);</span>
+<span class="nc" id="L113">      add(mouseRight);</span>
+    } else {
+<span class="nc" id="L115">      mouseRight = null;</span>
+    }
+
+<span class="nc bnc" id="L118" title="All 2 branches missed.">    if ((activeMouse &amp; MouseActions.SCROLL_MASK) == MouseActions.SCROLL_MASK) {</span>
+<span class="nc" id="L119">      mouseWheel =</span>
+          new DropDownButton(
+              MouseActions.T_WHEEL,
+<span class="nc" id="L122">              buildMouseIcon(MouseActions.T_WHEEL, actions.getAction(MouseActions.T_WHEEL))) {</span>
+
+            @Override
+            protected JPopupMenu getPopupMenu() {
+<span class="nc" id="L126">              return getPopupMenuScroll(this);</span>
+            }
+          };
+<span class="nc" id="L129">      mouseWheel.setToolTipText(Messages.getString(&quot;ViewerToolBar.change&quot;));</span>
+<span class="nc" id="L130">      add(mouseWheel);</span>
+    } else {
+<span class="nc" id="L132">      mouseWheel = null;</span>
+    }
+
+<span class="nc bnc" id="L135" title="All 2 branches missed.">    if ((activeMouse &amp; InputEvent.BUTTON2_DOWN_MASK) == InputEvent.BUTTON2_DOWN_MASK) {</span>
+<span class="nc" id="L136">      mouseMiddle = buildMouseButton(actions, MouseActions.T_MIDDLE);</span>
+<span class="nc" id="L137">      add(mouseMiddle);</span>
+    } else {
+<span class="nc" id="L139">      mouseMiddle = null;</span>
+    }
+
+<span class="nc bnc" id="L142" title="All 2 branches missed.">    if (activeMouse &gt; 1) {</span>
+<span class="nc" id="L143">      addSeparator();</span>
+    }
+
+<span class="nc bnc" id="L146" title="All 2 branches missed.">    if (props.getBooleanProperty(&quot;weasis.toolbar.layout.button&quot;, true)) {</span>
+<span class="nc" id="L147">      final DropDownButton layout =</span>
+          new DropDownButton(
+              &quot;layout&quot;, // NON-NLS
+<span class="nc" id="L150">              new DropButtonIcon(ResourceUtil.getToolBarIcon(ActionIcon.LAYOUT))) {</span>
+
+            @Override
+            protected JPopupMenu getPopupMenu() {
+<span class="nc" id="L154">              return getLayoutPopupMenuButton(this);</span>
+            }
+          };
+<span class="nc" id="L157">      layout.setToolTipText(Messages.getString(&quot;ViewerToolBar.layout&quot;));</span>
+<span class="nc" id="L158">      add(layout);</span>
+    }
+
+<span class="nc bnc" id="L161" title="All 2 branches missed.">    if (props.getBooleanProperty(&quot;weasis.toolbar.synch.button&quot;, true)) {</span>
+<span class="nc" id="L162">      synchButton = buildSynchButton();</span>
+<span class="nc" id="L163">      add(synchButton);</span>
+    } else {
+<span class="nc" id="L165">      synchButton = null;</span>
+    }
+
+<span class="nc bnc" id="L168" title="All 2 branches missed.">    if (props.getBooleanProperty(&quot;weasis.toolbar.reset&quot;, true)) {</span>
+<span class="nc" id="L169">      final JButton resetButton = new JButton();</span>
+<span class="nc" id="L170">      resetButton.setToolTipText(Messages.getString(&quot;ViewerToolBar.disReset&quot;));</span>
+<span class="nc" id="L171">      resetButton.setIcon(ResourceUtil.getToolBarIcon(ActionIcon.RESET));</span>
+<span class="nc" id="L172">      resetButton.addActionListener(e -&gt; eventManager.resetDisplay());</span>
+<span class="nc" id="L173">      eventManager.getAction(ActionW.RESET).ifPresent(r -&gt; r.registerActionState(resetButton));</span>
+<span class="nc" id="L174">      add(resetButton);</span>
+    }
+<span class="nc" id="L176">  }</span>
+
+  private DropDownButton buildMouseButton(MouseActions actions, String actionLabel) {
+<span class="nc" id="L179">    String action = actions.getAction(actionLabel);</span>
+<span class="nc" id="L180">    final DropDownButton button =</span>
+<span class="nc" id="L181">        new DropDownButton(actionLabel, buildMouseIcon(actionLabel, action)) {</span>
+
+          @Override
+          protected JPopupMenu getPopupMenu() {
+<span class="nc" id="L185">            return getPopupMenuButton(this);</span>
+          }
+        };
+<span class="nc" id="L188">    button.setActionCommand(action);</span>
+<span class="nc" id="L189">    button.setToolTipText(Messages.getString(&quot;ViewerToolBar.change&quot;));</span>
+<span class="nc" id="L190">    return button;</span>
+  }
+
+  public DropDownButton getMouseLeft() {
+<span class="nc" id="L194">    return mouseLeft;</span>
+  }
+
+  private JPopupMenu getLayoutPopupMenuButton(DropDownButton dropDownButton) {
+<span class="nc" id="L198">    Optional&lt;ComboItemListener&lt;GridBagLayoutModel&gt;&gt; layout = eventManager.getAction(ActionW.LAYOUT);</span>
+<span class="nc" id="L199">    JPopupMenu popupMouseButtons = new JPopupMenu();</span>
+<span class="nc bnc" id="L200" title="All 2 branches missed.">    if (layout.isPresent()) {</span>
+<span class="nc" id="L201">      JMenu menu = layout.get().createUnregisteredRadioMenu(&quot;layout&quot;); // NON-NLS</span>
+<span class="nc" id="L202">      popupMouseButtons.setInvoker(dropDownButton);</span>
+<span class="nc" id="L203">      Component[] cps = menu.getMenuComponents();</span>
+<span class="nc bnc" id="L204" title="All 2 branches missed.">      for (Component cp : cps) {</span>
+<span class="nc" id="L205">        popupMouseButtons.add(cp);</span>
+      }
+    }
+<span class="nc" id="L208">    return popupMouseButtons;</span>
+  }
+
+  public void removeMouseAction(Feature&lt;?&gt; action) {
+<span class="nc bnc" id="L212" title="All 2 branches missed.">    if (action != null) {</span>
+<span class="nc" id="L213">      actionsButtons.remove(action);</span>
+<span class="nc" id="L214">      String cmd = action.cmd();</span>
+<span class="nc" id="L215">      MouseActions actions = eventManager.getMouseActions();</span>
+<span class="nc bnc" id="L216" title="All 2 branches missed.">      if (cmd.equals(mouseLeft.getActionCommand())) {</span>
+<span class="nc" id="L217">        Feature&lt;?&gt; last = actionsButtons.get(0);</span>
+<span class="nc" id="L218">        actions.setAction(MouseActions.T_LEFT, last.cmd());</span>
+<span class="nc" id="L219">        changeButtonState(MouseActions.T_LEFT, last.cmd());</span>
+      }
+    }
+<span class="nc" id="L222">  }</span>
+
+  private JPopupMenu getPopupMenuButton(DropDownButton dropButton) {
+<span class="nc" id="L225">    String type = dropButton.getType();</span>
+<span class="nc" id="L226">    String action = eventManager.getMouseActions().getAction(type);</span>
+<span class="nc" id="L227">    JPopupMenu popupMouseButtons = new JPopupMenu(type);</span>
+<span class="nc" id="L228">    popupMouseButtons.setInvoker(dropButton);</span>
+<span class="nc" id="L229">    ButtonGroup groupButtons = new ButtonGroup();</span>
+<span class="nc" id="L230">    synchronized (actionsButtons) {</span>
+<span class="nc bnc" id="L231" title="All 2 branches missed.">      for (Feature&lt;?&gt; b : actionsButtons) {</span>
+<span class="nc bnc" id="L232" title="All 2 branches missed.">        if (eventManager.isActionEnabled(b)) {</span>
+<span class="nc" id="L233">          JRadioButtonMenuItem radio =</span>
+<span class="nc" id="L234">              new JRadioButtonMenuItem(b.getTitle(), b.getIcon(), b.cmd().equals(action));</span>
+<span class="nc" id="L235">          GuiUtils.applySelectedIconEffect(radio);</span>
+<span class="nc" id="L236">          radio.setActionCommand(b.cmd());</span>
+<span class="nc" id="L237">          radio.addActionListener(this);</span>
+<span class="nc bnc" id="L238" title="All 2 branches missed.">          if (MouseActions.T_LEFT.equals(type)) {</span>
+<span class="nc" id="L239">            radio.setAccelerator(KeyStroke.getKeyStroke(b.getKeyCode(), b.getModifier()));</span>
+          }
+<span class="nc" id="L241">          popupMouseButtons.add(radio);</span>
+<span class="nc" id="L242">          groupButtons.add(radio);</span>
+        }
+<span class="nc" id="L244">      }</span>
+<span class="nc" id="L245">    }</span>
+<span class="nc" id="L246">    return popupMouseButtons;</span>
+  }
+
+  private JPopupMenu getPopupMenuScroll(DropDownButton dropButton) {
+<span class="nc" id="L250">    String type = dropButton.getType();</span>
+<span class="nc" id="L251">    String action = eventManager.getMouseActions().getAction(type);</span>
+<span class="nc" id="L252">    JPopupMenu popupMouseScroll = new JPopupMenu(type);</span>
+<span class="nc" id="L253">    popupMouseScroll.setInvoker(dropButton);</span>
+<span class="nc" id="L254">    ButtonGroup groupButtons = new ButtonGroup();</span>
+<span class="nc bnc" id="L255" title="All 2 branches missed.">    for (Feature&lt;?&gt; actionW : actionsScroll) {</span>
+<span class="nc bnc" id="L256" title="All 2 branches missed.">      if (eventManager.isActionEnabled(actionW)) {</span>
+<span class="nc" id="L257">        JRadioButtonMenuItem radio =</span>
+            new JRadioButtonMenuItem(
+<span class="nc" id="L259">                actionW.getTitle(), actionW.getIcon(), actionW.cmd().equals(action));</span>
+<span class="nc" id="L260">        GuiUtils.applySelectedIconEffect(radio);</span>
+<span class="nc" id="L261">        radio.setActionCommand(actionW.cmd());</span>
+<span class="nc" id="L262">        radio.addActionListener(this);</span>
+<span class="nc" id="L263">        popupMouseScroll.add(radio);</span>
+<span class="nc" id="L264">        groupButtons.add(radio);</span>
+      }
+    }
+
+<span class="nc" id="L268">    return popupMouseScroll;</span>
+  }
+
+  @Override
+  public void actionPerformed(ActionEvent e) {
+<span class="nc bnc" id="L273" title="All 2 branches missed.">    if (e.getSource() instanceof JRadioButtonMenuItem item</span>
+<span class="nc bnc" id="L274" title="All 2 branches missed.">        &amp;&amp; item.getParent() instanceof JPopupMenu popupMenu) {</span>
+<span class="nc" id="L275">      MouseActions mouseActions = eventManager.getMouseActions();</span>
+<span class="nc" id="L276">      mouseActions.setAction(popupMenu.getLabel(), item.getActionCommand());</span>
+<span class="nc" id="L277">      ImageViewerPlugin&lt;E&gt; view = eventManager.getSelectedView2dContainer();</span>
+<span class="nc bnc" id="L278" title="All 2 branches missed.">      if (view != null) {</span>
+<span class="nc" id="L279">        view.setMouseActions(mouseActions);</span>
+      }
+<span class="nc bnc" id="L281" title="All 2 branches missed.">      if (popupMenu.getInvoker() instanceof DropDownButton) {</span>
+<span class="nc" id="L282">        changeButtonState(popupMenu.getLabel(), item.getActionCommand());</span>
+      }
+    }
+<span class="nc" id="L285">  }</span>
+
+  public boolean isCommandActive(String cmd) {
+<span class="nc" id="L288">    int active = eventManager.getMouseActions().getActiveButtons();</span>
+<span class="nc bnc" id="L289" title="All 6 branches missed.">    return cmd != null &amp;&amp; checkButtonCommand(cmd, mouseLeft)</span>
+        || (((active &amp; InputEvent.BUTTON2_DOWN_MASK) == InputEvent.BUTTON2_DOWN_MASK)
+<span class="nc bnc" id="L291" title="All 4 branches missed.">            &amp;&amp; checkButtonCommand(cmd, mouseMiddle))</span>
+        || (((active &amp; InputEvent.BUTTON3_DOWN_MASK) == InputEvent.BUTTON3_DOWN_MASK)
+<span class="nc bnc" id="L293" title="All 2 branches missed.">            &amp;&amp; checkButtonCommand(cmd, mouseRight));</span>
+  }
+
+  private static boolean checkButtonCommand(String cmd, JButton button) {
+<span class="nc bnc" id="L297" title="All 4 branches missed.">    return button != null &amp;&amp; cmd.equals(button.getActionCommand());</span>
+  }
+
+  public void changeButtonState(String type, String cmd) {
+<span class="nc" id="L301">    DropDownButton button = getDropDownButton(type);</span>
+<span class="nc bnc" id="L302" title="All 2 branches missed.">    if (button != null) {</span>
+<span class="nc" id="L303">      Icon icon = buildMouseIcon(type, cmd);</span>
+<span class="nc" id="L304">      button.setIcon(icon);</span>
+<span class="nc" id="L305">      button.setActionCommand(cmd);</span>
+    }
+<span class="nc" id="L307">  }</span>
+
+  private Icon buildMouseIcon(String type, String cmd) {
+<span class="nc" id="L310">    final Icon mouseIcon = getMouseIcon(type);</span>
+<span class="nc" id="L311">    Feature&lt;?&gt; action = getAction(actionsButtons, cmd);</span>
+<span class="nc bnc" id="L312" title="All 2 branches missed.">    final Icon smallIcon = action == null ? ActionW.NO_ACTION.getIcon() : action.getIcon();</span>
+
+<span class="nc" id="L314">    return getDopButtonIcon(mouseIcon, smallIcon);</span>
+  }
+
+  static Icon getDopButtonIcon(Icon bckIcon, Icon smallIcon) {
+<span class="nc" id="L318">    return new DropButtonIcon(</span>
+<span class="nc" id="L319">        new Icon() {</span>
+
+          @Override
+          public void paintIcon(Component c, Graphics g, int x, int y) {
+<span class="nc bnc" id="L323" title="All 2 branches missed.">            if (c instanceof AbstractButton model) {</span>
+<span class="nc" id="L324">              Icon icon = null;</span>
+<span class="nc bnc" id="L325" title="All 2 branches missed.">              if (!model.isEnabled()) {</span>
+<span class="nc" id="L326">                icon = UIManager.getLookAndFeel().getDisabledIcon(model, bckIcon);</span>
+              }
+<span class="nc bnc" id="L328" title="All 2 branches missed.">              if (icon == null) {</span>
+<span class="nc" id="L329">                icon = bckIcon;</span>
+              }
+<span class="nc" id="L331">              icon.paintIcon(c, g, x, y);</span>
+<span class="nc bnc" id="L332" title="All 2 branches missed.">              if (smallIcon != null) {</span>
+<span class="nc" id="L333">                Icon sIcon = null;</span>
+<span class="nc bnc" id="L334" title="All 2 branches missed.">                if (!model.isEnabled()) {</span>
+<span class="nc" id="L335">                  sIcon = UIManager.getLookAndFeel().getDisabledIcon(model, smallIcon);</span>
+                }
+<span class="nc bnc" id="L337" title="All 2 branches missed.">                if (sIcon == null) {</span>
+<span class="nc" id="L338">                  sIcon = smallIcon;</span>
+                }
+<span class="nc" id="L340">                int sx = x + bckIcon.getIconWidth() - sIcon.getIconWidth();</span>
+<span class="nc" id="L341">                int sy = y + bckIcon.getIconHeight() - sIcon.getIconHeight();</span>
+<span class="nc" id="L342">                sIcon.paintIcon(c, g, sx, sy);</span>
+              }
+            }
+<span class="nc" id="L345">          }</span>
+
+          @Override
+          public int getIconWidth() {
+<span class="nc" id="L349">            return bckIcon.getIconWidth();</span>
+          }
+
+          @Override
+          public int getIconHeight() {
+<span class="nc" id="L354">            return bckIcon.getIconHeight();</span>
+          }
+        });
+  }
+
+  private DropDownButton buildSynchButton() {
+<span class="nc" id="L360">    GroupPopup menuLut = null;</span>
+<span class="nc" id="L361">    ComboItemListener&lt;SynchView&gt; synch = eventManager.getAction(ActionW.SYNCH).orElse(null);</span>
+<span class="nc" id="L362">    SynchView synchView = SynchView.DEFAULT_STACK;</span>
+<span class="nc bnc" id="L363" title="All 2 branches missed.">    if (synch != null) {</span>
+<span class="nc bnc" id="L364" title="All 2 branches missed.">      if (synch.getSelectedItem() instanceof SynchView sel) {</span>
+<span class="nc" id="L365">        synchView = sel;</span>
+      }
+<span class="nc" id="L367">      menuLut = new SynchGroupMenu();</span>
+<span class="nc" id="L368">      synch.registerActionState(menuLut);</span>
+    }
+<span class="nc" id="L370">    final DropDownButton button =</span>
+<span class="nc" id="L371">        new DropDownButton(ActionW.SYNCH.cmd(), buildSynchIcon(synchView), menuLut) {</span>
+          @Override
+          protected JPopupMenu getPopupMenu() {
+            JPopupMenu menu =
+<span class="nc bnc" id="L375" title="All 2 branches missed.">                (getMenuModel() == null) ? new JPopupMenu() : getMenuModel().createJPopupMenu();</span>
+<span class="nc" id="L376">            menu.setInvoker(this);</span>
+<span class="nc" id="L377">            return menu;</span>
+          }
+        };
+<span class="nc" id="L380">    button.setToolTipText(Messages.getString(&quot;ViewerToolBar.synch&quot;));</span>
+<span class="nc bnc" id="L381" title="All 2 branches missed.">    if (synch != null) {</span>
+<span class="nc" id="L382">      synch.registerActionState(button);</span>
+    }
+<span class="nc" id="L384">    return button;</span>
+  }
+
+  private static Icon buildSynchIcon(SynchView synch) {
+<span class="nc" id="L388">    final Icon mouseIcon = ResourceUtil.getToolBarIcon(ActionIcon.SYNCH_LARGE);</span>
+<span class="nc" id="L389">    final FlatSVGIcon smallIcon =</span>
+<span class="nc" id="L390">        GuiUtils.getDerivedIcon(</span>
+<span class="nc" id="L391">            synch.getIcon(), new ColorFilter().add(new Color(0x6E6E6E), new Color(0x389FD6)));</span>
+<span class="nc" id="L392">    return new DropButtonIcon(</span>
+<span class="nc" id="L393">        new Icon() {</span>
+
+          @Override
+          public void paintIcon(Component c, Graphics g, int x, int y) {
+<span class="nc bnc" id="L397" title="All 2 branches missed.">            if (c instanceof AbstractButton model) {</span>
+<span class="nc" id="L398">              Icon icon = null;</span>
+<span class="nc bnc" id="L399" title="All 2 branches missed.">              if (!model.isEnabled()) {</span>
+<span class="nc" id="L400">                icon = UIManager.getLookAndFeel().getDisabledIcon(model, mouseIcon);</span>
+              }
+<span class="nc bnc" id="L402" title="All 2 branches missed.">              if (icon == null) {</span>
+<span class="nc" id="L403">                icon = mouseIcon;</span>
+              }
+<span class="nc" id="L405">              Icon sIcon = null;</span>
+<span class="nc bnc" id="L406" title="All 2 branches missed.">              if (!model.isEnabled()) {</span>
+<span class="nc" id="L407">                sIcon = UIManager.getLookAndFeel().getDisabledIcon(model, smallIcon);</span>
+              }
+<span class="nc bnc" id="L409" title="All 2 branches missed.">              if (sIcon == null) {</span>
+<span class="nc" id="L410">                sIcon = smallIcon;</span>
+              }
+<span class="nc" id="L412">              int x2 = x + mouseIcon.getIconWidth() / 2 - sIcon.getIconWidth() / 2;</span>
+<span class="nc" id="L413">              int y2 = y + mouseIcon.getIconHeight() / 2 - sIcon.getIconHeight() / 2;</span>
+<span class="nc" id="L414">              sIcon.paintIcon(c, g, x2, y2);</span>
+<span class="nc" id="L415">              icon.paintIcon(c, g, x, y);</span>
+            }
+<span class="nc" id="L417">          }</span>
+
+          @Override
+          public int getIconWidth() {
+<span class="nc" id="L421">            return mouseIcon.getIconWidth();</span>
+          }
+
+          @Override
+          public int getIconHeight() {
+<span class="nc" id="L426">            return mouseIcon.getIconHeight();</span>
+          }
+        });
+  }
+
+  public DropDownButton getDropDownButton(String type) {
+<span class="nc bnc" id="L432" title="All 2 branches missed.">    if (MouseActions.T_LEFT.equals(type)) {</span>
+<span class="nc" id="L433">      return mouseLeft;</span>
+<span class="nc bnc" id="L434" title="All 2 branches missed.">    } else if (MouseActions.T_RIGHT.equals(type)) {</span>
+<span class="nc" id="L435">      return mouseRight;</span>
+<span class="nc bnc" id="L436" title="All 2 branches missed.">    } else if (MouseActions.T_MIDDLE.equals(type)) {</span>
+<span class="nc" id="L437">      return mouseMiddle;</span>
+<span class="nc bnc" id="L438" title="All 2 branches missed.">    } else if (MouseActions.T_WHEEL.equals(type)) {</span>
+<span class="nc" id="L439">      return mouseWheel;</span>
+    }
+<span class="nc" id="L441">    return null;</span>
+  }
+
+  public Feature&lt;?&gt; getToolBarAction(String command) {
+<span class="nc" id="L445">    return getAction(actionsButtons, command);</span>
+  }
+
+  public Feature&lt;?&gt; getAction(List&lt;Feature&lt;?&gt;&gt; buttons, String command) {
+<span class="nc bnc" id="L449" title="All 2 branches missed.">    if (buttons != null) {</span>
+<span class="nc" id="L450">      synchronized (buttons) { // NOSONAR lock object is the list for iterating its elements safely</span>
+<span class="nc bnc" id="L451" title="All 2 branches missed.">        for (Feature&lt;?&gt; a : buttons) {</span>
+<span class="nc bnc" id="L452" title="All 2 branches missed.">          if (a.cmd().equals(command)) {</span>
+<span class="nc" id="L453">            return a;</span>
+          }
+<span class="nc" id="L455">        }</span>
+<span class="nc" id="L456">      }</span>
+    }
+<span class="nc" id="L458">    return null;</span>
+  }
+
+  private static FlatSVGIcon getMouseIcon(String type) {
+<span class="nc bnc" id="L462" title="All 2 branches missed.">    if (MouseActions.T_LEFT.equals(type)) {</span>
+<span class="nc" id="L463">      return MouseLeftIcon;</span>
+<span class="nc bnc" id="L464" title="All 2 branches missed.">    } else if (MouseActions.T_RIGHT.equals(type)) {</span>
+<span class="nc" id="L465">      return MouseRightIcon;</span>
+<span class="nc bnc" id="L466" title="All 2 branches missed.">    } else if (MouseActions.T_MIDDLE.equals(type)) {</span>
+<span class="nc" id="L467">      return MouseMiddleIcon;</span>
+<span class="nc bnc" id="L468" title="All 2 branches missed.">    } else if (MouseActions.T_WHEEL.equals(type)) {</span>
+<span class="nc" id="L469">      return MouseWheelIcon;</span>
+    }
+<span class="nc" id="L471">    return MouseLeftIcon;</span>
+  }
+
+  public static Feature&lt;?&gt; getNextCommand(List&lt;Feature&lt;?&gt;&gt; buttons, String command) {
+<span class="nc bnc" id="L475" title="All 4 branches missed.">    if (buttons != null &amp;&amp; !buttons.isEmpty()) {</span>
+<span class="nc" id="L476">      int index = 0;</span>
+<span class="nc" id="L477">      synchronized (buttons) { // NOSONAR lock object is the list for iterating its elements safely</span>
+<span class="nc bnc" id="L478" title="All 2 branches missed.">        for (int i = 0; i &lt; buttons.size(); i++) {</span>
+<span class="nc" id="L479">          Feature&lt;?&gt; b = buttons.get(i);</span>
+<span class="nc bnc" id="L480" title="All 2 branches missed.">          if (b.cmd().equals(command)) {</span>
+<span class="nc bnc" id="L481" title="All 2 branches missed.">            index = (i == buttons.size() - 1) ? 0 : i + 1;</span>
+<span class="nc" id="L482">            break;</span>
+          }
+        }
+<span class="nc" id="L485">        return buttons.get(index);</span>
+      }
+    }
+<span class="nc" id="L488">    return null;</span>
+  }
+
+<span class="nc" id="L491">  class SynchGroupMenu extends GroupRadioMenu&lt;SynchView&gt; {</span>
+
+    @Override
+    public void contentsChanged(ListDataEvent e) {
+<span class="nc" id="L495">      super.contentsChanged(e);</span>
+<span class="nc" id="L496">      changeButtonState();</span>
+<span class="nc" id="L497">    }</span>
+
+    public void changeButtonState() {
+<span class="nc bnc" id="L500" title="All 4 branches missed.">      if (synchButton != null &amp;&amp; dataModel.getSelectedItem() instanceof SynchView sel) {</span>
+<span class="nc" id="L501">        Icon icon = buildSynchIcon(sel);</span>
+<span class="nc" id="L502">        synchButton.setIcon(icon);</span>
+<span class="nc" id="L503">        synchButton.setActionCommand(sel.toString());</span>
+      }
+<span class="nc" id="L505">    }</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

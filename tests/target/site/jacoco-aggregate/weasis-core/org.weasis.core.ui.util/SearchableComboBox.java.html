@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>SearchableComboBox.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.util</a> &gt; <span class="el_source">SearchableComboBox.java</span></div><h1>SearchableComboBox.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2022 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.util;
+
+import com.formdev.flatlaf.FlatClientProperties;
+import com.formdev.flatlaf.icons.FlatClearIcon;
+import com.formdev.flatlaf.icons.FlatSearchIcon;
+import java.awt.event.ItemEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.util.Vector;
+import java.util.concurrent.atomic.AtomicBoolean;
+import javax.swing.ComboBoxModel;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
+
+public class SearchableComboBox&lt;E&gt; extends JComboBox&lt;E&gt; {
+  private final DefaultComboBoxModel&lt;E&gt; originalModel;
+<span class="nc" id="L30">  private final AtomicBoolean isFiltering = new AtomicBoolean(false);</span>
+
+  public SearchableComboBox() {
+<span class="nc" id="L33">    this(new DefaultComboBoxModel&lt;&gt;());</span>
+<span class="nc" id="L34">  }</span>
+
+  public SearchableComboBox(E[] items) {
+<span class="nc" id="L37">    this(new DefaultComboBoxModel&lt;&gt;(items));</span>
+<span class="nc" id="L38">  }</span>
+
+  public SearchableComboBox(Vector&lt;E&gt; items) {
+<span class="nc" id="L41">    this(new DefaultComboBoxModel&lt;&gt;(items));</span>
+<span class="nc" id="L42">  }</span>
+
+  public SearchableComboBox(ComboBoxModel&lt;E&gt; comboBoxModel) {
+<span class="nc" id="L45">    super(comboBoxModel);</span>
+<span class="nc" id="L46">    this.originalModel = new DefaultComboBoxModel&lt;&gt;();</span>
+<span class="nc" id="L47">    copyModel(comboBoxModel);</span>
+
+<span class="nc" id="L49">    this.addItemListener(</span>
+        e -&gt; {
+<span class="nc bnc" id="L51" title="All 2 branches missed.">          if (e.getStateChange() == ItemEvent.SELECTED) {</span>
+<span class="nc bnc" id="L52" title="All 4 branches missed.">            if (!isFiltering.get() &amp;&amp; !comboBoxModel.equals(originalModel)) {</span>
+<span class="nc" id="L53">              E item = (E) getSelectedItem();</span>
+<span class="nc" id="L54">              super.setModel(originalModel);</span>
+<span class="nc" id="L55">              setSelectedItem(item);</span>
+            }
+          }
+<span class="nc" id="L58">        });</span>
+<span class="nc" id="L59">    this.setEditable(true);</span>
+<span class="nc" id="L60">    JTextField editorComponent = (JTextField) editor.getEditorComponent();</span>
+<span class="nc" id="L61">    JButton clearButton = new JButton(new FlatClearIcon());</span>
+<span class="nc" id="L62">    editorComponent.putClientProperty(</span>
+        FlatClientProperties.TEXT_FIELD_LEADING_COMPONENT, new JLabel(new FlatSearchIcon(true)));
+<span class="nc" id="L64">    editorComponent.putClientProperty(</span>
+        FlatClientProperties.TEXT_FIELD_TRAILING_COMPONENT, clearButton);
+<span class="nc" id="L66">    editorComponent.addKeyListener(</span>
+<span class="nc" id="L67">        new KeyAdapter() {</span>
+          @Override
+          public void keyReleased(KeyEvent ke) {
+<span class="nc" id="L70">            filter(editorComponent.getText());</span>
+<span class="nc" id="L71">          }</span>
+        });
+<span class="nc" id="L73">    clearButton.addActionListener(</span>
+        _ -&gt; {
+<span class="nc" id="L75">          editorComponent.setText(&quot;&quot;);</span>
+<span class="nc" id="L76">          super.setModel(originalModel);</span>
+<span class="nc" id="L77">          setSelectedItem(null);</span>
+<span class="nc" id="L78">        });</span>
+<span class="nc" id="L79">  }</span>
+
+  private void copyModel(ComboBoxModel&lt;E&gt; comboBoxModel) {
+<span class="nc bnc" id="L82" title="All 4 branches missed.">    if (originalModel == null || comboBoxModel == null) {</span>
+<span class="nc" id="L83">      return;</span>
+    }
+<span class="nc" id="L85">    originalModel.removeAllElements();</span>
+<span class="nc bnc" id="L86" title="All 2 branches missed.">    for (int i = 0; i &lt; comboBoxModel.getSize(); i++) {</span>
+<span class="nc" id="L87">      originalModel.addElement(comboBoxModel.getElementAt(i));</span>
+    }
+<span class="nc" id="L89">  }</span>
+
+  @Override
+  public void setModel(ComboBoxModel&lt;E&gt; aModel) {
+<span class="nc" id="L93">    copyModel(aModel);</span>
+<span class="nc" id="L94">    super.setModel(aModel);</span>
+<span class="nc" id="L95">  }</span>
+
+  protected void filter(String text) {
+<span class="nc" id="L98">    isFiltering.set(true);</span>
+<span class="nc" id="L99">    Vector&lt;E&gt; entriesFiltered = new Vector&lt;&gt;();</span>
+<span class="nc" id="L100">    String compText = text.trim().toLowerCase();</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">    if (compText.length() &gt; 1) {</span>
+<span class="nc bnc" id="L102" title="All 2 branches missed.">      for (int i = 0; i &lt; originalModel.getSize(); i++) {</span>
+<span class="nc" id="L103">        E val = originalModel.getElementAt(i);</span>
+<span class="nc bnc" id="L104" title="All 4 branches missed.">        if (val != null &amp;&amp; val.toString().toLowerCase().contains(compText)) {</span>
+<span class="nc" id="L105">          entriesFiltered.add(val);</span>
+        }
+      }
+    }
+
+<span class="nc" id="L110">    SwingUtilities.invokeLater(</span>
+        () -&gt; {
+<span class="nc bnc" id="L112" title="All 2 branches missed.">          if (entriesFiltered.isEmpty()) {</span>
+<span class="nc" id="L113">            setSelectedItem(text);</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">            if (compText.length() &gt; 1) {</span>
+<span class="nc" id="L115">              getUI().setPopupVisible(this, false);</span>
+            }
+          } else {
+<span class="nc" id="L118">            DefaultComboBoxModel&lt;E&gt; model = new DefaultComboBoxModel&lt;&gt;(entriesFiltered);</span>
+<span class="nc" id="L119">            model.setSelectedItem(entriesFiltered.getFirst());</span>
+<span class="nc" id="L120">            super.setModel(model);</span>
+<span class="nc" id="L121">            setSelectedItem(text);</span>
+<span class="nc" id="L122">            getUI().setPopupVisible(this, true);</span>
+          }
+<span class="nc" id="L124">          isFiltering.set(false);</span>
+<span class="nc" id="L125">        });</span>
+<span class="nc" id="L126">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ThreePointsCircleGraphic.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.graphic.imp.area</a> &gt; <span class="el_source">ThreePointsCircleGraphic.java</span></div><h1>ThreePointsCircleGraphic.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.graphic.imp.area;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlType;
+import java.awt.Shape;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Point2D;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import javax.swing.Icon;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.GeomUtil;
+import org.weasis.core.api.image.measure.MeasurementsAdapter;
+import org.weasis.core.api.image.util.MeasurableLayer;
+import org.weasis.core.api.image.util.Unit;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.api.util.ResourceUtil.ActionIcon;
+import org.weasis.core.ui.model.graphic.AbstractDragGraphicArea;
+import org.weasis.core.ui.model.utils.bean.MeasureItem;
+import org.weasis.core.ui.model.utils.bean.Measurement;
+import org.weasis.core.ui.model.utils.exceptions.InvalidShapeException;
+import org.weasis.core.ui.util.MouseEventDouble;
+
+@XmlType(name = &quot;threePointsCircle&quot;)
+@XmlRootElement(name = &quot;threePointsCircle&quot;)
+public class ThreePointsCircleGraphic extends AbstractDragGraphicArea {
+
+<span class="nc" id="L39">  public static final Integer POINTS_NUMBER = 3;</span>
+
+<span class="nc" id="L41">  public static final Icon ICON = ResourceUtil.getIcon(ActionIcon.DRAW_CIRCLE);</span>
+
+<span class="nc" id="L43">  public static final Measurement AREA =</span>
+<span class="nc" id="L44">      new Measurement(Messages.getString(&quot;measure.area&quot;), 1, true, true, true);</span>
+<span class="nc" id="L45">  public static final Measurement DIAMETER =</span>
+<span class="nc" id="L46">      new Measurement(Messages.getString(&quot;measure.diameter&quot;), 2, true, true, false);</span>
+<span class="nc" id="L47">  public static final Measurement PERIMETER =</span>
+<span class="nc" id="L48">      new Measurement(Messages.getString(&quot;measure.perimeter&quot;), 3, true, true, false);</span>
+<span class="nc" id="L49">  public static final Measurement CENTER_X =</span>
+<span class="nc" id="L50">      new Measurement(Messages.getString(&quot;measure.centerx&quot;), 4, true, true, false);</span>
+<span class="nc" id="L51">  public static final Measurement CENTER_Y =</span>
+<span class="nc" id="L52">      new Measurement(Messages.getString(&quot;measure.centery&quot;), 5, true, true, false);</span>
+<span class="nc" id="L53">  public static final Measurement RADIUS =</span>
+<span class="nc" id="L54">      new Measurement(Messages.getString(&quot;measure.radius&quot;), 6, true, true, false);</span>
+
+<span class="nc" id="L56">  protected static final List&lt;Measurement&gt; MEASUREMENT_LIST = new ArrayList&lt;&gt;();</span>
+
+  static {
+<span class="nc" id="L59">    MEASUREMENT_LIST.add(CENTER_X);</span>
+<span class="nc" id="L60">    MEASUREMENT_LIST.add(CENTER_Y);</span>
+<span class="nc" id="L61">    MEASUREMENT_LIST.add(RADIUS);</span>
+<span class="nc" id="L62">    MEASUREMENT_LIST.add(DIAMETER);</span>
+<span class="nc" id="L63">    MEASUREMENT_LIST.add(AREA);</span>
+<span class="nc" id="L64">    MEASUREMENT_LIST.add(PERIMETER);</span>
+<span class="nc" id="L65">  }</span>
+
+  protected Point2D centerPt; // Let O be the center of the three point interpolated circle
+  protected Double radiusPt; // circle radius
+
+  public ThreePointsCircleGraphic() {
+<span class="nc" id="L71">    super(POINTS_NUMBER);</span>
+<span class="nc" id="L72">  }</span>
+
+  public ThreePointsCircleGraphic(ThreePointsCircleGraphic graphic) {
+<span class="nc" id="L75">    super(graphic);</span>
+<span class="nc" id="L76">  }</span>
+
+  @Override
+  public ThreePointsCircleGraphic copy() {
+<span class="nc" id="L80">    return new ThreePointsCircleGraphic(this);</span>
+  }
+
+  @Override
+  public Icon getIcon() {
+<span class="nc" id="L85">    return ICON;</span>
+  }
+
+  @Override
+  public String getUIName() {
+<span class="nc" id="L90">    return Messages.getString(&quot;measure.three_pt_angle&quot;);</span>
+  }
+
+  @Override
+  protected void prepareShape() throws InvalidShapeException {
+<span class="nc bnc" id="L95" title="All 2 branches missed.">    if (!isShapeValid()) {</span>
+<span class="nc" id="L96">      throw new InvalidShapeException(&quot;This shape cannot be drawn&quot;);</span>
+    }
+<span class="nc" id="L98">    buildShape(null);</span>
+<span class="nc" id="L99">  }</span>
+
+  @Override
+  public void buildShape(MouseEventDouble mouseEvent) {
+<span class="nc" id="L103">    updateTool();</span>
+<span class="nc" id="L104">    Shape newShape = null;</span>
+
+<span class="nc bnc" id="L106" title="All 4 branches missed.">    if (Objects.nonNull(centerPt) &amp;&amp; !Objects.equals(radiusPt, 0d)) {</span>
+<span class="nc" id="L107">      newShape =</span>
+          new Ellipse2D.Double(
+<span class="nc" id="L109">              centerPt.getX() - radiusPt, centerPt.getY() - radiusPt, 2 * radiusPt, 2 * radiusPt);</span>
+    }
+
+<span class="nc" id="L112">    setShape(newShape, mouseEvent);</span>
+<span class="nc" id="L113">    updateLabel(mouseEvent, getDefaultView2d(mouseEvent));</span>
+<span class="nc" id="L114">  }</span>
+
+  /** Force displaying handles even during resizing or moving sequences */
+  @Override
+  public Boolean getResizingOrMoving() {
+<span class="nc" id="L119">    return Boolean.FALSE;</span>
+  }
+
+  @Override
+  public List&lt;MeasureItem&gt; computeMeasurements(
+      MeasurableLayer layer, boolean releaseEvent, Unit displayUnit) {
+
+<span class="nc bnc" id="L126" title="All 6 branches missed.">    if (layer != null &amp;&amp; layer.hasContent() &amp;&amp; isShapeValid()) {</span>
+<span class="nc" id="L127">      MeasurementsAdapter adapter = layer.getMeasurementAdapter(displayUnit);</span>
+
+<span class="nc bnc" id="L129" title="All 2 branches missed.">      if (adapter != null) {</span>
+<span class="nc" id="L130">        ArrayList&lt;MeasureItem&gt; measVal = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L132">        double ratio = adapter.getCalibRatio();</span>
+
+<span class="nc bnc" id="L134" title="All 2 branches missed.">        if (CENTER_X.getComputed()) {</span>
+<span class="nc" id="L135">          measVal.add(</span>
+              new MeasureItem(
+<span class="nc" id="L137">                  CENTER_X, adapter.getXCalibratedValue(centerPt.getX()), adapter.getUnit()));</span>
+        }
+<span class="nc bnc" id="L139" title="All 2 branches missed.">        if (CENTER_Y.getComputed()) {</span>
+<span class="nc" id="L140">          measVal.add(</span>
+              new MeasureItem(
+<span class="nc" id="L142">                  CENTER_Y, adapter.getYCalibratedValue(centerPt.getY()), adapter.getUnit()));</span>
+        }
+<span class="nc bnc" id="L144" title="All 2 branches missed.">        if (RADIUS.getComputed()) {</span>
+<span class="nc" id="L145">          measVal.add(new MeasureItem(RADIUS, ratio * radiusPt, adapter.getUnit()));</span>
+        }
+<span class="nc bnc" id="L147" title="All 2 branches missed.">        if (DIAMETER.getComputed()) {</span>
+<span class="nc" id="L148">          measVal.add(new MeasureItem(DIAMETER, ratio * radiusPt * 2.0, adapter.getUnit()));</span>
+        }
+<span class="nc bnc" id="L150" title="All 2 branches missed.">        if (AREA.getComputed()) {</span>
+          String unit =
+<span class="nc bnc" id="L152" title="All 2 branches missed.">              &quot;pix&quot;.equals(adapter.getUnit()) // NON-NLS</span>
+<span class="nc" id="L153">                  ? adapter.getUnit()</span>
+<span class="nc" id="L154">                  : adapter.getUnit() + &quot;2&quot;;</span>
+<span class="nc" id="L155">          measVal.add(new MeasureItem(AREA, Math.PI * radiusPt * radiusPt * ratio * ratio, unit));</span>
+        }
+
+<span class="nc" id="L158">        List&lt;MeasureItem&gt; stats = getImageStatistics(layer, releaseEvent);</span>
+<span class="nc bnc" id="L159" title="All 2 branches missed.">        if (stats != null) {</span>
+<span class="nc" id="L160">          measVal.addAll(stats);</span>
+        }
+
+<span class="nc" id="L163">        return measVal;</span>
+      }
+    }
+<span class="nc" id="L166">    return Collections.emptyList();</span>
+  }
+
+  @Override
+  public List&lt;Measurement&gt; getMeasurementList() {
+<span class="nc" id="L171">    return MEASUREMENT_LIST;</span>
+  }
+
+  @Override
+  public boolean isShapeValid() {
+<span class="nc" id="L176">    updateTool();</span>
+<span class="nc bnc" id="L177" title="All 6 branches missed.">    return super.isShapeValid() &amp;&amp; centerPt != null &amp;&amp; radiusPt &lt; 50000;</span>
+  }
+
+  protected void updateTool() {
+<span class="nc" id="L181">    Point2D ptA = getHandlePoint(0);</span>
+
+<span class="nc" id="L183">    centerPt = GeomUtil.getCircleCenter(pts);</span>
+<span class="nc bnc" id="L184" title="All 4 branches missed.">    radiusPt = (centerPt != null &amp;&amp; ptA != null) ? centerPt.distance(ptA) : 0;</span>
+<span class="nc" id="L185">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

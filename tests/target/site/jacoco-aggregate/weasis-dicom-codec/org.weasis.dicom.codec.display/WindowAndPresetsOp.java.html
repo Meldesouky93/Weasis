@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>WindowAndPresetsOp.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec.display</a> &gt; <span class="el_source">WindowAndPresetsOp.java</span></div><h1>WindowAndPresetsOp.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec.display;
+
+import java.util.Map;
+import java.util.Optional;
+import org.dcm4che3.data.Tag;
+import org.dcm4che3.data.UID;
+import org.dcm4che3.img.DicomImageUtils;
+import org.dcm4che3.img.data.PrDicomObject;
+import org.dcm4che3.img.lut.PresetWindowLevel;
+import org.weasis.core.api.gui.util.ActionW;
+import org.weasis.core.api.image.ImageOpEvent;
+import org.weasis.core.api.image.ImageOpEvent.OpEvent;
+import org.weasis.core.api.image.WindowOp;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.util.LangUtil;
+import org.weasis.dicom.codec.DicomImageElement;
+import org.weasis.dicom.codec.PRSpecialElement;
+import org.weasis.opencv.data.PlanarImage;
+import org.weasis.opencv.op.lut.DefaultWlPresentation;
+
+<span class="nc" id="L30">public class WindowAndPresetsOp extends WindowOp {</span>
+
+  public static final String P_PR_ELEMENT = &quot;pr.element&quot;;
+
+  @Override
+  public void handleImageOpEvent(ImageOpEvent event) {
+<span class="nc" id="L36">    OpEvent type = event.getEventType();</span>
+<span class="nc bnc" id="L37" title="All 2 branches missed.">    if (OpEvent.IMAGE_CHANGE.equals(type)) {</span>
+<span class="nc" id="L38">      setParam(P_IMAGE_ELEMENT, event.getImage());</span>
+<span class="nc" id="L39">      removeParam(P_PR_ELEMENT);</span>
+<span class="nc bnc" id="L40" title="All 4 branches missed.">    } else if (OpEvent.RESET_DISPLAY.equals(type) || OpEvent.SERIES_CHANGE.equals(type)) {</span>
+<span class="nc" id="L41">      ImageElement img = event.getImage();</span>
+<span class="nc" id="L42">      setParam(P_IMAGE_ELEMENT, img);</span>
+<span class="nc" id="L43">      PrDicomObject pr = (PrDicomObject) getParam(P_PR_ELEMENT);</span>
+<span class="nc" id="L44">      removeParam(P_PR_ELEMENT);</span>
+<span class="nc bnc" id="L45" title="All 2 branches missed.">      if (img != null) {</span>
+<span class="nc bnc" id="L46" title="All 2 branches missed.">        if (!img.isImageAvailable()) {</span>
+          // Ensure to load image before calling the default preset that requires pixel min and max
+<span class="nc" id="L48">          img.getImage();</span>
+        }
+
+<span class="nc" id="L51">        boolean pixelPadding =</span>
+<span class="nc" id="L52">            LangUtil.getNULLtoTrue((Boolean) getParam(ActionW.IMAGE_PIX_PADDING.cmd()));</span>
+<span class="nc" id="L53">        PresetWindowLevel preset = null;</span>
+<span class="nc bnc" id="L54" title="All 2 branches missed.">        if (img instanceof DicomImageElement imageElement) {</span>
+<span class="nc" id="L55">          DefaultWlPresentation wlp = new DefaultWlPresentation(null, pixelPadding);</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">          if (pr != null) {</span>
+<span class="nc" id="L57">            imageElement.getPresetList(wlp, true);</span>
+          }
+<span class="nc" id="L59">          preset = imageElement.getDefaultPreset(wlp);</span>
+        }
+<span class="nc" id="L61">        setPreset(preset, img, pixelPadding);</span>
+      }
+<span class="nc bnc" id="L63" title="All 2 branches missed.">    } else if (OpEvent.APPLY_PR.equals(type)) {</span>
+<span class="nc" id="L64">      ImageElement img = event.getImage();</span>
+<span class="nc" id="L65">      setParam(P_IMAGE_ELEMENT, img);</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">      if (img != null) {</span>
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        if (!img.isImageAvailable()) {</span>
+          // Ensure to load image before calling the default preset that requires pixel min and max
+<span class="nc" id="L69">          img.getImage();</span>
+        }
+<span class="nc" id="L71">        boolean pixelPadding =</span>
+<span class="nc" id="L72">            LangUtil.getNULLtoTrue((Boolean) getParam(ActionW.IMAGE_PIX_PADDING.cmd()));</span>
+<span class="nc" id="L73">        Map&lt;String, Object&gt; p = event.getParams();</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">        if (p != null) {</span>
+<span class="nc" id="L75">          PRSpecialElement pr =</span>
+<span class="nc" id="L76">              Optional.ofNullable(p.get(ActionW.PR_STATE.cmd()))</span>
+<span class="nc" id="L77">                  .filter(PRSpecialElement.class::isInstance)</span>
+<span class="nc" id="L78">                  .map(PRSpecialElement.class::cast)</span>
+<span class="nc" id="L79">                  .orElse(null);</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">          setParam(P_PR_ELEMENT, pr == null ? null : pr.getPrDicomObject());</span>
+
+<span class="nc" id="L82">          PresetWindowLevel preset = (PresetWindowLevel) p.get(ActionW.PRESET.cmd());</span>
+<span class="nc bnc" id="L83" title="All 4 branches missed.">          if (preset == null &amp;&amp; img instanceof DicomImageElement imageElement) {</span>
+<span class="nc" id="L84">            DefaultWlPresentation wlp = new DefaultWlPresentation(null, pixelPadding);</span>
+<span class="nc" id="L85">            preset = imageElement.getDefaultPreset(wlp);</span>
+          }
+<span class="nc" id="L87">          setPreset(preset, img, pixelPadding);</span>
+        }
+      }
+    }
+<span class="nc" id="L91">  }</span>
+
+  private void setPreset(PresetWindowLevel preset, ImageElement img, boolean pixelPadding) {
+<span class="nc bnc" id="L94" title="All 2 branches missed.">    boolean p = preset != null;</span>
+<span class="nc" id="L95">    PrDicomObject pr = (PrDicomObject) getParam(P_PR_ELEMENT);</span>
+<span class="nc" id="L96">    setParam(ActionW.PRESET.cmd(), preset);</span>
+<span class="nc" id="L97">    setParam(ActionW.DEFAULT_PRESET.cmd(), true);</span>
+<span class="nc" id="L98">    DefaultWlPresentation wlp = new DefaultWlPresentation(pr, pixelPadding);</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">    setParam(ActionW.WINDOW.cmd(), p ? preset.getWindow() : img.getDefaultWindow(wlp));</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">    setParam(ActionW.LEVEL.cmd(), p ? preset.getLevel() : img.getDefaultLevel(wlp));</span>
+<span class="nc" id="L101">    setParam(ActionW.LEVEL_MIN.cmd(), img.getMinValue(wlp));</span>
+<span class="nc" id="L102">    setParam(ActionW.LEVEL_MAX.cmd(), img.getMaxValue(wlp));</span>
+<span class="nc bnc" id="L103" title="All 2 branches missed.">    setParam(ActionW.LUT_SHAPE.cmd(), p ? preset.getLutShape() : img.getDefaultShape(wlp));</span>
+<span class="nc" id="L104">  }</span>
+
+  public void process() throws Exception {
+<span class="nc" id="L107">    PlanarImage source = (PlanarImage) params.get(Param.INPUT_IMG);</span>
+<span class="nc" id="L108">    PlanarImage result = source;</span>
+<span class="nc" id="L109">    ImageElement imageElement = (ImageElement) params.get(P_IMAGE_ELEMENT);</span>
+
+<span class="nc bnc" id="L111" title="All 2 branches missed.">    if (imageElement != null) {</span>
+<span class="nc" id="L112">      PrDicomObject pr = (PrDicomObject) params.get(P_PR_ELEMENT);</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">      if (pr != null</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">          &amp;&amp; UID.PseudoColorSoftcopyPresentationStateStorage.equals(</span>
+<span class="nc" id="L115">              pr.getDicomObject().getString(Tag.SOPClassUID))) {</span>
+<span class="nc" id="L116">        source = DicomImageUtils.getRGBImageFromPaletteColorModel(source, pr.getDicomObject());</span>
+      }
+<span class="nc" id="L118">      result = imageElement.getRenderedImage(source, params);</span>
+    }
+
+<span class="nc" id="L121">    params.put(Param.OUTPUT_IMG, result);</span>
+<span class="nc" id="L122">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

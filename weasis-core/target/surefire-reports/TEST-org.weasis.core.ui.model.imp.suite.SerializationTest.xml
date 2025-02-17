@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report.xsd" version="3.0.2" name="org.weasis.core.ui.model.imp.suite.SerializationTest" time="0.157" tests="5" errors="0" skipped="0" failures="0">
+  <properties>
+    <property name="java.specification.version" value="23"/>
+    <property name="sun.jnu.encoding" value="UTF-8"/>
+    <property name="java.class.path" value="/workspaces/Weasis/weasis-core/target/test-classes:/workspaces/Weasis/weasis-core/target/classes:/workspaces/Weasis/weasis-launcher/target/weasis-launcher-4.6.0-SNAPSHOT.jar:/home/codespace/.m2/repository/org/tukaani/xz/1.10/xz-1.10.jar:/home/codespace/.m2/repository/org/apache/felix/org.apache.felix.gogo.command/1.1.2/org.apache.felix.gogo.command-1.1.2.jar:/home/codespace/.m2/repository/org/apache/felix/org.apache.felix.gogo.shell/1.1.4/org.apache.felix.gogo.shell-1.1.4.jar:/home/codespace/.m2/repository/org/apache/felix/org.apache.felix.gogo.runtime/1.1.6/org.apache.felix.gogo.runtime-1.1.6.jar:/home/codespace/.m2/repository/org/weasis/thirdparty/jaxb-osgi/4.0.3/jaxb-osgi-4.0.3.jar:/home/codespace/.m2/repository/org/glassfish/jaxb/jaxb-core/4.0.3/jaxb-core-4.0.3.jar:/home/codespace/.m2/repository/org/eclipse/angus/angus-activation/2.0.1/angus-activation-2.0.1.jar:/home/codespace/.m2/repository/org/glassfish/jaxb/jaxb-runtime/4.0.3/jaxb-runtime-4.0.3.jar:/home/codespace/.m2/repository/com/sun/activation/jakarta.activation/2.0.1/jakarta.activation-2.0.1.jar:/home/codespace/.m2/repository/com/sun/istack/istack-commons-runtime/4.1.1/istack-commons-runtime-4.1.1.jar:/home/codespace/.m2/repository/org/glassfish/jaxb/txw2/4.0.3/txw2-4.0.3.jar:/home/codespace/.m2/repository/com/github/scribejava/scribejava-core/8.3.3/scribejava-core-8.3.3.jar:/home/codespace/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.18.2/jackson-databind-2.18.2.jar:/home/codespace/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.18.2/jackson-annotations-2.18.2.jar:/home/codespace/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.18.2/jackson-core-2.18.2.jar:/home/codespace/.m2/repository/com/github/scribejava/scribejava-java8/8.3.3/scribejava-java8-8.3.3.jar:/home/codespace/.m2/repository/org/weasis/thirdparty/docking-frames/1.1.7/docking-frames-1.1.7.jar:/home/codespace/.m2/repository/eu/essilab/lablib-checkboxtree/4.0/lablib-checkboxtree-4.0.jar:/home/codespace/.m2/repository/org/swinglabs/jxlayer/3.0.4/jxlayer-3.0.4.jar:/home/codespace/.m2/repository/com/github/lgooddatepicker/LGoodDatePicker/11.3.0-r1/LGoodDatePicker-11.3.0-r1.jar:/home/codespace/.m2/repository/org/knowm/xchart/xchart/3.8.8/xchart-3.8.8.jar:/home/codespace/.m2/repository/de/erichseifert/vectorgraphics2d/VectorGraphics2D/0.13/VectorGraphics2D-0.13.jar:/home/codespace/.m2/repository/org/slf4j/slf4j-api/2.0.16/slf4j-api-2.0.16.jar:/home/codespace/.m2/repository/ch/qos/logback/logback-classic/1.5.15/logback-classic-1.5.15.jar:/home/codespace/.m2/repository/ch/qos/logback/logback-core/1.5.15/logback-core-1.5.15.jar:/home/codespace/.m2/repository/com/formdev/flatlaf/3.5.4/flatlaf-3.5.4.jar:/home/codespace/.m2/repository/com/formdev/flatlaf-intellij-themes/3.5.4/flatlaf-intellij-themes-3.5.4.jar:/home/codespace/.m2/repository/com/formdev/flatlaf-extras/3.5.4/flatlaf-extras-3.5.4.jar:/home/codespace/.m2/repository/com/github/weisj/jsvg/1.4.0/jsvg-1.4.0.jar:/home/codespace/.m2/repository/com/miglayout/miglayout-swing/11.4.2/miglayout-swing-11.4.2.jar:/home/codespace/.m2/repository/com/miglayout/miglayout-core/11.4.2/miglayout-core-11.4.2.jar:/home/codespace/.m2/repository/org/weasis/core/weasis-core-img/4.11.0/weasis-core-img-4.11.0.jar:/home/codespace/.m2/repository/org/osgi/osgi.core/8.0.0/osgi.core-8.0.0.jar:/home/codespace/.m2/repository/org/apache/felix/org.apache.felix.configadmin/1.9.26/org.apache.felix.configadmin-1.9.26.jar:/home/codespace/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2.jar:/home/codespace/.m2/repository/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3.jar:/home/codespace/.m2/repository/org/osgi/org.osgi.service.component/1.5.1/org.osgi.service.component-1.5.1.jar:/home/codespace/.m2/repository/org/osgi/org.osgi.namespace.extender/1.0.1/org.osgi.namespace.extender-1.0.1.jar:/home/codespace/.m2/repository/org/osgi/org.osgi.util.function/1.0.0/org.osgi.util.function-1.0.0.jar:/home/codespace/.m2/repository/org/osgi/org.osgi.util.promise/1.0.0/org.osgi.util.promise-1.0.0.jar:/home/codespace/.m2/repository/org/osgi/org.osgi.service.component.annotations/1.5.1/org.osgi.service.component.annotations-1.5.1.jar:/home/codespace/.m2/repository/org/osgi/osgi.annotation/8.1.0/osgi.annotation-8.1.0.jar:/home/codespace/.m2/repository/org/apache/felix/org.apache.felix.prefs/1.1.0/org.apache.felix.prefs-1.1.0.jar:/home/codespace/.m2/repository/org/osgi/org.osgi.service.prefs/1.1.1/org.osgi.service.prefs-1.1.1.jar:/home/codespace/.m2/repository/org/mockito/mockito-junit-jupiter/5.14.2/mockito-junit-jupiter-5.14.2.jar:/home/codespace/.m2/repository/org/mockito/mockito-core/5.14.2/mockito-core-5.14.2.jar:/home/codespace/.m2/repository/net/bytebuddy/byte-buddy/1.15.4/byte-buddy-1.15.4.jar:/home/codespace/.m2/repository/net/bytebuddy/byte-buddy-agent/1.15.4/byte-buddy-agent-1.15.4.jar:/home/codespace/.m2/repository/org/objenesis/objenesis/3.3/objenesis-3.3.jar:/home/codespace/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.11.3/junit-jupiter-api-5.11.3.jar:/home/codespace/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:/home/codespace/.m2/repository/org/junit/platform/junit-platform-commons/1.11.3/junit-platform-commons-1.11.3.jar:/home/codespace/.m2/repository/org/mockito/mockito-inline/5.2.0/mockito-inline-5.2.0.jar:/home/codespace/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.11.3/junit-jupiter-params-5.11.3.jar:/home/codespace/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/home/codespace/.m2/repository/org/junit-pioneer/junit-pioneer/2.3.0/junit-pioneer-2.3.0.jar:/home/codespace/.m2/repository/org/junit/platform/junit-platform-launcher/1.11.3/junit-platform-launcher-1.11.3.jar:/home/codespace/.m2/repository/org/junit/platform/junit-platform-engine/1.11.3/junit-platform-engine-1.11.3.jar:/home/codespace/.m2/repository/org/slf4j/slf4j-simple/2.0.16/slf4j-simple-2.0.16.jar:"/>
+    <property name="java.vm.vendor" value="Oracle Corporation"/>
+    <property name="sun.arch.data.model" value="64"/>
+    <property name="java.vendor.url" value="https://java.oracle.com/"/>
+    <property name="user.timezone" value="Etc/UTC"/>
+    <property name="os.name" value="Linux"/>
+    <property name="java.vm.specification.version" value="23"/>
+    <property name="sun.java.launcher" value="SUN_STANDARD"/>
+    <property name="sun.boot.library.path" value="/usr/local/sdkman/candidates/java/23-open/lib"/>
+    <property name="sun.java.command" value="/workspaces/Weasis/weasis-core/target/surefire/surefirebooter-20250217121924458_3.jar /workspaces/Weasis/weasis-core/target/surefire 2025-02-17T12-19-09_703-jvmRun1 surefire-20250217121924458_1tmp surefire_0-20250217121924458_2tmp"/>
+    <property name="jdk.debug" value="release"/>
+    <property name="surefire.test.class.path" value="/workspaces/Weasis/weasis-core/target/test-classes:/workspaces/Weasis/weasis-core/target/classes:/workspaces/Weasis/weasis-launcher/target/weasis-launcher-4.6.0-SNAPSHOT.jar:/home/codespace/.m2/repository/org/tukaani/xz/1.10/xz-1.10.jar:/home/codespace/.m2/repository/org/apache/felix/org.apache.felix.gogo.command/1.1.2/org.apache.felix.gogo.command-1.1.2.jar:/home/codespace/.m2/repository/org/apache/felix/org.apache.felix.gogo.shell/1.1.4/org.apache.felix.gogo.shell-1.1.4.jar:/home/codespace/.m2/repository/org/apache/felix/org.apache.felix.gogo.runtime/1.1.6/org.apache.felix.gogo.runtime-1.1.6.jar:/home/codespace/.m2/repository/org/weasis/thirdparty/jaxb-osgi/4.0.3/jaxb-osgi-4.0.3.jar:/home/codespace/.m2/repository/org/glassfish/jaxb/jaxb-core/4.0.3/jaxb-core-4.0.3.jar:/home/codespace/.m2/repository/org/eclipse/angus/angus-activation/2.0.1/angus-activation-2.0.1.jar:/home/codespace/.m2/repository/org/glassfish/jaxb/jaxb-runtime/4.0.3/jaxb-runtime-4.0.3.jar:/home/codespace/.m2/repository/com/sun/activation/jakarta.activation/2.0.1/jakarta.activation-2.0.1.jar:/home/codespace/.m2/repository/com/sun/istack/istack-commons-runtime/4.1.1/istack-commons-runtime-4.1.1.jar:/home/codespace/.m2/repository/org/glassfish/jaxb/txw2/4.0.3/txw2-4.0.3.jar:/home/codespace/.m2/repository/com/github/scribejava/scribejava-core/8.3.3/scribejava-core-8.3.3.jar:/home/codespace/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.18.2/jackson-databind-2.18.2.jar:/home/codespace/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.18.2/jackson-annotations-2.18.2.jar:/home/codespace/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.18.2/jackson-core-2.18.2.jar:/home/codespace/.m2/repository/com/github/scribejava/scribejava-java8/8.3.3/scribejava-java8-8.3.3.jar:/home/codespace/.m2/repository/org/weasis/thirdparty/docking-frames/1.1.7/docking-frames-1.1.7.jar:/home/codespace/.m2/repository/eu/essilab/lablib-checkboxtree/4.0/lablib-checkboxtree-4.0.jar:/home/codespace/.m2/repository/org/swinglabs/jxlayer/3.0.4/jxlayer-3.0.4.jar:/home/codespace/.m2/repository/com/github/lgooddatepicker/LGoodDatePicker/11.3.0-r1/LGoodDatePicker-11.3.0-r1.jar:/home/codespace/.m2/repository/org/knowm/xchart/xchart/3.8.8/xchart-3.8.8.jar:/home/codespace/.m2/repository/de/erichseifert/vectorgraphics2d/VectorGraphics2D/0.13/VectorGraphics2D-0.13.jar:/home/codespace/.m2/repository/org/slf4j/slf4j-api/2.0.16/slf4j-api-2.0.16.jar:/home/codespace/.m2/repository/ch/qos/logback/logback-classic/1.5.15/logback-classic-1.5.15.jar:/home/codespace/.m2/repository/ch/qos/logback/logback-core/1.5.15/logback-core-1.5.15.jar:/home/codespace/.m2/repository/com/formdev/flatlaf/3.5.4/flatlaf-3.5.4.jar:/home/codespace/.m2/repository/com/formdev/flatlaf-intellij-themes/3.5.4/flatlaf-intellij-themes-3.5.4.jar:/home/codespace/.m2/repository/com/formdev/flatlaf-extras/3.5.4/flatlaf-extras-3.5.4.jar:/home/codespace/.m2/repository/com/github/weisj/jsvg/1.4.0/jsvg-1.4.0.jar:/home/codespace/.m2/repository/com/miglayout/miglayout-swing/11.4.2/miglayout-swing-11.4.2.jar:/home/codespace/.m2/repository/com/miglayout/miglayout-core/11.4.2/miglayout-core-11.4.2.jar:/home/codespace/.m2/repository/org/weasis/core/weasis-core-img/4.11.0/weasis-core-img-4.11.0.jar:/home/codespace/.m2/repository/org/osgi/osgi.core/8.0.0/osgi.core-8.0.0.jar:/home/codespace/.m2/repository/org/apache/felix/org.apache.felix.configadmin/1.9.26/org.apache.felix.configadmin-1.9.26.jar:/home/codespace/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2.jar:/home/codespace/.m2/repository/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3.jar:/home/codespace/.m2/repository/org/osgi/org.osgi.service.component/1.5.1/org.osgi.service.component-1.5.1.jar:/home/codespace/.m2/repository/org/osgi/org.osgi.namespace.extender/1.0.1/org.osgi.namespace.extender-1.0.1.jar:/home/codespace/.m2/repository/org/osgi/org.osgi.util.function/1.0.0/org.osgi.util.function-1.0.0.jar:/home/codespace/.m2/repository/org/osgi/org.osgi.util.promise/1.0.0/org.osgi.util.promise-1.0.0.jar:/home/codespace/.m2/repository/org/osgi/org.osgi.service.component.annotations/1.5.1/org.osgi.service.component.annotations-1.5.1.jar:/home/codespace/.m2/repository/org/osgi/osgi.annotation/8.1.0/osgi.annotation-8.1.0.jar:/home/codespace/.m2/repository/org/apache/felix/org.apache.felix.prefs/1.1.0/org.apache.felix.prefs-1.1.0.jar:/home/codespace/.m2/repository/org/osgi/org.osgi.service.prefs/1.1.1/org.osgi.service.prefs-1.1.1.jar:/home/codespace/.m2/repository/org/mockito/mockito-junit-jupiter/5.14.2/mockito-junit-jupiter-5.14.2.jar:/home/codespace/.m2/repository/org/mockito/mockito-core/5.14.2/mockito-core-5.14.2.jar:/home/codespace/.m2/repository/net/bytebuddy/byte-buddy/1.15.4/byte-buddy-1.15.4.jar:/home/codespace/.m2/repository/net/bytebuddy/byte-buddy-agent/1.15.4/byte-buddy-agent-1.15.4.jar:/home/codespace/.m2/repository/org/objenesis/objenesis/3.3/objenesis-3.3.jar:/home/codespace/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.11.3/junit-jupiter-api-5.11.3.jar:/home/codespace/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar:/home/codespace/.m2/repository/org/junit/platform/junit-platform-commons/1.11.3/junit-platform-commons-1.11.3.jar:/home/codespace/.m2/repository/org/mockito/mockito-inline/5.2.0/mockito-inline-5.2.0.jar:/home/codespace/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.11.3/junit-jupiter-params-5.11.3.jar:/home/codespace/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar:/home/codespace/.m2/repository/org/junit-pioneer/junit-pioneer/2.3.0/junit-pioneer-2.3.0.jar:/home/codespace/.m2/repository/org/junit/platform/junit-platform-launcher/1.11.3/junit-platform-launcher-1.11.3.jar:/home/codespace/.m2/repository/org/junit/platform/junit-platform-engine/1.11.3/junit-platform-engine-1.11.3.jar:/home/codespace/.m2/repository/org/slf4j/slf4j-simple/2.0.16/slf4j-simple-2.0.16.jar:"/>
+    <property name="sun.cpu.endian" value="little"/>
+    <property name="user.home" value="/home/codespace"/>
+    <property name="user.language" value="en"/>
+    <property name="java.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.version.date" value="2024-09-17"/>
+    <property name="java.home" value="/usr/local/sdkman/candidates/java/23-open"/>
+    <property name="file.separator" value="/"/>
+    <property name="basedir" value="/workspaces/Weasis/weasis-core"/>
+    <property name="java.vm.compressedOopsMode" value="32-bit"/>
+    <property name="line.separator" value="&#10;"/>
+    <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.specification.name" value="Java Platform API Specification"/>
+    <property name="surefire.real.class.path" value="/workspaces/Weasis/weasis-core/target/surefire/surefirebooter-20250217121924458_3.jar"/>
+    <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
+    <property name="java.runtime.version" value="23+37-2369"/>
+    <property name="user.name" value="codespace"/>
+    <property name="stdout.encoding" value="UTF-8"/>
+    <property name="path.separator" value=":"/>
+    <property name="os.version" value="6.5.0-1025-azure"/>
+    <property name="weasis.tmp.dir" value="/tmp/weasis-codespace.unknown"/>
+    <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
+    <property name="file.encoding" value="UTF-8"/>
+    <property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/>
+    <property name="localRepository" value="/home/codespace/.m2/repository"/>
+    <property name="java.vendor.url.bug" value="https://bugreport.java.com/bugreport/"/>
+    <property name="java.io.tmpdir" value="/tmp"/>
+    <property name="java.version" value="23"/>
+    <property name="user.dir" value="/workspaces/Weasis/weasis-core"/>
+    <property name="os.arch" value="amd64"/>
+    <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
+    <property name="native.encoding" value="UTF-8"/>
+    <property name="java.library.path" value="/workspaces/Weasis/weasis-core/target/lib/${os-name}-${cpu-name}"/>
+    <property name="stderr.encoding" value="UTF-8"/>
+    <property name="java.vm.info" value="mixed mode"/>
+    <property name="java.vendor" value="Oracle Corporation"/>
+    <property name="java.vm.version" value="23+37-2369"/>
+    <property name="sun.io.unicode.encoding" value="UnicodeLittle"/>
+    <property name="java.class.version" value="67.0"/>
+  </properties>
+  <testcase name="test_with_multiple_graphics_and_one_layer" classname="org.weasis.core.ui.model.imp.suite.SerializationTest" time="0.052"/>
+  <testcase name="test_add_one_point_graphic" classname="org.weasis.core.ui.model.imp.suite.SerializationTest" time="0.01"/>
+  <testcase name="test_with_image_element" classname="org.weasis.core.ui.model.imp.suite.SerializationTest" time="0.011"/>
+  <testcase name="test_with_multiple_graphics_and_multiple_layers" classname="org.weasis.core.ui.model.imp.suite.SerializationTest" time="0.069">
+    <system-out><![CDATA[<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<presentation uuid="uuid.1.5fd50a06-82c3-4290-81a1-c52b2404cd66">
+    <references>
+        <series uuid="uuid.3.fb1c4942-b851-440d-9885-fb80e71f58bc">
+            <image frames="" uuid="uuid.2.de945ce0-cc40-42a8-b66b-7b9e64bebd93"/>
+        </series>
+    </references>
+    <layers>
+        <layer level="40" locked="false" selectable="true" type="DRAW" visible="true" uuid="18e2b7f4-7355-4800-9b4a-b557306e1f76"/>
+        <layer level="31" locked="false" selectable="true" type="ANNOTATION" visible="true" uuid="0d4612c3-4022-48f3-9d79-01c5af57d8b2"/>
+        <layer level="50" locked="false" selectable="true" type="MEASURE" visible="true" uuid="fc9904fe-a423-4068-8a65-e529d0994c7d"/>
+    </layers>
+    <graphics>
+        <point pointSize="1" fillOpacity="1.0" fill="false" showLabel="true" thickness="3.0" uuid="550f44d1-0489-496a-8268-a1f50b8f5c5b">
+            <paint rgb="ffff0000"/>
+            <layer>18e2b7f4-7355-4800-9b4a-b557306e1f76</layer>
+            <pts>
+                <pt x="1665.5" y="987.0"/>
+            </pts>
+        </point>
+        <pixelInfo labelHeight="13.125" labelWidth="112.53125" fillOpacity="1.0" fill="false" showLabel="true" thickness="2.0" uuid="3cdd3639-abc2-449c-a9cc-f199c7fdd5b7">
+            <paint rgb="ffffafaf"/>
+            <layer>0d4612c3-4022-48f3-9d79-01c5af57d8b2</layer>
+            <pts>
+                <pt x="1665.5" y="987.0"/>
+                <pt x="1601.5" y="1037.0"/>
+            </pts>
+            <labelBounds x="1539.234375" y="1024.4375" width="124.53125" height="25.125"/>
+            <labels>
+                <label> R=144 G=116 B=101</label>
+            </labels>
+        </pixelInfo>
+        <annotation labelHeight="13.125" labelWidth="93.140625" fillOpacity="1.0" fill="false" showLabel="true" thickness="8.0" uuid="851f33c2-37be-4a50-bfb8-ffbec712d793">
+            <paint rgb="ff808080"/>
+            <layer>18e2b7f4-7355-4800-9b4a-b557306e1f76</layer>
+            <pts>
+                <pt x="1281.5" y="856.0"/>
+                <pt x="1347.5" y="1068.0"/>
+            </pts>
+            <labelBounds x="1294.9296875" y="1042.3125" width="105.140625" height="51.375"/>
+            <labels>
+                <label>Lorem ipsum</label>
+                <label>Test 2</label>
+                <label>weasis blablabla</label>
+            </labels>
+        </annotation>
+        <line fillOpacity="1.0" fill="false" showLabel="true" thickness="1.0" uuid="b19f060c-dfe0-4c41-95c4-785982633475">
+            <paint rgb="ff000000"/>
+            <layer>fc9904fe-a423-4068-8a65-e529d0994c7d</layer>
+            <pts>
+                <pt x="1028.5" y="1110.0"/>
+                <pt x="1231.5" y="1285.0"/>
+            </pts>
+        </line>
+        <parallelLine fillOpacity="1.0" fill="false" showLabel="true" thickness="2.0" uuid="11bd0862-10fe-41e5-a497-e139b9d209be">
+            <paint rgb="ff00ffff"/>
+            <layer>18e2b7f4-7355-4800-9b4a-b557306e1f76</layer>
+            <pts>
+                <pt x="1861.5" y="1567.0"/>
+                <pt x="1672.5" y="1358.0"/>
+                <pt x="1874.3815487619577" y="1489.6972788255084"/>
+                <pt x="1698.33622905672" y="1295.0228247599282"/>
+                <pt x="1767.0" y="1462.5"/>
+                <pt x="1786.358888909339" y="1392.3600517927184"/>
+            </pts>
+        </parallelLine>
+        <polyline fillOpacity="1.0" fill="false" showLabel="true" thickness="1.0" uuid="00360f88-7b9a-457e-adcb-f9fd152b775a">
+            <paint rgb="ffffff00"/>
+            <layer>18e2b7f4-7355-4800-9b4a-b557306e1f76</layer>
+            <pts>
+                <pt x="935.5" y="902.0"/>
+                <pt x="1042.5" y="863.0"/>
+                <pt x="1188.5" y="902.0"/>
+                <pt x="1242.5" y="997.0"/>
+                <pt x="1409.5" y="950.0"/>
+                <pt x="1453.5" y="1059.0"/>
+                <pt x="1288.5" y="1105.0"/>
+                <pt x="1391.5" y="1224.0"/>
+                <pt x="1641.5" y="1250.0"/>
+                <pt x="1600.5" y="1365.0"/>
+                <pt x="1413.5" y="1376.0"/>
+                <pt x="1260.5" y="1356.0"/>
+                <pt x="1262.5" y="1355.0"/>
+            </pts>
+        </polyline>
+        <polygon fillOpacity="1.0" fill="true" showLabel="true" thickness="2.0" uuid="d0c2a30e-fd71-4fbd-a41c-f30b2c76d53f">
+            <paint rgb="ffffff00"/>
+            <layer>18e2b7f4-7355-4800-9b4a-b557306e1f76</layer>
+            <pts>
+                <pt x="1132.5" y="1100.0"/>
+                <pt x="1300.5" y="1033.0"/>
+                <pt x="1345.5" y="1089.0"/>
+                <pt x="1329.5" y="1296.0"/>
+                <pt x="1034.5" y="1292.0"/>
+                <pt x="1249.5" y="1469.0"/>
+            </pts>
+        </polygon>
+        <rectangle fillOpacity="1.0" fill="true" showLabel="true" thickness="1.0" uuid="424e3fae-4f34-4499-93aa-2ee777fff17f">
+            <paint rgb="ffffff00"/>
+            <layer>fc9904fe-a423-4068-8a65-e529d0994c7d</layer>
+            <pts>
+                <pt x="252.13800313643495" y="91.52639832723474"/>
+                <pt x="311.46889702038686" y="71.13957135389444"/>
+                <pt x="281.8034500784109" y="81.33298484056459"/>
+                <pt x="294.2900410111563" y="117.67216614483638"/>
+            </pts>
+        </rectangle>
+        <angle fillOpacity="1.0" fill="false" showLabel="true" thickness="1.0" uuid="ceb4907c-bc4b-497d-99a5-2c564835d9af">
+            <paint rgb="ffffff00"/>
+            <layer>18e2b7f4-7355-4800-9b4a-b557306e1f76</layer>
+            <pts>
+                <pt x="1345.5" y="815.0"/>
+                <pt x="1313.5" y="954.0"/>
+                <pt x="1423.5" y="924.0"/>
+            </pts>
+        </angle>
+        <cobbAngle fillOpacity="1.0" fill="false" showLabel="true" thickness="1.0" uuid="b6d9dc2d-3fbf-4c47-9970-81ce925f35c2">
+            <paint rgb="ffffff00"/>
+            <layer>18e2b7f4-7355-4800-9b4a-b557306e1f76</layer>
+            <pts>
+                <pt x="1770.5" y="1435.0"/>
+                <pt x="1765.5" y="1445.0"/>
+                <pt x="1611.5" y="1590.0"/>
+                <pt x="1575.5" y="1589.0"/>
+                <pt x="1637.1255967238944" y="1500.8183122461598"/>
+            </pts>
+        </cobbAngle>
+    </graphics>
+</presentation>
+]]></system-out>
+  </testcase>
+  <testcase name="test_empty_model" classname="org.weasis.core.ui.model.imp.suite.SerializationTest" time="0.01"/>
+</testsuite>

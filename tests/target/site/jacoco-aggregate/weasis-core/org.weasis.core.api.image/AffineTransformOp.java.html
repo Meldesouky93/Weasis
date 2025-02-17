@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AffineTransformOp.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.image</a> &gt; <span class="el_source">AffineTransformOp.java</span></div><h1>AffineTransformOp.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.image;
+
+import java.awt.geom.Rectangle2D;
+import java.util.List;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.Size;
+import org.weasis.core.Messages;
+import org.weasis.core.util.MathUtil;
+import org.weasis.opencv.data.PlanarImage;
+import org.weasis.opencv.op.ImageProcessor;
+
+public class AffineTransformOp extends AbstractOp {
+
+<span class="nc" id="L24">  public static final String OP_NAME = Messages.getString(&quot;AffineTransformOp.affine_op&quot;);</span>
+
+<span class="nc" id="L26">  public static final List&lt;Double&gt; identityMatrix = List.of(1.0, 0.0, 0.0, 0.0, 1.0, 0.0);</span>
+
+  /**
+   * Set an affine transformation (Required parameter).
+   *
+   * &lt;p&gt;Double array (length of 6).
+   */
+  public static final String P_AFFINE_MATRIX = &quot;affine.matrix&quot;;
+
+  /**
+   * Set the interpolation type (Optional parameter).
+   *
+   * &lt;p&gt;Integer value. Default value is bilinear interpolation. See javax.media.jai.Interpolation.
+   */
+  public static final String P_INTERPOLATION = &quot;interpolation&quot;; // NON-NLS
+
+  public static final String P_DST_BOUNDS = &quot;dest.bounds&quot;;
+
+<span class="nc" id="L44">  public AffineTransformOp() {</span>
+<span class="nc" id="L45">    setName(OP_NAME);</span>
+<span class="nc" id="L46">  }</span>
+
+  public AffineTransformOp(AffineTransformOp op) {
+<span class="nc" id="L49">    super(op);</span>
+<span class="nc" id="L50">  }</span>
+
+  @Override
+  public AffineTransformOp copy() {
+<span class="nc" id="L54">    return new AffineTransformOp(this);</span>
+  }
+
+  @Override
+  public void process() throws Exception {
+<span class="nc" id="L59">    PlanarImage source = (PlanarImage) params.get(Param.INPUT_IMG);</span>
+<span class="nc" id="L60">    PlanarImage result = source;</span>
+<span class="nc" id="L61">    List&lt;Double&gt; matrix = (List&lt;Double&gt;) params.get(P_AFFINE_MATRIX);</span>
+<span class="nc" id="L62">    Rectangle2D bound = (Rectangle2D) params.get(P_DST_BOUNDS);</span>
+
+<span class="nc bnc" id="L64" title="All 6 branches missed.">    if (bound != null</span>
+        &amp;&amp; source != null
+        &amp;&amp; matrix != null
+<span class="nc bnc" id="L67" title="All 2 branches missed.">        &amp;&amp; (!identityMatrix.equals(matrix)</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">            || MathUtil.isDifferent(source.width(), bound.getWidth())</span>
+<span class="nc bnc" id="L69" title="All 2 branches missed.">            || MathUtil.isDifferent(source.height(), bound.getHeight()))) {</span>
+<span class="nc bnc" id="L70" title="All 4 branches missed.">      if (bound.getWidth() &gt; 0 &amp;&amp; bound.getHeight() &gt; 0) {</span>
+<span class="nc" id="L71">        Mat mat = new Mat(2, 3, CvType.CV_64FC1);</span>
+<span class="nc" id="L72">        mat.put(0, 0, matrix.stream().mapToDouble(Double::doubleValue).toArray());</span>
+<span class="nc" id="L73">        ZoomOp.Interpolation interpolation = (ZoomOp.Interpolation) params.get(P_INTERPOLATION);</span>
+<span class="nc" id="L74">        Integer inter = null;</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">        if (interpolation != null) {</span>
+<span class="nc" id="L76">          inter = interpolation.getOpencvValue();</span>
+        }
+<span class="nc" id="L78">        result =</span>
+<span class="nc" id="L79">            ImageProcessor.warpAffine(</span>
+<span class="nc" id="L80">                source.toMat(), mat, new Size(bound.getWidth(), bound.getHeight()), inter);</span>
+<span class="nc" id="L81">      } else {</span>
+<span class="nc" id="L82">        result = null;</span>
+      }
+    }
+
+<span class="nc" id="L86">    params.put(Param.OUTPUT_IMG, result);</span>
+<span class="nc" id="L87">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

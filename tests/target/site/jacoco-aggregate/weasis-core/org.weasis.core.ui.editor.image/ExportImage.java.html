@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ExportImage.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image</a> &gt; <span class="el_source">ExportImage.java</span></div><h1>ExportImage.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image;
+
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Paint;
+import java.awt.Stroke;
+import java.awt.event.MouseEvent;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.util.List;
+import javax.swing.JPopupMenu;
+import javax.swing.ToolTipManager;
+import org.weasis.core.api.gui.model.ViewModel;
+import org.weasis.core.api.gui.util.ActionW;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.gui.util.MouseActionAdapter;
+import org.weasis.core.api.image.ImageOpNode;
+import org.weasis.core.api.image.SimpleOpManager;
+import org.weasis.core.api.image.util.ImageLayer;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.util.FontItem;
+import org.weasis.core.ui.model.graphic.Graphic;
+import org.weasis.core.ui.model.layer.LayerItem;
+
+public class ExportImage&lt;E extends ImageElement&gt; extends DefaultView2d&lt;E&gt; {
+
+  private final ViewCanvas&lt;E&gt; view2d;
+  private Graphics2D currentG2d;
+<span class="nc" id="L39">  private double imagePrintingResolution = 1.0;</span>
+
+  public ExportImage(ViewCanvas&lt;E&gt; view2d) {
+<span class="nc" id="L42">    super(view2d.getEventManager(), null);</span>
+<span class="nc" id="L43">    this.view2d = view2d;</span>
+    // Remove OpEventListener to avoid reseting some parameters when setting the series
+<span class="nc" id="L45">    this.imageLayer.removeEventListener(imageLayer.getDisplayOpManager());</span>
+<span class="nc" id="L46">    setFont(FontItem.MINI.getFont());</span>
+<span class="nc" id="L47">    this.infoLayer = view2d.getInfoLayer().getLayerCopy(this, false);</span>
+<span class="nc" id="L48">    infoLayer.setVisible(view2d.getInfoLayer().getVisible());</span>
+<span class="nc" id="L49">    infoLayer.setShowBottomScale(false);</span>
+    // For exporting view, remove Pixel value, Preloading bar, Key Object
+<span class="nc" id="L51">    infoLayer.setDisplayPreferencesValue(LayerItem.PIXEL, false);</span>
+<span class="nc" id="L52">    infoLayer.setDisplayPreferencesValue(LayerItem.PRELOADING_BAR, false);</span>
+
+    // Copy image operations from view2d
+<span class="nc" id="L55">    SimpleOpManager operations = imageLayer.getDisplayOpManager();</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">    for (ImageOpNode op : view2d.getImageLayer().getDisplayOpManager().getOperations()) {</span>
+<span class="nc" id="L57">      operations.addImageOperationAction(op.copy());</span>
+<span class="nc" id="L58">    }</span>
+    // Copy the current values of image operations
+<span class="nc" id="L60">    view2d.copyActionWState(actionsInView);</span>
+
+<span class="nc" id="L62">    setPreferredSize(new Dimension(1024, 1024));</span>
+<span class="nc" id="L63">    ViewModel model = view2d.getViewModel();</span>
+
+<span class="nc" id="L65">    Rectangle2D canvas =</span>
+        new Rectangle2D.Double(
+<span class="nc" id="L67">            0, 0, view2d.getJComponent().getWidth(), view2d.getJComponent().getHeight());</span>
+<span class="nc" id="L68">    actionsInView.put(&quot;origin.image.bound&quot;, canvas);</span>
+<span class="nc" id="L69">    actionsInView.put(&quot;origin.zoom&quot;, view2d.getActionValue(ActionW.ZOOM.cmd()));</span>
+<span class="nc" id="L70">    actionsInView.put(</span>
+        &quot;origin.center.offset&quot;,
+<span class="nc" id="L72">        new Point2D.Double(model.getModelOffsetX(), model.getModelOffsetY()));</span>
+    // Do not use setSeries() because the view will be reset
+<span class="nc" id="L74">    this.series = view2d.getSeries();</span>
+<span class="nc" id="L75">    setImage(view2d.getImage());</span>
+<span class="nc" id="L76">  }</span>
+
+  public double getImagePrintingResolution() {
+<span class="nc" id="L79">    return imagePrintingResolution;</span>
+  }
+
+  public void setImagePrintingResolution(double imagePrintingResolution) {
+<span class="nc" id="L83">    this.imagePrintingResolution = imagePrintingResolution;</span>
+<span class="nc" id="L84">  }</span>
+
+  @Override
+  public void disposeView() {
+<span class="nc" id="L88">    disableMouseAndKeyListener();</span>
+<span class="nc" id="L89">    removeFocusListener(this);</span>
+<span class="nc" id="L90">    ToolTipManager.sharedInstance().unregisterComponent(this);</span>
+<span class="nc" id="L91">    imageLayer.removeLayerChangeListener(this);</span>
+    // Unregister listener in GraphicsPane
+<span class="nc" id="L93">    removeGraphicManager(graphicManager, layerModelHandler);</span>
+<span class="nc" id="L94">    setViewModel(null);</span>
+<span class="nc" id="L95">  }</span>
+
+  @Override
+  public Graphics getGraphics() {
+<span class="nc bnc" id="L99" title="All 2 branches missed.">    if (currentG2d != null) {</span>
+<span class="nc" id="L100">      return currentG2d;</span>
+    }
+<span class="nc" id="L102">    return super.getGraphics();</span>
+  }
+
+  @Override
+  public void paintComponent(Graphics g) {
+<span class="nc bnc" id="L107" title="All 2 branches missed.">    if (g instanceof Graphics2D graphics2D) {</span>
+<span class="nc" id="L108">      draw(graphics2D);</span>
+    }
+<span class="nc" id="L110">  }</span>
+
+  @Override
+  public void draw(Graphics2D g2d) {
+<span class="nc" id="L114">    currentG2d = g2d;</span>
+<span class="nc" id="L115">    Stroke oldStroke = g2d.getStroke();</span>
+<span class="nc" id="L116">    Paint oldColor = g2d.getPaint();</span>
+
+    // Set font size according to the view size
+<span class="nc" id="L119">    g2d.setFont(getLayerFont());</span>
+<span class="nc" id="L120">    Object[] oldRenderingHints = GuiUtils.setRenderingHints(g2d, true, true, true);</span>
+    // Set label box size and spaces between items
+<span class="nc" id="L122">    graphicManager.updateLabels(Boolean.TRUE, this);</span>
+
+<span class="nc" id="L124">    Point2D p = getClipViewCoordinatesOffset();</span>
+<span class="nc" id="L125">    g2d.translate(p.getX(), p.getY());</span>
+
+    // TODO fix rotation issue
+<span class="nc" id="L128">    Integer rotationAngle = (Integer) actionsInView.get(ActionW.ROTATION.cmd());</span>
+<span class="nc bnc" id="L129" title="All 4 branches missed.">    if ((rotationAngle == null || rotationAngle == 0)</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">        &amp;&amp; g2d.getClass().getName().contains(&quot;print&quot;)) {</span>
+<span class="nc" id="L131">      imageLayer.drawImageForPrinter(g2d, imagePrintingResolution, this);</span>
+    } else {
+<span class="nc" id="L133">      imageLayer.drawImage(g2d);</span>
+    }
+
+<span class="nc" id="L136">    drawLayers(g2d, affineTransform, inverseTransform);</span>
+<span class="nc" id="L137">    g2d.translate(-p.getX(), -p.getY());</span>
+
+<span class="nc bnc" id="L139" title="All 2 branches missed.">    if (infoLayer != null) {</span>
+<span class="nc" id="L140">      infoLayer.paint(g2d);</span>
+    }
+<span class="nc" id="L142">    GuiUtils.resetRenderingHints(g2d, oldRenderingHints);</span>
+<span class="nc" id="L143">    g2d.setPaint(oldColor);</span>
+<span class="nc" id="L144">    g2d.setStroke(oldStroke);</span>
+
+    // Reset label box size and spaces between items
+<span class="nc" id="L147">    graphicManager.updateLabels(Boolean.TRUE, view2d);</span>
+
+<span class="nc" id="L149">    currentG2d = null;</span>
+<span class="nc" id="L150">  }</span>
+
+  @Override
+  public void handleLayerChanged(ImageLayer&lt;E&gt; layer) {
+    // Do nothing
+<span class="nc" id="L155">  }</span>
+
+  @Override
+  public void enableMouseAndKeyListener(MouseActions mouseActions) {
+    // Do nothing
+<span class="nc" id="L160">  }</span>
+
+  @Override
+  public MouseActionAdapter getMouseAdapter(String command) {
+<span class="nc" id="L164">    return null;</span>
+  }
+
+  @Override
+  public JPopupMenu buildGraphicContextMenu(MouseEvent evt, List&lt;Graphic&gt; selected) {
+<span class="nc" id="L169">    return null;</span>
+  }
+
+  @Override
+  public JPopupMenu buildContextMenu(MouseEvent evt) {
+<span class="nc" id="L174">    return null;</span>
+  }
+
+  @Override
+  public boolean hasValidContent() {
+<span class="nc bnc" id="L179" title="All 2 branches missed.">    return getSourceImage() != null;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,995 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>DicomMediaIO.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec</a> &gt; <span class="el_source">DicomMediaIO.java</span></div><h1>DicomMediaIO.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec;
+
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.lang.ref.Reference;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import org.dcm4che3.data.Attributes;
+import org.dcm4che3.data.BulkData;
+import org.dcm4che3.data.Implementation;
+import org.dcm4che3.data.Tag;
+import org.dcm4che3.data.UID;
+import org.dcm4che3.data.VR;
+import org.dcm4che3.img.DicomImageReader;
+import org.dcm4che3.img.DicomMetaData;
+import org.dcm4che3.img.ImageRendering;
+import org.dcm4che3.img.Transcoder;
+import org.dcm4che3.img.data.PrDicomObject;
+import org.dcm4che3.img.stream.DicomFileInputStream;
+import org.dcm4che3.img.stream.ImageDescriptor;
+import org.dcm4che3.img.util.DicomUtils;
+import org.dcm4che3.io.DicomOutputStream;
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.explorer.model.DataExplorerModel;
+import org.weasis.core.api.gui.util.AppProperties;
+import org.weasis.core.api.media.data.Codec;
+import org.weasis.core.api.media.data.FileCache;
+import org.weasis.core.api.media.data.MediaElement;
+import org.weasis.core.api.media.data.SimpleTaggable;
+import org.weasis.core.api.media.data.TagView;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.api.service.BundleTools;
+import org.weasis.core.util.SoftHashMap;
+import org.weasis.core.util.StringUtil;
+import org.weasis.dicom.codec.TagD.Level;
+import org.weasis.dicom.codec.display.CornerDisplay;
+import org.weasis.dicom.codec.display.Modality;
+import org.weasis.dicom.codec.display.ModalityInfoData;
+import org.weasis.dicom.codec.display.ModalityView;
+import org.weasis.dicom.codec.geometry.ImageOrientation;
+import org.weasis.dicom.codec.utils.DicomMediaUtils;
+import org.weasis.dicom.codec.utils.PatientComparator;
+import org.weasis.opencv.data.PlanarImage;
+
+public class DicomMediaIO implements DcmMediaReader {
+
+<span class="nc" id="L73">  private static final Logger LOGGER = LoggerFactory.getLogger(DicomMediaIO.class);</span>
+
+<span class="nc" id="L75">  public static final File DICOM_EXPORT_DIR =</span>
+<span class="nc" id="L76">      AppProperties.buildAccessibleTempDirectory(&quot;dicom&quot;); // NON-NLS</span>
+<span class="nc" id="L77">  public static final File CACHE_UNCOMPRESSED_DIR =</span>
+<span class="nc" id="L78">      AppProperties.buildAccessibleTempDirectory(</span>
+<span class="nc" id="L79">          AppProperties.FILE_CACHE_DIR.getName(), &quot;dcm-rawcv&quot;); // NON-NLS</span>
+
+  public static final String DICOM_MIMETYPE = &quot;application/dicom&quot;; // NON-NLS
+  public static final String IMAGE_MIMETYPE = &quot;image/dicom&quot;; // NON-NLS
+  public static final String SERIES_VIDEO_MIMETYPE = &quot;video/dicom&quot;; // NON-NLS
+  public static final String SERIES_MIMETYPE = &quot;series/dicom&quot;; // NON-NLS
+  public static final String SERIES_PR_MIMETYPE = &quot;pr/dicom&quot;; // NON-NLS
+  public static final String SERIES_KO_MIMETYPE = &quot;ko/dicom&quot;; // NON-NLS
+  public static final String SERIES_SEG_MIMETYPE = &quot;seg/dicom&quot;; // NON-NLS
+
+  public static final String SERIES_ENCAP_DOC_MIMETYPE = &quot;encap/dicom&quot;; // NON-NLS
+  public static final String UNREADABLE = &quot;unreadable/dicom&quot;; // NON-NLS
+  public static final String SERIES_XDSI = &quot;xds-i/dicom&quot;; // NON-NLS
+
+<span class="nc" id="L93">  public enum Reading {</span>
+<span class="nc" id="L94">    ERROR,</span>
+<span class="nc" id="L95">    EXCLUDED,</span>
+<span class="nc" id="L96">    READABLE</span>
+  }
+
+<span class="nc" id="L99">  private static final AtomicInteger instanceID = new AtomicInteger(1);</span>
+<span class="nc" id="L100">  public static final TagManager tagManager = new TagManager();</span>
+
+  static {
+    // PatientPseudoUID is the unique identifying tag for this patient group
+    // -------- Mandatory Tags --------
+<span class="nc" id="L105">    tagManager.addTag(Tag.PatientID, Level.PATIENT);</span>
+<span class="nc" id="L106">    tagManager.addTag(Tag.PatientName, Level.PATIENT);</span>
+    // -------- End of Mandatory Tags --------
+<span class="nc" id="L108">    tagManager.addTag(Tag.PatientBirthDate, Level.PATIENT);</span>
+<span class="nc" id="L109">    tagManager.addTag(Tag.PatientBirthTime, Level.PATIENT);</span>
+<span class="nc" id="L110">    tagManager.addTag(</span>
+        Tag.PatientAge, Level.SERIES); // needs to be updated for each series if computed
+<span class="nc" id="L112">    tagManager.addTag(Tag.PatientSex, Level.PATIENT);</span>
+<span class="nc" id="L113">    tagManager.addTag(Tag.IssuerOfPatientID, Level.PATIENT);</span>
+<span class="nc" id="L114">    tagManager.addTag(Tag.PatientWeight, Level.PATIENT);</span>
+<span class="nc" id="L115">    tagManager.addTag(Tag.PatientComments, Level.PATIENT);</span>
+
+    // StudyInstanceUID is the unique identifying tag for this study group
+<span class="nc" id="L118">    tagManager.addTag(Tag.StudyID, Level.STUDY);</span>
+<span class="nc" id="L119">    tagManager.addTag(Tag.StudyDate, Level.STUDY);</span>
+<span class="nc" id="L120">    tagManager.addTag(Tag.StudyTime, Level.STUDY);</span>
+<span class="nc" id="L121">    tagManager.addTag(Tag.StudyDescription, Level.STUDY);</span>
+<span class="nc" id="L122">    tagManager.addTag(Tag.StudyComments, Level.STUDY);</span>
+<span class="nc" id="L123">    tagManager.addTag(Tag.AccessionNumber, Level.STUDY);</span>
+<span class="nc" id="L124">    tagManager.addTag(Tag.ModalitiesInStudy, Level.STUDY); // not required</span>
+<span class="nc" id="L125">    tagManager.addTag(Tag.NumberOfStudyRelatedInstances, Level.STUDY); // not required</span>
+<span class="nc" id="L126">    tagManager.addTag(Tag.NumberOfStudyRelatedSeries, Level.STUDY); // not required</span>
+
+    // SubseriesInstanceUID is the unique identifying tag for this series group
+    // -------- Mandatory Tags --------
+<span class="nc" id="L130">    tagManager.addTag(Tag.SeriesInstanceUID, Level.SERIES);</span>
+<span class="nc" id="L131">    tagManager.addTag(Tag.Modality, Level.SERIES);</span>
+    // -------- End of Mandatory Tags --------
+<span class="nc" id="L133">    tagManager.addTag(Tag.SeriesDescription, Level.SERIES);</span>
+<span class="nc" id="L134">    tagManager.addTag(Tag.SOPClassUID, Level.SERIES);</span>
+<span class="nc" id="L135">    tagManager.addTag(Tag.RetrieveAETitle, Level.SERIES); // not required</span>
+<span class="nc" id="L136">    tagManager.addTag(Tag.ReferringPhysicianName, Level.SERIES);</span>
+<span class="nc" id="L137">    tagManager.addTag(Tag.InstitutionName, Level.SERIES);</span>
+<span class="nc" id="L138">    tagManager.addTag(Tag.InstitutionalDepartmentName, Level.SERIES);</span>
+<span class="nc" id="L139">    tagManager.addTag(Tag.StationName, Level.SERIES);</span>
+<span class="nc" id="L140">    tagManager.addTag(Tag.Manufacturer, Level.SERIES);</span>
+<span class="nc" id="L141">    tagManager.addTag(Tag.AnatomicalOrientationType, Level.SERIES);</span>
+<span class="nc" id="L142">    tagManager.addTag(Tag.ManufacturerModelName, Level.SERIES);</span>
+<span class="nc" id="L143">    tagManager.addTag(Tag.SeriesNumber, Level.SERIES);</span>
+<span class="nc" id="L144">    tagManager.addTag(Tag.NumberOfFrames, Level.SERIES);</span>
+<span class="nc" id="L145">    tagManager.addTag(Tag.SeriesDate, Level.SERIES);</span>
+<span class="nc" id="L146">    tagManager.addTag(Tag.SeriesTime, Level.SERIES);</span>
+<span class="nc" id="L147">    tagManager.addTag(Tag.PerformedProcedureStepStartDate, Level.SERIES); // not</span>
+    // required
+<span class="nc" id="L149">    tagManager.addTag(Tag.PerformedProcedureStepStartTime, Level.SERIES); // not</span>
+    // required
+    // Should be in image C.7.6.5 Cine Module
+    // http://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.5.html
+<span class="nc" id="L153">    tagManager.addTag(Tag.PreferredPlaybackSequencing, Level.SERIES);</span>
+<span class="nc" id="L154">    tagManager.addTag(Tag.KVP, Level.SERIES);</span>
+<span class="nc" id="L155">    tagManager.addTag(Tag.BodyPartExamined, Level.SERIES);</span>
+<span class="nc" id="L156">    tagManager.addTag(Tag.FrameOfReferenceUID, Level.SERIES);</span>
+<span class="nc" id="L157">    tagManager.addTag(Tag.NumberOfSeriesRelatedInstances, Level.SERIES);</span>
+<span class="nc" id="L158">    tagManager.addTag(Tag.Laterality, Level.SERIES);</span>
+
+    // SOPInstanceUID is the unique identifying tag of a DICOM object
+    // -------- Mandatory Tags --------
+    // Tags for identifying group (Patient, Study, Series)
+<span class="nc" id="L163">    tagManager.addTag(Tag.PatientID, Level.INSTANCE);</span>
+<span class="nc" id="L164">    tagManager.addTag(Tag.PatientName, Level.INSTANCE);</span>
+<span class="nc" id="L165">    tagManager.addTag(Tag.PatientBirthDate, Level.INSTANCE);</span>
+<span class="nc" id="L166">    tagManager.addTag(Tag.IssuerOfPatientID, Level.INSTANCE);</span>
+<span class="nc" id="L167">    tagManager.addTag(Tag.StudyInstanceUID, Level.INSTANCE);</span>
+<span class="nc" id="L168">    tagManager.addTag(Tag.SeriesInstanceUID, Level.INSTANCE);</span>
+<span class="nc" id="L169">    tagManager.addTag(Tag.Modality, Level.INSTANCE);</span>
+    // -------- End of Mandatory Tags --------
+
+<span class="nc" id="L172">    tagManager.addTag(Tag.GantryDetectorTilt, Level.INSTANCE);</span>
+<span class="nc" id="L173">    tagManager.addTag(Tag.PatientOrientation, Level.INSTANCE);</span>
+<span class="nc" id="L174">    tagManager.addTag(Tag.SliceLocation, Level.INSTANCE);</span>
+<span class="nc" id="L175">    tagManager.addTag(Tag.SliceThickness, Level.INSTANCE);</span>
+<span class="nc" id="L176">    tagManager.addTag(Tag.AcquisitionDate, Level.INSTANCE);</span>
+<span class="nc" id="L177">    tagManager.addTag(Tag.AcquisitionTime, Level.INSTANCE);</span>
+<span class="nc" id="L178">    tagManager.addTag(Tag.ContentDate, Level.INSTANCE);</span>
+<span class="nc" id="L179">    tagManager.addTag(Tag.ContentTime, Level.INSTANCE);</span>
+<span class="nc" id="L180">    tagManager.addTag(Tag.DiffusionBValue, Level.INSTANCE);</span>
+<span class="nc" id="L181">    tagManager.addTag(Tag.MIMETypeOfEncapsulatedDocument, Level.INSTANCE);</span>
+<span class="nc" id="L182">    tagManager.addTag(Tag.PixelDataProviderURL, Level.INSTANCE);</span>
+<span class="nc" id="L183">    tagManager.addTag(Tag.AnatomicRegionSequence, Level.INSTANCE);</span>
+
+<span class="nc bnc" id="L185" title="All 2 branches missed.">    for (Entry&lt;Modality, ModalityInfoData&gt; entry : ModalityView.getModalityViewEntries()) {</span>
+<span class="nc" id="L186">      readTagsInModalityView(entry.getValue().getCornerInfo(CornerDisplay.TOP_LEFT).getInfos());</span>
+<span class="nc" id="L187">      readTagsInModalityView(entry.getValue().getCornerInfo(CornerDisplay.TOP_RIGHT).getInfos());</span>
+<span class="nc" id="L188">      readTagsInModalityView(entry.getValue().getCornerInfo(CornerDisplay.BOTTOM_RIGHT).getInfos());</span>
+<span class="nc" id="L189">    }</span>
+
+    // TODO init with a profile
+<span class="nc" id="L192">    DicomMediaUtils.enableAnonymizationProfile(true);</span>
+  }
+
+<span class="nc" id="L195">  public static final Map&lt;String, DicomSpecialElementFactory&gt; DCM_ELEMENT_FACTORIES =</span>
+      new ConcurrentHashMap&lt;&gt;();
+
+  static {
+    // The hidden type factories are not displayed with a special viewer but are transversally
+    // managed objects.
+
+<span class="nc" id="L202">    DCM_ELEMENT_FACTORIES.put(</span>
+        &quot;PR&quot;,
+<span class="nc" id="L204">        new DicomSpecialElementFactory() {</span>
+
+          @Override
+          public String getSeriesMimeType() {
+<span class="nc" id="L208">            return SERIES_PR_MIMETYPE;</span>
+          }
+
+          @Override
+          public String[] getModalities() {
+<span class="nc" id="L213">            return new String[] {&quot;PR&quot;};</span>
+          }
+
+          @Override
+          public boolean isHidden() {
+<span class="nc" id="L218">            return true;</span>
+          }
+
+          @Override
+          public DicomSpecialElement buildDicomSpecialElement(DicomMediaIO mediaIO) {
+<span class="nc" id="L223">            return new PRSpecialElement(mediaIO);</span>
+          }
+        });
+
+<span class="nc" id="L227">    DCM_ELEMENT_FACTORIES.put(</span>
+        &quot;KO&quot;,
+<span class="nc" id="L229">        new DicomSpecialElementFactory() {</span>
+
+          @Override
+          public String getSeriesMimeType() {
+<span class="nc" id="L233">            return SERIES_KO_MIMETYPE;</span>
+          }
+
+          @Override
+          public String[] getModalities() {
+<span class="nc" id="L238">            return new String[] {&quot;KO&quot;};</span>
+          }
+
+          @Override
+          public boolean isHidden() {
+<span class="nc" id="L243">            return true;</span>
+          }
+
+          @Override
+          public DicomSpecialElement buildDicomSpecialElement(DicomMediaIO mediaIO) {
+<span class="nc bnc" id="L248" title="All 2 branches missed.">            if (RejectedKOSpecialElement.isRejectionKOS(mediaIO)) {</span>
+<span class="nc" id="L249">              return new RejectedKOSpecialElement(mediaIO);</span>
+            }
+<span class="nc" id="L251">            return new KOSpecialElement(mediaIO);</span>
+          }
+        });
+
+<span class="nc" id="L255">    DCM_ELEMENT_FACTORIES.put(</span>
+        &quot;SEG&quot;,
+<span class="nc" id="L257">        new DicomSpecialElementFactory() {</span>
+
+          @Override
+          public String getSeriesMimeType() {
+<span class="nc" id="L261">            return SERIES_SEG_MIMETYPE;</span>
+          }
+
+          @Override
+          public String[] getModalities() {
+<span class="nc" id="L266">            return new String[] {&quot;SEG&quot;};</span>
+          }
+
+          @Override
+          public boolean isHidden() {
+<span class="nc" id="L271">            return true;</span>
+          }
+
+          @Override
+          public DicomSpecialElement buildDicomSpecialElement(DicomMediaIO mediaIO) {
+<span class="nc" id="L276">            return new SegSpecialElement(mediaIO);</span>
+          }
+        });
+  }
+
+<span class="nc" id="L281">  private static final SoftHashMap&lt;DicomMediaIO, DicomMetaData&gt; HEADER_CACHE =</span>
+<span class="nc" id="L282">      new SoftHashMap&lt;&gt;() {</span>
+
+        @Override
+        public void removeElement(Reference&lt;? extends DicomMetaData&gt; soft) {
+<span class="nc" id="L286">          DicomMediaIO key = reverseLookup.remove(soft);</span>
+<span class="nc bnc" id="L287" title="All 2 branches missed.">          if (key != null) {</span>
+<span class="nc" id="L288">            hash.remove(key);</span>
+          }
+<span class="nc" id="L290">        }</span>
+      };
+
+  // The above softReference HEADER_CACHE shall be used instead of the following dcmMetadata
+  // variable to get access to
+  // the current DicomObject unless it's virtual and then URI doesn't exit. This case appends when
+  // the dcmMetadata is
+  // created within the application and is given to the ImageReader constructor
+<span class="nc" id="L298">  private DicomMetaData dcmMetadata = null;</span>
+
+  private URI uri;
+  private int numberOfFrame;
+  private final Map&lt;TagW, Object&gt; tags;
+<span class="nc" id="L303">  private DicomImageElement[] image = null;</span>
+  private String mimeType;
+<span class="nc" id="L305">  private boolean hasPixel = false;</span>
+
+  private final FileCache fileCache;
+
+<span class="nc" id="L309">  public DicomMediaIO(URI uri) {</span>
+<span class="nc" id="L310">    this.uri = Objects.requireNonNull(uri);</span>
+<span class="nc" id="L311">    this.numberOfFrame = 0;</span>
+<span class="nc" id="L312">    this.tags = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L313">    this.mimeType = DICOM_MIMETYPE;</span>
+<span class="nc" id="L314">    this.fileCache = new FileCache(this);</span>
+<span class="nc" id="L315">  }</span>
+
+  public DicomMediaIO(File source) {
+<span class="nc" id="L318">    this(Objects.requireNonNull(source).toURI());</span>
+<span class="nc" id="L319">  }</span>
+
+  public DicomMediaIO(Path path) {
+<span class="nc" id="L322">    this(Objects.requireNonNull(path).toUri());</span>
+<span class="nc" id="L323">  }</span>
+
+  public DicomMediaIO(Attributes dcmItems) throws URISyntaxException {
+<span class="nc" id="L326">    this(</span>
+        new URI(
+<span class="nc" id="L328">            &quot;data:&quot; + Objects.requireNonNull(dcmItems).getString(Tag.SOPInstanceUID))); // NON-NLS</span>
+<span class="nc" id="L329">    this.dcmMetadata = new DicomMetaData(dcmItems, UID.ExplicitVRLittleEndian);</span>
+<span class="nc" id="L330">  }</span>
+
+  private static void readTagsInModalityView(TagView[] views) {
+<span class="nc bnc" id="L333" title="All 2 branches missed.">    for (TagView tagView : views) {</span>
+<span class="nc bnc" id="L334" title="All 2 branches missed.">      if (tagView != null) {</span>
+<span class="nc bnc" id="L335" title="All 2 branches missed.">        for (TagW tag : tagView.getTag()) {</span>
+<span class="nc bnc" id="L336" title="All 2 branches missed.">          if (tag != null</span>
+<span class="nc bnc" id="L337" title="All 2 branches missed.">              &amp;&amp; !DicomMediaIO.tagManager.contains(tag, Level.PATIENT)</span>
+<span class="nc bnc" id="L338" title="All 2 branches missed.">              &amp;&amp; !DicomMediaIO.tagManager.contains(tag, Level.STUDY)</span>
+<span class="nc bnc" id="L339" title="All 2 branches missed.">              &amp;&amp; !DicomMediaIO.tagManager.contains(tag, Level.SERIES)) {</span>
+<span class="nc" id="L340">            DicomMediaIO.tagManager.addTag(tag, Level.INSTANCE);</span>
+          }
+        }
+      }
+    }
+<span class="nc" id="L345">  }</span>
+
+  @Override
+  public synchronized void replaceURI(URI uri) {
+<span class="nc bnc" id="L349" title="All 2 branches missed.">    if (!Objects.equals(this.uri, Objects.requireNonNull(uri))) {</span>
+<span class="nc" id="L350">      this.uri = uri;</span>
+    }
+<span class="nc" id="L352">  }</span>
+
+  /**
+   * @return true when the DICOM Object has no source file (only in memory)
+   */
+  public boolean isEditableDicom() {
+<span class="nc bnc" id="L358" title="All 4 branches missed.">    return dcmMetadata != null &amp;&amp; &quot;data&quot;.equals(uri.getScheme()); // NON-NLS</span>
+  }
+
+  public synchronized boolean isReadableDicom() {
+<span class="nc bnc" id="L362" title="All 2 branches missed.">    return getReadingStatus() == Reading.READABLE;</span>
+  }
+
+  public synchronized Reading getReadingStatus() {
+<span class="nc bnc" id="L366" title="All 2 branches missed.">    if (UNREADABLE.equals(mimeType)) {</span>
+<span class="nc" id="L367">      return Reading.EXCLUDED;</span>
+    }
+<span class="nc bnc" id="L369" title="All 4 branches missed.">    if (&quot;data&quot;.equals(uri.getScheme()) &amp;&amp; dcmMetadata == null) { // NON-NLS</span>
+      // Not readable, in memory DICOM object
+<span class="nc" id="L371">      return Reading.EXCLUDED;</span>
+    }
+
+<span class="nc bnc" id="L374" title="All 2 branches missed.">    if (tags.isEmpty()) {</span>
+<span class="nc" id="L375">      return setMimeType();</span>
+    }
+<span class="nc" id="L377">    return Reading.READABLE;</span>
+  }
+
+  private Reading setMimeType() {
+    try {
+<span class="nc" id="L382">      DicomMetaData md = readMetaData();</span>
+<span class="nc" id="L383">      Attributes header = md.getDicomObject();</span>
+      // Exclude DICOMDIR
+<span class="nc bnc" id="L385" title="All 2 branches missed.">      if (md.isMediaStorageDirectory()) {</span>
+<span class="nc" id="L386">        mimeType = UNREADABLE;</span>
+<span class="nc" id="L387">        close();</span>
+<span class="nc" id="L388">        return Reading.EXCLUDED;</span>
+      }
+<span class="nc bnc" id="L390" title="All 2 branches missed.">      if (hasPixel) {</span>
+<span class="nc bnc" id="L391" title="All 2 branches missed.">        if (md.isVideoTransferSyntaxUID()) {</span>
+<span class="nc" id="L392">          mimeType = SERIES_VIDEO_MIMETYPE;</span>
+        } else {
+<span class="nc bnc" id="L394" title="All 2 branches missed.">          if (md.isSegmentationStorage()) {</span>
+<span class="nc" id="L395">            mimeType = SERIES_SEG_MIMETYPE; // Do not display SEG images</span>
+          } else {
+<span class="nc" id="L397">            mimeType = IMAGE_MIMETYPE;</span>
+          }
+        }
+      } else {
+<span class="nc" id="L401">        boolean special = setDicomSpecialType(header);</span>
+<span class="nc bnc" id="L402" title="All 2 branches missed.">        if (!special) {</span>
+          // Not supported DICOM file
+<span class="nc" id="L404">          mimeType = UNREADABLE;</span>
+<span class="nc" id="L405">          close();</span>
+<span class="nc" id="L406">          return Reading.ERROR;</span>
+        }
+      }
+
+<span class="nc" id="L410">      writeInstanceTags(md);</span>
+<span class="nc" id="L411">      return Reading.READABLE;</span>
+<span class="nc" id="L412">    } catch (Exception | OutOfMemoryError e) {</span>
+<span class="nc" id="L413">      mimeType = UNREADABLE;</span>
+<span class="nc" id="L414">      LOGGER.error(&quot;Cannot read DICOM:&quot;, e);</span>
+<span class="nc" id="L415">      close();</span>
+<span class="nc" id="L416">      return Reading.ERROR;</span>
+    }
+  }
+
+  private boolean setDicomSpecialType(Attributes header) {
+<span class="nc" id="L421">    String modality = header.getString(Tag.Modality);</span>
+<span class="nc bnc" id="L422" title="All 2 branches missed.">    if (modality != null) {</span>
+<span class="nc" id="L423">      String encap = header.getString(Tag.MIMETypeOfEncapsulatedDocument);</span>
+<span class="nc" id="L424">      DicomSpecialElementFactory factory = DCM_ELEMENT_FACTORIES.get(modality);</span>
+<span class="nc bnc" id="L425" title="All 2 branches missed.">      if (factory != null) {</span>
+<span class="nc" id="L426">        mimeType = factory.getSeriesMimeType();</span>
+        // Can be not null for instance by ECG with encapsulated pdf
+<span class="nc bnc" id="L428" title="All 2 branches missed.">        if (encap == null) {</span>
+<span class="nc" id="L429">          return true;</span>
+        }
+      }
+<span class="nc bnc" id="L432" title="All 2 branches missed.">      if (encap != null) {</span>
+<span class="nc" id="L433">        mimeType = SERIES_ENCAP_DOC_MIMETYPE;</span>
+<span class="nc" id="L434">        return true;</span>
+      }
+    }
+<span class="nc" id="L437">    return false;</span>
+  }
+
+  public String getMimeType() {
+<span class="nc" id="L441">    return mimeType;</span>
+  }
+
+  @Override
+  public Object getTagValue(TagW tag) {
+<span class="nc bnc" id="L446" title="All 2 branches missed.">    return tag == null ? null : tags.get(tag);</span>
+  }
+
+  @Override
+  public void setTag(TagW tag, Object value) {
+<span class="nc" id="L451">    DicomMediaUtils.setTag(tags, tag, value);</span>
+<span class="nc" id="L452">  }</span>
+
+  @Override
+  public void setTagNoNull(TagW tag, Object value) {
+<span class="nc bnc" id="L456" title="All 2 branches missed.">    if (value != null) {</span>
+<span class="nc" id="L457">      setTag(tag, value);</span>
+    }
+<span class="nc" id="L459">  }</span>
+
+  @Override
+  public boolean containTagKey(TagW tag) {
+<span class="nc" id="L463">    return tags.containsKey(tag);</span>
+  }
+
+  @Override
+  public Iterator&lt;Entry&lt;TagW, Object&gt;&gt; getTagEntrySetIterator() {
+<span class="nc" id="L468">    return tags.entrySet().iterator();</span>
+  }
+
+  private void writeInstanceTags(DicomMetaData md) {
+<span class="nc bnc" id="L472" title="All 6 branches missed.">    if (!tags.isEmpty() || md == null || md.getDicomObject() == null) {</span>
+<span class="nc" id="L473">      return;</span>
+    }
+<span class="nc" id="L475">    Attributes fmi = md.getFileMetaInformation();</span>
+<span class="nc" id="L476">    Attributes header = md.getDicomObject();</span>
+
+<span class="nc" id="L478">    tagManager.readTags(Level.INSTANCE, header, this);</span>
+
+    // -------- Mandatory Tags --------
+    // Tags for identifying group (Patient, Study, Series)
+    // Global Identifier for the patient.
+<span class="nc" id="L483">    PatientComparator patientComparator = new PatientComparator(this);</span>
+<span class="nc" id="L484">    setTag(TagW.PatientPseudoUID, patientComparator.buildPatientPseudoUID());</span>
+
+<span class="nc" id="L486">    Integer instNb =</span>
+<span class="nc" id="L487">        DicomUtils.getIntegerFromDicomElement(</span>
+<span class="nc" id="L488">            header, Tag.InstanceNumber, instanceID.incrementAndGet());</span>
+<span class="nc" id="L489">    setTag(TagD.get(Tag.InstanceNumber), instNb);</span>
+<span class="nc" id="L490">    setTag(</span>
+<span class="nc" id="L491">        TagD.get(Tag.SOPInstanceUID), header.getString(Tag.SOPInstanceUID, String.valueOf(instNb)));</span>
+<span class="nc bnc" id="L492" title="All 2 branches missed.">    if (fmi != null) {</span>
+<span class="nc" id="L493">      setTagNoNull(TagD.get(Tag.TransferSyntaxUID), fmi.getString(Tag.TransferSyntaxUID));</span>
+    }
+
+<span class="nc" id="L496">    String concatenationUID = header.getString(Tag.ConcatenationUID);</span>
+<span class="nc bnc" id="L497" title="All 2 branches missed.">    if (StringUtil.hasText(concatenationUID)) {</span>
+<span class="nc" id="L498">      setTag(TagD.get(Tag.ConcatenationUID), concatenationUID);</span>
+<span class="nc" id="L499">      setTag(</span>
+<span class="nc" id="L500">          TagD.get(Tag.ConcatenationFrameOffsetNumber),</span>
+<span class="nc" id="L501">          header.getInt(Tag.ConcatenationFrameOffsetNumber, 0));</span>
+    }
+
+    // -------- End of Mandatory Tags --------
+
+<span class="nc" id="L506">    writeImageValues(md);</span>
+<span class="nc" id="L507">    writeSharedFunctionalGroupsSequence(header);</span>
+<span class="nc" id="L508">    DicomMediaUtils.writePerFrameFunctionalGroupsSequence(this, header, 0);</span>
+
+<span class="nc" id="L510">    boolean pr = SERIES_PR_MIMETYPE.equals(mimeType);</span>
+<span class="nc" id="L511">    boolean ko = SERIES_KO_MIMETYPE.equals(mimeType);</span>
+<span class="nc bnc" id="L512" title="All 2 branches missed.">    if (pr) {</span>
+<span class="nc" id="L513">      PrDicomObject prDcm = new PrDicomObject(header, md.getImageDescriptor());</span>
+<span class="nc" id="L514">      setTag(TagW.PrDicomObject, prDcm);</span>
+    }
+<span class="nc bnc" id="L516" title="All 4 branches missed.">    if (pr || ko) {</span>
+      // Set other required fields
+<span class="nc" id="L518">      TagW[] tagIDs =</span>
+<span class="nc" id="L519">          TagD.getTagFromIDs(</span>
+              Tag.SeriesDescription, Tag.SeriesDate, Tag.SeriesTime, Tag.SeriesNumber);
+<span class="nc bnc" id="L521" title="All 2 branches missed.">      for (TagW tag : tagIDs) {</span>
+<span class="nc" id="L522">        tag.readValue(header, this);</span>
+      }
+    }
+
+<span class="nc" id="L526">    DicomMediaUtils.computeSlicePositionVector(this);</span>
+<span class="nc" id="L527">    DicomMediaUtils.setShutter(this, header);</span>
+<span class="nc" id="L528">    DicomMediaUtils.computeSUVFactor(header, this, 0);</span>
+<span class="nc" id="L529">  }</span>
+
+  private void writeSharedFunctionalGroupsSequence(Attributes header) {
+<span class="nc bnc" id="L532" title="All 2 branches missed.">    if (header != null) {</span>
+<span class="nc" id="L533">      DicomMediaUtils.writeFunctionalGroupsSequence(</span>
+<span class="nc" id="L534">          this, header.getNestedDataset(Tag.SharedFunctionalGroupsSequence));</span>
+    }
+<span class="nc" id="L536">  }</span>
+
+  private void writeImageValues(DicomMetaData md) {
+<span class="nc bnc" id="L539" title="All 6 branches missed.">    if (md != null &amp;&amp; md.getDicomObject() != null &amp;&amp; hasPixel) {</span>
+<span class="nc" id="L540">      Attributes header = md.getDicomObject();</span>
+<span class="nc" id="L541">      ImageDescriptor desc = md.getImageDescriptor();</span>
+<span class="nc" id="L542">      TagD.get(Tag.ImagePositionPatient).readValue(header, this);</span>
+<span class="nc" id="L543">      TagD.get(Tag.ImageOrientationPatient).readValue(header, this);</span>
+<span class="nc" id="L544">      setTagNoNull(TagW.ImageOrientationPlane, ImageOrientation.getPlan(this));</span>
+
+<span class="nc" id="L546">      int bitsAllocated = desc.getBitsAllocated();</span>
+<span class="nc" id="L547">      int bitsStored = desc.getBitsStored();</span>
+
+<span class="nc" id="L549">      int pixelRepresentation = desc.getPixelRepresentation();</span>
+<span class="nc" id="L550">      setTagNoNull(TagD.get(Tag.BitsAllocated), bitsAllocated);</span>
+<span class="nc" id="L551">      setTagNoNull(TagD.get(Tag.BitsStored), bitsStored);</span>
+<span class="nc" id="L552">      setTagNoNull(TagD.get(Tag.PixelRepresentation), pixelRepresentation);</span>
+
+<span class="nc" id="L554">      TagD.get(Tag.PixelSpacing).readValue(header, this);</span>
+<span class="nc" id="L555">      TagD.get(Tag.PixelAspectRatio).readValue(header, this);</span>
+<span class="nc" id="L556">      TagD.get(Tag.PixelSpacingCalibrationDescription).readValue(header, this);</span>
+<span class="nc" id="L557">      TagD.get(Tag.ImagerPixelSpacing).readValue(header, this);</span>
+<span class="nc" id="L558">      TagD.get(Tag.EstimatedRadiographicMagnificationFactor).readValue(header, this);</span>
+<span class="nc" id="L559">      TagD.get(Tag.DistanceSourceToDetector).readValue(header, this);</span>
+<span class="nc" id="L560">      TagD.get(Tag.DistanceSourceToPatient).readValue(header, this);</span>
+<span class="nc" id="L561">      TagD.get(Tag.NominalScannedPixelSpacing).readValue(header, this);</span>
+
+<span class="nc" id="L563">      setTag(TagW.AnatomicRegion, desc.getAnatomicRegion());</span>
+
+<span class="nc" id="L565">      setTag(TagW.ModalityLUTData, desc.getModalityLUT());</span>
+<span class="nc" id="L566">      TagD.get(Tag.PixelIntensityRelationship).readValue(header, this);</span>
+<span class="nc" id="L567">      setTag(TagW.VOILUTsData, desc.getVoiLUT());</span>
+
+<span class="nc" id="L569">      TagD.get(Tag.Units).readValue(header, this);</span>
+<span class="nc" id="L570">      TagD.get(Tag.NumberOfFrames).readValue(header, this);</span>
+<span class="nc" id="L571">      setTagNoNull(TagD.get(Tag.FrameTimeVector), DicomMediaUtils.getFrameTime(header));</span>
+<span class="nc" id="L572">      TagD.get(Tag.PreferredPlaybackSequencing).readValue(header, this);</span>
+
+<span class="nc" id="L574">      int samplesPerPixel = DicomUtils.getIntegerFromDicomElement(header, Tag.SamplesPerPixel, 1);</span>
+<span class="nc" id="L575">      setTag(TagD.get(Tag.SamplesPerPixel), samplesPerPixel);</span>
+<span class="nc" id="L576">      String photometricInterpretation =</span>
+<span class="nc" id="L577">          header.getString(Tag.PhotometricInterpretation, &quot;MONOCHROME2&quot;);</span>
+<span class="nc" id="L578">      TagD.get(Tag.PresentationLUTShape).readValue(header, this);</span>
+<span class="nc" id="L579">      setTag(TagD.get(Tag.PhotometricInterpretation), photometricInterpretation);</span>
+<span class="nc bnc" id="L580" title="All 2 branches missed.">      setTag(</span>
+          TagW.MonoChrome,
+<span class="nc" id="L582">          samplesPerPixel == 1</span>
+<span class="nc bnc" id="L583" title="All 2 branches missed.">              &amp;&amp; !&quot;PALETTE COLOR&quot;.equalsIgnoreCase(photometricInterpretation)); // NON-NLS</span>
+
+<span class="nc" id="L585">      setTag(TagD.get(Tag.Rows), desc.getRows());</span>
+<span class="nc" id="L586">      setTag(TagD.get(Tag.Columns), desc.getColumns());</span>
+
+<span class="nc" id="L588">      setTagNoNull(</span>
+<span class="nc bnc" id="L589" title="All 2 branches missed.">          TagD.get(Tag.PixelPaddingValue),</span>
+<span class="nc" id="L590">          DicomMediaUtils.getIntPixelValue(</span>
+              header, Tag.PixelPaddingValue, pixelRepresentation != 0, bitsStored));
+<span class="nc" id="L592">      setTagNoNull(</span>
+<span class="nc bnc" id="L593" title="All 2 branches missed.">          TagD.get(Tag.PixelPaddingRangeLimit),</span>
+<span class="nc" id="L594">          DicomMediaUtils.getIntPixelValue(</span>
+              header, Tag.PixelPaddingRangeLimit, pixelRepresentation != 0, bitsStored));
+
+      // C.7.6.1.1.5 Lossy Image Compression:
+      // https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.html#sect_C.7.6.1.1.5&quot;
+<span class="nc" id="L599">      setTagNoNull(</span>
+<span class="nc" id="L600">          TagD.get(Tag.LossyImageCompression),</span>
+<span class="nc" id="L601">          header.getString(</span>
+<span class="nc" id="L602">              Tag.LossyImageCompression, header.getString(Tag.LossyImageCompressionRetired)));</span>
+<span class="nc" id="L603">      TagD.get(Tag.LossyImageCompressionRatio).readValue(header, this);</span>
+<span class="nc" id="L604">      TagD.get(Tag.LossyImageCompressionMethod).readValue(header, this);</span>
+<span class="nc" id="L605">      TagD.get(Tag.DerivationDescription).readValue(header, this);</span>
+
+<span class="nc" id="L607">      setTagNoNull(TagW.ImageDescriptor, desc.getEmbeddedOverlay());</span>
+    }
+<span class="nc" id="L609">  }</span>
+
+  public boolean containTag(int id) {
+<span class="nc bnc" id="L612" title="All 2 branches missed.">    for (TagW tagW : tags.keySet()) {</span>
+<span class="nc bnc" id="L613" title="All 2 branches missed.">      if (tagW.getId() == id) {</span>
+<span class="nc" id="L614">        return true;</span>
+      }
+<span class="nc" id="L616">    }</span>
+<span class="nc" id="L617">    return false;</span>
+  }
+
+  @Override
+  public URI getUri() {
+<span class="nc" id="L622">    return uri;</span>
+  }
+
+  @Override
+  public FileCache getFileCache() {
+<span class="nc" id="L627">    return fileCache;</span>
+  }
+
+  @Override
+  public boolean buildFile(File output) {
+    // When object is in memory, write it
+<span class="nc bnc" id="L633" title="All 2 branches missed.">    if (isEditableDicom()) {</span>
+<span class="nc" id="L634">      Attributes dcm = getDicomObject();</span>
+<span class="nc bnc" id="L635" title="All 2 branches missed.">      if (dcm != null) {</span>
+<span class="nc" id="L636">        try (DicomOutputStream out = new DicomOutputStream(output)) {</span>
+<span class="nc" id="L637">          out.writeDataset(dcm.createFileMetaInformation(UID.ImplicitVRLittleEndian), dcm);</span>
+<span class="nc" id="L638">          return true;</span>
+<span class="nc" id="L639">        } catch (IOException e) {</span>
+<span class="nc" id="L640">          LOGGER.error(&quot;Cannot write dicom file&quot;, e);</span>
+        }
+      }
+    }
+<span class="nc" id="L644">    return false;</span>
+  }
+
+  @Override
+  public PlanarImage getImageFragment(MediaElement media) throws Exception {
+<span class="nc bnc" id="L649" title="All 2 branches missed.">    if (Objects.requireNonNull(media).getKey() instanceof Integer) {</span>
+<span class="nc" id="L650">      return getImageFragment(media, (Integer) media.getKey(), true);</span>
+    }
+<span class="nc" id="L652">    return null;</span>
+  }
+
+  public PlanarImage getImageFragment(MediaElement media, int frame, boolean noEmbeddedOverlay)
+      throws Exception {
+<span class="nc bnc" id="L657" title="All 8 branches missed.">    if (isReadableDicom() &amp;&amp; frame &gt;= 0 &amp;&amp; frame &lt; numberOfFrame &amp;&amp; hasPixel) {</span>
+<span class="nc" id="L658">      FileCache cache = media.getFileCache();</span>
+<span class="nc" id="L659">      Optional&lt;File&gt; original = cache.getOriginalFile();</span>
+<span class="nc bnc" id="L660" title="All 2 branches missed.">      if (original.isPresent()) {</span>
+<span class="nc" id="L661">        LOGGER.debug(</span>
+            &quot;Start reading dicom image frame: {} sopUID: {}&quot;,
+<span class="nc" id="L663">            frame,</span>
+<span class="nc" id="L664">            TagD.getTagValue(this, Tag.SOPInstanceUID));</span>
+<span class="nc" id="L665">        DicomImageReader reader = new DicomImageReader(Transcoder.dicomImageReaderSpi);</span>
+<span class="nc" id="L666">        try (DicomFileInputStream inputStream = new DicomFileInputStream(original.get().toPath())) {</span>
+<span class="nc" id="L667">          reader.setInput(inputStream);</span>
+<span class="nc" id="L668">          ImageDescriptor desc = reader.getImageDescriptor();</span>
+<span class="nc" id="L669">          PlanarImage img = reader.getPlanarImage(frame, null);</span>
+<span class="nc bnc" id="L670" title="All 4 branches missed.">          if (img.width() != desc.getColumns() || img.height() != desc.getRows()) {</span>
+<span class="nc" id="L671">            LOGGER.error(</span>
+                &quot;The native image size ({}x{}) does not match with the DICOM attributes({}x{})&quot;,
+<span class="nc" id="L673">                img.width(),</span>
+<span class="nc" id="L674">                img.height(),</span>
+<span class="nc" id="L675">                desc.getColumns(),</span>
+<span class="nc" id="L676">                desc.getRows());</span>
+          }
+<span class="nc bnc" id="L678" title="All 2 branches missed.">          return noEmbeddedOverlay ? ImageRendering.getImageWithoutEmbeddedOverlay(img, desc) : img;</span>
+        } finally {
+<span class="nc" id="L680">          reader.dispose();</span>
+        }
+      }
+    }
+<span class="nc" id="L684">    return null;</span>
+  }
+
+  private static Mat getMatBuffer(ExtendSegmentedInputImageStream extParams) throws IOException {
+<span class="nc" id="L688">    try (RandomAccessFile raf = new RandomAccessFile(extParams.getFile(), &quot;r&quot;)) {</span>
+
+<span class="nc" id="L690">      long cols = Arrays.stream(extParams.getSegmentLengths()).sum();</span>
+<span class="nc" id="L691">      Mat buf = new Mat(1, (int) cols, CvType.CV_8UC1);</span>
+<span class="nc" id="L692">      long[] pos = extParams.getSegmentPositions();</span>
+<span class="nc" id="L693">      int offset = 0;</span>
+<span class="nc bnc" id="L694" title="All 2 branches missed.">      for (int i = 0; i &lt; pos.length; i++) {</span>
+<span class="nc" id="L695">        int len = (int) extParams.getSegmentLengths()[i];</span>
+<span class="nc" id="L696">        byte[] b = new byte[len];</span>
+<span class="nc" id="L697">        raf.seek(pos[i]);</span>
+<span class="nc" id="L698">        raf.read(b);</span>
+<span class="nc" id="L699">        buf.put(0, offset, b);</span>
+<span class="nc" id="L700">        offset += len;</span>
+      }
+<span class="nc" id="L702">      return buf;</span>
+    }
+  }
+
+  private static Mat getRawData(BulkData bulkData) {
+<span class="nc" id="L707">    try (BufferedInputStream input = new BufferedInputStream(bulkData.openStream())) {</span>
+<span class="nc" id="L708">      Mat buf = new Mat(1, bulkData.length(), CvType.CV_8UC1);</span>
+<span class="nc" id="L709">      byte[] b = new byte[bulkData.length()];</span>
+<span class="nc" id="L710">      input.read(b, 0, b.length);</span>
+<span class="nc" id="L711">      buf.put(0, 0, b);</span>
+<span class="nc" id="L712">      return buf;</span>
+<span class="nc" id="L713">    } catch (Exception e) {</span>
+<span class="nc" id="L714">      LOGGER.error(&quot;Reading Waveform data&quot;);</span>
+    }
+<span class="nc" id="L716">    return new Mat();</span>
+  }
+
+  private DicomImageElement getSingleImage() {
+<span class="nc" id="L720">    return getSingleImage(0);</span>
+  }
+
+  private DicomImageElement getSingleImage(int frame) {
+<span class="nc" id="L724">    DicomImageElement[] elements = getMediaElement();</span>
+<span class="nc bnc" id="L725" title="All 4 branches missed.">    if (elements != null &amp;&amp; elements.length &gt; frame) {</span>
+<span class="nc" id="L726">      return elements[frame];</span>
+    }
+<span class="nc" id="L728">    return null;</span>
+  }
+
+  @Override
+  public MediaElement getPreview() {
+<span class="nc" id="L733">    return getSingleImage();</span>
+  }
+
+  @Override
+  public boolean delegate(DataExplorerModel explorerModel) {
+<span class="nc" id="L738">    return false;</span>
+  }
+
+  @Override
+  public synchronized DicomImageElement[] getMediaElement() {
+<span class="nc" id="L743">    ResultContainer result = getMediaElement(null);</span>
+<span class="nc" id="L744">    return result.getImage();</span>
+  }
+
+  public synchronized ResultContainer getMediaElement(
+      Function&lt;DicomSpecialElementFactory, DicomSpecialElement&gt; buildSpecialElement) {
+<span class="nc" id="L749">    DicomSpecialElement specialElement = null;</span>
+<span class="nc bnc" id="L750" title="All 4 branches missed.">    if (image == null &amp;&amp; isReadableDicom()) {</span>
+<span class="nc bnc" id="L751" title="All 2 branches missed.">      if (SERIES_VIDEO_MIMETYPE.equals(mimeType)) {</span>
+<span class="nc" id="L752">        image = new DicomImageElement[] {new DicomVideoElement(this, null)};</span>
+<span class="nc bnc" id="L753" title="All 2 branches missed.">      } else if (SERIES_ENCAP_DOC_MIMETYPE.equals(mimeType)) {</span>
+<span class="nc" id="L754">        image = new DicomImageElement[] {new DicomEncapDocElement(this, null)};</span>
+      } else {
+<span class="nc" id="L756">        specialElement = buildImageElement(buildSpecialElement);</span>
+      }
+    }
+<span class="nc" id="L759">    return new ResultContainer(image, specialElement);</span>
+  }
+
+  private DicomSpecialElement buildImageElement(
+      Function&lt;DicomSpecialElementFactory, DicomSpecialElement&gt; buildSpecialElement) {
+<span class="nc" id="L764">    DicomSpecialElementFactory factory = getDicomSpecialElementFactory();</span>
+<span class="nc bnc" id="L765" title="All 2 branches missed.">    if (numberOfFrame &gt; 0) {</span>
+<span class="nc" id="L766">      image = new DicomImageElement[numberOfFrame];</span>
+<span class="nc bnc" id="L767" title="All 2 branches missed.">      for (int i = 0; i &lt; image.length; i++) {</span>
+<span class="nc" id="L768">        image[i] = new DicomImageElement(this, i);</span>
+      }
+<span class="nc bnc" id="L770" title="All 2 branches missed.">      if (numberOfFrame &gt; 1) {</span>
+<span class="nc" id="L771">        buildMultiframe();</span>
+      }
+<span class="nc bnc" id="L773" title="All 2 branches missed.">      if (factory != null) {</span>
+<span class="nc" id="L774">        return buildSpecialElement.apply(factory);</span>
+      }
+    } else {
+<span class="nc bnc" id="L777" title="All 2 branches missed.">      if (factory == null) {</span>
+        // Corrupted image =&gt; should have one frame
+<span class="nc" id="L779">        image = new DicomImageElement[0];</span>
+      } else {
+<span class="nc" id="L781">        return buildSpecialElement.apply(factory);</span>
+      }
+    }
+<span class="nc" id="L784">    return null;</span>
+  }
+
+  private void buildMultiframe() {
+<span class="nc" id="L788">    Integer offset = (Integer) tags.get(TagD.get(Tag.ConcatenationFrameOffsetNumber));</span>
+<span class="nc" id="L789">    double[] frameTimes = (double[]) tags.get(TagD.get(Tag.FrameTimeVector));</span>
+    // IF enhanced DICOM, instance number can be overridden later
+    // IF simple multi-frame instance number is necessary
+<span class="nc bnc" id="L792" title="All 2 branches missed.">    for (int i = 0; i &lt; image.length; i++) {</span>
+<span class="nc bnc" id="L793" title="All 2 branches missed.">      int nb = offset == null ? i + 1 : offset + i + 1;</span>
+<span class="nc" id="L794">      image[i].setTag(TagD.get(Tag.InstanceNumber), nb);</span>
+<span class="nc bnc" id="L795" title="All 2 branches missed.">      if (frameTimes != null) {</span>
+        double frameTime;
+<span class="nc bnc" id="L797" title="All 2 branches missed.">        if (i &lt; frameTimes.length) {</span>
+<span class="nc" id="L798">          frameTime = frameTimes[i] / 1000;</span>
+        } else {
+<span class="nc" id="L800">          frameTime = frameTimes[frameTimes.length - 1] / 1000;</span>
+        }
+<span class="nc bnc" id="L802" title="All 2 branches missed.">        if (frameTime &gt; 0) {</span>
+<span class="nc" id="L803">          image[i].setTag(TagD.get(Tag.CineRate), 1.0 / frameTime);</span>
+        }
+      }
+    }
+<span class="nc" id="L807">  }</span>
+
+  private DicomSpecialElementFactory getDicomSpecialElementFactory() {
+<span class="nc" id="L810">    String modality = TagD.getTagValue(this, Tag.Modality, String.class);</span>
+<span class="nc bnc" id="L811" title="All 2 branches missed.">    if (modality != null) {</span>
+<span class="nc" id="L812">      return DCM_ELEMENT_FACTORIES.get(modality);</span>
+    }
+<span class="nc" id="L814">    return null;</span>
+  }
+
+  @Override
+  public DicomSeries getMediaSeries() {
+<span class="nc" id="L819">    DicomSeries series = null;</span>
+<span class="nc bnc" id="L820" title="All 2 branches missed.">    if (isReadableDicom()) {</span>
+<span class="nc" id="L821">      String seriesUID = TagD.getTagValue(this, Tag.SeriesInstanceUID, String.class);</span>
+<span class="nc" id="L822">      series = buildSeries(seriesUID);</span>
+<span class="nc" id="L823">      writeMetaData(series);</span>
+      // No need to apply splitting rules. No model
+<span class="nc" id="L825">      DicomImageElement[] elements = getMediaElement();</span>
+<span class="nc bnc" id="L826" title="All 2 branches missed.">      if (elements != null) {</span>
+<span class="nc bnc" id="L827" title="All 2 branches missed.">        for (DicomImageElement media : elements) {</span>
+<span class="nc" id="L828">          series.addMedia(media);</span>
+        }
+      }
+    }
+<span class="nc" id="L832">    return series;</span>
+  }
+
+  @Override
+  public int getMediaElementNumber() {
+<span class="nc" id="L837">    return numberOfFrame;</span>
+  }
+
+  @Override
+  public String getMediaFragmentMimeType() {
+<span class="nc" id="L842">    return getMimeType();</span>
+  }
+
+  @Override
+  public Map&lt;TagW, Object&gt; getMediaFragmentTags(Object key) {
+<span class="nc bnc" id="L847" title="All 4 branches missed.">    if (key instanceof Integer val &amp;&amp; val &gt; 0) {</span>
+      // Clone the shared tag
+<span class="nc" id="L849">      Map&lt;TagW, Object&gt; tagList = new HashMap&lt;&gt;(tags);</span>
+<span class="nc" id="L850">      SimpleTaggable taggable = new SimpleTaggable(tagList);</span>
+<span class="nc bnc" id="L851" title="All 2 branches missed.">      if (DicomMediaUtils.writePerFrameFunctionalGroupsSequence(taggable, getDicomObject(), val)) {</span>
+<span class="nc" id="L852">        DicomMediaUtils.computeSlicePositionVector(taggable);</span>
+      }
+<span class="nc" id="L854">      return tagList;</span>
+    }
+<span class="nc" id="L856">    return tags;</span>
+  }
+
+  @Override
+  public void close() {
+<span class="nc" id="L861">    HEADER_CACHE.remove(this);</span>
+<span class="nc" id="L862">  }</span>
+
+  @Override
+  public Codec getCodec() {
+<span class="nc" id="L866">    return BundleTools.getCodec(DicomMediaIO.DICOM_MIMETYPE, DicomCodec.NAME);</span>
+  }
+
+  @Override
+  public String[] getReaderDescription() {
+<span class="nc" id="L871">    return new String[] {</span>
+      &quot;DICOM Codec: &quot; + DicomCodec.NAME, // NON-NLS
+<span class="nc" id="L873">      &quot;Version: &quot; + Implementation.getVersionName(), // NON-NLS</span>
+      &quot;Image decompression: OpenCV imgcodecs&quot;, // NON-NLS
+      &quot;Version: &quot; + Core.VERSION // NON-NLS
+    };
+  }
+
+  public DicomSeries buildSeries(String seriesUID) {
+    DicomSeries series;
+<span class="nc bnc" id="L881" title="All 2 branches missed.">    if (IMAGE_MIMETYPE.equals(mimeType)) {</span>
+<span class="nc" id="L882">      series = new DicomSeries(seriesUID);</span>
+<span class="nc bnc" id="L883" title="All 2 branches missed.">    } else if (SERIES_VIDEO_MIMETYPE.equals(mimeType)) {</span>
+<span class="nc" id="L884">      series = new DicomVideoSeries(seriesUID);</span>
+<span class="nc bnc" id="L885" title="All 2 branches missed.">    } else if (SERIES_ENCAP_DOC_MIMETYPE.equals(mimeType)) {</span>
+<span class="nc" id="L886">      series = new DicomEncapDocSeries(seriesUID);</span>
+    } else {
+<span class="nc" id="L888">      series = new DicomSeries(seriesUID);</span>
+    }
+<span class="nc" id="L890">    return series;</span>
+  }
+
+  @Override
+  public Attributes getDicomObject() {
+    try {
+<span class="nc" id="L896">      DicomMetaData md = readMetaData();</span>
+<span class="nc" id="L897">      return md.getDicomObject();</span>
+<span class="nc" id="L898">    } catch (Exception e) {</span>
+<span class="nc bnc" id="L899" title="All 2 branches missed.">      if (LOGGER.isDebugEnabled()) {</span>
+<span class="nc" id="L900">        LOGGER.error(&quot;Cannot read DICOM:&quot;, e);</span>
+      } else {
+<span class="nc" id="L902">        LOGGER.error(e.getMessage());</span>
+      }
+    }
+<span class="nc" id="L905">    return null;</span>
+  }
+
+  @Override
+  public DicomMetaData getDicomMetaData() {
+    try {
+<span class="nc" id="L911">      return readMetaData();</span>
+<span class="nc" id="L912">    } catch (Exception e) {</span>
+<span class="nc bnc" id="L913" title="All 2 branches missed.">      if (LOGGER.isDebugEnabled()) {</span>
+<span class="nc" id="L914">        LOGGER.error(&quot;Cannot read DICOM:&quot;, e);</span>
+      } else {
+<span class="nc" id="L916">        LOGGER.error(e.getMessage());</span>
+      }
+    }
+<span class="nc" id="L919">    return null;</span>
+  }
+
+  /** Reads the DICOM header meta-data, up to, but not including pixel data. */
+  private synchronized DicomMetaData readMetaData() throws IOException {
+<span class="nc" id="L924">    DicomMetaData header = HEADER_CACHE.get(this);</span>
+<span class="nc bnc" id="L925" title="All 2 branches missed.">    if (header != null) {</span>
+<span class="nc" id="L926">      return header;</span>
+<span class="nc bnc" id="L927" title="All 2 branches missed.">    } else if (dcmMetadata != null) {</span>
+<span class="nc" id="L928">      return dcmMetadata;</span>
+    }
+
+<span class="nc" id="L931">    Optional&lt;File&gt; file = fileCache.getOriginalFile();</span>
+<span class="nc bnc" id="L932" title="All 2 branches missed.">    if (file.isEmpty()) {</span>
+<span class="nc" id="L933">      throw new IllegalArgumentException(&quot;No file found!&quot;);</span>
+    }
+<span class="nc" id="L935">    Path path = file.get().toPath();</span>
+
+<span class="nc" id="L937">    DicomImageReader reader = new DicomImageReader(Transcoder.dicomImageReaderSpi);</span>
+<span class="nc" id="L938">    try (DicomFileInputStream inputStream = new DicomFileInputStream(path)) {</span>
+<span class="nc" id="L939">      reader.setInput(inputStream);</span>
+<span class="nc" id="L940">      DicomMetaData dicomMetaData = reader.getStreamMetadata();</span>
+<span class="nc" id="L941">      Attributes dcm = dicomMetaData.getDicomObject();</span>
+<span class="nc" id="L942">      this.numberOfFrame = dcm.getInt(Tag.NumberOfFrames, 0);</span>
+<span class="nc" id="L943">      VR.Holder pixelatedVR = new VR.Holder();</span>
+<span class="nc" id="L944">      Object pixelData = dcm.getValue(Tag.PixelData, pixelatedVR);</span>
+<span class="nc bnc" id="L945" title="All 2 branches missed.">      if (pixelData == null) {</span>
+<span class="nc" id="L946">        pixelData = dcm.getValue(Tag.FloatPixelData, pixelatedVR);</span>
+      }
+<span class="nc bnc" id="L948" title="All 2 branches missed.">      if (pixelData == null) {</span>
+<span class="nc" id="L949">        pixelData = dcm.getValue(Tag.DoubleFloatPixelData, pixelatedVR);</span>
+      }
+
+<span class="nc bnc" id="L952" title="All 2 branches missed.">      if (pixelData != null) {</span>
+<span class="nc" id="L953">        hasPixel = true;</span>
+      }
+
+<span class="nc bnc" id="L956" title="All 4 branches missed.">      if (numberOfFrame &lt;= 0 &amp;&amp; hasPixel) {</span>
+<span class="nc" id="L957">        this.numberOfFrame = 1;</span>
+      }
+<span class="nc" id="L959">      HEADER_CACHE.put(this, dicomMetaData);</span>
+<span class="nc" id="L960">      return dicomMetaData;</span>
+    } finally {
+<span class="nc" id="L962">      reader.dispose();</span>
+    }
+  }
+
+  public static boolean isHiddenModality(String modality) {
+<span class="nc bnc" id="L967" title="All 2 branches missed.">    if (modality != null) {</span>
+<span class="nc" id="L968">      DicomSpecialElementFactory factory = DCM_ELEMENT_FACTORIES.get(modality);</span>
+<span class="nc bnc" id="L969" title="All 2 branches missed.">      if (factory != null) {</span>
+<span class="nc" id="L970">        return factory.isHidden();</span>
+      }
+    }
+<span class="nc" id="L973">    return false;</span>
+  }
+
+  public static class ResultContainer {
+
+    private final DicomImageElement[] image;
+    private final DicomSpecialElement specialElement;
+
+<span class="nc" id="L981">    public ResultContainer(DicomImageElement[] image, DicomSpecialElement specialElement) {</span>
+<span class="nc" id="L982">      this.image = image;</span>
+<span class="nc" id="L983">      this.specialElement = specialElement;</span>
+<span class="nc" id="L984">    }</span>
+
+    public DicomImageElement[] getImage() {
+<span class="nc" id="L987">      return image;</span>
+    }
+
+    public DicomSpecialElement getSpecialElement() {
+<span class="nc" id="L991">      return specialElement;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>KOSpecialElement.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec</a> &gt; <span class="el_source">KOSpecialElement.java</span></div><h1>KOSpecialElement.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec;
+
+import java.io.IOException;
+import java.io.Writer;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import org.dcm4che3.data.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.media.data.MediaSeries;
+import org.weasis.dicom.macro.SOPInstanceReferenceAndMAC;
+import org.weasis.dicom.mf.ArcParameters;
+import org.weasis.dicom.mf.Xml;
+
+public class KOSpecialElement extends AbstractKOSpecialElement {
+<span class="nc" id="L28">  private static final Logger LOGGER = LoggerFactory.getLogger(KOSpecialElement.class);</span>
+
+  public static final String SEL_NAME = &quot;name&quot;; // NON-NLS
+
+  public KOSpecialElement(DicomMediaIO mediaIO) {
+<span class="nc" id="L33">    super(mediaIO);</span>
+<span class="nc" id="L34">  }</span>
+
+  public void toggleKeyObjectReference(DicomImageElement dicomImage) {
+
+<span class="nc" id="L38">    Reference ref = new Reference(dicomImage);</span>
+
+    // Get the SOPInstanceReferenceMap for this seriesUID
+<span class="nc" id="L41">    Map&lt;String, SOPInstanceReferenceAndMAC&gt; sopInstanceReferenceBySOPInstanceUID =</span>
+<span class="nc" id="L42">        sopInstanceReferenceMapBySeriesUID.get(ref.getSeriesInstanceUID());</span>
+
+<span class="nc bnc" id="L44" title="All 2 branches missed.">    boolean isSelected =</span>
+        sopInstanceReferenceBySOPInstanceUID != null
+<span class="nc bnc" id="L46" title="All 2 branches missed.">            &amp;&amp; sopInstanceReferenceBySOPInstanceUID.containsKey(ref.getSopInstanceUID());</span>
+
+<span class="nc bnc" id="L48" title="All 2 branches missed.">    setKeyObjectReference(!isSelected, ref);</span>
+<span class="nc" id="L49">  }</span>
+
+  public boolean setKeyObjectReference(boolean selectedState, DicomImageElement dicomImage) {
+<span class="nc" id="L52">    return setKeyObjectReference(selectedState, new Reference(dicomImage));</span>
+  }
+
+  private boolean setKeyObjectReference(boolean selectedState, Reference ref) {
+<span class="nc bnc" id="L56" title="All 2 branches missed.">    if (selectedState) {</span>
+<span class="nc" id="L57">      return addKeyObject(ref);</span>
+    } else {
+<span class="nc" id="L59">      return removeKeyObject(ref);</span>
+    }
+  }
+
+  public boolean setKeyObjectReference(
+      boolean selectedState, MediaSeries&lt;DicomImageElement&gt; series) {
+<span class="nc" id="L65">    boolean hasDataModelChanged = false;</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">    for (DicomImageElement dicomImage : series.getSortedMedias(null)) {</span>
+<span class="nc" id="L67">      hasDataModelChanged |= setKeyObjectReference(selectedState, new Reference(dicomImage));</span>
+<span class="nc" id="L68">    }</span>
+<span class="nc" id="L69">    return hasDataModelChanged;</span>
+  }
+
+  public static void writeSelection(Collection&lt;KOSpecialElement&gt; list, Writer manifest) {
+<span class="nc bnc" id="L73" title="All 4 branches missed.">    if (list != null &amp;&amp; manifest != null) {</span>
+      try {
+<span class="nc" id="L75">        manifest.append(&quot;\n&lt;&quot;);</span>
+<span class="nc" id="L76">        manifest.append(ArcParameters.TAG_SEL_ROOT);</span>
+<span class="nc" id="L77">        manifest.append(&quot;&gt;&quot;);</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">        for (KOSpecialElement ko : list) {</span>
+<span class="nc" id="L79">          writeKoElement(ko, manifest);</span>
+<span class="nc" id="L80">        }</span>
+
+<span class="nc" id="L82">        manifest.append(&quot;\n&lt;/&quot;);</span>
+<span class="nc" id="L83">        manifest.append(ArcParameters.TAG_SEL_ROOT);</span>
+<span class="nc" id="L84">        manifest.append(&quot;&gt;&quot;);</span>
+
+<span class="nc" id="L86">      } catch (Exception e) {</span>
+<span class="nc" id="L87">        LOGGER.error(&quot;Cannot write Key Object Selection: &quot;, e);</span>
+<span class="nc" id="L88">      }</span>
+    }
+<span class="nc" id="L90">  }</span>
+
+  private static void writeKoElement(KOSpecialElement ko, Writer mf) throws IOException {
+<span class="nc" id="L93">    mf.append(&quot;\n&lt;&quot;);</span>
+<span class="nc" id="L94">    mf.append(ArcParameters.TAG_SEL);</span>
+<span class="nc" id="L95">    mf.append(&quot; &quot;);</span>
+<span class="nc" id="L96">    Xml.addXmlAttribute(SEL_NAME, ko.getLabelWithoutPrefix(), mf);</span>
+<span class="nc" id="L97">    mf.append(&quot; &quot;);</span>
+<span class="nc" id="L98">    String seriesUID = TagD.get(Tag.SeriesInstanceUID).getKeyword();</span>
+<span class="nc" id="L99">    Xml.addXmlAttribute(seriesUID, TagD.getTagValue(ko, Tag.SeriesInstanceUID, String.class), mf);</span>
+<span class="nc" id="L100">    mf.append(&quot;&gt;&quot;);</span>
+
+    for (Entry&lt;String, Map&lt;String, SOPInstanceReferenceAndMAC&gt;&gt; entry :
+<span class="nc bnc" id="L103" title="All 2 branches missed.">        ko.sopInstanceReferenceMapBySeriesUID.entrySet()) {</span>
+<span class="nc" id="L104">      mf.append(&quot;\n&lt;&quot;);</span>
+<span class="nc" id="L105">      mf.append(Xml.Level.SERIES.getTagName());</span>
+<span class="nc" id="L106">      mf.append(&quot; &quot;);</span>
+<span class="nc" id="L107">      Xml.addXmlAttribute(seriesUID, entry.getKey(), mf);</span>
+<span class="nc" id="L108">      mf.append(&quot;&gt;&quot;);</span>
+
+<span class="nc" id="L110">      writeImages(entry.getValue(), mf);</span>
+
+<span class="nc" id="L112">      mf.append(&quot;\n&lt;/&quot;);</span>
+<span class="nc" id="L113">      mf.append(Xml.Level.SERIES.getTagName());</span>
+<span class="nc" id="L114">      mf.append(&quot;&gt;&quot;);</span>
+<span class="nc" id="L115">    }</span>
+
+<span class="nc" id="L117">    mf.append(&quot;\n&lt;/&quot;);</span>
+<span class="nc" id="L118">    mf.append(ArcParameters.TAG_SEL);</span>
+<span class="nc" id="L119">    mf.append(&quot;&gt;&quot;);</span>
+<span class="nc" id="L120">  }</span>
+
+  private static void writeImages(Map&lt;String, SOPInstanceReferenceAndMAC&gt; map, Writer mf)
+      throws IOException {
+<span class="nc" id="L124">    String sopUID = TagD.get(Tag.ReferencedSOPInstanceUID).getKeyword();</span>
+<span class="nc" id="L125">    String sopClass = TagD.get(Tag.ReferencedSOPClassUID).getKeyword();</span>
+<span class="nc" id="L126">    String frames = TagD.get(Tag.ReferencedFrameNumber).getKeyword();</span>
+
+<span class="nc bnc" id="L128" title="All 2 branches missed.">    for (SOPInstanceReferenceAndMAC sopRef : map.values()) {</span>
+<span class="nc" id="L129">      mf.append(&quot;\n&lt;&quot;);</span>
+<span class="nc" id="L130">      mf.append(Xml.Level.INSTANCE.getTagName());</span>
+<span class="nc" id="L131">      mf.append(&quot; &quot;);</span>
+<span class="nc" id="L132">      Xml.addXmlAttribute(sopUID, sopRef.getReferencedSOPInstanceUID(), mf);</span>
+<span class="nc" id="L133">      Xml.addXmlAttribute(sopClass, sopRef.getReferencedSOPClassUID(), mf);</span>
+<span class="nc" id="L134">      int[] fms = sopRef.getReferencedFrameNumber();</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">      if (fms != null) {</span>
+<span class="nc" id="L136">        String frameList =</span>
+<span class="nc" id="L137">            IntStream.of(fms).mapToObj(String::valueOf).collect(Collectors.joining(&quot;\\&quot;));</span>
+<span class="nc" id="L138">        Xml.addXmlAttribute(frames, frameList, mf);</span>
+      }
+<span class="nc" id="L140">      mf.append(&quot;/&gt;&quot;);</span>
+<span class="nc" id="L141">    }</span>
+<span class="nc" id="L142">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

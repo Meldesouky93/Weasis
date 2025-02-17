@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>DefaultDragSequence.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.utils.imp</a> &gt; <span class="el_source">DefaultDragSequence.java</span></div><h1>DefaultDragSequence.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.utils.imp;
+
+import java.awt.geom.Point2D;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import javax.swing.JDialog;
+import org.weasis.core.ui.dialog.MeasureDialog;
+import org.weasis.core.ui.editor.image.ViewCanvas;
+import org.weasis.core.ui.model.graphic.AbstractDragGraphic;
+import org.weasis.core.ui.model.graphic.DragGraphic;
+import org.weasis.core.ui.model.graphic.Graphic;
+import org.weasis.core.ui.model.utils.Draggable;
+import org.weasis.core.ui.util.ColorLayerUI;
+import org.weasis.core.ui.util.MouseEventDouble;
+import org.weasis.core.util.MathUtil;
+
+public class DefaultDragSequence implements Draggable {
+  protected final DragGraphic graphic;
+  private final Point2D lastPoint;
+  private Integer handlePointIndex;
+
+  public DefaultDragSequence(DragGraphic graphic) {
+<span class="nc" id="L34">    this(graphic, Graphic.UNDEFINED);</span>
+<span class="nc" id="L35">  }</span>
+
+<span class="nc" id="L37">  public DefaultDragSequence(DragGraphic graphic, Integer handlePointIndex) {</span>
+<span class="nc" id="L38">    this.graphic = Objects.requireNonNull(graphic);</span>
+<span class="nc" id="L39">    this.handlePointIndex = handlePointIndex;</span>
+<span class="nc" id="L40">    this.lastPoint = new Point2D.Double();</span>
+<span class="nc" id="L41">  }</span>
+
+  @Override
+  public void startDrag(MouseEventDouble evt) {
+<span class="nc" id="L45">    graphic.setResizeOrMoving(Boolean.TRUE);</span>
+
+<span class="nc" id="L47">    lastPoint.setLocation(evt.getImageX(), evt.getImageY());</span>
+
+<span class="nc bnc" id="L49" title="All 2 branches missed.">    if (!graphic.isGraphicComplete()) {</span>
+<span class="nc bnc" id="L50" title="All 2 branches missed.">      if (graphic.getPts().isEmpty()) {</span>
+<span class="nc" id="L51">        graphic.getPts().add(evt.getImageCoordinates());</span>
+      }
+
+<span class="nc bnc" id="L54" title="All 2 branches missed.">      if (!graphic.isGraphicComplete()) {</span>
+<span class="nc" id="L55">        graphic.getPts().add(evt.getImageCoordinates());</span>
+      }
+
+      // force index to match actual dragging point
+<span class="nc" id="L59">      handlePointIndex = graphic.getPts().size() - 1;</span>
+    }
+<span class="nc" id="L61">  }</span>
+
+  @Override
+  public void drag(MouseEventDouble evt) {
+<span class="nc" id="L65">    double deltaX = evt.getImageX() - lastPoint.getX();</span>
+<span class="nc" id="L66">    double deltaY = evt.getImageY() - lastPoint.getY();</span>
+
+<span class="nc bnc" id="L68" title="All 4 branches missed.">    if (MathUtil.isDifferentFromZero(deltaX) || MathUtil.isDifferentFromZero(deltaY)) {</span>
+<span class="nc" id="L69">      lastPoint.setLocation(evt.getImageCoordinates());</span>
+<span class="nc" id="L70">      handlePointIndex = graphic.moveAndResizeOnDrawing(handlePointIndex, deltaX, deltaY, evt);</span>
+<span class="nc" id="L71">      graphic.buildShape(evt);</span>
+<span class="nc" id="L72">      graphic.setResizeOrMoving(Boolean.TRUE);</span>
+    }
+<span class="nc" id="L74">  }</span>
+
+  @Override
+  public Boolean completeDrag(MouseEventDouble mouseEvent) {
+<span class="nc bnc" id="L78" title="All 2 branches missed.">    if (mouseEvent != null) {</span>
+<span class="nc bnc" id="L79" title="All 2 branches missed.">      if (!graphic.isGraphicComplete()) {</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">        if (Objects.equals(graphic.getPtsNumber(), Graphic.UNDEFINED)</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">            &amp;&amp; mouseEvent.getClickCount() == 2</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">            &amp;&amp; !mouseEvent.isConsumed()) {</span>
+<span class="nc" id="L83">          List&lt;Point2D&gt; handlePointList = graphic.getPts();</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">          if (!graphic.isLastPointValid()) {</span>
+<span class="nc" id="L85">            handlePointList.remove(handlePointList.size() - 1);</span>
+          }
+<span class="nc" id="L87">          graphic.setPointNumber(handlePointList.size());</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">        } else if (graphic.isLastPointValid()) {</span>
+<span class="nc" id="L89">          graphic.getPts().add(mouseEvent.getImageCoordinates());</span>
+<span class="nc" id="L90">          handlePointIndex =</span>
+<span class="nc" id="L91">              graphic.getPts().size() - 1; // forces index to match actual dragging point</span>
+        }
+<span class="nc bnc" id="L93" title="All 4 branches missed.">      } else if (graphic.getShape() != null &amp;&amp; graphic.isShapeValid()) {</span>
+
+        // The shape is not repainted because it is identical to the previous one.
+        // Force to repaint the handles of the shape by setting to null.
+        // Repaint also measurement labels which is entirely computed on mouse click release
+
+<span class="nc" id="L99">        graphic.setResizeOrMoving(Boolean.FALSE);</span>
+<span class="nc" id="L100">        graphic.setShape(null, mouseEvent);</span>
+<span class="nc" id="L101">        graphic.buildShape(mouseEvent);</span>
+<span class="nc bnc" id="L102" title="All 4 branches missed.">        if (mouseEvent.getClickCount() == 2 &amp;&amp; !mouseEvent.isConsumed()) {</span>
+<span class="nc" id="L103">          ViewCanvas&lt;?&gt; graphPane = graphic.getDefaultView2d(mouseEvent);</span>
+<span class="nc bnc" id="L104" title="All 2 branches missed.">          if (graphPane != null) {</span>
+            // Do not open properties dialog for graphic with undefined points (like polyline) =&gt;
+            // double
+            // click conflict
+<span class="nc" id="L108">            boolean isEditingGraph = false;</span>
+<span class="nc" id="L109">            Optional&lt;Graphic&gt; first =</span>
+<span class="nc" id="L110">                graphPane.getGraphicManager().getFirstGraphicIntersecting(mouseEvent);</span>
+<span class="nc bnc" id="L111" title="All 4 branches missed.">            if (first.isPresent() &amp;&amp; first.get() instanceof AbstractDragGraphic dragGraph) {</span>
+<span class="nc bnc" id="L112" title="All 4 branches missed.">              if (dragGraph.getSelected() &amp;&amp; dragGraph.getVariablePointsNumber()) {</span>
+<span class="nc" id="L113">                List&lt;DragGraphic&gt; selectedDragGraphList =</span>
+<span class="nc" id="L114">                    graphPane.getGraphicManager().getSelectedDraggableGraphics();</span>
+
+<span class="nc bnc" id="L116" title="All 2 branches missed.">                if (selectedDragGraphList.size() == 1</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">                    &amp;&amp; !dragGraph.isOnGraphicLabel(mouseEvent)</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">                    &amp;&amp; dragGraph.getHandlePointIndex(mouseEvent) &gt;= 0) {</span>
+<span class="nc" id="L119">                  isEditingGraph = true;</span>
+                }
+              }
+            }
+
+<span class="nc bnc" id="L124" title="All 2 branches missed.">            if (!isEditingGraph</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">                &amp;&amp; graphPane.getGraphicManager().getSelectedGraphics().size() == 1) {</span>
+<span class="nc" id="L126">              ColorLayerUI layer = ColorLayerUI.createTransparentLayerUI(graphPane.getJComponent());</span>
+<span class="nc" id="L127">              final ArrayList&lt;DragGraphic&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L128">              list.add(graphic);</span>
+<span class="nc" id="L129">              JDialog dialog = new MeasureDialog(graphPane, list);</span>
+<span class="nc" id="L130">              ColorLayerUI.showCenterScreen(dialog, layer);</span>
+<span class="nc" id="L131">              mouseEvent.consume();</span>
+            }
+          }
+        }
+<span class="nc" id="L135">        return Boolean.TRUE;</span>
+      }
+    }
+<span class="nc" id="L138">    return Boolean.FALSE;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>SeriesGroup.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer.core.bean</a> &gt; <span class="el_source">SeriesGroup.java</span></div><h1>SeriesGroup.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer.core.bean;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import org.dcm4che3.data.Tag;
+import org.dcm4che3.util.UIDUtils;
+import org.weasis.acquire.explorer.AcquireManager;
+import org.weasis.acquire.explorer.Messages;
+import org.weasis.acquire.explorer.gui.central.SeriesDataListener;
+import org.weasis.core.api.media.data.TagUtil;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.util.StringUtil;
+import org.weasis.dicom.codec.TagD;
+
+public class SeriesGroup extends DefaultTaggable implements Comparable&lt;SeriesGroup&gt; {
+<span class="nc" id="L27">  public enum Type {</span>
+<span class="nc" id="L28">    NONE,</span>
+<span class="nc" id="L29">    DATE,</span>
+<span class="nc" id="L30">    NAME</span>
+  }
+
+  private final Type type;
+  private String name;
+  private LocalDateTime date;
+<span class="nc" id="L36">  private final List&lt;SeriesDataListener&gt; listenerList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L37">  private boolean needUpdateFromGlobalTags = false;</span>
+
+<span class="nc" id="L39">  public static final SeriesGroup DATE_SERIES = new SeriesGroup(LocalDateTime.now());</span>
+
+<span class="nc" id="L41">  public static final String DEFAULT_SERIES_NAME = Messages.getString(&quot;Series.other&quot;);</span>
+
+  public SeriesGroup() {
+<span class="nc" id="L44">    this(Type.NONE);</span>
+<span class="nc" id="L45">  }</span>
+
+<span class="nc" id="L47">  private SeriesGroup(Type type) {</span>
+<span class="nc" id="L48">    this.type = Objects.requireNonNull(type);</span>
+<span class="nc" id="L49">    init();</span>
+<span class="nc" id="L50">  }</span>
+
+<span class="nc" id="L52">  public SeriesGroup(String name) {</span>
+<span class="nc" id="L53">    this.type = Type.NAME;</span>
+<span class="nc" id="L54">    this.name = name;</span>
+<span class="nc" id="L55">    init();</span>
+<span class="nc" id="L56">  }</span>
+
+<span class="nc" id="L58">  public SeriesGroup(LocalDateTime date) {</span>
+<span class="nc" id="L59">    this.type = Type.DATE;</span>
+<span class="nc" id="L60">    this.date = Objects.requireNonNull(date);</span>
+<span class="nc" id="L61">    init();</span>
+<span class="nc" id="L62">  }</span>
+
+  private void init() {
+<span class="nc" id="L65">    tags.put(TagD.get(Tag.SeriesInstanceUID), UIDUtils.createUID());</span>
+<span class="nc" id="L66">    tags.put(TagD.get(Tag.SeriesDescription), getDisplayName());</span>
+<span class="nc" id="L67">    updateDicomTags();</span>
+<span class="nc" id="L68">  }</span>
+
+  public boolean isNeedUpdateFromGlobalTags() {
+<span class="nc" id="L71">    return needUpdateFromGlobalTags;</span>
+  }
+
+  public void setNeedUpdateFromGlobalTags(boolean needUpdateFromGlobalTags) {
+<span class="nc" id="L75">    this.needUpdateFromGlobalTags = needUpdateFromGlobalTags;</span>
+<span class="nc" id="L76">  }</span>
+
+  private void setIfnotInGlobal(TagW tag, Object value) {
+<span class="nc" id="L79">    Object globalValue = AcquireManager.GLOBAL.getTagValue(tag);</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">    tags.put(tag, globalValue == null ? value : globalValue);</span>
+<span class="nc" id="L81">  }</span>
+
+  public void updateDicomTags() {
+    // Modality from worklist otherwise XC
+<span class="nc" id="L85">    setIfnotInGlobal(TagD.get(Tag.Modality), &quot;XC&quot;);</span>
+<span class="nc" id="L86">    setIfnotInGlobal(TagD.get(Tag.OperatorsName), null);</span>
+<span class="nc" id="L87">    setIfnotInGlobal(TagD.get(Tag.ReferringPhysicianName), null);</span>
+<span class="nc" id="L88">  }</span>
+
+  public Type getType() {
+<span class="nc" id="L91">    return type;</span>
+  }
+
+  public String getUID() {
+<span class="nc" id="L95">    return TagD.getTagValue(this, Tag.SeriesInstanceUID, String.class);</span>
+  }
+
+  public LocalDateTime getDate() {
+<span class="nc" id="L99">    return date;</span>
+  }
+
+  public void setDate(LocalDateTime date) {
+<span class="nc" id="L103">    this.date = Objects.requireNonNull(date);</span>
+<span class="nc" id="L104">  }</span>
+
+  public String getDisplayName() {
+<span class="nc" id="L107">    String desc = TagD.getTagValue(this, Tag.SeriesDescription, String.class);</span>
+<span class="nc bnc" id="L108" title="All 2 branches missed.">    if (StringUtil.hasText(desc)) {</span>
+<span class="nc" id="L109">      return desc;</span>
+    }
+<span class="nc bnc" id="L111" title="All 3 branches missed.">    return switch (type) {</span>
+<span class="nc" id="L112">      case NAME -&gt; name;</span>
+<span class="nc" id="L113">      case DATE -&gt; TagUtil.formatDateTime(date);</span>
+<span class="nc" id="L114">      case NONE -&gt; DEFAULT_SERIES_NAME;</span>
+    };
+  }
+
+  @Override
+  public boolean equals(Object o) {
+<span class="nc bnc" id="L120" title="All 2 branches missed.">    if (this == o) {</span>
+<span class="nc" id="L121">      return true;</span>
+    }
+<span class="nc bnc" id="L123" title="All 4 branches missed.">    if (o == null || getClass() != o.getClass()) {</span>
+<span class="nc" id="L124">      return false;</span>
+    }
+<span class="nc" id="L126">    SeriesGroup that = (SeriesGroup) o;</span>
+<span class="nc bnc" id="L127" title="All 6 branches missed.">    return type == that.type &amp;&amp; Objects.equals(name, that.name) &amp;&amp; Objects.equals(date, that.date);</span>
+  }
+
+  @Override
+  public int hashCode() {
+<span class="nc" id="L132">    return Objects.hash(type, name, date);</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L137">    return getDisplayName();</span>
+  }
+
+  @Override
+  public int compareTo(SeriesGroup that) {
+<span class="nc" id="L142">    final int BEFORE = -1;</span>
+<span class="nc" id="L143">    final int EQUAL = 0;</span>
+<span class="nc" id="L144">    final int AFTER = 1;</span>
+
+    // this optimization is usually worthwhile, and can
+    // always be added
+<span class="nc bnc" id="L148" title="All 2 branches missed.">    if (this == that) {</span>
+<span class="nc" id="L149">      return EQUAL;</span>
+    }
+
+    // Check Type
+<span class="nc bnc" id="L153" title="All 4 branches missed.">    if (this.type.equals(Type.NONE) &amp;&amp; !that.type.equals(Type.NONE)) {</span>
+<span class="nc" id="L154">      return BEFORE;</span>
+    }
+<span class="nc bnc" id="L156" title="All 4 branches missed.">    if (this.type.equals(Type.DATE) &amp;&amp; that.type.equals(Type.NONE)) {</span>
+<span class="nc" id="L157">      return AFTER;</span>
+    }
+<span class="nc bnc" id="L159" title="All 4 branches missed.">    if (this.type.equals(Type.DATE) &amp;&amp; that.type.equals(Type.NAME)) {</span>
+<span class="nc" id="L160">      return BEFORE;</span>
+    }
+
+    // Check Dates
+<span class="nc bnc" id="L164" title="All 4 branches missed.">    if (this.date != null &amp;&amp; that.date == null) {</span>
+<span class="nc" id="L165">      return BEFORE;</span>
+    }
+<span class="nc bnc" id="L167" title="All 4 branches missed.">    if (this.date == null &amp;&amp; that.date != null) {</span>
+<span class="nc" id="L168">      return AFTER;</span>
+    }
+<span class="nc bnc" id="L170" title="All 2 branches missed.">    if (this.date != null) {</span>
+<span class="nc" id="L171">      int comp = this.date.compareTo(that.date);</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">      if (comp != EQUAL) {</span>
+<span class="nc" id="L173">        return comp;</span>
+      }
+    }
+
+    // Check Names
+<span class="nc bnc" id="L178" title="All 4 branches missed.">    if (this.name != null &amp;&amp; that.name == null) {</span>
+<span class="nc" id="L179">      return BEFORE;</span>
+    }
+<span class="nc bnc" id="L181" title="All 4 branches missed.">    if (this.name == null &amp;&amp; that.name != null) {</span>
+<span class="nc" id="L182">      return AFTER;</span>
+    }
+<span class="nc bnc" id="L184" title="All 2 branches missed.">    if (this.name != null) {</span>
+<span class="nc" id="L185">      int comp = this.name.compareTo(that.name);</span>
+<span class="nc bnc" id="L186" title="All 2 branches missed.">      if (comp != EQUAL) {</span>
+<span class="nc" id="L187">        return comp;</span>
+      }
+    }
+
+    // Check equals
+<span class="nc bnc" id="L192" title="All 2 branches missed.">    if (!this.equals(that)) {</span>
+<span class="nc" id="L193">      throw new IllegalStateException(&quot;compareTo inconsistent with equals.&quot;);</span>
+    }
+<span class="nc" id="L195">    return EQUAL;</span>
+  }
+
+  public void addLayerChangeListener(SeriesDataListener listener) {
+<span class="nc bnc" id="L199" title="All 4 branches missed.">    if (listener != null &amp;&amp; !listenerList.contains(listener)) {</span>
+<span class="nc" id="L200">      listenerList.add(listener);</span>
+    }
+<span class="nc" id="L202">  }</span>
+
+  public void removeLayerChangeListener(SeriesDataListener listener) {
+<span class="nc bnc" id="L205" title="All 2 branches missed.">    if (listener != null) {</span>
+<span class="nc" id="L206">      listenerList.remove(listener);</span>
+    }
+<span class="nc" id="L208">  }</span>
+
+  public void fireDataChanged() {
+<span class="nc bnc" id="L211" title="All 2 branches missed.">    for (SeriesDataListener l : listenerList) {</span>
+<span class="nc" id="L212">      l.handleSeriesChanged();</span>
+<span class="nc" id="L213">    }</span>
+<span class="nc" id="L214">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>MediaImporterFactory.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer</a> &gt; <span class="el_source">MediaImporterFactory.java</span></div><h1>MediaImporterFactory.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer;
+
+import java.io.File;
+import java.util.Dictionary;
+import java.util.Hashtable;
+import java.util.Properties;
+import org.apache.felix.service.command.CommandProcessor;
+import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceReference;
+import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Deactivate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.explorer.DataExplorerViewFactory;
+import org.weasis.core.api.service.BundlePreferences;
+import org.weasis.core.util.FileUtil;
+
+@org.osgi.service.component.annotations.Component(service = DataExplorerViewFactory.class)
+<span class="nc" id="L29">public class MediaImporterFactory implements DataExplorerViewFactory {</span>
+<span class="nc" id="L30">  private static final Logger LOGGER = LoggerFactory.getLogger(MediaImporterFactory.class);</span>
+
+<span class="nc" id="L32">  public static final Properties EXPORT_PERSISTENCE = new Properties();</span>
+
+<span class="nc" id="L34">  private AcquireExplorer explorer = null;</span>
+
+  @Override
+  public AcquireExplorer createDataExplorerView(Hashtable&lt;String, Object&gt; properties) {
+<span class="nc bnc" id="L38" title="All 2 branches missed.">    if (explorer == null) {</span>
+<span class="nc" id="L39">      explorer = new AcquireExplorer();</span>
+<span class="nc" id="L40">      explorer.initImageGroupPane();</span>
+<span class="nc" id="L41">      AcquireManager.getInstance().registerDataExplorerView(explorer);</span>
+    }
+<span class="nc" id="L43">    return explorer;</span>
+  }
+
+  // ================================================================================
+  // OSGI service implementation
+  // ================================================================================
+
+  @Activate
+  protected void activate(ComponentContext context) {
+<span class="nc" id="L52">    registerCommands(context);</span>
+<span class="nc" id="L53">    FileUtil.readProperties(</span>
+<span class="nc" id="L54">        new File(BundlePreferences.getDataFolder(context.getBundleContext()), &quot;publish.properties&quot;),</span>
+        EXPORT_PERSISTENCE);
+<span class="nc" id="L56">  }</span>
+
+  @Deactivate
+  protected void deactivate(ComponentContext context) {
+<span class="nc bnc" id="L60" title="All 2 branches missed.">    if (explorer != null) {</span>
+<span class="nc" id="L61">      explorer.saveLastPath();</span>
+<span class="nc" id="L62">      AcquireManager.getInstance().unRegisterDataExplorerView();</span>
+      // TODO handle user message if all data is not published !!!
+<span class="nc" id="L64">      FileUtil.storeProperties(</span>
+          new File(
+<span class="nc" id="L66">              BundlePreferences.getDataFolder(context.getBundleContext()), &quot;publish.properties&quot;),</span>
+          EXPORT_PERSISTENCE,
+          null);
+    }
+<span class="nc" id="L70">  }</span>
+
+  private void registerCommands(ComponentContext context) {
+<span class="nc bnc" id="L73" title="All 2 branches missed.">    if (context != null) {</span>
+<span class="nc" id="L74">      ServiceReference&lt;?&gt;[] val = null;</span>
+
+<span class="nc" id="L76">      String serviceClassName = AcquireManager.class.getName();</span>
+      try {
+<span class="nc" id="L78">        val = context.getBundleContext().getServiceReferences(serviceClassName, null);</span>
+<span class="nc" id="L79">      } catch (InvalidSyntaxException e) {</span>
+<span class="nc" id="L80">        LOGGER.error(&quot;Get media importer services&quot;, e);</span>
+<span class="nc" id="L81">      }</span>
+<span class="nc bnc" id="L82" title="All 4 branches missed.">      if (val == null || val.length == 0) {</span>
+<span class="nc" id="L83">        Dictionary&lt;String, Object&gt; dict = new Hashtable&lt;&gt;();</span>
+<span class="nc" id="L84">        dict.put(CommandProcessor.COMMAND_SCOPE, &quot;acquire&quot;); // NON-NLS</span>
+<span class="nc" id="L85">        dict.put(</span>
+<span class="nc" id="L86">            CommandProcessor.COMMAND_FUNCTION, AcquireManager.functions.toArray(new String[0]));</span>
+<span class="nc" id="L87">        context</span>
+<span class="nc" id="L88">            .getBundleContext()</span>
+<span class="nc" id="L89">            .registerService(serviceClassName, AcquireManager.getInstance(), dict);</span>
+      }
+    }
+<span class="nc" id="L92">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

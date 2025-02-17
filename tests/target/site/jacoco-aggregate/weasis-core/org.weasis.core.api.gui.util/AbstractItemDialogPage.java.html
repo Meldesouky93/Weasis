@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AbstractItemDialogPage.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.gui.util</a> &gt; <span class="el_source">AbstractItemDialogPage.java</span></div><h1>AbstractItemDialogPage.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.gui.util;
+
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import org.weasis.core.api.gui.Insertable;
+
+public abstract class AbstractItemDialogPage extends JPanel implements PageItem, Insertable {
+
+  private final String title;
+<span class="nc" id="L25">  private final List&lt;PageItem&gt; subPageList = new ArrayList&lt;&gt;();</span>
+  private int pagePosition;
+
+<span class="nc" id="L28">  private final Properties properties = new Properties();</span>
+
+  protected AbstractItemDialogPage(String title) {
+<span class="nc" id="L31">    this(title, 1000);</span>
+<span class="nc" id="L32">  }</span>
+
+<span class="nc" id="L34">  protected AbstractItemDialogPage(String title, int pagePosition) {</span>
+<span class="nc bnc" id="L35" title="All 2 branches missed.">    this.title = title == null ? &quot;item&quot; : title; // NON-NLS</span>
+<span class="nc" id="L36">    this.pagePosition = pagePosition;</span>
+<span class="nc" id="L37">    setBorder(</span>
+<span class="nc" id="L38">        GuiUtils.getEmptyBorder(BLOCK_SEPARATOR, ITEM_SEPARATOR_LARGE, 0, ITEM_SEPARATOR_LARGE));</span>
+<span class="nc" id="L39">    setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));</span>
+<span class="nc" id="L40">  }</span>
+
+<span class="nc" id="L42">  public void deselectPageAction() {}</span>
+
+<span class="nc" id="L44">  public void selectPageAction() {}</span>
+
+  @Override
+  public String getTitle() {
+<span class="nc" id="L48">    return title;</span>
+  }
+
+  public void addSubPage(PageItem subPage) {
+<span class="nc" id="L52">    subPageList.add(subPage);</span>
+<span class="nc" id="L53">  }</span>
+
+  public void addSubPage(PageItem subPage, ActionListener actionListener, JComponent menuPanel) {
+<span class="nc" id="L56">    subPageList.add(subPage);</span>
+<span class="nc bnc" id="L57" title="All 4 branches missed.">    if (actionListener != null &amp;&amp; menuPanel != null) {</span>
+<span class="nc" id="L58">      JButton button = new JButton();</span>
+<span class="nc" id="L59">      button.putClientProperty(&quot;JButton.buttonType&quot;, &quot;roundRect&quot;);</span>
+<span class="nc" id="L60">      button.setText(subPage.getTitle());</span>
+<span class="nc" id="L61">      button.addActionListener(actionListener);</span>
+<span class="nc" id="L62">      menuPanel.add(button);</span>
+    }
+<span class="nc" id="L64">  }</span>
+
+  public void removeSubPage(PageItem subPage) {
+<span class="nc" id="L67">    subPageList.remove(subPage);</span>
+<span class="nc" id="L68">  }</span>
+
+  @Override
+  public List&lt;PageItem&gt; getSubPages() {
+<span class="nc" id="L72">    return new ArrayList&lt;&gt;(subPageList);</span>
+  }
+
+  public void sortSubPages() {
+<span class="nc" id="L76">    subPageList.sort(</span>
+        (o1, o2) -&gt; {
+          int val1 =
+<span class="nc bnc" id="L79" title="All 2 branches missed.">              o1 instanceof AbstractItemDialogPage page</span>
+<span class="nc" id="L80">                  ? page.getComponentPosition()</span>
+<span class="nc" id="L81">                  : Integer.MAX_VALUE;</span>
+          int val2 =
+<span class="nc bnc" id="L83" title="All 2 branches missed.">              o2 instanceof AbstractItemDialogPage page</span>
+<span class="nc" id="L84">                  ? page.getComponentPosition()</span>
+<span class="nc" id="L85">                  : Integer.MAX_VALUE;</span>
+<span class="nc" id="L86">          return Integer.compare(val1, val2);</span>
+        });
+<span class="nc" id="L88">  }</span>
+
+  public void resetAllSubPagesToDefaultValues() {
+<span class="nc bnc" id="L91" title="All 2 branches missed.">    for (PageItem subPage : subPageList) {</span>
+<span class="nc" id="L92">      subPage.resetToDefaultValues();</span>
+<span class="nc" id="L93">    }</span>
+<span class="nc" id="L94">  }</span>
+
+  public Properties getProperties() {
+<span class="nc" id="L97">    return properties;</span>
+  }
+
+  public String getProperty(String key) {
+<span class="nc" id="L101">    return properties.getProperty(key);</span>
+  }
+
+  public String getProperty(String key, String defaultValue) {
+<span class="nc" id="L105">    return properties.getProperty(key, defaultValue);</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L110">    return title;</span>
+  }
+
+  @Override
+  public Type getType() {
+<span class="nc" id="L115">    return Insertable.Type.PREFERENCES;</span>
+  }
+
+  @Override
+  public String getComponentName() {
+<span class="nc" id="L120">    return title;</span>
+  }
+
+  @Override
+  public boolean isComponentEnabled() {
+<span class="nc" id="L125">    return isEnabled();</span>
+  }
+
+  @Override
+  public void setComponentEnabled(boolean enabled) {
+<span class="nc bnc" id="L130" title="All 2 branches missed.">    if (enabled != isComponentEnabled()) {</span>
+<span class="nc" id="L131">      setEnabled(enabled);</span>
+    }
+<span class="nc" id="L133">  }</span>
+
+  @Override
+  public int getComponentPosition() {
+<span class="nc" id="L137">    return pagePosition;</span>
+  }
+
+  @Override
+  public void setComponentPosition(int position) {
+<span class="nc" id="L142">    this.pagePosition = position;</span>
+<span class="nc" id="L143">  }</span>
+
+  public JComponent getMenuPanel() {
+<span class="nc" id="L146">    return null;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

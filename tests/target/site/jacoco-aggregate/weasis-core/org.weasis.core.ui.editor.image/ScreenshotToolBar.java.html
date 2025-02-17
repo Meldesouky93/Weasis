@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ScreenshotToolBar.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image</a> &gt; <span class="el_source">ScreenshotToolBar.java</span></div><h1>ScreenshotToolBar.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2018 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image;
+
+import javax.swing.JButton;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.ActionW;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.api.util.ResourceUtil.ActionIcon;
+import org.weasis.core.ui.util.WtoolBar;
+
+public class ScreenshotToolBar&lt;I extends ImageElement&gt; extends WtoolBar {
+
+  public ScreenshotToolBar(final ImageViewerEventManager&lt;I&gt; eventManager, int index) {
+<span class="nc" id="L23">    super(Messages.getString(&quot;screenshot.bar&quot;), index);</span>
+<span class="nc bnc" id="L24" title="All 2 branches missed.">    if (eventManager == null) {</span>
+<span class="nc" id="L25">      throw new IllegalArgumentException(&quot;EventManager cannot be null&quot;);</span>
+    }
+
+<span class="nc" id="L28">    final JButton metaButton = new JButton(ResourceUtil.getToolBarIcon(ActionIcon.EXPORT_IMAGE));</span>
+<span class="nc" id="L29">    metaButton.setToolTipText(Messages.getString(&quot;capture.the.selected.view&quot;));</span>
+<span class="nc" id="L30">    metaButton.addActionListener(</span>
+<span class="nc" id="L31">        e -&gt; ScreenshotDialog.showDialog(eventManager.getSelectedViewPane()));</span>
+<span class="nc" id="L32">    add(metaButton);</span>
+
+<span class="nc" id="L34">    eventManager.getAction(ActionW.EXPORT_VIEW).ifPresent(s -&gt; s.registerActionState(metaButton));</span>
+<span class="nc" id="L35">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

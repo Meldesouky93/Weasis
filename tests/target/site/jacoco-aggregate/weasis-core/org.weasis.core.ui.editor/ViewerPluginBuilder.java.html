@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ViewerPluginBuilder.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor</a> &gt; <span class="el_source">ViewerPluginBuilder.java</span></div><h1>ViewerPluginBuilder.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor;
+
+import java.awt.Rectangle;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.explorer.ObservableEvent;
+import org.weasis.core.api.explorer.model.AbstractFileModel;
+import org.weasis.core.api.explorer.model.DataExplorerModel;
+import org.weasis.core.api.gui.util.AppProperties;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.media.MimeInspector;
+import org.weasis.core.api.media.data.Codec;
+import org.weasis.core.api.media.data.FileCache;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.media.data.MediaElement;
+import org.weasis.core.api.media.data.MediaReader;
+import org.weasis.core.api.media.data.MediaSeries;
+import org.weasis.core.api.media.data.MediaSeriesGroup;
+import org.weasis.core.api.media.data.MediaSeriesGroupNode;
+import org.weasis.core.api.media.data.Series;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.api.service.BundleTools;
+import org.weasis.core.ui.model.GraphicModel;
+import org.weasis.core.ui.serialize.XmlSerializer;
+
+public class ViewerPluginBuilder {
+<span class="nc" id="L44">  private static final Logger LOGGER = LoggerFactory.getLogger(ViewerPluginBuilder.class);</span>
+
+  public static final String CMP_ENTRY_BUILD_NEW_VIEWER = &quot;cmp.entry.viewer&quot;;
+  public static final String BEST_DEF_LAYOUT = &quot;best.def.layout&quot;;
+  public static final String OPEN_IN_SELECTION = &quot;add.in.selected.view&quot;; // For only one image
+  public static final String ADD_IN_SELECTED_VIEW = &quot;add.in.selected.view&quot;; // For non DICOM images
+  public static final String SCREEN_BOUND = &quot;screen.bound&quot;;
+  public static final String ICON = &quot;plugin.icon&quot;;
+  public static final String UID = &quot;plugin.uid&quot;;
+
+<span class="nc" id="L54">  public static final FileModel DefaultDataModel = new FileModel();</span>
+  private final SeriesViewerFactory factory;
+  private final List&lt;? extends MediaSeries&lt;? extends MediaElement&gt;&gt; series;
+  private final DataExplorerModel model;
+  private final Map&lt;String, Object&gt; properties;
+
+  public ViewerPluginBuilder(
+      SeriesViewerFactory factory,
+      List&lt;? extends MediaSeries&lt;? extends MediaElement&gt;&gt; series,
+      DataExplorerModel model,
+<span class="nc" id="L64">      Map&lt;String, Object&gt; props) {</span>
+<span class="nc bnc" id="L65" title="All 6 branches missed.">    if (factory == null || series == null || model == null) {</span>
+<span class="nc" id="L66">      throw new IllegalArgumentException();</span>
+    }
+<span class="nc" id="L68">    this.factory = factory;</span>
+<span class="nc" id="L69">    this.series = series;</span>
+<span class="nc" id="L70">    this.model = model;</span>
+<span class="nc bnc" id="L71" title="All 2 branches missed.">    this.properties = props == null ? Collections.synchronizedMap(new HashMap&lt;&gt;()) : props;</span>
+<span class="nc" id="L72">  }</span>
+
+  public SeriesViewerFactory getFactory() {
+<span class="nc" id="L75">    return factory;</span>
+  }
+
+  public List&lt;MediaSeries&lt;MediaElement&gt;&gt; getSeries() {
+<span class="nc" id="L79">    return (List&lt;MediaSeries&lt;MediaElement&gt;&gt;) series;</span>
+  }
+
+  public DataExplorerModel getModel() {
+<span class="nc" id="L83">    return model;</span>
+  }
+
+  public Map&lt;String, Object&gt; getProperties() {
+<span class="nc" id="L87">    return properties;</span>
+  }
+
+  public static void openSequenceInPlugin(
+      SeriesViewerFactory factory,
+      MediaSeries&lt;? extends MediaElement&gt; series,
+      DataExplorerModel model,
+      boolean compareEntryToBuildNewViewer,
+      boolean removeOldSeries) {
+<span class="nc bnc" id="L96" title="All 6 branches missed.">    if (factory == null || series == null || model == null) {</span>
+<span class="nc" id="L97">      return;</span>
+    }
+<span class="nc" id="L99">    ArrayList&lt;MediaSeries&lt;? extends MediaElement&gt;&gt; list = new ArrayList&lt;&gt;(1);</span>
+<span class="nc" id="L100">    list.add(series);</span>
+<span class="nc" id="L101">    openSequenceInPlugin(factory, list, model, compareEntryToBuildNewViewer, removeOldSeries);</span>
+<span class="nc" id="L102">  }</span>
+
+  public static void openSequenceInPlugin(
+      SeriesViewerFactory factory,
+      List&lt;? extends MediaSeries&lt;? extends MediaElement&gt;&gt; series,
+      DataExplorerModel model,
+      boolean compareEntryToBuildNewViewer,
+      boolean removeOldSeries) {
+<span class="nc" id="L110">    openSequenceInPlugin(</span>
+        factory, series, model, compareEntryToBuildNewViewer, removeOldSeries, null);
+<span class="nc" id="L112">  }</span>
+
+  public static void openSequenceInPlugin(
+      SeriesViewerFactory factory,
+      List&lt;? extends MediaSeries&lt;? extends MediaElement&gt;&gt; series,
+      DataExplorerModel model,
+      boolean compareEntryToBuildNewViewer,
+      boolean removeOldSeries,
+      Rectangle screenBound) {
+<span class="nc bnc" id="L121" title="All 6 branches missed.">    if (factory == null || series == null || model == null) {</span>
+<span class="nc" id="L122">      return;</span>
+    }
+<span class="nc" id="L124">    Map&lt;String, Object&gt; props = Collections.synchronizedMap(new HashMap&lt;&gt;());</span>
+<span class="nc" id="L125">    props.put(CMP_ENTRY_BUILD_NEW_VIEWER, compareEntryToBuildNewViewer);</span>
+<span class="nc" id="L126">    props.put(BEST_DEF_LAYOUT, removeOldSeries);</span>
+<span class="nc" id="L127">    props.put(SCREEN_BOUND, screenBound);</span>
+<span class="nc" id="L128">    ViewerPluginBuilder builder = new ViewerPluginBuilder(factory, series, model, props);</span>
+<span class="nc" id="L129">    model.firePropertyChange(</span>
+        new ObservableEvent(ObservableEvent.BasicAction.REGISTER, model, null, builder));
+<span class="nc" id="L131">  }</span>
+
+  public static void openSequenceInPlugin(ViewerPluginBuilder builder) {
+<span class="nc bnc" id="L134" title="All 2 branches missed.">    if (builder == null) {</span>
+<span class="nc" id="L135">      return;</span>
+    }
+<span class="nc" id="L137">    DataExplorerModel model = builder.getModel();</span>
+<span class="nc" id="L138">    model.firePropertyChange(</span>
+        new ObservableEvent(ObservableEvent.BasicAction.REGISTER, model, null, builder));
+<span class="nc" id="L140">  }</span>
+
+  public static void openSequenceInDefaultPlugin(
+      List&lt;? extends MediaSeries&lt;? extends MediaElement&gt;&gt; series,
+      DataExplorerModel model,
+      boolean compareEntryToBuildNewViewer,
+      boolean removeOldSeries) {
+<span class="nc" id="L147">    ArrayList&lt;String&gt; mimes = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L148" title="All 2 branches missed.">    for (MediaSeries&lt;?&gt; s : series) {</span>
+<span class="nc" id="L149">      String mime = s.getMimeType();</span>
+<span class="nc bnc" id="L150" title="All 4 branches missed.">      if (mime != null &amp;&amp; !mimes.contains(mime)) {</span>
+<span class="nc" id="L151">        mimes.add(mime);</span>
+      }
+<span class="nc" id="L153">    }</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">    for (String mime : mimes) {</span>
+<span class="nc" id="L155">      SeriesViewerFactory plugin = GuiUtils.getUICore().getViewerFactory(mime);</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">      if (plugin != null) {</span>
+<span class="nc" id="L157">        ArrayList&lt;MediaSeries&lt;? extends MediaElement&gt;&gt; seriesList = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">        for (MediaSeries&lt;? extends MediaElement&gt; s : series) {</span>
+<span class="nc bnc" id="L159" title="All 2 branches missed.">          if (mime.equals(s.getMimeType())) {</span>
+<span class="nc" id="L160">            seriesList.add(s);</span>
+          }
+<span class="nc" id="L162">        }</span>
+<span class="nc" id="L163">        openSequenceInPlugin(</span>
+            plugin, seriesList, model, compareEntryToBuildNewViewer, removeOldSeries);
+      }
+<span class="nc" id="L166">    }</span>
+<span class="nc" id="L167">  }</span>
+
+  public static void openSequenceInDefaultPlugin(
+      MediaSeries&lt;? extends MediaElement&gt; series,
+      DataExplorerModel model,
+      boolean compareEntryToBuildNewViewer,
+      boolean removeOldSeries) {
+<span class="nc bnc" id="L174" title="All 2 branches missed.">    if (series != null) {</span>
+<span class="nc" id="L175">      String mime = series.getMimeType();</span>
+<span class="nc" id="L176">      SeriesViewerFactory plugin = GuiUtils.getUICore().getViewerFactory(mime);</span>
+<span class="nc" id="L177">      openSequenceInPlugin(</span>
+          plugin,
+          series,
+<span class="nc bnc" id="L180" title="All 2 branches missed.">          model == null ? DefaultDataModel : model,</span>
+          compareEntryToBuildNewViewer,
+          removeOldSeries);
+    }
+<span class="nc" id="L184">  }</span>
+
+  public static void openSequenceInDefaultPlugin(
+      MediaElement media,
+      DataExplorerModel model,
+      boolean compareEntryToBuildNewViewer,
+      boolean bestDefaultLayout) {
+<span class="nc bnc" id="L191" title="All 2 branches missed.">    if (media != null) {</span>
+<span class="nc" id="L192">      openSequenceInDefaultPlugin(</span>
+<span class="nc" id="L193">          media.getMediaReader().getMediaSeries(),</span>
+          model,
+          compareEntryToBuildNewViewer,
+          bestDefaultLayout);
+    }
+<span class="nc" id="L198">  }</span>
+
+  public static void openSequenceInDefaultPlugin(
+      File file, boolean compareEntryToBuildNewViewer, boolean bestDefaultLayout) {
+<span class="nc" id="L202">    MediaReader&lt;MediaElement&gt; reader = getMedia(file);</span>
+<span class="nc bnc" id="L203" title="All 2 branches missed.">    if (reader != null) {</span>
+<span class="nc" id="L204">      MediaSeries&lt;MediaElement&gt; s = buildMediaSeriesWithDefaultModel(reader);</span>
+<span class="nc" id="L205">      openSequenceInDefaultPlugin(</span>
+          s, DefaultDataModel, compareEntryToBuildNewViewer, bestDefaultLayout);
+    }
+<span class="nc" id="L208">  }</span>
+
+  public static MediaReader&lt;MediaElement&gt; getMedia(File file) {
+<span class="nc" id="L211">    return getMedia(file, true);</span>
+  }
+
+  public static MediaReader&lt;MediaElement&gt; getMedia(File file, boolean systemReader) {
+<span class="nc bnc" id="L215" title="All 4 branches missed.">    if (file != null &amp;&amp; file.canRead()) {</span>
+      // If file has been downloaded or copied
+<span class="nc" id="L217">      boolean cache = file.getPath().startsWith(AppProperties.FILE_CACHE_DIR.getPath());</span>
+<span class="nc" id="L218">      String mimeType = MimeInspector.getMimeType(file);</span>
+<span class="nc bnc" id="L219" title="All 2 branches missed.">      if (mimeType != null) {</span>
+<span class="nc" id="L220">        Codec&lt;?&gt; codec = BundleTools.getCodec(mimeType, &quot;dcm4che&quot;); // NON-NLS</span>
+<span class="nc bnc" id="L221" title="All 2 branches missed.">        if (codec != null) {</span>
+<span class="nc" id="L222">          MediaReader mreader = codec.getMediaIO(file.toURI(), mimeType, null);</span>
+<span class="nc bnc" id="L223" title="All 2 branches missed.">          if (cache) {</span>
+<span class="nc" id="L224">            mreader.getFileCache().setOriginalTempFile(file);</span>
+          }
+<span class="nc" id="L226">          return mreader;</span>
+        }
+      }
+<span class="nc bnc" id="L229" title="All 2 branches missed.">      if (systemReader) {</span>
+<span class="nc" id="L230">        MediaReader&lt;MediaElement&gt; mreader = new DefaultMimeIO(file.toURI(), null);</span>
+<span class="nc bnc" id="L231" title="All 2 branches missed.">        if (cache) {</span>
+<span class="nc" id="L232">          mreader.getFileCache().setOriginalTempFile(file);</span>
+        }
+<span class="nc" id="L234">        return mreader;</span>
+      }
+    }
+<span class="nc" id="L237">    return null;</span>
+  }
+
+  public static MediaSeries&lt;MediaElement&gt; buildMediaSeriesWithDefaultModel(MediaReader reader) {
+<span class="nc" id="L241">    return buildMediaSeriesWithDefaultModel(reader, null, null, null);</span>
+  }
+
+  public static MediaSeries&lt;MediaElement&gt; buildMediaSeriesWithDefaultModel(
+      MediaReader reader, String groupUID, TagW groupName, String groupValue) {
+<span class="nc" id="L246">    return buildMediaSeriesWithDefaultModel(reader, groupUID, groupName, groupValue, null);</span>
+  }
+
+  public static MediaSeries&lt;MediaElement&gt; buildMediaSeriesWithDefaultModel(
+      MediaReader&lt;MediaElement&gt; reader,
+      String groupUID,
+      TagW groupName,
+      String groupValue,
+      String seriesUID) {
+<span class="nc bnc" id="L255" title="All 2 branches missed.">    if (reader instanceof DefaultMimeIO) {</span>
+<span class="nc" id="L256">      return reader.getMediaSeries();</span>
+    }
+<span class="nc" id="L258">    MediaSeries&lt;MediaElement&gt; series = null;</span>
+    // Require to read the header
+<span class="nc" id="L260">    MediaElement[] medias = reader.getMediaElement();</span>
+<span class="nc bnc" id="L261" title="All 2 branches missed.">    if (medias == null) {</span>
+<span class="nc" id="L262">      return null;</span>
+    }
+
+<span class="nc bnc" id="L265" title="All 2 branches missed.">    String sUID = seriesUID == null ? UUID.randomUUID().toString() : seriesUID;</span>
+<span class="nc bnc" id="L266" title="All 2 branches missed.">    String gUID = groupUID == null ? UUID.randomUUID().toString() : groupUID;</span>
+<span class="nc" id="L267">    MediaSeriesGroup group1 =</span>
+<span class="nc" id="L268">        DefaultDataModel.getHierarchyNode(MediaSeriesGroupNode.rootNode, gUID);</span>
+<span class="nc bnc" id="L269" title="All 2 branches missed.">    if (group1 == null) {</span>
+<span class="nc" id="L270">      group1 = new MediaSeriesGroupNode(TagW.Group, gUID, AbstractFileModel.group.tagView());</span>
+<span class="nc" id="L271">      group1.setTagNoNull(groupName, groupValue);</span>
+<span class="nc" id="L272">      DefaultDataModel.addHierarchyNode(MediaSeriesGroupNode.rootNode, group1);</span>
+    }
+
+<span class="nc" id="L275">    MediaSeriesGroup group2 = DefaultDataModel.getHierarchyNode(group1, sUID);</span>
+<span class="nc bnc" id="L276" title="All 2 branches missed.">    if (group2 instanceof Series) {</span>
+<span class="nc" id="L277">      series = (Series&lt;MediaElement&gt;) group2;</span>
+    }
+
+    try {
+<span class="nc bnc" id="L281" title="All 2 branches missed.">      if (series == null) {</span>
+<span class="nc" id="L282">        series = reader.getMediaSeries();</span>
+<span class="nc" id="L283">        series.setTag(TagW.ExplorerModel, DefaultDataModel);</span>
+<span class="nc" id="L284">        DefaultDataModel.addHierarchyNode(group1, series);</span>
+      } else {
+        // Test if SOPInstanceUID already exists
+<span class="nc" id="L287">        TagW sopTag = TagW.get(&quot;SOPInstanceUID&quot;);</span>
+<span class="nc bnc" id="L288" title="All 2 branches missed.">        if (((Series&lt;?&gt;) series).hasMediaContains(sopTag, reader.getTagValue(sopTag))) {</span>
+<span class="nc" id="L289">          return series;</span>
+        }
+
+<span class="nc bnc" id="L292" title="All 2 branches missed.">        for (MediaElement media : medias) {</span>
+<span class="nc" id="L293">          series.addMedia(media);</span>
+        }
+      }
+
+<span class="nc bnc" id="L297" title="All 2 branches missed.">      for (MediaElement media : medias) {</span>
+<span class="nc" id="L298">        openAssociatedGraphics(media);</span>
+      }
+
+<span class="nc" id="L301">    } catch (Exception e) {</span>
+<span class="nc" id="L302">      LOGGER.error(&quot;Build series error&quot;, e);</span>
+<span class="nc" id="L303">    }</span>
+<span class="nc" id="L304">    return series;</span>
+  }
+
+  public static void openAssociatedGraphics(MediaElement media) {
+<span class="nc bnc" id="L308" title="All 2 branches missed.">    if (media instanceof ImageElement) {</span>
+<span class="nc" id="L309">      FileCache fc = media.getFileCache();</span>
+<span class="nc" id="L310">      Optional&lt;File&gt; fo = fc.getOriginalFile();</span>
+<span class="nc bnc" id="L311" title="All 4 branches missed.">      if (fc.isLocalFile() &amp;&amp; fo.isPresent()) {</span>
+<span class="nc" id="L312">        File gpxFile = new File(fo.get().getPath() + &quot;.xml&quot;);</span>
+<span class="nc" id="L313">        GraphicModel graphicModel = XmlSerializer.readPresentationModel(gpxFile);</span>
+<span class="nc bnc" id="L314" title="All 2 branches missed.">        if (graphicModel != null) {</span>
+<span class="nc" id="L315">          media.setTag(TagW.PresentationModel, graphicModel);</span>
+        }
+      }
+    }
+<span class="nc" id="L319">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

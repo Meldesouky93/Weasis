@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>DefaultAuthMethod.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.auth</a> &gt; <span class="el_source">DefaultAuthMethod.java</span></div><h1>DefaultAuthMethod.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2021 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.auth;
+
+import com.github.scribejava.core.model.OAuth2AccessToken;
+import com.github.scribejava.core.oauth.OAuth20Service;
+import java.io.IOException;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.util.StringUtil;
+
+public class DefaultAuthMethod implements AuthMethod {
+<span class="nc" id="L28">  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultAuthMethod.class);</span>
+
+  private final String uid;
+  private final AuthProvider authProvider;
+  private final AuthRegistration authRegistration;
+  private OAuth2AccessToken token;
+  private String code;
+  private boolean local;
+
+  public DefaultAuthMethod(
+<span class="nc" id="L38">      String uid, AuthProvider authProvider, AuthRegistration authRegistration) {</span>
+<span class="nc bnc" id="L39" title="All 2 branches missed.">    this.uid = StringUtil.hasText(uid) ? uid : UUID.randomUUID().toString();</span>
+<span class="nc" id="L40">    this.authProvider = Objects.requireNonNull(authProvider);</span>
+<span class="nc" id="L41">    this.authRegistration = Objects.requireNonNull(authRegistration);</span>
+<span class="nc" id="L42">  }</span>
+
+  public String getName() {
+<span class="nc" id="L45">    return authProvider.getName();</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L50">    return authProvider.getName();</span>
+  }
+
+  @Override
+  public String getCode() {
+<span class="nc" id="L55">    return code;</span>
+  }
+
+  public void setCode(String code) {
+<span class="nc" id="L59">    this.code = code;</span>
+<span class="nc" id="L60">  }</span>
+
+  @Override
+  public String getUid() {
+<span class="nc" id="L64">    return uid;</span>
+  }
+
+  @Override
+  public boolean isLocal() {
+<span class="nc" id="L69">    return local;</span>
+  }
+
+  @Override
+  public void setLocal(boolean local) {
+<span class="nc" id="L74">    this.local = local;</span>
+<span class="nc" id="L75">  }</span>
+
+  @Override
+  public AuthProvider getAuthProvider() {
+<span class="nc" id="L79">    return authProvider;</span>
+  }
+
+  @Override
+  public AuthRegistration getAuthRegistration() {
+<span class="nc" id="L84">    return authRegistration;</span>
+  }
+
+  AsyncCallbackServerHandler getAsyncCallbackServerHandler() throws IOException {
+<span class="nc" id="L88">    OAuth20Service service = OAuth2ServiceFactory.getService(this);</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">    if (service == null) {</span>
+<span class="nc" id="L90">      throw new IOException(&quot;Cannot build async server handler with &quot; + getName());</span>
+    }
+<span class="nc" id="L92">    AcceptCompletionHandler handler = new AcceptCompletionHandler(service);</span>
+<span class="nc" id="L93">    int port =</span>
+<span class="nc" id="L94">        Integer.parseInt(</span>
+<span class="nc" id="L95">            service.getCallback().substring(OAuth2ServiceFactory.CALLBACK_URL.length()));</span>
+<span class="nc" id="L96">    return new AsyncCallbackServerHandler(port, handler);</span>
+  }
+
+  OAuth2AccessToken getRefreshToken(AsyncCallbackServerHandler server) {
+    try {
+<span class="nc" id="L101">      final Map&lt;String, String&gt; additionalParams = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L102">      additionalParams.put(&quot;access_type&quot;, &quot;offline&quot;); // NON-NLS</span>
+      // force to reget refresh token (if user are asked not the first time)
+<span class="nc" id="L104">      additionalParams.put(&quot;prompt&quot;, &quot;consent&quot;); // NON-NLS</span>
+<span class="nc" id="L105">      OAuth20Service service = server.getResponseHandler().getService();</span>
+<span class="nc" id="L106">      final String authorizationUrl =</span>
+<span class="nc" id="L107">          service.createAuthorizationUrlBuilder().additionalParams(additionalParams).build();</span>
+<span class="nc" id="L108">      GuiUtils.openInDefaultBrowser(null, new URL(authorizationUrl));</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">      for (int i = 0; i &lt; 60; i++) {</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">        if (server.getResponseHandler().getCode() != null) {</span>
+<span class="nc" id="L111">          break;</span>
+        }
+<span class="nc" id="L113">        Thread.sleep(1000);</span>
+      }
+
+<span class="nc" id="L116">      Future&lt;OAuth2AccessToken&gt; future =</span>
+<span class="nc" id="L117">          service.getAccessTokenAsync(server.getResponseHandler().getCode());</span>
+<span class="nc" id="L118">      OAuth2AccessToken access = future.get(15L, TimeUnit.SECONDS);</span>
+<span class="nc" id="L119">      code = access.getRefreshToken();</span>
+<span class="nc" id="L120">      return service.refreshAccessToken(code);</span>
+<span class="nc" id="L121">    } catch (Exception e) {</span>
+<span class="nc" id="L122">      LOGGER.error(&quot;Cannot get refreshToken&quot;, e);</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">      if (e instanceof InterruptedException) {</span>
+<span class="nc" id="L124">        Thread.currentThread().interrupt();</span>
+      }
+<span class="nc" id="L126">      return null;</span>
+    }
+  }
+
+  @Override
+  public void resetToken() {
+<span class="nc" id="L132">    this.token = null;</span>
+<span class="nc" id="L133">  }</span>
+
+  @Override
+  public OAuth2AccessToken getToken() {
+<span class="nc bnc" id="L137" title="All 4 branches missed.">    if (token == null &amp;&amp; code != null) {</span>
+<span class="nc" id="L138">      OAuth20Service service = OAuth2ServiceFactory.getService(this);</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">      if (service != null) {</span>
+        try {
+<span class="nc" id="L141">          this.token = service.refreshAccessToken(code);</span>
+<span class="nc" id="L142">        } catch (Exception e) {</span>
+<span class="nc" id="L143">          token = null;</span>
+<span class="nc" id="L144">          LOGGER.error(&quot;Cannot get refreshToken&quot;, e);</span>
+<span class="nc bnc" id="L145" title="All 2 branches missed.">          if (e instanceof InterruptedException) {</span>
+<span class="nc" id="L146">            Thread.currentThread().interrupt();</span>
+          }
+<span class="nc" id="L148">        }</span>
+      }
+    }
+<span class="nc bnc" id="L151" title="All 2 branches missed.">    if (token == null) {</span>
+<span class="nc" id="L152">      authenticate();</span>
+    }
+<span class="nc" id="L154">    return token;</span>
+  }
+
+  private void authenticate() {
+<span class="nc" id="L158">    AsyncCallbackServerHandler authServer = null;</span>
+    try {
+<span class="nc" id="L160">      authServer = getAsyncCallbackServerHandler();</span>
+<span class="nc" id="L161">      authServer.start();</span>
+<span class="nc" id="L162">      token = getRefreshToken(authServer);</span>
+<span class="nc bnc" id="L163" title="All 2 branches missed.">      if (token == null) {</span>
+<span class="nc" id="L164">        throw new IllegalArgumentException(&quot;Cannot login!&quot;);</span>
+      }
+<span class="nc" id="L166">    } catch (IOException e) {</span>
+<span class="nc" id="L167">      LOGGER.error(&quot;&quot;, e);</span>
+    } finally {
+<span class="nc bnc" id="L169" title="All 2 branches missed.">      if (authServer != null) {</span>
+<span class="nc" id="L170">        authServer.shutdown();</span>
+      }
+    }
+<span class="nc" id="L173">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

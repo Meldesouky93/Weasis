@@ -1,0 +1,391 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>MeasureTool.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image.dockable</a> &gt; <span class="el_source">MeasureTool.java</span></div><h1>MeasureTool.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image.dockable;
+
+import bibliothek.gui.dock.common.CLocation;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.FlowLayout;
+import java.awt.GridLayout;
+import java.awt.Window;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JColorChooser;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSpinner;
+import javax.swing.JTable;
+import javax.swing.JToggleButton;
+import javax.swing.SwingUtilities;
+import javax.swing.table.TableModel;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.Insertable;
+import org.weasis.core.api.gui.util.ActionW;
+import org.weasis.core.api.gui.util.ComboItemListener;
+import org.weasis.core.api.gui.util.Feature;
+import org.weasis.core.api.gui.util.Feature.ComboItemListenerValue;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.gui.util.JToggleButtonGroup;
+import org.weasis.core.api.gui.util.WinUtil;
+import org.weasis.core.api.image.util.MeasurableLayer;
+import org.weasis.core.api.image.util.Unit;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.util.FontItem;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.api.util.ResourceUtil.ActionIcon;
+import org.weasis.core.ui.docking.PluginTool;
+import org.weasis.core.ui.editor.image.ImageViewerEventManager;
+import org.weasis.core.ui.editor.image.ImageViewerPlugin;
+import org.weasis.core.ui.editor.image.MeasureToolBar;
+import org.weasis.core.ui.editor.image.MouseActions;
+import org.weasis.core.ui.editor.image.ViewCanvas;
+import org.weasis.core.ui.editor.image.ViewerPlugin;
+import org.weasis.core.ui.editor.image.ViewerToolBar;
+import org.weasis.core.ui.model.graphic.DragGraphic;
+import org.weasis.core.ui.model.graphic.Graphic;
+import org.weasis.core.ui.model.graphic.GraphicSelectionListener;
+import org.weasis.core.ui.model.graphic.imp.AnnotationGraphic;
+import org.weasis.core.ui.model.layer.LayerType;
+import org.weasis.core.ui.model.utils.ImageStatistics;
+import org.weasis.core.ui.model.utils.bean.MeasureItem;
+import org.weasis.core.ui.model.utils.bean.Measurement;
+import org.weasis.core.ui.pref.PreferenceDialog;
+import org.weasis.core.ui.pref.ViewSetting;
+import org.weasis.core.ui.util.ColorLayerUI;
+import org.weasis.core.ui.util.SimpleTableModel;
+import org.weasis.core.ui.util.TableColumnAdjuster;
+import org.weasis.core.ui.util.TableNumberRenderer;
+import org.weasis.core.util.StringUtil;
+
+public class MeasureTool extends PluginTool implements GraphicSelectionListener {
+
+<span class="nc" id="L78">  public static final String BUTTON_NAME = ActionW.DRAW + &quot; &amp; &quot; + ActionW.MEASURE;</span>
+<span class="nc" id="L79">  public static final String LABEL_PREF_NAME = Messages.getString(&quot;MeasureTool.lab_img&quot;);</span>
+<span class="nc" id="L80">  public static final ViewSetting viewSetting = new ViewSetting();</span>
+
+  protected final ImageViewerEventManager&lt;? extends ImageElement&gt; eventManager;
+  private final JScrollPane rootPane;
+  private JPanel tableContainer;
+  private JTable jtable;
+
+  private List&lt;DragGraphic&gt; selectedGraphic;
+
+  public MeasureTool(ImageViewerEventManager&lt;? extends ImageElement&gt; eventManager) {
+<span class="nc" id="L90">    super(BUTTON_NAME, Insertable.Type.TOOL, 30);</span>
+<span class="nc" id="L91">    this.eventManager = eventManager;</span>
+<span class="nc" id="L92">    this.rootPane = new JScrollPane();</span>
+<span class="nc" id="L93">    dockable.setTitleIcon(ResourceUtil.getIcon(ActionIcon.MEASURE));</span>
+<span class="nc" id="L94">    setDockableWidth(220);</span>
+<span class="nc" id="L95">    jbInit();</span>
+<span class="nc" id="L96">  }</span>
+
+  private void jbInit() {
+<span class="nc" id="L99">    rootPane.setBorder(BorderFactory.createEmptyBorder()); // remove default line</span>
+<span class="nc" id="L100">    setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));</span>
+<span class="nc" id="L101">    add(getIconsPanel());</span>
+<span class="nc" id="L102">    add(getSelectedMeasurePanel());</span>
+<span class="nc" id="L103">  }</span>
+
+  public final JPanel getIconsPanel() {
+<span class="nc" id="L106">    final JPanel transform = new JPanel();</span>
+<span class="nc" id="L107">    transform.setLayout(new BoxLayout(transform, BoxLayout.Y_AXIS));</span>
+<span class="nc" id="L108">    transform.setBorder(GuiUtils.getEmptyBorder(5, 5, 5, 5));</span>
+
+<span class="nc" id="L110">    MeasureTool.buildIconPanel(transform, eventManager, ActionW.MEASURE, ActionW.DRAW_MEASURE, 5);</span>
+<span class="nc" id="L111">    MeasureTool.buildIconPanel(transform, eventManager, ActionW.DRAW, ActionW.DRAW_GRAPHICS, 5);</span>
+<span class="nc" id="L112">    transform.add(Box.createVerticalStrut(5));</span>
+
+<span class="nc" id="L114">    JLabel label = new JLabel(Messages.getString(&quot;MeasureToolBar.line&quot;) + StringUtil.COLON);</span>
+<span class="nc" id="L115">    JButton button = buildLineColorButton(this);</span>
+
+<span class="nc" id="L117">    JSpinner spinner = new JSpinner();</span>
+<span class="nc" id="L118">    viewSetting.initLineWidthSpinner(spinner);</span>
+<span class="nc" id="L119">    transform.add(GuiUtils.getFlowLayoutPanel(label, button, spinner));</span>
+
+<span class="nc" id="L121">    eventManager</span>
+<span class="nc" id="L122">        .getAction(ActionW.DRAW_ONLY_ONCE)</span>
+<span class="nc" id="L123">        .ifPresent(</span>
+            b -&gt; {
+<span class="nc" id="L125">              JCheckBox checkDraw = b.createCheckBox(ActionW.DRAW_ONLY_ONCE.getTitle());</span>
+<span class="nc" id="L126">              checkDraw.setSelected(viewSetting.isDrawOnlyOnce());</span>
+<span class="nc" id="L127">              transform.add(GuiUtils.getFlowLayoutPanel(checkDraw));</span>
+<span class="nc" id="L128">            });</span>
+
+<span class="nc" id="L130">    JCheckBox checkboxBasicImageStatistics =</span>
+<span class="nc" id="L131">        new JCheckBox(Messages.getString(&quot;MeasureTool.pix_stats&quot;), viewSetting.isBasicStatistics());</span>
+<span class="nc" id="L132">    checkboxBasicImageStatistics.addActionListener(</span>
+        e -&gt; {
+<span class="nc" id="L134">          JCheckBox box = (JCheckBox) e.getSource();</span>
+<span class="nc" id="L135">          boolean sel = box.isSelected();</span>
+<span class="nc" id="L136">          viewSetting.setBasicStatistics(sel);</span>
+          // Force also advanced statistics
+<span class="nc" id="L138">          viewSetting.setMoreStatistics(sel);</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">          for (Measurement m : ImageStatistics.ALL_MEASUREMENTS) {</span>
+<span class="nc" id="L140">            m.setComputed(sel);</span>
+          }
+<span class="nc" id="L142">          List&lt;ViewerPlugin&lt;?&gt;&gt; viewerPlugins = GuiUtils.getUICore().getViewerPlugins();</span>
+<span class="nc" id="L143">          synchronized (viewerPlugins) {</span>
+<span class="nc bnc" id="L144" title="All 2 branches missed.">            for (int i = viewerPlugins.size() - 1; i &gt;= 0; i--) {</span>
+<span class="nc" id="L145">              ViewerPlugin&lt;?&gt; p = viewerPlugins.get(i);</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">              if (p instanceof ImageViewerPlugin) {</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">                for (ViewCanvas&lt;?&gt; view : ((ImageViewerPlugin&lt;?&gt;) p).getImagePanels()) {</span>
+<span class="nc bnc" id="L148" title="All 2 branches missed.">                  if (view != null) {</span>
+<span class="nc" id="L149">                    view.getGraphicManager().updateLabels(true, view);</span>
+                  }
+<span class="nc" id="L151">                }</span>
+              }
+            }
+<span class="nc" id="L154">          }</span>
+<span class="nc" id="L155">        });</span>
+<span class="nc" id="L156">    transform.add(GuiUtils.getFlowLayoutPanel(checkboxBasicImageStatistics));</span>
+
+<span class="nc" id="L158">    eventManager</span>
+<span class="nc" id="L159">        .getAction(ActionW.SPATIAL_UNIT)</span>
+<span class="nc" id="L160">        .ifPresent(</span>
+            b -&gt; {
+<span class="nc" id="L162">              final JLabel labelUnit =</span>
+<span class="nc" id="L163">                  new JLabel(Messages.getString(&quot;MeasureTool.unit&quot;) + StringUtil.COLON);</span>
+<span class="nc" id="L164">              JComboBox&lt;?&gt; unitComboBox = b.createCombo(120);</span>
+<span class="nc" id="L165">              unitComboBox.setSelectedItem(Unit.PIXEL);</span>
+<span class="nc" id="L166">              transform.add(GuiUtils.getFlowLayoutPanel(labelUnit, unitComboBox));</span>
+<span class="nc" id="L167">            });</span>
+
+<span class="nc" id="L169">    final JButton btnGeneralOptions = new JButton(Messages.getString(&quot;MeasureTool.more_options&quot;));</span>
+<span class="nc" id="L170">    btnGeneralOptions.addActionListener(</span>
+        e -&gt; {
+<span class="nc" id="L172">          Window win = SwingUtilities.getWindowAncestor(MeasureTool.this);</span>
+<span class="nc" id="L173">          ColorLayerUI layer = ColorLayerUI.createTransparentLayerUI(win.getParent());</span>
+<span class="nc" id="L174">          PreferenceDialog dialog = new PreferenceDialog(win);</span>
+<span class="nc" id="L175">          dialog.showPage(BUTTON_NAME);</span>
+<span class="nc" id="L176">          ColorLayerUI.showCenterScreen(dialog, layer);</span>
+<span class="nc" id="L177">        });</span>
+<span class="nc" id="L178">    transform.add(GuiUtils.getFlowLayoutPanel(btnGeneralOptions));</span>
+<span class="nc" id="L179">    return transform;</span>
+  }
+
+  public static void updateMeasureProperties() {
+<span class="nc" id="L183">    MeasureToolBar.getMeasureGraphicList()</span>
+<span class="nc" id="L184">        .forEach(g -&gt; MeasureToolBar.applyDefaultSetting(viewSetting, g));</span>
+<span class="nc" id="L185">    MeasureToolBar.getDrawGraphicList()</span>
+<span class="nc" id="L186">        .forEach(g -&gt; MeasureToolBar.applyDefaultSetting(viewSetting, g));</span>
+<span class="nc" id="L187">  }</span>
+
+  public JPanel getSelectedMeasurePanel() {
+<span class="nc" id="L190">    jtable = createMultipleRenderingTable(new SimpleTableModel(new String[] {}, new Object[][] {}));</span>
+<span class="nc" id="L191">    jtable.setFont(FontItem.MINI.getFont());</span>
+
+<span class="nc" id="L193">    jtable.getTableHeader().setReorderingAllowed(false);</span>
+
+<span class="nc" id="L195">    tableContainer = new JPanel(new BorderLayout());</span>
+<span class="nc" id="L196">    tableContainer.setPreferredSize(GuiUtils.getDimension(50, 50));</span>
+<span class="nc" id="L197">    tableContainer.setBorder(</span>
+<span class="nc" id="L198">        BorderFactory.createCompoundBorder(</span>
+<span class="nc" id="L199">            GuiUtils.getEmptyBorder(10, 3, 0, 3),</span>
+<span class="nc" id="L200">            GuiUtils.getTitledBorder(Messages.getString(&quot;MeasureTool.sel&quot;))));</span>
+<span class="nc" id="L201">    return tableContainer;</span>
+  }
+
+  @Override
+  public Component getToolComponent() {
+<span class="nc" id="L206">    return getToolComponentFromJScrollPane(rootPane);</span>
+  }
+
+  @Override
+  protected void changeToolWindowAnchor(CLocation clocation) {
+    // Do nothing
+<span class="nc" id="L212">  }</span>
+
+  public static JButton buildLineColorButton(Component c) {
+<span class="nc" id="L215">    JButton button = new JButton(ResourceUtil.getIcon(ActionIcon.PIPETTE));</span>
+<span class="nc" id="L216">    button.setToolTipText(Messages.getString(&quot;MeasureTool.pick&quot;));</span>
+<span class="nc" id="L217">    button.addActionListener(</span>
+        e -&gt; {
+<span class="nc" id="L219">          Color newColor =</span>
+<span class="nc" id="L220">              JColorChooser.showDialog(</span>
+<span class="nc" id="L221">                  WinUtil.getValidComponent(c),</span>
+<span class="nc" id="L222">                  Messages.getString(&quot;MeasureTool.pick_color&quot;),</span>
+<span class="nc" id="L223">                  viewSetting.getLineColor());</span>
+<span class="nc bnc" id="L224" title="All 2 branches missed.">          if (newColor != null) {</span>
+<span class="nc" id="L225">            viewSetting.setLineColor(newColor);</span>
+<span class="nc" id="L226">            updateMeasureProperties();</span>
+          }
+<span class="nc" id="L228">        });</span>
+<span class="nc" id="L229">    return button;</span>
+  }
+
+  public static JTable createMultipleRenderingTable(TableModel model) {
+<span class="nc" id="L233">    JTable table = new JTable(model);</span>
+<span class="nc" id="L234">    table.getTableHeader().setReorderingAllowed(false);</span>
+<span class="nc" id="L235">    table.setShowHorizontalLines(true);</span>
+<span class="nc" id="L236">    table.setShowVerticalLines(true);</span>
+<span class="nc" id="L237">    table.getColumnModel().setColumnMargin(GuiUtils.getScaleLength(3));</span>
+<span class="nc" id="L238">    return table;</span>
+  }
+
+  public void setSelectedGraphic(Graphic graph, MeasurableLayer layer) {
+<span class="nc" id="L242">    List&lt;MeasureItem&gt; measList = null;</span>
+
+<span class="nc bnc" id="L244" title="All 6 branches missed.">    if (graph != null &amp;&amp; layer != null &amp;&amp; graph.getLayerType() == LayerType.MEASURE) {</span>
+<span class="nc" id="L245">      Unit unit =</span>
+          eventManager
+<span class="nc" id="L247">              .getAction(ActionW.SPATIAL_UNIT)</span>
+<span class="nc" id="L248">              .map(c -&gt; (Unit) c.getSelectedItem())</span>
+<span class="nc" id="L249">              .orElse(null);</span>
+<span class="nc" id="L250">      measList = graph.computeMeasurements(layer, true, unit);</span>
+    }
+<span class="nc" id="L252">    updateMeasuredItems(measList);</span>
+<span class="nc" id="L253">  }</span>
+
+  @Override
+  public void updateMeasuredItems(List&lt;MeasureItem&gt; measList) {
+<span class="nc" id="L257">    tableContainer.removeAll();</span>
+
+    // just clear tableContainer if measList is null
+<span class="nc bnc" id="L260" title="All 2 branches missed.">    if (measList != null) {</span>
+<span class="nc" id="L261">      String[] headers = {</span>
+<span class="nc" id="L262">        Messages.getString(&quot;MeasureTool.param&quot;), Messages.getString(&quot;MeasureTool.val&quot;)</span>
+      };
+<span class="nc" id="L264">      jtable.setModel(new SimpleTableModel(headers, getLabels(measList)));</span>
+<span class="nc" id="L265">      jtable.getColumnModel().getColumn(1).setCellRenderer(new TableNumberRenderer());</span>
+<span class="nc" id="L266">      TableColumnAdjuster.adjustPreferredSizeForViewPort(jtable, tableContainer);</span>
+<span class="nc" id="L267">    } else {</span>
+<span class="nc" id="L268">      tableContainer.setPreferredSize(GuiUtils.getDimension(50, 50));</span>
+    }
+<span class="nc" id="L270">    tableContainer.revalidate();</span>
+<span class="nc" id="L271">    tableContainer.repaint();</span>
+<span class="nc" id="L272">  }</span>
+
+  public static Object[][] getLabels(List&lt;MeasureItem&gt; measList) {
+<span class="nc bnc" id="L275" title="All 2 branches missed.">    if (measList != null) {</span>
+<span class="nc" id="L276">      Object[][] labels = new Object[measList.size()][];</span>
+<span class="nc bnc" id="L277" title="All 2 branches missed.">      for (int i = 0; i &lt; labels.length; i++) {</span>
+<span class="nc" id="L278">        MeasureItem m = measList.get(i);</span>
+<span class="nc" id="L279">        Object[] row = new Object[2];</span>
+<span class="nc" id="L280">        StringBuilder buffer = new StringBuilder(m.getMeasurement().getName());</span>
+<span class="nc bnc" id="L281" title="All 2 branches missed.">        if (m.getLabelExtension() != null) {</span>
+<span class="nc" id="L282">          buffer.append(m.getLabelExtension());</span>
+        }
+<span class="nc bnc" id="L284" title="All 2 branches missed.">        if (m.getUnit() != null) {</span>
+<span class="nc" id="L285">          buffer.append(&quot; [&quot;);</span>
+<span class="nc" id="L286">          buffer.append(m.getUnit());</span>
+<span class="nc" id="L287">          buffer.append(&quot;]&quot;);</span>
+        }
+<span class="nc" id="L289">        row[0] = buffer.toString();</span>
+<span class="nc" id="L290">        row[1] = m.getValue();</span>
+<span class="nc" id="L291">        labels[i] = row;</span>
+      }
+<span class="nc" id="L293">      return labels;</span>
+    }
+<span class="nc" id="L295">    return null;</span>
+  }
+
+  public static int getNumberOfMeasures(boolean[] select) {
+<span class="nc" id="L299">    int k = 0;</span>
+<span class="nc bnc" id="L300" title="All 2 branches missed.">    for (boolean b : select) {</span>
+<span class="nc bnc" id="L301" title="All 2 branches missed.">      if (b) {</span>
+<span class="nc" id="L302">        k++;</span>
+      }
+    }
+<span class="nc" id="L305">    return k;</span>
+  }
+
+  @Override
+  public void handle(List&lt;Graphic&gt; selectedGraphicList, MeasurableLayer layer) {
+<span class="nc" id="L310">    Graphic g = null;</span>
+<span class="nc" id="L311">    List&lt;DragGraphic&gt; list = null;</span>
+
+<span class="nc bnc" id="L313" title="All 2 branches missed.">    if (selectedGraphicList != null) {</span>
+<span class="nc bnc" id="L314" title="All 2 branches missed.">      if (selectedGraphicList.size() == 1) {</span>
+<span class="nc" id="L315">        g = selectedGraphicList.get(0);</span>
+      }
+
+<span class="nc" id="L318">      list = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L320" title="All 2 branches missed.">      for (Graphic graphic : selectedGraphicList) {</span>
+<span class="nc bnc" id="L321" title="All 2 branches missed.">        if (graphic instanceof DragGraphic dragGraphic) {</span>
+<span class="nc" id="L322">          list.add(dragGraphic);</span>
+        }
+<span class="nc" id="L324">      }</span>
+    }
+
+<span class="nc" id="L327">    boolean computeAllMeasures = true;</span>
+<span class="nc bnc" id="L328" title="All 2 branches missed.">    if (selectedGraphic != null) {</span>
+<span class="nc bnc" id="L329" title="All 4 branches missed.">      if (g != null &amp;&amp; selectedGraphic.size() == 1) {</span>
+        // Warning only comparing if it is the same instance, cannot compare handle points.
+        // Update of the list of measures is performed in the drag sequence (move, complete). Here
+        // only the change of selection will compute the measurements
+<span class="nc bnc" id="L333" title="All 4 branches missed.">        if (g == selectedGraphic.get(0) &amp;&amp; !(g instanceof AnnotationGraphic)) {</span>
+<span class="nc" id="L334">          computeAllMeasures = false;</span>
+        }
+      }
+<span class="nc" id="L337">      selectedGraphic.clear();</span>
+    }
+
+<span class="nc" id="L340">    this.selectedGraphic = list;</span>
+<span class="nc bnc" id="L341" title="All 2 branches missed.">    if (computeAllMeasures) {</span>
+      // if g equals null means graphic is not single or no graphic is selected
+<span class="nc" id="L343">      setSelectedGraphic(g, layer);</span>
+    }
+<span class="nc" id="L345">  }</span>
+
+  public static void buildIconPanel(
+      JPanel rootPanel,
+      ImageViewerEventManager&lt;?&gt; eventManager,
+      Feature&lt;?&gt; action,
+      ComboItemListenerValue&lt;Graphic&gt; graphicAction,
+      int lineLength) {
+<span class="nc" id="L353">    Optional&lt;ComboItemListener&lt;Graphic&gt;&gt; actionState = eventManager.getAction(graphicAction);</span>
+<span class="nc bnc" id="L354" title="All 2 branches missed.">    if (actionState.isEmpty()) {</span>
+<span class="nc" id="L355">      return;</span>
+    }
+
+<span class="nc" id="L358">    final JPanel pIcons = new JPanel();</span>
+<span class="nc" id="L359">    pIcons.setBorder(</span>
+<span class="nc" id="L360">        BorderFactory.createCompoundBorder(</span>
+<span class="nc" id="L361">            GuiUtils.getEmptyBorder(10, 5, 0, 5),</span>
+<span class="nc" id="L362">            GuiUtils.getTitledBorder(graphicAction.getTitle())));</span>
+
+<span class="nc" id="L364">    JToggleButtonGroup&lt;?&gt; measures = actionState.get().createButtonGroup();</span>
+<span class="nc" id="L365">    JToggleButton[] items = measures.getJToggleButtonList();</span>
+
+<span class="nc" id="L367">    pIcons.setLayout(new GridLayout(0, lineLength));</span>
+<span class="nc bnc" id="L368" title="All 2 branches missed.">    for (JToggleButton item : items) {</span>
+<span class="nc" id="L369">      item.addActionListener(</span>
+          e -&gt; {
+<span class="nc" id="L371">            ImageViewerPlugin&lt;? extends ImageElement&gt; view =</span>
+<span class="nc" id="L372">                eventManager.getSelectedView2dContainer();</span>
+<span class="nc bnc" id="L373" title="All 2 branches missed.">            if (view != null) {</span>
+<span class="nc" id="L374">              final ViewerToolBar&lt;?&gt; toolBar = view.getViewerToolBar();</span>
+<span class="nc bnc" id="L375" title="All 2 branches missed.">              if (toolBar != null) {</span>
+<span class="nc" id="L376">                String cmd = action.cmd();</span>
+<span class="nc bnc" id="L377" title="All 2 branches missed.">                if (!toolBar.isCommandActive(cmd)) {</span>
+<span class="nc" id="L378">                  MouseActions mouseActions = eventManager.getMouseActions();</span>
+<span class="nc" id="L379">                  mouseActions.setAction(MouseActions.T_LEFT, cmd);</span>
+<span class="nc" id="L380">                  view.setMouseActions(mouseActions);</span>
+<span class="nc" id="L381">                  toolBar.changeButtonState(MouseActions.T_LEFT, cmd);</span>
+                }
+              }
+            }
+<span class="nc" id="L385">          });</span>
+<span class="nc" id="L386">      pIcons.add(item);</span>
+    }
+<span class="nc" id="L388">    rootPanel.add(GuiUtils.getFlowLayoutPanel(FlowLayout.LEADING, 0, 0, pIcons));</span>
+<span class="nc" id="L389">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

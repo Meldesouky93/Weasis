@@ -1,0 +1,541 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>RenderedImageLayer.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.layer.imp</a> &gt; <span class="el_source">RenderedImageLayer.java</span></div><h1>RenderedImageLayer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.layer.imp;
+
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.RenderingHints;
+import java.awt.Shape;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.image.AffineTransformOp;
+import org.weasis.core.api.image.ImageOpEvent;
+import org.weasis.core.api.image.ImageOpNode;
+import org.weasis.core.api.image.OpEventListener;
+import org.weasis.core.api.image.OpManager;
+import org.weasis.core.api.image.SimpleOpManager;
+import org.weasis.core.api.image.WindowOp;
+import org.weasis.core.api.image.ZoomOp;
+import org.weasis.core.api.image.cv.CvUtil;
+import org.weasis.core.api.image.measure.MeasurementsAdapter;
+import org.weasis.core.api.image.util.ImageLayer;
+import org.weasis.core.api.image.util.Unit;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.ui.editor.image.Canvas;
+import org.weasis.core.ui.model.layer.Layer;
+import org.weasis.core.ui.model.layer.LayerType;
+import org.weasis.core.ui.model.utils.ImageLayerChangeListener;
+import org.weasis.core.ui.model.utils.imp.DefaultUUID;
+import org.weasis.opencv.data.PlanarImage;
+import org.weasis.opencv.op.ImageConversion;
+import org.weasis.opencv.op.lut.WlPresentation;
+
+/**
+ * The Class RenderedImageLayer.
+ *
+ * @author Nicolas Roduit
+ */
+public class RenderedImageLayer&lt;E extends ImageElement&gt; extends DefaultUUID
+    implements Layer, ImageLayer&lt;E&gt; {
+
+<span class="nc" id="L54">  private static final Logger LOGGER = LoggerFactory.getLogger(RenderedImageLayer.class);</span>
+
+  private final SimpleOpManager disOpManager;
+  private final List&lt;ImageLayerChangeListener&lt;E&gt;&gt; listenerList;
+  private final List&lt;OpEventListener&gt; opListeners;
+
+  private OpManager preprocessing;
+  private E sourceImage;
+  private PlanarImage displayImage;
+<span class="nc" id="L63">  private Boolean visible = true;</span>
+<span class="nc" id="L64">  private boolean enableDispOperations = true;</span>
+  private Point offset;
+
+  public RenderedImageLayer() {
+<span class="nc" id="L68">    this(null);</span>
+<span class="nc" id="L69">  }</span>
+
+<span class="nc" id="L71">  public RenderedImageLayer(SimpleOpManager disOpManager) {</span>
+<span class="nc" id="L72">    this.disOpManager = Optional.ofNullable(disOpManager).orElseGet(SimpleOpManager::new);</span>
+<span class="nc" id="L73">    this.listenerList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L74">    this.opListeners = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L75">    addEventListener(this.disOpManager);</span>
+<span class="nc" id="L76">  }</span>
+
+  @Override
+  public E getSourceImage() {
+<span class="nc" id="L80">    return sourceImage;</span>
+  }
+
+  @Override
+  public PlanarImage getSourceRenderedImage() {
+<span class="nc bnc" id="L85" title="All 2 branches missed.">    if (sourceImage != null) {</span>
+<span class="nc" id="L86">      return sourceImage.getImage(preprocessing);</span>
+    }
+<span class="nc" id="L88">    return null;</span>
+  }
+
+  @Override
+  public PlanarImage getDisplayImage() {
+<span class="nc" id="L93">    return displayImage;</span>
+  }
+
+  public OpManager getPreprocessing() {
+<span class="nc" id="L97">    return preprocessing;</span>
+  }
+
+  public void setPreprocessing(OpManager preprocessing) {
+<span class="nc" id="L101">    setImage(sourceImage, preprocessing);</span>
+<span class="nc" id="L102">  }</span>
+
+  @Override
+  public SimpleOpManager getDisplayOpManager() {
+<span class="nc" id="L106">    return disOpManager;</span>
+  }
+
+  @Override
+  public synchronized boolean isEnableDispOperations() {
+<span class="nc" id="L111">    return enableDispOperations;</span>
+  }
+
+  @Override
+  public synchronized void setEnableDispOperations(boolean enabled) {
+<span class="nc" id="L116">    this.enableDispOperations = enabled;</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">    if (enabled) {</span>
+<span class="nc" id="L118">      updateDisplayOperations();</span>
+    }
+<span class="nc" id="L120">  }</span>
+
+  @Override
+  public void setVisible(Boolean visible) {
+<span class="nc" id="L124">    this.visible = Optional.ofNullable(visible).orElse(getType().getVisible());</span>
+<span class="nc" id="L125">  }</span>
+
+  @Override
+  public Boolean getVisible() {
+<span class="nc" id="L129">    return visible;</span>
+  }
+
+  @Override
+  public void setType(LayerType type) {
+    // Do nothing
+<span class="nc" id="L135">  }</span>
+
+  @Override
+  public void setName(String graphicLayerName) {
+    // Do nothing
+<span class="nc" id="L140">  }</span>
+
+  @Override
+  public String getName() {
+<span class="nc" id="L144">    return getType().getDefaultName();</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L149">    return getName();</span>
+  }
+
+  @Override
+  public Integer getLevel() {
+<span class="nc" id="L154">    return getType().getLevel();</span>
+  }
+
+  @Override
+  public void setLevel(Integer i) {
+    // Assume to be at the lowest level
+<span class="nc" id="L160">  }</span>
+
+  @Override
+  public AffineTransform getTransform() {
+<span class="nc" id="L164">    return null;</span>
+  }
+
+  @Override
+  public void setTransform(AffineTransform transform) {
+    // Does handle affine transform for image, already in operation manager
+<span class="nc" id="L170">  }</span>
+
+  @Override
+  public LayerType getType() {
+<span class="nc" id="L174">    return LayerType.IMAGE;</span>
+  }
+
+  @Override
+  public boolean hasContent() {
+<span class="nc bnc" id="L179" title="All 2 branches missed.">    return getSourceImage() != null;</span>
+  }
+
+  @Override
+  public void setImage(E image, OpManager preprocessing) {
+<span class="nc bnc" id="L184" title="All 2 branches missed.">    boolean init =</span>
+<span class="nc bnc" id="L185" title="All 6 branches missed.">        (image != null &amp;&amp; !image.equals(this.sourceImage))</span>
+            || (image == null &amp;&amp; sourceImage != null);
+<span class="nc" id="L187">    this.sourceImage = image;</span>
+<span class="nc" id="L188">    this.preprocessing = preprocessing;</span>
+    // Rectify non-square pixel image in the first operation
+<span class="nc bnc" id="L190" title="All 2 branches missed.">    if (sourceImage != null) {</span>
+<span class="nc" id="L191">      ZoomOp node = sourceImage.getRectifyAspectRatioZoomOp();</span>
+<span class="nc bnc" id="L192" title="All 2 branches missed.">      if (node != null) {</span>
+<span class="nc" id="L193">        SimpleOpManager process = new SimpleOpManager();</span>
+<span class="nc" id="L194">        process.addImageOperationAction(node);</span>
+<span class="nc bnc" id="L195" title="All 2 branches missed.">        if (preprocessing != null) {</span>
+<span class="nc bnc" id="L196" title="All 2 branches missed.">          for (ImageOpNode op : preprocessing.getOperations()) {</span>
+<span class="nc bnc" id="L197" title="All 2 branches missed.">            if (!node.getName().equals(op.getName())) {</span>
+<span class="nc" id="L198">              process.addImageOperationAction(op);</span>
+            }
+<span class="nc" id="L200">          }</span>
+        }
+<span class="nc" id="L202">        this.preprocessing = process;</span>
+      }
+    }
+
+<span class="nc bnc" id="L206" title="All 4 branches missed.">    if (preprocessing != null || init) {</span>
+<span class="nc" id="L207">      disOpManager.setFirstNode(getSourceRenderedImage());</span>
+<span class="nc" id="L208">      updateDisplayOperations();</span>
+    }
+<span class="nc" id="L210">  }</span>
+
+  public void drawImage(Graphics2D g2d) {
+    // Get the clipping rectangle
+<span class="nc bnc" id="L214" title="All 4 branches missed.">    if (!visible || displayImage == null) {</span>
+<span class="nc" id="L215">      return;</span>
+    }
+
+<span class="nc" id="L218">    Shape clip = g2d.getClip();</span>
+<span class="nc bnc" id="L219" title="All 2 branches missed.">    if (clip instanceof Rectangle2D) {</span>
+<span class="nc" id="L220">      Rectangle2D rect =</span>
+<span class="nc" id="L221">          new Rectangle2D.Double(0, 0, displayImage.width() - 1.0, displayImage.height() - 1.0);</span>
+<span class="nc" id="L222">      rect = rect.createIntersection((Rectangle2D) clip);</span>
+<span class="nc bnc" id="L223" title="All 2 branches missed.">      if (rect.isEmpty()) {</span>
+<span class="nc" id="L224">        return;</span>
+      }
+      // Avoid to display one pixel outside the border of a view.
+      // rect.setRect(Math.ceil(rect.getX()), Math.ceil(rect.getY()), rect.getWidth() - 1,
+      // rect.getHeight() - 1);
+<span class="nc" id="L229">      g2d.setClip(rect);</span>
+    }
+
+    try {
+<span class="nc bnc" id="L233" title="All 2 branches missed.">      if (g2d.getDeviceConfiguration().getDefaultTransform().getScaleX() &gt; 1.0) {</span>
+<span class="nc" id="L234">        g2d.setRenderingHint(</span>
+            RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+      }
+<span class="nc" id="L237">      g2d.drawImage(ImageConversion.toBufferedImage(displayImage), 0, 0, null);</span>
+<span class="nc" id="L238">    } catch (Exception e) {</span>
+<span class="nc" id="L239">      LOGGER.error(&quot;Cannot draw the image&quot;, e);</span>
+<span class="nc bnc" id="L240" title="All 2 branches missed.">      if (&quot;java.io.IOException: closed&quot;.equals(e.getMessage())) { // NON-NLS</span>
+        // Issue when the stream has been closed of a tiled image (problem that readAsRendered do
+        // not read data
+        // immediately)
+<span class="nc bnc" id="L244" title="All 2 branches missed.">        if (sourceImage.isImageInCache()) {</span>
+<span class="nc" id="L245">          sourceImage.removeImageFromCache();</span>
+        }
+<span class="nc" id="L247">        disOpManager.setFirstNode(getSourceRenderedImage());</span>
+<span class="nc" id="L248">        updateDisplayOperations();</span>
+      }
+<span class="nc" id="L250">    } catch (OutOfMemoryError e) {</span>
+<span class="nc" id="L251">      LOGGER.error(&quot;Cannot draw the image&quot;, e);</span>
+<span class="nc" id="L252">      CvUtil.runGarbageCollectorAndWait(100);</span>
+<span class="nc" id="L253">    }</span>
+<span class="nc" id="L254">    g2d.setClip(clip);</span>
+<span class="nc" id="L255">  }</span>
+
+  public void drawImageForPrinter(Graphics2D g2d, double viewScale, Canvas canvas) {
+    // Get the clipping rectangle
+<span class="nc bnc" id="L259" title="All 4 branches missed.">    if (!visible || displayImage == null) {</span>
+<span class="nc" id="L260">      return;</span>
+    }
+
+<span class="nc" id="L263">    Shape clip = g2d.getClip();</span>
+<span class="nc bnc" id="L264" title="All 2 branches missed.">    if (clip instanceof Rectangle2D) {</span>
+<span class="nc" id="L265">      Rectangle2D rect =</span>
+<span class="nc" id="L266">          new Rectangle2D.Double(0, 0, displayImage.width() - 1.0, displayImage.height() - 1.0);</span>
+<span class="nc" id="L267">      rect = rect.createIntersection((Rectangle2D) clip);</span>
+<span class="nc bnc" id="L268" title="All 2 branches missed.">      if (rect.isEmpty()) {</span>
+<span class="nc" id="L269">        return;</span>
+      }
+<span class="nc" id="L271">      g2d.setClip(rect);</span>
+    }
+
+    // Rectangle2D modelArea = canvas.getViewModel().getModelArea();
+    // double rWidth = modelArea.getWidth();
+    // double rHeight = modelArea.getHeight();
+    //
+    // OpManager dispOp = getDisplayOpManager();
+    // boolean flip = LangUtil.getNULLtoFalse((Boolean) canvas.getActionValue(ActionW.FLIP.cmd()));
+    // Integer rotationAngle = (Integer) canvas.getActionValue(ActionW.ROTATION.cmd());
+    //
+    // double curScale = canvas.getViewModel().getViewScale();
+    // // Do not print lower than 72 dpi (drawRenderedImage can only decrease the size for printer
+    // not interpolate)
+    // double imageRes = viewScale &lt; curScale ? curScale : viewScale;
+    //
+    // AffineTransform affineTransform = AffineTransform.getScaleInstance(flip ? -imageRes :
+    // imageRes, imageRes);
+    // if (rotationAngle != null &amp;&amp; rotationAngle &gt; 0) {
+    // affineTransform.rotate(Math.toRadians(rotationAngle), rWidth / 2.0, rHeight / 2.0);
+    // }
+    // if (flip) {
+    // affineTransform.translate(-rWidth, 0.0);
+    // }
+    //
+    // ImageOpNode node = dispOp.getNode(AffineTransformOp.OP_NAME);
+    // if (node != null) {
+    // double diffRatio = curScale / imageRes;
+    // Rectangle2D imgBounds = affineTransform.createTransformedShape(modelArea).getBounds2D();
+    //
+    // double diffx = 0.0;
+    // double diffy = 0.0;
+    // Rectangle2D viewBounds = new Rectangle2D.Double(0, 0, canvas.getJComponent().getWidth(),
+    // canvas.getJComponent().getHeight());
+    // Rectangle2D srcBounds = canvas.getImageViewBounds(viewBounds.getWidth(),
+    // viewBounds.getHeight());
+    //
+    // Rectangle2D dstBounds;
+    // if (viewBounds.contains(srcBounds)) {
+    // dstBounds = srcBounds;
+    // } else {
+    // dstBounds = viewBounds.createIntersection(srcBounds);
+    //
+    // if (srcBounds.getX() &lt; 0.0) {
+    // diffx += srcBounds.getX();
+    // }
+    // if (srcBounds.getY() &lt; 0.0) {
+    // diffy += srcBounds.getY();
+    // }
+    // }
+    //
+    // double[] fmx = new double[6];
+    // affineTransform.getMatrix(fmx);
+    // // adjust transformation matrix =&gt; move the center to keep all the image
+    // fmx[4] -= imgBounds.getX() - diffx;
+    // fmx[5] -= imgBounds.getY() - diffy;
+    // affineTransform.setTransform(fmx[0], fmx[1], fmx[2], fmx[3], fmx[4], fmx[5]);
+    //
+    // // Convert to openCV affine matrix
+    // double[] m = new double[] { fmx[0], fmx[2], fmx[4], fmx[1], fmx[3], fmx[5] };
+    // Object oldMatrix = node.getParam(AffineTransformOp.P_AFFINE_MATRIX);
+    // Object oldBounds = node.getParam(AffineTransformOp.P_DST_BOUNDS);
+    // node.setParam(AffineTransformOp.P_AFFINE_MATRIX, m);
+    // node.setParam(AffineTransformOp.P_DST_BOUNDS, dstBounds);
+    // PlanarImage img = disOpManager.process();
+    // node.setParam(AffineTransformOp.P_AFFINE_MATRIX, oldMatrix);
+    // node.setParam(AffineTransformOp.P_DST_BOUNDS, oldBounds);
+    //
+    //
+    // g2d.drawRenderedImage(ImageProcessor.toBufferedImage(img),
+    // AffineTransform.getScaleInstance(diffRatio,
+    // diffRatio));
+    // }
+
+<span class="nc" id="L345">    List&lt;Double&gt; matrix =</span>
+        (List&lt;Double&gt;)
+<span class="nc" id="L347">            disOpManager.getParamValue(</span>
+                AffineTransformOp.OP_NAME, AffineTransformOp.P_AFFINE_MATRIX);
+<span class="nc" id="L349">    Rectangle2D bound =</span>
+        (Rectangle2D)
+<span class="nc" id="L351">            disOpManager.getParamValue(AffineTransformOp.OP_NAME, AffineTransformOp.P_DST_BOUNDS);</span>
+<span class="nc" id="L352">    List&lt;Double&gt; m = new ArrayList&lt;&gt;(matrix);</span>
+<span class="nc" id="L353">    double ratioX = m.get(0);</span>
+<span class="nc" id="L354">    double ratioY = m.get(4);</span>
+<span class="nc" id="L355">    double offsetX = m.get(2);</span>
+<span class="nc" id="L356">    double offsetY = m.get(5);</span>
+
+<span class="nc" id="L358">    double imageResX = viewScale;</span>
+<span class="nc" id="L359">    double imageResY = viewScale;</span>
+    // Do not print lower than 72 dpi (drawRenderedImage can only decrease the size for printer not
+    // interpolate)
+<span class="nc" id="L362">    imageResX = Math.max(imageResX, ratioX);</span>
+<span class="nc" id="L363">    imageResY = Math.max(imageResY, ratioY);</span>
+<span class="nc" id="L364">    m.set(0, imageResX);</span>
+<span class="nc" id="L365">    m.set(4, imageResY);</span>
+
+<span class="nc" id="L367">    double rx = ratioX / imageResX;</span>
+<span class="nc" id="L368">    double ry = ratioY / imageResY;</span>
+<span class="nc" id="L369">    Rectangle2D b =</span>
+        new Rectangle2D.Double(
+<span class="nc" id="L371">            bound.getX() / rx, bound.getY() / ry, bound.getWidth() / rx, bound.getHeight() / ry);</span>
+<span class="nc" id="L372">    m.set(2, offsetX / rx);</span>
+<span class="nc" id="L373">    m.set(5, offsetY / ry);</span>
+<span class="nc" id="L374">    disOpManager.setParamValue(AffineTransformOp.OP_NAME, AffineTransformOp.P_AFFINE_MATRIX, m);</span>
+<span class="nc" id="L375">    disOpManager.setParamValue(AffineTransformOp.OP_NAME, AffineTransformOp.P_DST_BOUNDS, b);</span>
+<span class="nc bnc" id="L376" title="All 2 branches missed.">    PlanarImage img = bound.equals(b) ? displayImage : disOpManager.process();</span>
+
+<span class="nc" id="L378">    m.set(0, ratioX);</span>
+<span class="nc" id="L379">    m.set(4, ratioY);</span>
+<span class="nc" id="L380">    m.set(2, offsetX);</span>
+<span class="nc" id="L381">    m.set(5, offsetY);</span>
+<span class="nc" id="L382">    disOpManager.setParamValue(</span>
+        AffineTransformOp.OP_NAME, AffineTransformOp.P_AFFINE_MATRIX, matrix);
+<span class="nc" id="L384">    disOpManager.setParamValue(AffineTransformOp.OP_NAME, AffineTransformOp.P_DST_BOUNDS, bound);</span>
+
+<span class="nc bnc" id="L386" title="All 2 branches missed.">    if (g2d.getDeviceConfiguration().getDefaultTransform().getScaleX() &gt; 1.0) {</span>
+<span class="nc" id="L387">      g2d.setRenderingHint(</span>
+          RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+    }
+<span class="nc" id="L390">    g2d.drawImage(</span>
+<span class="nc" id="L391">        ImageConversion.toBufferedImage(displayImage),</span>
+<span class="nc" id="L392">        AffineTransform.getScaleInstance(rx, ry),</span>
+        null);
+
+<span class="nc" id="L395">    g2d.setClip(clip);</span>
+<span class="nc" id="L396">  }</span>
+
+  public void dispose() {
+<span class="nc" id="L399">    sourceImage = null;</span>
+<span class="nc" id="L400">    displayImage = null;</span>
+<span class="nc" id="L401">    listenerList.clear();</span>
+<span class="nc" id="L402">    opListeners.clear();</span>
+<span class="nc" id="L403">  }</span>
+
+  public void addLayerChangeListener(ImageLayerChangeListener&lt;E&gt; listener) {
+<span class="nc bnc" id="L406" title="All 4 branches missed.">    if (listener != null &amp;&amp; !listenerList.contains(listener)) {</span>
+<span class="nc" id="L407">      listenerList.add(listener);</span>
+    }
+<span class="nc" id="L409">  }</span>
+
+  /** Removes a layer manager listener from this layer. */
+  public void removeLayerChangeListener(ImageLayerChangeListener&lt;E&gt; listener) {
+<span class="nc bnc" id="L413" title="All 2 branches missed.">    if (listener != null) {</span>
+<span class="nc" id="L414">      listenerList.remove(listener);</span>
+    }
+<span class="nc" id="L416">  }</span>
+
+  public void fireImageChanged() {
+<span class="nc bnc" id="L419" title="All 2 branches missed.">    if (displayImage == null) {</span>
+<span class="nc" id="L420">      PlanarImage imgSource = disOpManager.getFirstNodeInputImage();</span>
+<span class="nc" id="L421">      disOpManager.clearNodeIOCache();</span>
+<span class="nc" id="L422">      disOpManager.setFirstNode(imgSource);</span>
+    }
+<span class="nc" id="L424">    fireLayerChanged();</span>
+<span class="nc" id="L425">  }</span>
+
+  public void fireLayerChanged() {
+<span class="nc bnc" id="L428" title="All 2 branches missed.">    for (ImageLayerChangeListener&lt;E&gt; eImageLayerChangeListener : listenerList) {</span>
+<span class="nc" id="L429">      eImageLayerChangeListener.handleLayerChanged(this);</span>
+<span class="nc" id="L430">    }</span>
+<span class="nc" id="L431">  }</span>
+
+  public synchronized void addEventListener(OpEventListener listener) {
+<span class="nc bnc" id="L434" title="All 4 branches missed.">    if (listener != null &amp;&amp; !opListeners.contains(listener)) {</span>
+<span class="nc" id="L435">      opListeners.add(listener);</span>
+    }
+<span class="nc" id="L437">  }</span>
+
+  public synchronized void removeEventListener(OpEventListener listener) {
+<span class="nc bnc" id="L440" title="All 2 branches missed.">    if (listener != null) {</span>
+<span class="nc" id="L441">      opListeners.remove(listener);</span>
+    }
+<span class="nc" id="L443">  }</span>
+
+  public synchronized void fireOpEvent(final ImageOpEvent event) {
+<span class="nc bnc" id="L446" title="All 2 branches missed.">    for (OpEventListener opListener : opListeners) {</span>
+<span class="nc" id="L447">      opListener.handleImageOpEvent(event);</span>
+<span class="nc" id="L448">    }</span>
+<span class="nc" id="L449">  }</span>
+
+  @Override
+  public void updateDisplayOperations() {
+<span class="nc bnc" id="L453" title="All 2 branches missed.">    if (isEnableDispOperations()) {</span>
+<span class="nc" id="L454">      PlanarImage source = disOpManager.getFirstNodeInputImage();</span>
+<span class="nc bnc" id="L455" title="All 4 branches missed.">      if (source != null &amp;&amp; source.width() &lt; 1) {</span>
+<span class="nc" id="L456">        disOpManager.setFirstNode(getSourceRenderedImage());</span>
+      }
+<span class="nc" id="L458">      displayImage = disOpManager.process();</span>
+<span class="nc" id="L459">      fireImageChanged();</span>
+    }
+<span class="nc" id="L461">  }</span>
+
+  @Override
+  public MeasurementsAdapter getMeasurementAdapter(Unit displayUnit) {
+<span class="nc bnc" id="L465" title="All 2 branches missed.">    if (hasContent()) {</span>
+<span class="nc" id="L466">      return getSourceImage().getMeasurementAdapter(displayUnit, offset);</span>
+    }
+<span class="nc" id="L468">    return null;</span>
+  }
+
+  @Override
+  public AffineTransform getShapeTransform() {
+<span class="nc" id="L473">    return null;</span>
+  }
+
+  @Override
+  public Object getSourceTagValue(TagW tagW) {
+<span class="nc" id="L478">    E imageElement = getSourceImage();</span>
+<span class="nc bnc" id="L479" title="All 2 branches missed.">    if (imageElement != null) {</span>
+<span class="nc" id="L480">      return imageElement.getTagValue(tagW);</span>
+    }
+<span class="nc" id="L482">    return null;</span>
+  }
+
+  @Override
+  public String getPixelValueUnit() {
+<span class="nc" id="L487">    E imageElement = getSourceImage();</span>
+<span class="nc bnc" id="L488" title="All 2 branches missed.">    if (imageElement != null) {</span>
+<span class="nc" id="L489">      return imageElement.getPixelValueUnit();</span>
+    }
+<span class="nc" id="L491">    return null;</span>
+  }
+
+  @Override
+  public double pixelToRealValue(Number pixelValue) {
+<span class="nc" id="L496">    Number val = pixelValue;</span>
+<span class="nc" id="L497">    E imageElement = getSourceImage();</span>
+<span class="nc bnc" id="L498" title="All 2 branches missed.">    if (imageElement != null) {</span>
+<span class="nc" id="L499">      WlPresentation wlp = null;</span>
+<span class="nc" id="L500">      WindowOp wlOp = (WindowOp) disOpManager.getNode(WindowOp.OP_NAME);</span>
+<span class="nc bnc" id="L501" title="All 2 branches missed.">      if (wlOp != null) {</span>
+<span class="nc" id="L502">        wlp = wlOp.getWlPresentation();</span>
+      }
+<span class="nc" id="L504">      val = imageElement.pixelToRealValue(pixelValue, wlp);</span>
+    }
+
+<span class="nc bnc" id="L507" title="All 2 branches missed.">    if (val != null) {</span>
+<span class="nc" id="L508">      return val.doubleValue();</span>
+    }
+<span class="nc" id="L510">    return 0;</span>
+  }
+
+  @Override
+  public Point getOffset() {
+<span class="nc" id="L515">    return offset;</span>
+  }
+
+  @Override
+  public void setOffset(Point offset) {
+<span class="nc" id="L520">    this.offset = offset;</span>
+<span class="nc" id="L521">  }</span>
+
+  @Override
+  public double getPixelMin() {
+<span class="nc" id="L525">    E imageElement = getSourceImage();</span>
+<span class="nc bnc" id="L526" title="All 2 branches missed.">    if (imageElement != null) {</span>
+<span class="nc" id="L527">      return imageElement.getPixelMin();</span>
+    }
+<span class="nc" id="L529">    return 0;</span>
+  }
+
+  @Override
+  public double getPixelMax() {
+<span class="nc" id="L534">    E imageElement = getSourceImage();</span>
+<span class="nc bnc" id="L535" title="All 2 branches missed.">    if (imageElement != null) {</span>
+<span class="nc" id="L536">      return imageElement.getPixelMax();</span>
+    }
+<span class="nc" id="L538">    return 0;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

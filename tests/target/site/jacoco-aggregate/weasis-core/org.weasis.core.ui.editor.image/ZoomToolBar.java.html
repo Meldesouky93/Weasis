@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ZoomToolBar.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image</a> &gt; <span class="el_source">ZoomToolBar.java</span></div><h1>ZoomToolBar.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image;
+
+import java.awt.GraphicsConfiguration;
+import java.awt.Window;
+import java.util.ArrayList;
+import java.util.List;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
+import javax.swing.JToggleButton;
+import javax.swing.SwingUtilities;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.ActionW;
+import org.weasis.core.api.gui.util.DropButtonIcon;
+import org.weasis.core.api.gui.util.DropDownButton;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.service.AuditLog;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.api.util.ResourceUtil.ActionIcon;
+import org.weasis.core.ui.editor.image.dockable.MeasureTool;
+import org.weasis.core.ui.pref.Monitor;
+import org.weasis.core.ui.util.WtoolBar;
+
+public class ZoomToolBar extends WtoolBar {
+
+  public ZoomToolBar(final ImageViewerEventManager&lt;?&gt; eventManager, int index, boolean showLens) {
+<span class="nc" id="L35">    super(Messages.getString(&quot;ResetTools.zoom&quot;), index);</span>
+<span class="nc bnc" id="L36" title="All 2 branches missed.">    if (eventManager == null) {</span>
+<span class="nc" id="L37">      throw new IllegalArgumentException(&quot;EventManager cannot be null&quot;);</span>
+    }
+
+<span class="nc" id="L40">    final DropDownButton zoom =</span>
+        new DropDownButton(
+            &quot;zoom&quot;, // NON-NLS
+<span class="nc" id="L43">            new DropButtonIcon(ResourceUtil.getToolBarIcon(ActionIcon.ZOOM))) {</span>
+
+          @Override
+          protected JPopupMenu getPopupMenu() {
+<span class="nc" id="L47">            return getZoomPopupMenuButton(this, eventManager);</span>
+          }
+        };
+<span class="nc" id="L50">    zoom.setToolTipText(Messages.getString(&quot;ZoomToolBar.zoom_type&quot;));</span>
+<span class="nc" id="L51">    add(zoom);</span>
+
+<span class="nc" id="L53">    eventManager.getAction(ActionW.ZOOM).ifPresent(s -&gt; s.registerActionState(zoom));</span>
+
+<span class="nc bnc" id="L55" title="All 2 branches missed.">    if (showLens) {</span>
+<span class="nc" id="L56">      final JToggleButton jButtonLens =</span>
+<span class="nc" id="L57">          new JToggleButton(ResourceUtil.getToolBarIcon(ActionIcon.ZOOM_PAN));</span>
+<span class="nc" id="L58">      jButtonLens.setToolTipText(Messages.getString(&quot;ViewerToolBar.show_lens&quot;));</span>
+<span class="nc" id="L59">      eventManager.getAction(ActionW.LENS).ifPresent(s -&gt; s.registerActionState(jButtonLens));</span>
+<span class="nc" id="L60">      add(jButtonLens);</span>
+    }
+<span class="nc" id="L62">  }</span>
+
+  private JPopupMenu getZoomPopupMenuButton(
+      DropDownButton dropDownButton, final ImageViewerEventManager&lt;?&gt; eventManager) {
+<span class="nc" id="L66">    JPopupMenu popupMouseButtons = new JPopupMenu();</span>
+<span class="nc bnc" id="L67" title="All 2 branches missed.">    for (JMenuItem jMenuItem : getZoomListMenuItems(eventManager)) {</span>
+<span class="nc" id="L68">      popupMouseButtons.add(jMenuItem);</span>
+<span class="nc" id="L69">    }</span>
+<span class="nc" id="L70">    return popupMouseButtons;</span>
+  }
+
+  public static List&lt;JMenuItem&gt; getZoomListMenuItems(
+      final ImageViewerEventManager&lt;?&gt; eventManager) {
+
+<span class="nc" id="L76">    List&lt;JMenuItem&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L77">    final JMenuItem actualZoomMenu =</span>
+        new JMenuItem(
+<span class="nc" id="L79">            Messages.getString(&quot;ViewerToolBar.zoom_1&quot;),</span>
+<span class="nc" id="L80">            ResourceUtil.getIcon(ActionIcon.ZOOM_ORIGINAL));</span>
+<span class="nc" id="L81">    GuiUtils.applySelectedIconEffect(actualZoomMenu);</span>
+<span class="nc" id="L82">    actualZoomMenu.addActionListener(</span>
+        e -&gt; {
+<span class="nc" id="L84">          eventManager.getAction(ActionW.ZOOM).ifPresent(s -&gt; s.setRealValue(1.0));</span>
+<span class="nc" id="L85">        });</span>
+<span class="nc" id="L86">    list.add(actualZoomMenu);</span>
+
+<span class="nc" id="L88">    ImageViewerPlugin&lt;?&gt; selCt = eventManager.getSelectedView2dContainer();</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">    Window win = selCt == null ? null : SwingUtilities.getWindowAncestor(selCt);</span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">    if (win != null) {</span>
+<span class="nc" id="L91">      GraphicsConfiguration config = win.getGraphicsConfiguration();</span>
+<span class="nc" id="L92">      Monitor monitor = MeasureTool.viewSetting.getMonitor(config.getDevice());</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">      if (monitor != null) {</span>
+<span class="nc" id="L94">        double realFactor = monitor.getRealScaleFactor();</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">        if (realFactor &gt; 0.0) {</span>
+<span class="nc" id="L96">          final JMenuItem realSizeMenu =</span>
+              new JMenuItem(
+<span class="nc" id="L98">                  Messages.getString(&quot;ZoomToolBar.real_zoom&quot;),</span>
+<span class="nc" id="L99">                  ResourceUtil.getIcon(ActionIcon.ZOOM_REAL_WORLD));</span>
+<span class="nc" id="L100">          GuiUtils.applySelectedIconEffect(realSizeMenu);</span>
+<span class="nc" id="L101">          realSizeMenu.addActionListener(</span>
+              e -&gt; {
+                // Pass the value -100.0 (convention: -100.0 =&gt; real world size) directly to the
+                // property change, otherwise the value is adjusted by the BoundedRangeModel
+<span class="nc" id="L105">                eventManager.firePropertyChange(</span>
+<span class="nc" id="L106">                    ActionW.SYNCH.cmd(), null, new SynchEvent(null, ActionW.ZOOM.cmd(), -100.0));</span>
+<span class="nc" id="L107">                AuditLog.LOGGER.info(&quot;action:{} val:-100.0&quot;, ActionW.ZOOM.cmd());</span>
+<span class="nc" id="L108">              });</span>
+<span class="nc" id="L109">          list.add(realSizeMenu);</span>
+        }
+      }
+    }
+
+<span class="nc" id="L114">    final JMenuItem bestFitMenu =</span>
+        new JMenuItem(
+<span class="nc" id="L116">            Messages.getString(&quot;ViewerToolBar.zoom_b&quot;),</span>
+<span class="nc" id="L117">            ResourceUtil.getIcon(ActionIcon.ZOOM_BEST_FIT));</span>
+<span class="nc" id="L118">    GuiUtils.applySelectedIconEffect(bestFitMenu);</span>
+<span class="nc" id="L119">    bestFitMenu.addActionListener(</span>
+        e -&gt; {
+          // Pass the value -200.0 (convention: -200.0 = &gt; best fit zoom value) directly to the
+          // property change, otherwise the value is adjusted by the BoundedRangeModel
+<span class="nc" id="L123">          eventManager.firePropertyChange(</span>
+<span class="nc" id="L124">              ActionW.SYNCH.cmd(), null, new SynchEvent(null, ActionW.ZOOM.cmd(), -200.0));</span>
+<span class="nc" id="L125">          AuditLog.LOGGER.info(&quot;action:{} val:-200.0&quot;, ActionW.ZOOM.cmd());</span>
+<span class="nc" id="L126">        });</span>
+<span class="nc" id="L127">    list.add(bestFitMenu);</span>
+
+    // final JMenuItem areaZoomMenu =
+    // new JMenuItem(&quot;Area selection&quot;, new ImageIcon(
+    // MResourceUtil.getIcon(ActionIcon.ZOOM_AREA));
+    // areaZoomMenu.addActionListener(new ActionListener() {
+    //
+    // @Override
+    // public void actionPerformed(ActionEvent e) {
+    //
+    // }
+    // });
+    // list.add(areaZoomMenu);
+
+<span class="nc" id="L141">    return list;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

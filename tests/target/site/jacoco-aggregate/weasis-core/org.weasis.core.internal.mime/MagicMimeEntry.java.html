@@ -1,0 +1,500 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>MagicMimeEntry.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.internal.mime</a> &gt; <span class="el_source">MagicMimeEntry.java</span></div><h1>MagicMimeEntry.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.internal.mime;
+
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import org.weasis.core.util.LangUtil;
+import org.weasis.core.util.StringUtil;
+
+public class MagicMimeEntry {
+
+  public static final int STRING_TYPE = 1;
+  public static final int BELONG_TYPE = 2;
+  public static final int SHORT_TYPE = 3;
+  public static final int LELONG_TYPE = 4;
+  public static final int BESHORT_TYPE = 5;
+  public static final int LESHORT_TYPE = 6;
+  public static final int BYTE_TYPE = 7;
+  public static final int UNKNOWN_TYPE = 20;
+
+<span class="nc" id="L33">  private final ArrayList&lt;MagicMimeEntry&gt; subEntries = new ArrayList&lt;&gt;();</span>
+  private int checkBytesFrom;
+  private int type;
+  private String typeStr;
+  private String content;
+  private String mimeType;
+  private String mimeEnc;
+
+  boolean isBetween;
+
+  public MagicMimeEntry(List&lt;String&gt; entries) throws InvalidMagicMimeEntryException {
+<span class="nc" id="L44">    this(0, null, entries);</span>
+<span class="nc" id="L45">  }</span>
+
+  private MagicMimeEntry(int level, MagicMimeEntry parent, List&lt;String&gt; entries)
+<span class="nc" id="L48">      throws InvalidMagicMimeEntryException {</span>
+
+<span class="nc bnc" id="L50" title="All 4 branches missed.">    if (entries == null || entries.isEmpty()) {</span>
+<span class="nc" id="L51">      return;</span>
+    }
+    try {
+<span class="nc" id="L54">      addEntry(entries.get(0));</span>
+<span class="nc" id="L55">    } catch (Exception e) {</span>
+<span class="nc" id="L56">      throw new InvalidMagicMimeEntryException(entries, e);</span>
+<span class="nc" id="L57">    }</span>
+<span class="nc" id="L58">    entries.remove(0);</span>
+<span class="nc bnc" id="L59" title="All 2 branches missed.">    if (parent != null) {</span>
+<span class="nc" id="L60">      parent.subEntries.add(this);</span>
+    }
+
+<span class="nc bnc" id="L63" title="All 2 branches missed.">    while (!entries.isEmpty()) {</span>
+<span class="nc" id="L64">      int thisLevel = howManyGreaterThans(entries.get(0));</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">      if (thisLevel &gt; level) {</span>
+<span class="nc" id="L66">        new MagicMimeEntry(thisLevel, this, entries);</span>
+      } else {
+        break;
+      }
+<span class="nc" id="L70">    }</span>
+<span class="nc" id="L71">  }</span>
+
+  @Override
+  public String toString() {
+<span class="nc" id="L75">    return &quot;MimeMagicType: &quot; // NON-NLS</span>
+        + checkBytesFrom
+        + &quot;, &quot;
+        + type
+        + &quot;, &quot;
+        + content
+        + &quot;, &quot;
+        + mimeType
+        + &quot;, &quot;
+        + mimeEnc;
+  }
+
+  private int howManyGreaterThans(String aLine) {
+<span class="nc bnc" id="L88" title="All 2 branches missed.">    if (aLine == null) {</span>
+<span class="nc" id="L89">      return -1;</span>
+    }
+<span class="nc" id="L91">    int i = 0;</span>
+<span class="nc" id="L92">    int len = aLine.length();</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">    while (i &lt; len) {</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">      if (aLine.charAt(i) == '&gt;') {</span>
+<span class="nc" id="L95">        i++;</span>
+      } else {
+        break;
+      }
+    }
+<span class="nc" id="L100">    return i;</span>
+  }
+
+  // There are problems with the magic.mime file. It seems that some fields
+  // are space delineated and not tab delineated as defined in the spec.
+  // We will attempt to handle the case for space delineation here so that we can parse
+  // as much of the file as possible.
+  void addEntry(String aLine) {
+<span class="nc" id="L108">    String trimmed = aLine.replaceAll(&quot;^&gt;*&quot;, &quot;&quot;);</span>
+<span class="nc" id="L109">    String[] tokens = trimmed.split(&quot;\t&quot;);</span>
+
+    // Now strip the empty entries
+<span class="nc" id="L112">    List&lt;String&gt; entries = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">    for (String token : tokens) {</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">      if (StringUtil.hasText(token)) {</span>
+<span class="nc" id="L115">        entries.add(token);</span>
+      }
+    }
+<span class="nc" id="L118">    tokens = entries.toArray(new String[0]);</span>
+
+<span class="nc bnc" id="L120" title="All 2 branches missed.">    if (tokens.length &gt; 0) {</span>
+<span class="nc" id="L121">      String tok = tokens[0].trim();</span>
+      try {
+<span class="nc bnc" id="L123" title="All 2 branches missed.">        if (tok.startsWith(&quot;0x&quot;)) { // NON-NLS</span>
+<span class="nc" id="L124">          checkBytesFrom = Integer.parseInt(tok.substring(2), 16);</span>
+        } else {
+<span class="nc" id="L126">          checkBytesFrom = Integer.parseInt(tok);</span>
+        }
+<span class="nc" id="L128">      } catch (NumberFormatException e) {</span>
+        // We could have a space delineated entry so lets try to handle this anyway
+<span class="nc" id="L130">        addEntry(trimmed.replaceAll(&quot; {2}&quot;, &quot;\t&quot;));</span>
+<span class="nc" id="L131">        return;</span>
+<span class="nc" id="L132">      }</span>
+    }
+<span class="nc bnc" id="L134" title="All 2 branches missed.">    if (tokens.length &gt; 1) {</span>
+<span class="nc" id="L135">      typeStr = tokens[1].trim();</span>
+<span class="nc" id="L136">      type = getType(typeStr);</span>
+    }
+<span class="nc bnc" id="L138" title="All 2 branches missed.">    if (tokens.length &gt; 2) {</span>
+      // We don't trim the content
+<span class="nc" id="L140">      content = ltrim(tokens[2]);</span>
+<span class="nc" id="L141">      content = stringWithEscapeSubstitutions(content);</span>
+    }
+<span class="nc bnc" id="L143" title="All 2 branches missed.">    if (tokens.length &gt; 3) {</span>
+<span class="nc" id="L144">      mimeType = tokens[3].trim();</span>
+    }
+<span class="nc bnc" id="L146" title="All 2 branches missed.">    if (tokens.length &gt; 4) {</span>
+<span class="nc" id="L147">      mimeEnc = tokens[4].trim();</span>
+    }
+<span class="nc" id="L149">  }</span>
+
+  private String ltrim(String s) {
+<span class="nc bnc" id="L152" title="All 2 branches missed.">    for (int i = 0; i &lt; s.length(); i++) {</span>
+<span class="nc bnc" id="L153" title="All 2 branches missed.">      if (s.charAt(i) != ' ') {</span>
+<span class="nc" id="L154">        return s.substring(i);</span>
+      }
+    }
+<span class="nc" id="L157">    return s;</span>
+  }
+
+  private int getType(String tok) {
+<span class="nc bnc" id="L161" title="All 2 branches missed.">    if (tok.startsWith(&quot;string&quot;)) { // NON-NLS</span>
+<span class="nc" id="L162">      return STRING_TYPE;</span>
+<span class="nc bnc" id="L163" title="All 2 branches missed.">    } else if (tok.startsWith(&quot;belong&quot;)) { // NON-NLS</span>
+<span class="nc" id="L164">      return BELONG_TYPE;</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">    } else if (tok.equals(&quot;short&quot;)) { // NON-NLS</span>
+<span class="nc" id="L166">      return SHORT_TYPE;</span>
+<span class="nc bnc" id="L167" title="All 2 branches missed.">    } else if (tok.startsWith(&quot;lelong&quot;)) { // NON-NLS</span>
+<span class="nc" id="L168">      return LELONG_TYPE;</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">    } else if (tok.startsWith(&quot;beshort&quot;)) { // NON-NLS</span>
+<span class="nc" id="L170">      return BESHORT_TYPE;</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">    } else if (tok.startsWith(&quot;leshort&quot;)) { // NON-NLS</span>
+<span class="nc" id="L172">      return LESHORT_TYPE;</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">    } else if (tok.equals(&quot;byte&quot;)) { // NON-NLS</span>
+<span class="nc" id="L174">      return BYTE_TYPE;</span>
+    }
+
+<span class="nc" id="L177">    return UNKNOWN_TYPE;</span>
+  }
+
+  public int getCheckBytesFrom() {
+<span class="nc" id="L181">    return checkBytesFrom;</span>
+  }
+
+  public int getType() {
+<span class="nc" id="L185">    return type;</span>
+  }
+
+  public String getContent() {
+<span class="nc" id="L189">    return content;</span>
+  }
+
+  public String getMimeType() {
+<span class="nc" id="L193">    return mimeType;</span>
+  }
+
+  public String getMatch(byte[] content) throws IOException {
+<span class="nc" id="L197">    ByteBuffer buf = readBuffer(content);</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">    if (buf == null) {</span>
+<span class="nc" id="L199">      return null;</span>
+    }
+<span class="nc" id="L201">    LangUtil.safeBufferType(buf).position(0);</span>
+<span class="nc" id="L202">    boolean matches = match(buf);</span>
+<span class="nc bnc" id="L203" title="All 2 branches missed.">    if (matches) {</span>
+<span class="nc" id="L204">      int subLen = subEntries.size();</span>
+<span class="nc" id="L205">      String myMimeType = getMimeType();</span>
+<span class="nc bnc" id="L206" title="All 2 branches missed.">      if (subLen &gt; 0) {</span>
+        String mtype;
+<span class="nc bnc" id="L208" title="All 2 branches missed.">        for (MagicMimeEntry me : subEntries) {</span>
+<span class="nc" id="L209">          mtype = me.getMatch(content);</span>
+<span class="nc bnc" id="L210" title="All 2 branches missed.">          if (mtype != null) {</span>
+<span class="nc" id="L211">            return mtype;</span>
+          }
+<span class="nc" id="L213">        }</span>
+<span class="nc" id="L214">        return myMimeType;</span>
+      } else {
+<span class="nc" id="L216">        return myMimeType;</span>
+      }
+    }
+<span class="nc" id="L219">    return null;</span>
+  }
+
+  public String getMatch(RandomAccessFile raf) throws IOException {
+<span class="nc" id="L223">    ByteBuffer buf = readBuffer(raf);</span>
+<span class="nc bnc" id="L224" title="All 2 branches missed.">    if (buf == null) {</span>
+<span class="nc" id="L225">      return null;</span>
+    }
+<span class="nc" id="L227">    boolean matches = match(buf);</span>
+<span class="nc bnc" id="L228" title="All 2 branches missed.">    if (matches) {</span>
+<span class="nc" id="L229">      String myMimeType = getMimeType();</span>
+<span class="nc bnc" id="L230" title="All 2 branches missed.">      if (!subEntries.isEmpty()) {</span>
+        String mtype;
+<span class="nc bnc" id="L232" title="All 2 branches missed.">        for (MagicMimeEntry me : subEntries) {</span>
+<span class="nc" id="L233">          mtype = me.getMatch(raf);</span>
+<span class="nc bnc" id="L234" title="All 2 branches missed.">          if (mtype != null) {</span>
+<span class="nc" id="L235">            return mtype;</span>
+          }
+<span class="nc" id="L237">        }</span>
+<span class="nc" id="L238">        return myMimeType;</span>
+      } else {
+<span class="nc" id="L240">        return myMimeType;</span>
+      }
+    }
+<span class="nc" id="L243">    return null;</span>
+  }
+
+  /*
+   * private methods for reading to local buffer
+   */
+  private ByteBuffer readBuffer(byte[] content) {
+<span class="nc" id="L250">    int startPos = getCheckBytesFrom();</span>
+<span class="nc bnc" id="L251" title="All 2 branches missed.">    if (startPos &gt; content.length) {</span>
+<span class="nc" id="L252">      return null;</span>
+    }
+
+    ByteBuffer buf;
+
+<span class="nc bnc" id="L257" title="All 2 branches missed.">    if (STRING_TYPE == type) {</span>
+<span class="nc" id="L258">      int len = getContent().length();</span>
+<span class="nc" id="L259">      buf = ByteBuffer.allocate(len + 1);</span>
+<span class="nc" id="L260">      buf.put(content, startPos, len);</span>
+<span class="nc bnc" id="L261" title="All 6 branches missed.">    } else if (SHORT_TYPE == type || LESHORT_TYPE == type || BESHORT_TYPE == type) {</span>
+<span class="nc" id="L262">      buf = ByteBuffer.allocate(2);</span>
+<span class="nc" id="L263">      buf.put(content, startPos, 2);</span>
+<span class="nc bnc" id="L264" title="All 4 branches missed.">    } else if (LELONG_TYPE == type || BELONG_TYPE == type) {</span>
+<span class="nc" id="L265">      buf = ByteBuffer.allocate(4);</span>
+<span class="nc" id="L266">      buf.put(content, startPos, 4);</span>
+<span class="nc bnc" id="L267" title="All 2 branches missed.">    } else if (BYTE_TYPE == type) {</span>
+<span class="nc" id="L268">      buf = ByteBuffer.allocate(1);</span>
+<span class="nc" id="L269">      buf.put(buf.array(), startPos, 1);</span>
+    } else {
+<span class="nc" id="L271">      buf = null;</span>
+    }
+<span class="nc" id="L273">    return buf;</span>
+  }
+
+  private ByteBuffer readBuffer(RandomAccessFile raf) throws IOException {
+<span class="nc" id="L277">    int startPos = getCheckBytesFrom();</span>
+<span class="nc bnc" id="L278" title="All 2 branches missed.">    if (startPos &gt; raf.length()) {</span>
+<span class="nc" id="L279">      return null;</span>
+    }
+<span class="nc" id="L281">    raf.seek(startPos);</span>
+
+    ByteBuffer buf;
+<span class="nc bnc" id="L284" title="All 2 branches missed.">    if (STRING_TYPE == type) {</span>
+      int len;
+      // Let's check if it's a between test
+<span class="nc" id="L287">      int index = typeStr.indexOf('&gt;');</span>
+<span class="nc bnc" id="L288" title="All 2 branches missed.">      if (index != -1) {</span>
+<span class="nc" id="L289">        len = Integer.parseInt(typeStr.substring(index + 1, typeStr.length() - 1));</span>
+<span class="nc" id="L290">        isBetween = true;</span>
+      } else {
+<span class="nc" id="L292">        len = getContent().length();</span>
+      }
+<span class="nc" id="L294">      buf = ByteBuffer.allocate(len + 1);</span>
+<span class="nc" id="L295">      raf.read(buf.array(), 0, len);</span>
+<span class="nc bnc" id="L296" title="All 6 branches missed.">    } else if (SHORT_TYPE == type || LESHORT_TYPE == type || BESHORT_TYPE == type) {</span>
+<span class="nc" id="L297">      buf = ByteBuffer.allocate(2);</span>
+<span class="nc" id="L298">      raf.read(buf.array(), 0, 2);</span>
+<span class="nc bnc" id="L299" title="All 4 branches missed.">    } else if (LELONG_TYPE == type || BELONG_TYPE == type) {</span>
+<span class="nc" id="L300">      buf = ByteBuffer.allocate(4);</span>
+<span class="nc" id="L301">      raf.read(buf.array(), 0, 4);</span>
+<span class="nc bnc" id="L302" title="All 2 branches missed.">    } else if (BYTE_TYPE == type) {</span>
+<span class="nc" id="L303">      buf = ByteBuffer.allocate(1);</span>
+<span class="nc" id="L304">      raf.read(buf.array(), 0, 1);</span>
+    } else {
+<span class="nc" id="L306">      buf = null;</span>
+    }
+<span class="nc" id="L308">    return buf;</span>
+  }
+
+  /*
+   * private methods used for matching different types
+   */
+  private boolean match(ByteBuffer buf) {
+    boolean matches;
+
+<span class="nc bnc" id="L317" title="All 2 branches missed.">    if (STRING_TYPE == type) {</span>
+<span class="nc" id="L318">      matches = matchString(buf);</span>
+<span class="nc bnc" id="L319" title="All 2 branches missed.">    } else if (SHORT_TYPE == type) {</span>
+<span class="nc" id="L320">      matches = matchShort(buf, ByteOrder.BIG_ENDIAN, false, (short) 0xFF);</span>
+<span class="nc bnc" id="L321" title="All 4 branches missed.">    } else if (LESHORT_TYPE == type || BESHORT_TYPE == type) {</span>
+<span class="nc" id="L322">      ByteOrder byteOrder = ByteOrder.BIG_ENDIAN;</span>
+<span class="nc bnc" id="L323" title="All 2 branches missed.">      if (getType() == MagicMimeEntry.LESHORT_TYPE) {</span>
+<span class="nc" id="L324">        byteOrder = ByteOrder.LITTLE_ENDIAN;</span>
+      }
+<span class="nc" id="L326">      boolean needMask = false;</span>
+<span class="nc" id="L327">      short sMask = 0xFF;</span>
+<span class="nc" id="L328">      int indx = typeStr.indexOf('&amp;');</span>
+<span class="nc bnc" id="L329" title="All 2 branches missed.">      if (indx &gt;= 0) {</span>
+<span class="nc" id="L330">        sMask = (short) Integer.parseInt(typeStr.substring(indx + 3), 16);</span>
+<span class="nc" id="L331">        needMask = true;</span>
+<span class="nc bnc" id="L332" title="All 2 branches missed.">      } else if (getContent().startsWith(&quot;&amp;&quot;)) {</span>
+<span class="nc" id="L333">        sMask = (short) Integer.parseInt(getContent().substring(3), 16);</span>
+<span class="nc" id="L334">        needMask = true;</span>
+      }
+<span class="nc" id="L336">      matches = matchShort(buf, byteOrder, needMask, sMask);</span>
+<span class="nc bnc" id="L337" title="All 4 branches missed.">    } else if (LELONG_TYPE == type || BELONG_TYPE == type) {</span>
+<span class="nc" id="L338">      ByteOrder byteOrder = ByteOrder.BIG_ENDIAN;</span>
+<span class="nc bnc" id="L339" title="All 2 branches missed.">      if (getType() == MagicMimeEntry.LELONG_TYPE) {</span>
+<span class="nc" id="L340">        byteOrder = ByteOrder.LITTLE_ENDIAN;</span>
+      }
+<span class="nc" id="L342">      boolean needMask = false;</span>
+<span class="nc" id="L343">      long lMask = 0xFFFFFFFF;</span>
+<span class="nc" id="L344">      int indx = typeStr.indexOf('&amp;');</span>
+<span class="nc bnc" id="L345" title="All 2 branches missed.">      if (indx &gt;= 0) {</span>
+<span class="nc" id="L346">        lMask = Long.parseLong(typeStr.substring(indx + 3), 16);</span>
+<span class="nc" id="L347">        needMask = true;</span>
+<span class="nc bnc" id="L348" title="All 2 branches missed.">      } else if (getContent().startsWith(&quot;&amp;&quot;)) {</span>
+<span class="nc" id="L349">        lMask = Long.parseLong(getContent().substring(3), 16);</span>
+<span class="nc" id="L350">        needMask = true;</span>
+      }
+<span class="nc" id="L352">      matches = matchLong(buf, byteOrder, needMask, lMask);</span>
+<span class="nc bnc" id="L353" title="All 2 branches missed.">    } else if (BYTE_TYPE == type) {</span>
+<span class="nc" id="L354">      matches = matchByte(buf);</span>
+    } else {
+<span class="nc" id="L356">      matches = false;</span>
+    }
+
+<span class="nc" id="L359">    return matches;</span>
+  }
+
+  private boolean matchString(ByteBuffer bbuf) {
+<span class="nc bnc" id="L363" title="All 2 branches missed.">    if (isBetween) {</span>
+<span class="nc" id="L364">      String buffer = new String(bbuf.array(), StandardCharsets.UTF_8);</span>
+<span class="nc" id="L365">      return buffer.contains(getContent());</span>
+    }
+<span class="nc" id="L367">    int read = getContent().length();</span>
+<span class="nc bnc" id="L368" title="All 2 branches missed.">    for (int j = 0; j &lt; read; j++) {</span>
+<span class="nc bnc" id="L369" title="All 2 branches missed.">      if ((bbuf.get(j) &amp; 0xFF) != getContent().charAt(j)) {</span>
+<span class="nc" id="L370">        return false;</span>
+      }
+    }
+<span class="nc" id="L373">    return true;</span>
+  }
+
+  private boolean matchByte(ByteBuffer bbuf) {
+<span class="nc" id="L377">    byte b = bbuf.get(0);</span>
+<span class="nc bnc" id="L378" title="All 2 branches missed.">    return b == getContent().charAt(0);</span>
+  }
+
+  private boolean matchShort(ByteBuffer bbuf, ByteOrder bo, boolean needMask, short sMask) {
+<span class="nc" id="L382">    bbuf.order(bo);</span>
+    short got;
+<span class="nc" id="L384">    String testContent = getContent();</span>
+<span class="nc bnc" id="L385" title="All 2 branches missed.">    if (testContent.startsWith(&quot;0x&quot;)) { // NON-NLS</span>
+<span class="nc" id="L386">      got = (short) Integer.parseInt(testContent.substring(2), 16);</span>
+<span class="nc bnc" id="L387" title="All 2 branches missed.">    } else if (testContent.startsWith(&quot;&amp;&quot;)) {</span>
+<span class="nc" id="L388">      got = (short) Integer.parseInt(testContent.substring(3), 16);</span>
+    } else {
+<span class="nc" id="L390">      got = (short) Integer.parseInt(testContent);</span>
+    }
+
+<span class="nc" id="L393">    short found = bbuf.getShort();</span>
+
+<span class="nc bnc" id="L395" title="All 2 branches missed.">    if (needMask) {</span>
+<span class="nc" id="L396">      found = (short) (found &amp; sMask);</span>
+    }
+
+<span class="nc bnc" id="L399" title="All 2 branches missed.">    return got == found;</span>
+  }
+
+  private boolean matchLong(ByteBuffer bbuf, ByteOrder bo, boolean needMask, long lMask) {
+<span class="nc" id="L403">    bbuf.order(bo);</span>
+    long got;
+<span class="nc" id="L405">    String testContent = getContent();</span>
+<span class="nc bnc" id="L406" title="All 2 branches missed.">    if (testContent.startsWith(&quot;0x&quot;)) { // NON-NLS</span>
+<span class="nc" id="L407">      got = Long.parseLong(testContent.substring(2), 16);</span>
+<span class="nc bnc" id="L408" title="All 2 branches missed.">    } else if (testContent.startsWith(&quot;&amp;&quot;)) {</span>
+<span class="nc" id="L409">      got = Long.parseLong(testContent.substring(3), 16);</span>
+    } else {
+<span class="nc" id="L411">      got = Long.parseLong(testContent);</span>
+    }
+
+<span class="nc" id="L414">    long found = Integer.toUnsignedLong(bbuf.getInt());</span>
+
+<span class="nc bnc" id="L416" title="All 2 branches missed.">    if (needMask) {</span>
+<span class="nc" id="L417">      found = found &amp; lMask;</span>
+    }
+
+<span class="nc bnc" id="L420" title="All 2 branches missed.">    return got == found;</span>
+  }
+
+  /*
+   * when bytes are read from the magic.mime file, the readers in java will read escape sequences as regular bytes.
+   * That is, a sequence like \040 (represengint ' ' - space character) will be read as a backslash followed by a
+   * zero, four and zero -- 4 different bytes and not a single byte representing space. This method parses the string
+   * and converts the sequence of bytes representing escape sequence to a single byte
+   *
+   * NOTE: not all regular escape sequences are added yet. add them, if you don't find one here
+   */
+  private static String stringWithEscapeSubstitutions(String s) {
+<span class="nc" id="L432">    StringBuilder ret = new StringBuilder();</span>
+<span class="nc" id="L433">    int len = s.length();</span>
+<span class="nc" id="L434">    int indx = 0;</span>
+    int c;
+<span class="nc bnc" id="L436" title="All 2 branches missed.">    while (indx &lt; len) {</span>
+<span class="nc" id="L437">      c = s.charAt(indx);</span>
+<span class="nc bnc" id="L438" title="All 2 branches missed.">      if (c == '\n') {</span>
+<span class="nc" id="L439">        break;</span>
+      }
+
+<span class="nc bnc" id="L442" title="All 2 branches missed.">      if (c == '\\') {</span>
+<span class="nc" id="L443">        indx++;</span>
+<span class="nc bnc" id="L444" title="All 2 branches missed.">        if (indx &gt;= len) {</span>
+<span class="nc" id="L445">          ret.append((char) c);</span>
+<span class="nc" id="L446">          break;</span>
+        }
+
+<span class="nc" id="L449">        int cn = s.charAt(indx);</span>
+
+<span class="nc bnc" id="L451" title="All 2 branches missed.">        if (cn == '\\') {</span>
+<span class="nc" id="L452">          ret.append('\\');</span>
+<span class="nc bnc" id="L453" title="All 2 branches missed.">        } else if (cn == ' ') {</span>
+<span class="nc" id="L454">          ret.append(' ');</span>
+<span class="nc bnc" id="L455" title="All 2 branches missed.">        } else if (cn == 't') { // NON-NLS</span>
+<span class="nc" id="L456">          ret.append('\t');</span>
+<span class="nc bnc" id="L457" title="All 2 branches missed.">        } else if (cn == 'n') { // NON-NLS</span>
+<span class="nc" id="L458">          ret.append('\n');</span>
+<span class="nc bnc" id="L459" title="All 2 branches missed.">        } else if (cn == 'r') { // NON-NLS</span>
+<span class="nc" id="L460">          ret.append('\r');</span>
+<span class="nc bnc" id="L461" title="All 4 branches missed.">        } else if (cn &gt;= '\60' &amp;&amp; cn &lt;= '\67') {</span>
+<span class="nc" id="L462">          int escape = cn - '0';</span>
+<span class="nc" id="L463">          indx++;</span>
+<span class="nc bnc" id="L464" title="All 2 branches missed.">          if (indx &gt;= len) {</span>
+<span class="nc" id="L465">            ret.append((char) escape);</span>
+<span class="nc" id="L466">            break;</span>
+          }
+<span class="nc" id="L468">          cn = s.charAt(indx);</span>
+<span class="nc bnc" id="L469" title="All 4 branches missed.">          if (cn &gt;= '\60' &amp;&amp; cn &lt;= '\67') {</span>
+<span class="nc" id="L470">            escape = escape &lt;&lt; 3;</span>
+<span class="nc" id="L471">            escape = escape | (cn - '0');</span>
+
+<span class="nc" id="L473">            indx++;</span>
+<span class="nc bnc" id="L474" title="All 2 branches missed.">            if (indx &gt;= len) {</span>
+<span class="nc" id="L475">              ret.append((char) escape);</span>
+<span class="nc" id="L476">              break;</span>
+            }
+<span class="nc" id="L478">            cn = s.charAt(indx);</span>
+<span class="nc bnc" id="L479" title="All 4 branches missed.">            if (cn &gt;= '\60' &amp;&amp; cn &lt;= '\67') {</span>
+<span class="nc" id="L480">              escape = escape &lt;&lt; 3;</span>
+<span class="nc" id="L481">              escape = escape | (cn - '0');</span>
+            } else {
+<span class="nc" id="L483">              indx--;</span>
+            }
+          } else {
+<span class="nc" id="L486">            indx--;</span>
+          }
+<span class="nc" id="L488">          ret.append((char) escape);</span>
+<span class="nc" id="L489">        } else {</span>
+<span class="nc" id="L490">          ret.append((char) cn);</span>
+        }
+<span class="nc" id="L492">      } else {</span>
+<span class="nc" id="L493">        ret.append((char) c);</span>
+      }
+<span class="nc" id="L495">      indx++;</span>
+    }
+<span class="nc" id="L497">    return new String(ret);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

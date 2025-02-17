@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ScreenshotDialog.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image</a> &gt; <span class="el_source">ScreenshotDialog.java</span></div><h1>ScreenshotDialog.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2018 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image;
+
+import static org.weasis.core.api.gui.Insertable.BLOCK_SEPARATOR;
+import static org.weasis.core.api.gui.Insertable.ITEM_SEPARATOR;
+import static org.weasis.core.api.gui.Insertable.ITEM_SEPARATOR_LARGE;
+import static org.weasis.core.api.gui.Insertable.ITEM_SEPARATOR_SMALL;
+
+import java.awt.FlowLayout;
+import java.awt.Toolkit;
+import java.awt.Window;
+import java.awt.image.RenderedImage;
+import java.io.File;
+import java.util.Objects;
+import javax.swing.ButtonGroup;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
+import javax.swing.TransferHandler;
+import javax.swing.WindowConstants;
+import net.miginfocom.swing.MigLayout;
+import org.opencv.core.MatOfInt;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.ActionW;
+import org.weasis.core.api.gui.util.FileFormatFilter;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.image.SimpleOpManager;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.service.WProperties;
+import org.weasis.core.ui.util.ColorLayerUI;
+import org.weasis.core.util.StringUtil;
+import org.weasis.opencv.data.PlanarImage;
+import org.weasis.opencv.op.ImageConversion;
+import org.weasis.opencv.op.ImageProcessor;
+
+public class ScreenshotDialog&lt;I extends ImageElement&gt; extends JDialog {
+  public static final String P_LAST_DIR = &quot;screenshot.last.dir&quot;;
+  static final String DICOM = &quot;DICOM&quot;; // NON-NLS
+
+<span class="nc" id="L56">  public enum Format {</span>
+<span class="nc" id="L57">    JPEG(&quot;JPEG Lossy&quot;, &quot;jpg&quot;), // NON-NLS</span>
+<span class="nc" id="L58">    PNG(&quot;PNG&quot;, &quot;png&quot;),</span>
+<span class="nc" id="L59">    TIFF(&quot;TIFF&quot;, &quot;tif&quot;),</span>
+<span class="nc" id="L60">    JP2(&quot;JPEG 2000&quot;, &quot;jp2&quot;); // NON-NLS</span>
+
+    private final String title;
+    private final String extension;
+
+<span class="nc" id="L65">    Format(String title, String extension) {</span>
+<span class="nc" id="L66">      this.title = title;</span>
+<span class="nc" id="L67">      this.extension = extension;</span>
+<span class="nc" id="L68">    }</span>
+
+    @Override
+    public String toString() {
+<span class="nc" id="L72">      return title;</span>
+    }
+
+    public String getTitle() {
+<span class="nc" id="L76">      return title;</span>
+    }
+
+    public String getExtension() {
+<span class="nc" id="L80">      return extension;</span>
+    }
+  }
+
+  private final ViewCanvas&lt;I&gt; viewCanvas;
+<span class="nc" id="L85">  private final ButtonGroup buttonGroup = new ButtonGroup();</span>
+<span class="nc" id="L86">  private final JRadioButton viewRadio = new JRadioButton(Messages.getString(&quot;current.view&quot;));</span>
+<span class="nc" id="L87">  private final JRadioButton imageRadio = new JRadioButton(Messages.getString(&quot;original.image&quot;));</span>
+<span class="nc" id="L88">  private final JCheckBox paddingCheckBox =</span>
+<span class="nc" id="L89">      new JCheckBox(DICOM + StringUtil.SPACE + ActionW.IMAGE_PIX_PADDING.getTitle(), true);</span>
+<span class="nc" id="L90">  private final JCheckBox overlayCheckBox =</span>
+<span class="nc" id="L91">      new JCheckBox(DICOM + StringUtil.SPACE + ActionW.IMAGE_OVERLAY.getTitle(), true);</span>
+<span class="nc" id="L92">  private final JCheckBox shutterCheckBox =</span>
+<span class="nc" id="L93">      new JCheckBox(DICOM + StringUtil.SPACE + ActionW.IMAGE_SHUTTER.getTitle(), true);</span>
+<span class="nc" id="L94">  private final JCheckBox preservePixelCheckBox =</span>
+      new JCheckBox(
+<span class="nc" id="L96">          Messages.getString(&quot;preserve.16.bit&quot;)</span>
+              + &quot; (&quot;
+<span class="nc" id="L98">              + String.format(Messages.getString(&quot;not.supported.with.s&quot;), Format.JPEG.title)</span>
+              + &quot;)&quot;,
+          false);
+
+<span class="nc" id="L102">  private final JCheckBox anonymize = new JCheckBox(Messages.getString(&quot;anonymize&quot;), true);</span>
+<span class="nc" id="L103">  private final JLabel labelSize =</span>
+<span class="nc" id="L104">      new JLabel(Messages.getString(&quot;size&quot;) + &quot; (%)&quot; + StringUtil.COLON);</span>
+<span class="nc" id="L105">  private final JSpinner spinner = new JSpinner();</span>
+<span class="nc" id="L106">  private final JLabel labelSizePix = new JLabel();</span>
+
+  public ScreenshotDialog(Window parent, String title, ViewCanvas&lt;I&gt; viewCanvas) {
+<span class="nc" id="L109">    super(parent, title, ModalityType.APPLICATION_MODAL);</span>
+<span class="nc" id="L110">    setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);</span>
+<span class="nc" id="L111">    spinner.setModel(new SpinnerNumberModel(100, 5, 200, 5));</span>
+<span class="nc" id="L112">    spinner</span>
+<span class="nc" id="L113">        .getModel()</span>
+<span class="nc" id="L114">        .addChangeListener(</span>
+<span class="nc" id="L115">            e -&gt; setImageSize((Integer) ((SpinnerNumberModel) e.getSource()).getValue()));</span>
+<span class="nc" id="L116">    this.viewCanvas = Objects.requireNonNull(viewCanvas);</span>
+<span class="nc" id="L117">    initComponents();</span>
+<span class="nc" id="L118">    pack();</span>
+<span class="nc" id="L119">  }</span>
+
+  private void setImageSize(int val) {
+<span class="nc" id="L122">    I imageElement = viewCanvas.getImage();</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">    PlanarImage image = imageElement == null ? null : imageElement.getImage(null);</span>
+<span class="nc bnc" id="L124" title="All 2 branches missed.">    if (image != null) {</span>
+<span class="nc" id="L125">      float ratio = val / 100f;</span>
+<span class="nc" id="L126">      labelSizePix.setText(</span>
+<span class="nc" id="L127">          String.format(</span>
+              &quot;(%dx%d px)&quot;, // NON-NLS
+<span class="nc" id="L129">              Math.round(image.width() * ratio), Math.round(image.height() * ratio)));</span>
+    }
+<span class="nc" id="L131">  }</span>
+
+  private void initComponents() {
+<span class="nc" id="L134">    JPanel panel = GuiUtils.getVerticalBoxLayoutPanel();</span>
+<span class="nc" id="L135">    panel.setBorder(GuiUtils.getEmptyBorder(BLOCK_SEPARATOR));</span>
+
+<span class="nc" id="L137">    buttonGroup.add(viewRadio);</span>
+<span class="nc" id="L138">    buttonGroup.add(imageRadio);</span>
+<span class="nc" id="L139">    viewRadio.setSelected(true);</span>
+<span class="nc" id="L140">    setImageRadioAction(false);</span>
+
+<span class="nc" id="L142">    viewRadio.addActionListener(e -&gt; setImageRadioAction(false));</span>
+<span class="nc" id="L143">    imageRadio.addActionListener(e -&gt; setImageRadioAction(true));</span>
+
+<span class="nc" id="L145">    setImageSize(100);</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">    boolean dicom = viewCanvas.getPanner() == null;</span>
+<span class="nc" id="L147">    panel.add(GuiUtils.getFlowLayoutPanel(FlowLayout.LEADING, 0, ITEM_SEPARATOR_SMALL, viewRadio));</span>
+<span class="nc" id="L148">    panel.add(GuiUtils.getHorizontalBoxLayoutPanel(buildViewPanel(dicom)));</span>
+<span class="nc" id="L149">    panel.add(GuiUtils.getFlowLayoutPanel(FlowLayout.LEADING, 0, ITEM_SEPARATOR_SMALL, imageRadio));</span>
+<span class="nc" id="L150">    panel.add(GuiUtils.getHorizontalBoxLayoutPanel(buildImagePanel(dicom)));</span>
+
+<span class="nc" id="L152">    JButton clipButton = new JButton(Messages.getString(&quot;clipboard&quot;));</span>
+<span class="nc" id="L153">    clipButton.addActionListener(</span>
+        e -&gt; {
+<span class="nc bnc" id="L155" title="All 2 branches missed.">          if (viewRadio.isSelected()) {</span>
+<span class="nc" id="L156">            ViewTransferHandler imageTransferHandler =</span>
+<span class="nc" id="L157">                new ViewTransferHandler(anonymize.isSelected());</span>
+<span class="nc" id="L158">            imageTransferHandler.exportToClipboard(</span>
+<span class="nc" id="L159">                viewCanvas.getJComponent(),</span>
+<span class="nc" id="L160">                Toolkit.getDefaultToolkit().getSystemClipboard(),</span>
+                TransferHandler.COPY);
+<span class="nc" id="L162">          } else {</span>
+<span class="nc" id="L163">            I img = viewCanvas.getImage();</span>
+<span class="nc bnc" id="L164" title="All 2 branches missed.">            if (img != null) {</span>
+<span class="nc" id="L165">              double ratio = (Integer) spinner.getValue() / 100.0;</span>
+<span class="nc" id="L166">              SimpleOpManager manager =</span>
+<span class="nc" id="L167">                  img.buildSimpleOpManager(</span>
+<span class="nc" id="L168">                      preservePixelCheckBox.isSelected(),</span>
+<span class="nc" id="L169">                      paddingCheckBox.isSelected(),</span>
+<span class="nc" id="L170">                      shutterCheckBox.isSelected(),</span>
+<span class="nc" id="L171">                      overlayCheckBox.isSelected(),</span>
+                      ratio);
+<span class="nc" id="L173">              ImageTransferHandler imageTransferHandler = new ImageTransferHandler(manager);</span>
+<span class="nc" id="L174">              imageTransferHandler.exportToClipboard(</span>
+<span class="nc" id="L175">                  viewCanvas.getJComponent(),</span>
+<span class="nc" id="L176">                  Toolkit.getDefaultToolkit().getSystemClipboard(),</span>
+                  TransferHandler.COPY);
+            }
+          }
+<span class="nc" id="L180">        });</span>
+<span class="nc" id="L181">    JButton saveButton = new JButton(Messages.getString(&quot;save&quot;));</span>
+<span class="nc" id="L182">    saveButton.addActionListener(</span>
+        e -&gt; {
+<span class="nc" id="L184">          boolean mustBeReleased = false;</span>
+<span class="nc" id="L185">          PlanarImage result = null;</span>
+<span class="nc bnc" id="L186" title="All 2 branches missed.">          if (viewRadio.isSelected()) {</span>
+<span class="nc bnc" id="L187" title="All 2 branches missed.">            if (viewCanvas instanceof DefaultView2d&lt;I&gt; view2DPane) {</span>
+<span class="nc" id="L188">              RenderedImage imgP =</span>
+<span class="nc" id="L189">                  ViewTransferHandler.createComponentImage(view2DPane, anonymize.isSelected());</span>
+<span class="nc" id="L190">              result = ImageConversion.toMat(imgP);</span>
+<span class="nc" id="L191">            }</span>
+          } else {
+<span class="nc" id="L193">            I img = viewCanvas.getImage();</span>
+<span class="nc bnc" id="L194" title="All 2 branches missed.">            if (img != null) {</span>
+<span class="nc" id="L195">              double ratio = (Integer) spinner.getValue() / 100.0;</span>
+<span class="nc" id="L196">              SimpleOpManager manager =</span>
+<span class="nc" id="L197">                  img.buildSimpleOpManager(</span>
+<span class="nc" id="L198">                      preservePixelCheckBox.isSelected(),</span>
+<span class="nc" id="L199">                      paddingCheckBox.isSelected(),</span>
+<span class="nc" id="L200">                      shutterCheckBox.isSelected(),</span>
+<span class="nc" id="L201">                      overlayCheckBox.isSelected(),</span>
+                      ratio);
+<span class="nc" id="L203">              PlanarImage inputImage = manager.getFirstNodeInputImage();</span>
+<span class="nc bnc" id="L204" title="All 2 branches missed.">              if (inputImage != null) {</span>
+<span class="nc" id="L205">                PlanarImage rimage = manager.process();</span>
+<span class="nc bnc" id="L206" title="All 2 branches missed.">                if (rimage == null) {</span>
+<span class="nc" id="L207">                  rimage = inputImage;</span>
+                }
+<span class="nc bnc" id="L209" title="All 2 branches missed.">                mustBeReleased = !Objects.equals(rimage, inputImage);</span>
+<span class="nc" id="L210">                result = rimage;</span>
+              }
+            }
+          }
+<span class="nc" id="L214">          saveImageFile(result, mustBeReleased);</span>
+<span class="nc" id="L215">        });</span>
+
+<span class="nc" id="L217">    getRootPane().setDefaultButton(saveButton);</span>
+<span class="nc" id="L218">    saveButton.addActionListener(evt -&gt; doClose());</span>
+<span class="nc" id="L219">    panel.add(</span>
+<span class="nc" id="L220">        GuiUtils.getFlowLayoutPanel(</span>
+            FlowLayout.TRAILING, BLOCK_SEPARATOR, ITEM_SEPARATOR_LARGE, saveButton, clipButton));
+<span class="nc" id="L222">    panel.add(GuiUtils.boxYLastElement(ITEM_SEPARATOR));</span>
+
+<span class="nc" id="L224">    this.setContentPane(panel);</span>
+<span class="nc" id="L225">  }</span>
+
+  private void saveImageFile(PlanarImage image, boolean mustBeReleased) {
+<span class="nc bnc" id="L228" title="All 2 branches missed.">    if (image != null) {</span>
+<span class="nc" id="L229">      WProperties localPersistence = GuiUtils.getUICore().getLocalPersistence();</span>
+<span class="nc" id="L230">      String targetDirectoryPath = localPersistence.getProperty(P_LAST_DIR, &quot;&quot;);</span>
+<span class="nc" id="L231">      JFileChooser fileChooser = new JFileChooser(targetDirectoryPath);</span>
+<span class="nc" id="L232">      fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);</span>
+<span class="nc" id="L233">      fileChooser.setAcceptAllFileFilterUsed(false);</span>
+<span class="nc" id="L234">      FileFormatFilter filter = new FileFormatFilter(Format.PNG.extension, Format.PNG.title);</span>
+<span class="nc" id="L235">      fileChooser.addChoosableFileFilter(</span>
+          new FileFormatFilter(Format.JP2.extension, Format.JP2.title));
+<span class="nc" id="L237">      fileChooser.addChoosableFileFilter(</span>
+          new FileFormatFilter(Format.JPEG.extension, Format.JPEG.title));
+<span class="nc" id="L239">      fileChooser.addChoosableFileFilter(filter);</span>
+<span class="nc" id="L240">      fileChooser.addChoosableFileFilter(</span>
+          new FileFormatFilter(Format.TIFF.extension, Format.TIFF.title));
+<span class="nc" id="L242">      fileChooser.setFileFilter(filter);</span>
+
+<span class="nc bnc" id="L244" title="All 2 branches missed.">      if (fileChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION</span>
+<span class="nc bnc" id="L245" title="All 2 branches missed.">          &amp;&amp; fileChooser.getSelectedFile() != null) {</span>
+<span class="nc" id="L246">        File file = fileChooser.getSelectedFile();</span>
+<span class="nc" id="L247">        filter = (FileFormatFilter) fileChooser.getFileFilter();</span>
+<span class="nc bnc" id="L248" title="All 2 branches missed.">        String extension = filter == null ? Format.PNG.extension : filter.getDefaultExtension();</span>
+<span class="nc" id="L249">        String extFile = &quot;.&quot; + extension;</span>
+        String filename =
+<span class="nc bnc" id="L251" title="All 2 branches missed.">            file.getName().endsWith(extFile) ? file.getPath() : file.getPath() + extFile;</span>
+
+<span class="nc" id="L253">        File destinationFile = new File(filename);</span>
+<span class="nc bnc" id="L254" title="All 2 branches missed.">        if (Format.PNG.extension.equals(extension)) {</span>
+<span class="nc" id="L255">          ImageProcessor.writePNG(image.toMat(), destinationFile);</span>
+        } else {
+<span class="nc" id="L257">          MatOfInt map = new MatOfInt();</span>
+<span class="nc bnc" id="L258" title="All 2 branches missed.">          if (Format.JPEG.extension.equals(extension)) {</span>
+<span class="nc" id="L259">            map.fromArray(Imgcodecs.IMWRITE_JPEG_QUALITY, 90);</span>
+          }
+<span class="nc" id="L261">          ImageProcessor.writeImage(image.toMat(), destinationFile, map);</span>
+        }
+<span class="nc bnc" id="L263" title="All 2 branches missed.">        if (mustBeReleased) {</span>
+<span class="nc" id="L264">          ImageConversion.releasePlanarImage(image);</span>
+        }
+<span class="nc bnc" id="L266" title="All 2 branches missed.">        if (destinationFile.canRead()) {</span>
+<span class="nc" id="L267">          localPersistence.setProperty(P_LAST_DIR, destinationFile.getParentFile().getPath());</span>
+        }
+      }
+    }
+<span class="nc" id="L271">  }</span>
+
+  private void setImageRadioAction(boolean enable) {
+<span class="nc" id="L274">    labelSize.setEnabled(enable);</span>
+<span class="nc" id="L275">    spinner.setEnabled(enable);</span>
+<span class="nc" id="L276">    labelSizePix.setEnabled(enable);</span>
+<span class="nc" id="L277">    preservePixelCheckBox.setEnabled(enable);</span>
+<span class="nc" id="L278">    paddingCheckBox.setEnabled(enable);</span>
+<span class="nc" id="L279">    shutterCheckBox.setEnabled(enable);</span>
+<span class="nc" id="L280">    overlayCheckBox.setEnabled(enable);</span>
+
+<span class="nc bnc" id="L282" title="All 2 branches missed.">    anonymize.setEnabled(!enable);</span>
+<span class="nc" id="L283">  }</span>
+
+  private JPanel buildViewPanel(boolean dicom) {
+<span class="nc" id="L286">    JPanel dataPanel = new JPanel();</span>
+<span class="nc" id="L287">    dataPanel.setLayout(new MigLayout(&quot;insets 0 25lp 30lp 10lp, fillx&quot;, &quot;[grow 0]&quot;)); // NON-NLS</span>
+<span class="nc bnc" id="L288" title="All 2 branches missed.">    if (dicom) {</span>
+<span class="nc" id="L289">      dataPanel.add(anonymize, GuiUtils.NEWLINE);</span>
+    }
+<span class="nc" id="L291">    return dataPanel;</span>
+  }
+
+  private JPanel buildImagePanel(boolean dicom) {
+<span class="nc" id="L295">    JPanel dataPanel = new JPanel();</span>
+<span class="nc" id="L296">    dataPanel.setLayout(new MigLayout(&quot;insets 0 25lp 30lp 10lp, fillx&quot;, &quot;[grow 0]&quot;)); // NON-NLS</span>
+
+<span class="nc" id="L298">    dataPanel.add(GuiUtils.getFlowLayoutPanel(labelSize, spinner, labelSizePix), GuiUtils.NEWLINE);</span>
+<span class="nc" id="L299">    dataPanel.add(preservePixelCheckBox, GuiUtils.NEWLINE);</span>
+<span class="nc bnc" id="L300" title="All 2 branches missed.">    if (dicom) {</span>
+<span class="nc" id="L301">      dataPanel.add(paddingCheckBox, GuiUtils.NEWLINE);</span>
+<span class="nc" id="L302">      dataPanel.add(shutterCheckBox, GuiUtils.NEWLINE);</span>
+<span class="nc" id="L303">      dataPanel.add(overlayCheckBox, GuiUtils.NEWLINE);</span>
+    }
+<span class="nc" id="L305">    return dataPanel;</span>
+  }
+
+  private void doClose() {
+<span class="nc" id="L309">    dispose();</span>
+<span class="nc" id="L310">  }</span>
+
+  public static &lt;E extends ImageElement&gt; void showDialog(ViewCanvas&lt;E&gt; selView) {
+<span class="nc bnc" id="L313" title="All 2 branches missed.">    if (selView != null) {</span>
+<span class="nc" id="L314">      ColorLayerUI layer = ColorLayerUI.createTransparentLayerUI(selView.getJComponent());</span>
+<span class="nc" id="L315">      ScreenshotDialog&lt;E&gt; dialog =</span>
+          new ScreenshotDialog&lt;&gt;(
+<span class="nc" id="L317">              SwingUtilities.getWindowAncestor(selView.getJComponent()),</span>
+<span class="nc" id="L318">              ActionW.EXPORT_VIEW.getTitle(),</span>
+              selView);
+<span class="nc" id="L320">      ColorLayerUI.showCenterScreen(dialog, layer);</span>
+    }
+<span class="nc" id="L322">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

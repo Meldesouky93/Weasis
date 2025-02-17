@@ -1,0 +1,252 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>SegRegionTree.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.util</a> &gt; <span class="el_source">SegRegionTree.java</span></div><h1>SegRegionTree.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2024 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.util;
+
+import eu.essilab.lablib.checkboxtree.CheckboxTree;
+import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
+import javax.swing.*;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreeNode;
+import javax.swing.tree.TreePath;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.gui.util.JSliderW;
+import org.weasis.core.api.image.util.MeasurableLayer;
+import org.weasis.core.ui.dialog.PropertiesDialog;
+import org.weasis.core.ui.editor.image.HistogramView;
+import org.weasis.core.ui.editor.image.ImageRegionStatistics;
+import org.weasis.core.ui.model.graphic.imp.seg.GroupTreeNode;
+import org.weasis.core.ui.model.graphic.imp.seg.SegContour;
+import org.weasis.core.ui.model.graphic.imp.seg.SegRegion;
+import org.weasis.core.ui.model.utils.bean.MeasureItem;
+
+public class SegRegionTree extends CheckboxTree {
+
+<span class="nc" id="L37">  protected final JPopupMenu popupMenu = new JPopupMenu();</span>
+
+  protected final SegRegionTool segRegionTool;
+
+<span class="nc" id="L41">  public SegRegionTree(SegRegionTool segRegionTool) {</span>
+<span class="nc" id="L42">    this.segRegionTool = segRegionTool;</span>
+<span class="nc" id="L43">  }</span>
+
+  public JPopupMenu getPopupMenu() {
+<span class="nc" id="L46">    return popupMenu;</span>
+  }
+
+  public SegRegionTool getSegRegionTool() {
+<span class="nc" id="L50">    return segRegionTool;</span>
+  }
+
+  protected void mousePressed(MouseEvent e) {
+<span class="nc" id="L54">    popupMenu.removeAll();</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">    if (SwingUtilities.isRightMouseButton(e)) {</span>
+<span class="nc" id="L56">      DefaultMutableTreeNode node = getTreeNode(e.getPoint());</span>
+<span class="nc bnc" id="L57" title="All 2 branches missed.">      if (node != null) {</span>
+<span class="nc" id="L58">        boolean leaf = node.isLeaf();</span>
+<span class="nc bnc" id="L59" title="All 2 branches missed.">        if (!leaf) {</span>
+<span class="nc" id="L60">          addPopupMenuItem(getCheckAllMenuItem(node, true));</span>
+<span class="nc" id="L61">          addPopupMenuItem(getCheckAllMenuItem(node, false));</span>
+        }
+<span class="nc" id="L63">        addPopupMenuItem(getOpacityMenuItem(node, e.getPoint()));</span>
+<span class="nc bnc" id="L64" title="All 2 branches missed.">        if (leaf) {</span>
+<span class="nc" id="L65">          addPopupMenuItem(getSelectionMenuItem(node));</span>
+<span class="nc" id="L66">          addPopupMenuItem(getStatisticMenuItem(node));</span>
+        }
+<span class="nc" id="L68">        popupMenu.show(SegRegionTree.this, e.getX(), e.getY());</span>
+      }
+    }
+<span class="nc" id="L71">  }</span>
+
+  protected void addPopupMenuItem(JMenuItem menuItem) {
+<span class="nc bnc" id="L74" title="All 2 branches missed.">    if (menuItem != null) {</span>
+<span class="nc" id="L75">      popupMenu.add(menuItem);</span>
+    }
+<span class="nc" id="L77">  }</span>
+
+  public void initListeners() {
+<span class="nc" id="L80">    addMouseListener(</span>
+<span class="nc" id="L81">        new MouseAdapter() {</span>
+          @Override
+          public void mousePressed(MouseEvent e) {
+<span class="nc" id="L84">            SegRegionTree.this.mousePressed(e);</span>
+<span class="nc" id="L85">          }</span>
+        });
+<span class="nc" id="L87">  }</span>
+
+  @Override
+  public String getToolTipText(MouseEvent evt) {
+<span class="nc" id="L91">    TreePath curPath = getPathForLocation(evt.getX(), evt.getY());</span>
+<span class="nc" id="L92">    return StructToolTipTreeNode.getSegItemToolTipText(curPath);</span>
+  }
+
+  protected DefaultMutableTreeNode getTreeNode(Point mousePosition) {
+<span class="nc" id="L96">    TreePath treePath = getPathForLocation(mousePosition.x, mousePosition.y);</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">    if (treePath != null) {</span>
+<span class="nc" id="L98">      Object userObject = treePath.getLastPathComponent();</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">      if (userObject instanceof DefaultMutableTreeNode) {</span>
+<span class="nc" id="L100">        return (DefaultMutableTreeNode) userObject;</span>
+      }
+    }
+<span class="nc" id="L103">    return null;</span>
+  }
+
+  protected JMenuItem getCheckAllMenuItem(DefaultMutableTreeNode node, boolean selected) {
+<span class="nc" id="L107">    JMenuItem selectAllMenuItem =</span>
+        new JMenuItem(
+<span class="nc bnc" id="L109" title="All 2 branches missed.">            selected</span>
+<span class="nc" id="L110">                ? Messages.getString(&quot;select.all.the.child.nodes&quot;)</span>
+<span class="nc" id="L111">                : Messages.getString(&quot;unselect.all.the.child.nodes&quot;));</span>
+<span class="nc" id="L112">    selectAllMenuItem.addActionListener(</span>
+        e -&gt; {
+<span class="nc bnc" id="L114" title="All 2 branches missed.">          if (node != null) {</span>
+<span class="nc" id="L115">            Enumeration&lt;?&gt; children = node.children();</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">            while (children.hasMoreElements()) {</span>
+<span class="nc" id="L117">              Object child = children.nextElement();</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">              if (child instanceof DefaultMutableTreeNode dtm) {</span>
+<span class="nc" id="L119">                TreePath tp = new TreePath(dtm.getPath());</span>
+<span class="nc" id="L120">                TreeBuilder.setPathSelection(SegRegionTree.this, tp, selected);</span>
+              }
+<span class="nc" id="L122">            }</span>
+          }
+<span class="nc" id="L124">        });</span>
+<span class="nc" id="L125">    return selectAllMenuItem;</span>
+  }
+
+  protected JMenuItem getOpacityMenuItem(DefaultMutableTreeNode node, Point pt) {
+<span class="nc" id="L129">    JMenuItem jMenuItem = new JMenuItem(PropertiesDialog.FILL_OPACITY);</span>
+<span class="nc" id="L130">    jMenuItem.addActionListener(_ -&gt; showSliderInPopup(node, pt));</span>
+<span class="nc" id="L131">    return jMenuItem;</span>
+  }
+
+  private void showSliderInPopup(DefaultMutableTreeNode node, Point pt) {
+<span class="nc bnc" id="L135" title="All 2 branches missed.">    if (node != null) {</span>
+<span class="nc" id="L136">      List&lt;SegRegion&lt;?&gt;&gt; segRegions = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L137" title="All 4 branches missed.">      if (node.isLeaf() &amp;&amp; node.getUserObject() instanceof SegRegion&lt;?&gt; region) {</span>
+<span class="nc" id="L138">        segRegions.add(region);</span>
+      } else {
+<span class="nc" id="L140">        Enumeration&lt;?&gt; children = node.children();</span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">        while (children.hasMoreElements()) {</span>
+<span class="nc" id="L142">          Object child = children.nextElement();</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">          if (child instanceof DefaultMutableTreeNode dtm</span>
+<span class="nc bnc" id="L144" title="All 2 branches missed.">              &amp;&amp; dtm.getUserObject() instanceof SegRegion&lt;?&gt; region) {</span>
+<span class="nc" id="L145">            segRegions.add(region);</span>
+          }
+<span class="nc" id="L147">        }</span>
+      }
+
+<span class="nc bnc" id="L150" title="All 2 branches missed.">      if (segRegions.isEmpty()) {</span>
+<span class="nc" id="L151">        return;</span>
+      }
+      // Create a popup menu
+<span class="nc" id="L154">      JPopupMenu menu = new JPopupMenu();</span>
+<span class="nc" id="L155">      JSliderW jSlider = PropertiesDialog.createOpacitySlider(PropertiesDialog.FILL_OPACITY);</span>
+<span class="nc" id="L156">      GuiUtils.setPreferredWidth(jSlider, 250);</span>
+<span class="nc" id="L157">      jSlider.setValue((int) (segRegions.getFirst().getInteriorOpacity() * 100f));</span>
+<span class="nc" id="L158">      PropertiesDialog.updateSlider(jSlider, PropertiesDialog.FILL_OPACITY);</span>
+<span class="nc" id="L159">      jSlider.addChangeListener(</span>
+          l -&gt; {
+<span class="nc" id="L161">            float value = PropertiesDialog.updateSlider(jSlider, PropertiesDialog.FILL_OPACITY);</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">            for (SegRegion&lt;?&gt; c : segRegions) {</span>
+<span class="nc" id="L163">              c.setInteriorOpacity(value);</span>
+<span class="nc" id="L164">            }</span>
+<span class="nc" id="L165">            segRegionTool.updateVisibleNode();</span>
+<span class="nc" id="L166">          });</span>
+<span class="nc" id="L167">      menu.add(jSlider);</span>
+<span class="nc" id="L168">      menu.show(SegRegionTree.this, pt.x, pt.y);</span>
+    }
+<span class="nc" id="L170">  }</span>
+
+  public void updateVisibleNode(DefaultMutableTreeNode start, GroupTreeNode parent) {
+<span class="nc bnc" id="L173" title="All 2 branches missed.">    for (Enumeration&lt;TreeNode&gt; children = start.children(); children.hasMoreElements(); ) {</span>
+<span class="nc" id="L174">      DefaultMutableTreeNode dtm = (DefaultMutableTreeNode) children.nextElement();</span>
+<span class="nc bnc" id="L175" title="All 2 branches missed.">      if (dtm.isLeaf()) {</span>
+<span class="nc" id="L176">        TreePath tp = new TreePath(dtm.getPath());</span>
+<span class="nc" id="L177">        DefaultMutableTreeNode node = (DefaultMutableTreeNode) tp.getLastPathComponent();</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">        if (node.getUserObject() instanceof SegRegion&lt;?&gt; region) {</span>
+<span class="nc" id="L179">          boolean selected = getCheckingModel().isPathChecked(tp);</span>
+<span class="nc" id="L180">          region.setSelected(selected);</span>
+<span class="nc bnc" id="L181" title="All 4 branches missed.">          region.setVisible(selected &amp;&amp; parent.isParentVisible());</span>
+        }
+<span class="nc bnc" id="L183" title="All 2 branches missed.">      } else if (dtm instanceof GroupTreeNode groupTreeNode) {</span>
+<span class="nc" id="L184">        TreePath tp = new TreePath(dtm.getPath());</span>
+<span class="nc" id="L185">        boolean selected = getCheckingModel().isPathChecked(tp);</span>
+<span class="nc" id="L186">        groupTreeNode.setSelected(selected);</span>
+<span class="nc" id="L187">        updateVisibleNode(dtm, groupTreeNode);</span>
+      }
+<span class="nc" id="L189">    }</span>
+<span class="nc" id="L190">  }</span>
+
+  protected JMenuItem getSelectionMenuItem(DefaultMutableTreeNode node) {
+<span class="nc" id="L193">    JMenuItem selectAllMenuItem = new JMenuItem(Messages.getString(&quot;show.in.the.image.view&quot;));</span>
+<span class="nc" id="L194">    selectAllMenuItem.addActionListener(</span>
+        _ -&gt; {
+<span class="nc bnc" id="L196" title="All 2 branches missed.">          if (node != null</span>
+<span class="nc bnc" id="L197" title="All 2 branches missed.">              &amp;&amp; node.isLeaf()</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">              &amp;&amp; node.getUserObject() instanceof SegRegion&lt;?&gt; region) {</span>
+<span class="nc" id="L199">            segRegionTool.show(region);</span>
+          }
+<span class="nc" id="L201">        });</span>
+<span class="nc" id="L202">    return selectAllMenuItem;</span>
+  }
+
+  protected JMenuItem getStatisticMenuItem(DefaultMutableTreeNode node) {
+<span class="nc" id="L206">    JMenuItem selectAllMenuItem = new JMenuItem(Messages.getString(&quot;pixel.statistics&quot;));</span>
+<span class="nc" id="L207">    selectAllMenuItem.addActionListener(</span>
+        _ -&gt; {
+<span class="nc bnc" id="L209" title="All 2 branches missed.">          if (node != null</span>
+<span class="nc bnc" id="L210" title="All 2 branches missed.">              &amp;&amp; node.isLeaf()</span>
+<span class="nc bnc" id="L211" title="All 2 branches missed.">              &amp;&amp; node.getUserObject() instanceof SegRegion&lt;?&gt; region) {</span>
+<span class="nc" id="L212">            segRegionTool.computeStatistics(region);</span>
+          }
+<span class="nc" id="L214">        });</span>
+<span class="nc" id="L215">    return selectAllMenuItem;</span>
+  }
+
+  public void showStatistics(SegContour contour, MeasurableLayer layer) {
+<span class="nc bnc" id="L219" title="All 2 branches missed.">    if (contour == null) {</span>
+<span class="nc" id="L220">      return;</span>
+    }
+<span class="nc" id="L222">    List&lt;MeasureItem&gt; measList =</span>
+<span class="nc" id="L223">        ImageRegionStatistics.getImageStatistics(contour.getSegGraphic(), layer, true);</span>
+
+<span class="nc" id="L225">    JPanel tableContainer = HistogramView.buildStatisticsTable(measList);</span>
+<span class="nc" id="L226">    JOptionPane.showMessageDialog(</span>
+<span class="nc" id="L227">        this.getParent(),</span>
+        tableContainer,
+<span class="nc" id="L229">        Messages.getString(&quot;HistogramView.stats&quot;),</span>
+        JOptionPane.PLAIN_MESSAGE,
+        null);
+<span class="nc" id="L232">  }</span>
+
+  public void setPathSelection(TreePath path, boolean selected) {
+<span class="nc" id="L235">    TreeBuilder.setPathSelection(this, path, selected);</span>
+<span class="nc" id="L236">  }</span>
+
+  public boolean hasAllParentsChecked(TreePath path) {
+<span class="nc" id="L239">    boolean allParentsChecked = true;</span>
+<span class="nc" id="L240">    Object[] pathArray = path.getPath();</span>
+    // Start from 1 to skip the root node
+<span class="nc bnc" id="L242" title="All 2 branches missed.">    for (int i = 1; i &lt; pathArray.length; i++) {</span>
+<span class="nc" id="L243">      TreePath parentPath = new TreePath(java.util.Arrays.copyOfRange(pathArray, 0, i + 1));</span>
+<span class="nc bnc" id="L244" title="All 2 branches missed.">      if (!getCheckingModel().isPathChecked(parentPath)) {</span>
+<span class="nc" id="L245">        allParentsChecked = false;</span>
+<span class="nc" id="L246">        break;</span>
+      }
+    }
+<span class="nc" id="L249">    return allParentsChecked;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

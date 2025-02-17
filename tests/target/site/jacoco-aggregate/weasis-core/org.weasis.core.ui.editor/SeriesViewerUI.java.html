@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>SeriesViewerUI.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor</a> &gt; <span class="el_source">SeriesViewerUI.java</span></div><h1>SeriesViewerUI.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2024 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor;
+
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
+import org.weasis.core.api.gui.Insertable;
+import org.weasis.core.api.gui.InsertableFactory;
+import org.weasis.core.api.media.data.MediaSeries;
+import org.weasis.core.api.service.UICore;
+import org.weasis.core.ui.docking.DockableTool;
+import org.weasis.core.ui.docking.ExtToolFactory;
+import org.weasis.core.ui.util.Toolbar;
+
+public class SeriesViewerUI {
+
+  public final AtomicBoolean init;
+  public final Class&lt;?&gt; clazz;
+  public final List&lt;Toolbar&gt; toolBars;
+  public final List&lt;DockableTool&gt; tools;
+  public final List&lt;InsertableFactory&gt; dynamicTools;
+
+  public SeriesViewerUI(Class&lt;?&gt; clazz) {
+<span class="nc" id="L34">    this(clazz, null, null, null);</span>
+<span class="nc" id="L35">  }</span>
+
+  public SeriesViewerUI(
+      Class&lt;?&gt; clazz,
+      List&lt;Toolbar&gt; toolBars,
+      List&lt;DockableTool&gt; tools,
+<span class="nc" id="L41">      List&lt;InsertableFactory&gt; dynamicTools) {</span>
+<span class="nc" id="L42">    this.init = new AtomicBoolean(false);</span>
+<span class="nc" id="L43">    this.clazz = Objects.requireNonNull(clazz);</span>
+<span class="nc bnc" id="L44" title="All 2 branches missed.">    this.toolBars = toolBars == null ? new CopyOnWriteArrayList&lt;&gt;() : toolBars;</span>
+<span class="nc bnc" id="L45" title="All 2 branches missed.">    this.tools = tools == null ? new CopyOnWriteArrayList&lt;&gt;() : tools;</span>
+<span class="nc bnc" id="L46" title="All 2 branches missed.">    this.dynamicTools = dynamicTools == null ? new CopyOnWriteArrayList&lt;&gt;() : dynamicTools;</span>
+<span class="nc" id="L47">  }</span>
+
+  public List&lt;Toolbar&gt; getToolBars() {
+<span class="nc" id="L50">    return toolBars;</span>
+  }
+
+  public List&lt;DockableTool&gt; getTools() {
+<span class="nc" id="L54">    return tools;</span>
+  }
+
+  public List&lt;InsertableFactory&gt; getDynamicTools() {
+<span class="nc" id="L58">    return dynamicTools;</span>
+  }
+
+  public static void updateTools(SeriesViewer&lt;?&gt; oldPlugin, SeriesViewer&lt;?&gt; plugin, boolean force) {
+<span class="nc bnc" id="L62" title="All 2 branches missed.">    List&lt;DockableTool&gt; oldTool = oldPlugin == null ? null : oldPlugin.getSeriesViewerUI().tools;</span>
+<span class="nc bnc" id="L63" title="All 2 branches missed.">    List&lt;DockableTool&gt; tool = plugin == null ? null : plugin.getSeriesViewerUI().tools;</span>
+<span class="nc bnc" id="L64" title="All 4 branches missed.">    if (force || !Objects.equals(tool, oldTool)) {</span>
+<span class="nc bnc" id="L65" title="All 2 branches missed.">      if (oldTool != null) {</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">        for (DockableTool p : oldTool) {</span>
+<span class="nc" id="L67">          p.closeDockable();</span>
+<span class="nc" id="L68">        }</span>
+      }
+<span class="nc bnc" id="L70" title="All 2 branches missed.">      if (tool != null) {</span>
+<span class="nc bnc" id="L71" title="All 2 branches missed.">        for (DockableTool p : tool) {</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">          if (p.isComponentEnabled()) {</span>
+<span class="nc" id="L73">            p.showDockable();</span>
+          }
+<span class="nc" id="L75">        }</span>
+      }
+    }
+<span class="nc bnc" id="L78" title="All 2 branches missed.">    if (oldPlugin != null) {</span>
+<span class="nc bnc" id="L79" title="All 2 branches missed.">      for (InsertableFactory factory : oldPlugin.getSeriesViewerUI().dynamicTools) {</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">        if (factory instanceof ExtToolFactory&lt;?&gt; extToolFactory) {</span>
+<span class="nc" id="L81">          extToolFactory.hideTool();</span>
+        }
+<span class="nc" id="L83">      }</span>
+    }
+<span class="nc" id="L85">  }</span>
+
+  public static void updateToolbars(
+      SeriesViewer&lt;?&gt; oldPlugin, SeriesViewer&lt;?&gt; plugin, boolean force) {
+<span class="nc bnc" id="L89" title="All 2 branches missed.">    List&lt;Toolbar&gt; oldToolBars = oldPlugin == null ? null : oldPlugin.getSeriesViewerUI().toolBars;</span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">    List&lt;Toolbar&gt; toolBars = plugin == null ? null : plugin.getSeriesViewerUI().toolBars;</span>
+<span class="nc bnc" id="L91" title="All 4 branches missed.">    if (force || !Objects.equals(toolBars, oldToolBars)) {</span>
+<span class="nc bnc" id="L92" title="All 2 branches missed.">      if (toolBars == null) {</span>
+<span class="nc" id="L93">        toolBars = UICore.getInstance().getExplorerPluginToolbars();</span>
+      }
+<span class="nc" id="L95">      UICore.getInstance().getToolbarContainer().registerToolBar(toolBars);</span>
+    }
+<span class="nc" id="L97">  }</span>
+
+  public void updateDynamicTools(MediaSeries&lt;?&gt; series) {
+<span class="nc bnc" id="L100" title="All 2 branches missed.">    if (dynamicTools.isEmpty()) {</span>
+<span class="nc" id="L101">      return;</span>
+    }
+
+<span class="nc" id="L104">    Hashtable&lt;String, Object&gt; properties = new Hashtable&lt;&gt;();</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">    if (series != null) {</span>
+<span class="nc" id="L106">      properties.put(MediaSeries.class.getName(), series);</span>
+<span class="nc" id="L107">      properties.put(&quot;class.container&quot;, clazz.getName());</span>
+    }
+
+<span class="nc bnc" id="L110" title="All 2 branches missed.">    for (InsertableFactory factory : dynamicTools) {</span>
+<span class="nc" id="L111">      Insertable instance = factory.createInstance(properties);</span>
+<span class="nc bnc" id="L112" title="All 2 branches missed.">      if (instance instanceof DockableTool dockableTool) {</span>
+<span class="nc" id="L113">        dockableTool.showDockable();</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">      } else if (factory instanceof ExtToolFactory&lt;?&gt; extToolFactory) {</span>
+<span class="nc" id="L115">        extToolFactory.hideTool();</span>
+      }
+<span class="nc" id="L117">    }</span>
+<span class="nc" id="L118">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

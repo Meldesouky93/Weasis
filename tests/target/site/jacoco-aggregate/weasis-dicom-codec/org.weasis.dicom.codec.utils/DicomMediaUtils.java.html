@@ -1,0 +1,1105 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>DicomMediaUtils.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec.utils</a> &gt; <span class="el_source">DicomMediaUtils.java</span></div><h1>DicomMediaUtils.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec.utils;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.temporal.TemporalAccessor;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.regex.Pattern;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+import org.dcm4che3.data.Attributes;
+import org.dcm4che3.data.ElementDictionary;
+import org.dcm4che3.data.Sequence;
+import org.dcm4che3.data.Tag;
+import org.dcm4che3.data.UID;
+import org.dcm4che3.data.VR;
+import org.dcm4che3.img.lut.ModalityLutModule;
+import org.dcm4che3.img.lut.VoiLutModule;
+import org.dcm4che3.img.util.DicomObjectUtil;
+import org.dcm4che3.img.util.DicomUtils;
+import org.dcm4che3.util.ByteUtils;
+import org.dcm4che3.util.TagUtils;
+import org.dcm4che3.util.UIDUtils;
+import org.joml.Vector3d;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.media.data.MediaSeriesGroup;
+import org.weasis.core.api.media.data.TagUtil;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.api.media.data.TagW.TagType;
+import org.weasis.core.api.media.data.Taggable;
+import org.weasis.core.util.FileUtil;
+import org.weasis.core.util.MathUtil;
+import org.weasis.core.util.StringUtil;
+import org.weasis.dicom.codec.DicomMediaIO;
+import org.weasis.dicom.codec.TagD;
+import org.weasis.dicom.codec.TagD.Level;
+import org.weasis.dicom.codec.TagSeq;
+import org.weasis.dicom.codec.geometry.ImageOrientation;
+import org.weasis.dicom.codec.geometry.PatientOrientation;
+import org.weasis.dicom.codec.geometry.VectorUtils;
+
+/**
+ * @author Nicolas Roduit
+ * @author Benoit Jacquemoud
+ */
+public class DicomMediaUtils {
+
+  private DicomMediaUtils() {}
+
+<span class="nc" id="L73">  private static final Logger LOGGER = LoggerFactory.getLogger(DicomMediaUtils.class);</span>
+
+<span class="nc" id="L75">  private static final int[] modalityLutAttributes =</span>
+      new int[] {Tag.RescaleIntercept, Tag.RescaleSlope};
+<span class="nc" id="L77">  private static final int[] VOILUTWindowLevelAttributes =</span>
+      new int[] {Tag.WindowCenter, Tag.WindowWidth};
+<span class="nc" id="L79">  private static final int[] LUTAttributes = new int[] {Tag.LUTDescriptor, Tag.LUTData};</span>
+
+  public static synchronized void enableAnonymizationProfile(boolean activate) {
+    // Default anonymization profile
+    /*
+     * Other Patient tags to activate if there are accessible 1052673=Other Patient Names (0010,1001) 1052672=Other
+     * Patient IDs (0010,1000) 1052704=Patient's Size (0010,1020) 1052688=Patient's Age (0010,1010)
+     * 1052736=Patient's Address (0010,1040) 1057108=Patient's Telephone Numbers (0010,2154) 1057120=Ethnic Group
+     * (0010,2160)
+     */
+
+    /*
+     * Other tags to activate if there are accessible 524417=Institution Address (0008,0081) 528456=Physician(s) of
+     * Record (0008,1048) 524436=Referring Physician's Telephone Numbers (0008,0094) 524434=Referring Physician's
+     * Address (0008,0092) 528480=Name of Physician(s) Reading Study (0008,1060) 3280946=Requesting Physician
+     * (0032,1032) 528464=Performing Physician's Name (0008,1050) 528496=Operators' Name (0008,1070)
+     * 1057152=Occupation (0010,2180) 1577008=*Protocol Name (0018,1030) 4194900=*Performed Procedure Step
+     * Description (0040,0254) 3280992=*Requested Procedure Description (0032,1060) 4237104=Content Sequence
+     * (0040,A730) 532753=Derivation Description (0008,2111) 1576960=Device Serial Number (0018,1000)
+     * 1052816=Medical Record Locator (0010,1090) 528512=Admitting Diagnoses Description (0008,1080)
+     * 1057200=Additional Patient History (0010,21B0)
+     */
+<span class="nc" id="L101">    int[] list = {</span>
+      Tag.PatientName,
+      Tag.PatientID,
+      Tag.PatientSex,
+      Tag.PatientBirthDate,
+      Tag.PatientBirthTime,
+      Tag.PatientAge,
+      Tag.PatientComments,
+      Tag.PatientWeight,
+      Tag.AccessionNumber,
+      Tag.StudyID,
+      Tag.InstitutionalDepartmentName,
+      Tag.InstitutionName,
+      Tag.ReferringPhysicianName,
+      Tag.StudyDescription,
+      Tag.SeriesDescription,
+      Tag.StationName,
+      Tag.ImageComments
+    };
+<span class="nc bnc" id="L120" title="All 2 branches missed.">    int type = activate ? 1 : 0;</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">    for (int id : list) {</span>
+<span class="nc" id="L122">      TagW t = TagD.getNullable(id);</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">      if (t != null) {</span>
+<span class="nc" id="L124">        t.setAnonymizationType(type);</span>
+      }
+    }
+<span class="nc" id="L127">    TagW.PatientPseudoUID.setAnonymizationType(type);</span>
+<span class="nc" id="L128">  }</span>
+
+  /**
+   * @return false if either an argument is null or if at least one tag value is empty in the given
+   *     dicomObject
+   */
+  public static boolean containsRequiredAttributes(Attributes dcmItems, int... requiredTags) {
+<span class="nc bnc" id="L135" title="All 6 branches missed.">    if (dcmItems == null || requiredTags == null || requiredTags.length == 0) {</span>
+<span class="nc" id="L136">      return false;</span>
+    }
+
+<span class="nc" id="L139">    int countValues = 0;</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">    for (int tag : requiredTags) {</span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">      if (dcmItems.containsValue(tag)) {</span>
+<span class="nc" id="L142">        countValues++;</span>
+      }
+    }
+<span class="nc bnc" id="L145" title="All 2 branches missed.">    return countValues == requiredTags.length;</span>
+  }
+
+  /**
+   * Either a Modality LUT Sequence containing a single Item or Rescale Slope and Intercept values
+   * shall be present but not both.&lt;br&gt;
+   * This requirement for only a single transformation makes it possible to unambiguously define the
+   * input of succeeding stages of the grayscale pipeline such as the VOI LUT
+   *
+   * @return True if the specified object contains some type of Modality LUT attributes at the
+   *     current level. &lt;br&gt;
+   * @see - Dicom Standard 2011 - PS 3.3 § C.11.1 Modality LUT Module
+   */
+  public static boolean containsRequiredModalityLUTAttributes(Attributes dcmItems) {
+<span class="nc" id="L159">    return containsRequiredAttributes(dcmItems, modalityLutAttributes);</span>
+  }
+
+  public static boolean containsRequiredModalityLUTDataAttributes(Attributes dcmItems) {
+<span class="nc bnc" id="L163" title="All 2 branches missed.">    return containsRequiredAttributes(dcmItems, Tag.ModalityLUTType)</span>
+<span class="nc bnc" id="L164" title="All 2 branches missed.">        &amp;&amp; containsLUTAttributes(dcmItems);</span>
+  }
+
+  /**
+   * If any VOI LUT Table is included by an Image, a Window Width and Window Center or the VOI LUT
+   * Table, but not both, may be applied to the Image for display. Inclusion of both indicates that
+   * multiple alternative views may be presented. &lt;br&gt;
+   * If multiple items are present in VOI LUT Sequence, only one may be applied to the Image for
+   * display. Multiple items indicate that multiple alternative views may be presented.
+   *
+   * @return True if the specified object contains some type of VOI LUT attributes at the current
+   *     level (ie:Window Level or VOI LUT Sequence).
+   * @see - Dicom Standard 2011 - PS 3.3 § C.11.2 VOI LUT Module
+   */
+  public static boolean containsRequiredVOILUTWindowLevelAttributes(Attributes dcmItems) {
+<span class="nc" id="L179">    return containsRequiredAttributes(dcmItems, VOILUTWindowLevelAttributes);</span>
+  }
+
+  public static boolean containsLUTAttributes(Attributes dcmItems) {
+<span class="nc" id="L183">    return containsRequiredAttributes(dcmItems, LUTAttributes);</span>
+  }
+
+  public static boolean hasOverlay(Attributes attrs) {
+<span class="nc bnc" id="L187" title="All 2 branches missed.">    if (attrs != null) {</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">      for (int i = 0; i &lt; 16; i++) {</span>
+<span class="nc" id="L189">        int gg0000 = i &lt;&lt; 17;</span>
+<span class="nc bnc" id="L190" title="All 4 branches missed.">        if ((0xffff &amp; (1 &lt;&lt; i)) != 0 &amp;&amp; attrs.containsValue(Tag.OverlayRows | gg0000)) {</span>
+<span class="nc" id="L191">          return true;</span>
+        }
+      }
+    }
+<span class="nc" id="L195">    return false;</span>
+  }
+
+  public static Integer getIntPixelValue(Attributes ds, int tag, boolean signed, int stored) {
+<span class="nc" id="L199">    VR vr = ds.getVR(tag);</span>
+<span class="nc bnc" id="L200" title="All 2 branches missed.">    if (vr == null) {</span>
+<span class="nc" id="L201">      return null;</span>
+    }
+<span class="nc" id="L203">    int result = 0;</span>
+    // Bug fix: http://www.dcm4che.org/jira/browse/DCM-460
+<span class="nc bnc" id="L205" title="All 4 branches missed.">    if (vr == VR.OB || vr == VR.OW) {</span>
+      try {
+<span class="nc" id="L207">        result = ByteUtils.bytesToUShortLE(ds.getBytes(tag), 0);</span>
+<span class="nc" id="L208">      } catch (IOException e) {</span>
+<span class="nc" id="L209">        LOGGER.error(&quot;Cannot read {} &quot;, TagUtils.toString(tag), e);</span>
+<span class="nc" id="L210">      }</span>
+<span class="nc bnc" id="L211" title="All 4 branches missed.">      if (signed &amp;&amp; (result &amp; (1 &lt;&lt; (stored - 1))) != 0) {</span>
+<span class="nc" id="L212">        int andmask = (1 &lt;&lt; stored) - 1;</span>
+<span class="nc" id="L213">        int ormask = ~andmask;</span>
+<span class="nc" id="L214">        result |= ormask;</span>
+<span class="nc" id="L215">      }</span>
+<span class="nc bnc" id="L216" title="All 8 branches missed.">    } else if ((!signed &amp;&amp; vr != VR.US) || (signed &amp;&amp; vr != VR.SS)) {</span>
+<span class="nc bnc" id="L217" title="All 2 branches missed.">      vr = signed ? VR.SS : VR.US;</span>
+<span class="nc" id="L218">      result = ds.getInt(null, tag, vr, 0);</span>
+    } else {
+<span class="nc" id="L220">      result = ds.getInt(tag, 0);</span>
+    }
+    // Unsigned Short (0 to 65535) and Signed Short (-32768 to +32767)
+<span class="nc bnc" id="L223" title="All 2 branches missed.">    int minInValue = signed ? -(1 &lt;&lt; (stored - 1)) : 0;</span>
+<span class="nc bnc" id="L224" title="All 2 branches missed.">    int maxInValue = signed ? (1 &lt;&lt; (stored - 1)) - 1 : (1 &lt;&lt; stored) - 1;</span>
+<span class="nc bnc" id="L225" title="All 2 branches missed.">    return result &lt; minInValue ? minInValue : Math.min(result, maxInValue);</span>
+  }
+
+  public static void setTag(Map&lt;TagW, Object&gt; tags, TagW tag, Object value) {
+<span class="nc bnc" id="L229" title="All 2 branches missed.">    if (tag != null) {</span>
+<span class="nc bnc" id="L230" title="All 2 branches missed.">      if (value instanceof Sequence seq) {</span>
+<span class="nc" id="L231">        Attributes[] list = new Attributes[seq.size()];</span>
+<span class="nc bnc" id="L232" title="All 2 branches missed.">        for (int i = 0; i &lt; list.length; i++) {</span>
+<span class="nc" id="L233">          Attributes attributes = seq.get(i);</span>
+<span class="nc bnc" id="L234" title="All 2 branches missed.">          list[i] = attributes.getParent() == null ? attributes : new Attributes(attributes);</span>
+        }
+<span class="nc" id="L236">        tags.put(tag, list);</span>
+<span class="nc" id="L237">      } else {</span>
+<span class="nc" id="L238">        tags.put(tag, value);</span>
+      }
+    }
+<span class="nc" id="L241">  }</span>
+
+  public static void setTagNoNull(Map&lt;TagW, Object&gt; tags, TagW tag, Object value) {
+<span class="nc bnc" id="L244" title="All 2 branches missed.">    if (value != null) {</span>
+<span class="nc" id="L245">      setTag(tags, tag, value);</span>
+    }
+<span class="nc" id="L247">  }</span>
+
+  public static void writeMetaData(MediaSeriesGroup group, Attributes header) {
+<span class="nc bnc" id="L250" title="All 4 branches missed.">    if (group == null || header == null) {</span>
+<span class="nc" id="L251">      return;</span>
+    }
+    // Patient Group
+<span class="nc bnc" id="L254" title="All 2 branches missed.">    if (TagD.getUID(Level.PATIENT).equals(group.getTagID())) {</span>
+<span class="nc" id="L255">      Object pid = group.getTagValue(TagW.PatientPseudoUID);</span>
+<span class="nc bnc" id="L256" title="All 2 branches missed.">      if (pid != null) {</span>
+<span class="nc" id="L257">        String pid2 = new PatientComparator(header).buildPatientPseudoUID();</span>
+<span class="nc bnc" id="L258" title="All 2 branches missed.">        if (!Objects.equals(pid, pid2)) {</span>
+<span class="nc" id="L259">          LOGGER.warn(</span>
+              &quot;Inconsistent Patient ID + Issuer of Patient ID between DICOM objets: {} and {}&quot;,
+              pid,
+              pid2);
+        }
+      }
+<span class="nc" id="L265">      DicomMediaIO.tagManager.readTags(Level.PATIENT, header, group);</span>
+<span class="nc" id="L266">    }</span>
+    // Study Group
+<span class="nc bnc" id="L268" title="All 2 branches missed.">    else if (TagD.getUID(Level.STUDY).equals(group.getTagID())) {</span>
+<span class="nc" id="L269">      TagW tagID = TagD.getUID(Level.STUDY);</span>
+<span class="nc" id="L270">      Object studyUID = group.getTagValue(tagID);</span>
+<span class="nc bnc" id="L271" title="All 4 branches missed.">      if (studyUID != null &amp;&amp; !Objects.equals(studyUID, header.getString(tagID.getId()))) {</span>
+<span class="nc" id="L272">        LOGGER.warn(</span>
+            &quot;Inconsistent Study Instance UID between DICOM objets: {} and {}&quot;,
+<span class="nc" id="L274">            group.getTagValue(TagD.getUID(Level.STUDY)),</span>
+<span class="nc" id="L275">            header.getString(Tag.StudyInstanceUID));</span>
+      }
+<span class="nc" id="L277">      DicomMediaIO.tagManager.readTags(Level.STUDY, header, group);</span>
+<span class="nc" id="L278">    }</span>
+    // Series Group
+<span class="nc bnc" id="L280" title="All 2 branches missed.">    else if (TagD.getUID(Level.SERIES).equals(group.getTagID())) {</span>
+<span class="nc" id="L281">      TagW tagID = TagD.get(Tag.SeriesInstanceUID); // cannot compare sub-series, only in group</span>
+<span class="nc" id="L282">      Object seriesUID = group.getTagValue(tagID);</span>
+<span class="nc bnc" id="L283" title="All 4 branches missed.">      if (seriesUID != null &amp;&amp; !Objects.equals(seriesUID, header.getString(tagID.getId()))) {</span>
+<span class="nc" id="L284">        LOGGER.warn(</span>
+            &quot;Inconsistent Series Instance UID between DICOM objets: {} and {}&quot;,
+            seriesUID,
+<span class="nc" id="L287">            header.getString(tagID.getId()));</span>
+      }
+<span class="nc" id="L289">      DicomMediaIO.tagManager.readTags(Level.SERIES, header, group);</span>
+      // Build patient age if not present
+<span class="nc" id="L291">      group.setTagNoNull(</span>
+<span class="nc" id="L292">          TagD.get(Tag.PatientAge), DicomUtils.getPatientAgeInPeriod(header, Tag.PatientAge, true));</span>
+    }
+<span class="nc" id="L294">  }</span>
+
+  public static void computeSlicePositionVector(Taggable taggable) {
+<span class="nc bnc" id="L297" title="All 2 branches missed.">    if (taggable != null) {</span>
+<span class="nc" id="L298">      Vector3d pPos = PatientOrientation.getPatientPosition(taggable);</span>
+<span class="nc bnc" id="L299" title="All 2 branches missed.">      if (pPos != null) {</span>
+<span class="nc" id="L300">        Vector3d vr = ImageOrientation.getRowImagePosition(taggable);</span>
+<span class="nc" id="L301">        Vector3d vc = ImageOrientation.getColumnImagePosition(taggable);</span>
+<span class="nc bnc" id="L302" title="All 4 branches missed.">        if (vr != null &amp;&amp; vc != null) {</span>
+<span class="nc" id="L303">          Vector3d normal = VectorUtils.computeNormalOfSurface(vr, vc);</span>
+<span class="nc" id="L304">          normal.mul(pPos);</span>
+<span class="nc" id="L305">          taggable.setTag(TagW.SlicePosition, new double[] {normal.x, normal.y, normal.z});</span>
+        }
+      }
+    }
+<span class="nc" id="L309">  }</span>
+
+  /**
+   * Build the shape from DICOM Shutter
+   *
+   * @see &lt;a
+   *     href=&quot;http://dicom.nema.org/MEDICAL/DICOM/current/output/chtml/part03/sect_C.7.6.11.html&quot;&gt;C.7.6.11
+   *     Display Shutter Module&lt;/a&gt;
+   * @see &lt;a
+   *     href=&quot;http://dicom.nema.org/MEDICAL/DICOM/current/output/chtml/part03/sect_C.7.6.15.html&quot;&gt;C.7.6.15
+   *     Bitmap Display Shutter Module&lt;/a&gt;
+   */
+  public static void setShutter(Taggable taggable, Attributes dcmObject) {
+<span class="nc" id="L322">    taggable.setTagNoNull(TagW.ShutterFinalShape, DicomObjectUtil.getShutterShape(dcmObject));</span>
+
+    // Set color also for BITMAP shape (bitmap is extracted in overlay class)
+<span class="nc" id="L325">    taggable.setTagNoNull(TagW.ShutterRGBColor, DicomObjectUtil.getShutterColor(dcmObject));</span>
+<span class="nc" id="L326">  }</span>
+
+  public static void writeFunctionalGroupsSequence(Taggable taggable, Attributes dcm) {
+<span class="nc bnc" id="L329" title="All 4 branches missed.">    if (dcm != null &amp;&amp; taggable != null) {</span>
+      // C.7.6.16.2.1 Pixel Measures Macro:
+      // https://dicom.nema.org/medical/dicom/2020b/output/chtml/part03/sect_C.7.6.16.2.html#table_C.7.6.16-2
+<span class="nc" id="L332">      TagSeq.MacroSeqData data =</span>
+<span class="nc" id="L333">          new TagSeq.MacroSeqData(dcm, TagD.getTagFromIDs(Tag.PixelSpacing, Tag.SliceThickness));</span>
+<span class="nc" id="L334">      TagD.get(Tag.PixelMeasuresSequence).readValue(data, taggable);</span>
+
+      // C.7.6.16.2.2 Frame Content Macro:
+      // https://dicom.nema.org/medical/dicom/2020b/output/chtml/part03/sect_C.7.6.16.2.html#table_C.7.6.16-3
+<span class="nc" id="L338">      data =</span>
+          new TagSeq.MacroSeqData(
+              dcm,
+<span class="nc" id="L341">              TagD.getTagFromIDs(</span>
+                  Tag.FrameAcquisitionNumber,
+                  Tag.StackID,
+                  Tag.InStackPositionNumber,
+                  Tag.TemporalPositionIndex));
+<span class="nc" id="L346">      TagD.get(Tag.FrameContentSequence).readValue(data, taggable);</span>
+      // If not null override instance number for a better image sorting.
+<span class="nc" id="L348">      Integer stackPosNb = (Integer) taggable.getTagValue(TagD.get(Tag.InStackPositionNumber));</span>
+<span class="nc bnc" id="L349" title="All 2 branches missed.">      if (stackPosNb != null) {</span>
+<span class="nc" id="L350">        Integer offset =</span>
+<span class="nc" id="L351">            (Integer) taggable.getTagValue(TagD.get(Tag.ConcatenationFrameOffsetNumber));</span>
+<span class="nc bnc" id="L352" title="All 2 branches missed.">        int nb = offset == null ? stackPosNb : offset + stackPosNb;</span>
+<span class="nc" id="L353">        taggable.setTag(TagD.get(Tag.InstanceNumber), nb);</span>
+      }
+
+      // C.7.6.16.2.3 Plane Position (Patient) Macro:
+      // https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.16.2.html#table_C.7.6.16-4
+<span class="nc" id="L358">      data = new TagSeq.MacroSeqData(dcm, TagD.getTagFromIDs(Tag.ImagePositionPatient));</span>
+<span class="nc" id="L359">      TagD.get(Tag.PlanePositionSequence).readValue(data, taggable);</span>
+
+      // C.7.6.16.2.4 Plane Orientation (Patient) Macro:
+      // https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.16.2.html#table_C.7.6.16-5
+<span class="nc" id="L363">      data = new TagSeq.MacroSeqData(dcm, TagD.getTagFromIDs(Tag.ImageOrientationPatient));</span>
+<span class="nc" id="L364">      TagD.get(Tag.PlaneOrientationSequence).readValue(data, taggable);</span>
+      // If not null add ImageOrientationPlane for getting a orientation label.
+<span class="nc" id="L366">      taggable.setTagNoNull(TagW.ImageOrientationPlane, ImageOrientation.getPlan(taggable));</span>
+
+      // C.7.6.16.2.8 Frame Anatomy Macro:
+      // https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.16.2.html#table_C.7.6.16-9
+<span class="nc" id="L370">      data = new TagSeq.MacroSeqData(dcm, TagD.getTagFromIDs(Tag.FrameLaterality));</span>
+<span class="nc" id="L371">      TagD.get(Tag.FrameAnatomySequence).readValue(data, taggable);</span>
+
+      // C.7.6.16.2.9 Pixel Value Transformation Macro:
+      // https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.16.2.html#table_C.7.6.16-10
+<span class="nc" id="L375">      Attributes mLutItems = dcm.getNestedDataset(Tag.PixelValueTransformationSequence);</span>
+<span class="nc bnc" id="L376" title="All 2 branches missed.">      if (mLutItems != null) {</span>
+<span class="nc" id="L377">        ModalityLutModule mlut = new ModalityLutModule(mLutItems);</span>
+<span class="nc" id="L378">        taggable.setTag(TagW.ModalityLUTData, mlut);</span>
+      }
+
+      // C.7.6.16.2.10 Frame VOI LUT Macro:
+      // https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.16.2.html#table_C.7.6.16-11
+<span class="nc" id="L383">      Attributes vLutItems = dcm.getNestedDataset(Tag.FrameVOILUTSequence);</span>
+<span class="nc bnc" id="L384" title="All 2 branches missed.">      if (vLutItems != null) {</span>
+<span class="nc" id="L385">        VoiLutModule vlut = new VoiLutModule(vLutItems);</span>
+<span class="nc" id="L386">        taggable.setTag(TagW.VOILUTsData, vlut);</span>
+      }
+
+      // C.7.6.16.2.15 Patient Orientation in Frame Macro:
+      // https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.16.2.html#table_C.7.6.16-16
+<span class="nc" id="L391">      data = new TagSeq.MacroSeqData(dcm, TagD.getTagFromIDs(Tag.PatientOrientation));</span>
+<span class="nc" id="L392">      TagD.get(Tag.PatientOrientationInFrameSequence).readValue(data, taggable);</span>
+
+      // C.7.6.16.2.16 Frame Display Shutter:
+      // https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.16.2.html#table_C.7.6.16-17
+<span class="nc" id="L396">      Attributes macroFrameDisplayShutter = dcm.getNestedDataset(Tag.FrameDisplayShutterSequence);</span>
+<span class="nc bnc" id="L397" title="All 2 branches missed.">      if (macroFrameDisplayShutter != null) {</span>
+<span class="nc" id="L398">        setShutter(taggable, macroFrameDisplayShutter);</span>
+      }
+
+      // C.8.16.1 Image Type and Frame Type:
+      // https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.8.16.html#sect_C.8.16.1
+<span class="nc" id="L403">      data = new TagSeq.MacroSeqData(dcm, TagD.getTagFromIDs(Tag.FrameType));</span>
+<span class="nc" id="L404">      TagD.get(Tag.MRImageFrameTypeSequence).readValue(data, taggable);</span>
+<span class="nc" id="L405">      TagD.get(Tag.CTImageFrameTypeSequence).readValue(data, taggable);</span>
+<span class="nc" id="L406">      TagD.get(Tag.MRSpectroscopyFrameTypeSequence).readValue(data, taggable);</span>
+<span class="nc" id="L407">      TagD.get(Tag.PETFrameTypeSequence).readValue(data, taggable);</span>
+<span class="nc" id="L408">      TagD.get(Tag.XRay3DFrameTypeSequence).readValue(data, taggable);</span>
+<span class="nc" id="L409">      TagD.get(Tag.IntravascularOCTFrameTypeSequence).readValue(data, taggable);</span>
+    }
+<span class="nc" id="L411">  }</span>
+
+  public static boolean writePerFrameFunctionalGroupsSequence(
+      Taggable taggable, Attributes header, int index) {
+<span class="nc bnc" id="L415" title="All 4 branches missed.">    if (header != null &amp;&amp; taggable != null) {</span>
+      /*
+       * C.7.6.16 The number of Items shall be the same as the number of frames in the Multi-frame image.
+       */
+<span class="nc" id="L419">      Attributes a = header.getNestedDataset(Tag.PerFrameFunctionalGroupsSequence, index);</span>
+<span class="nc bnc" id="L420" title="All 2 branches missed.">      if (a != null) {</span>
+<span class="nc" id="L421">        DicomMediaUtils.writeFunctionalGroupsSequence(taggable, a);</span>
+<span class="nc" id="L422">        return true;</span>
+      }
+    }
+<span class="nc" id="L425">    return false;</span>
+  }
+
+  public static void computeSUVFactor(Attributes dicomObject, Taggable taggable, int index) {
+    // From vendor neutral code at
+    // http://qibawiki.rsna.org/index.php?title=Standardized_Uptake_Value_%28SUV%29
+<span class="nc" id="L431">    String modality = TagD.getTagValue(taggable, Tag.Modality, String.class);</span>
+<span class="nc bnc" id="L432" title="All 2 branches missed.">    if (&quot;PT&quot;.equals(modality)) {</span>
+<span class="nc" id="L433">      String correctedImage = DicomUtils.getStringFromDicomElement(dicomObject, Tag.CorrectedImage);</span>
+<span class="nc bnc" id="L434" title="All 2 branches missed.">      if (correctedImage != null</span>
+<span class="nc bnc" id="L435" title="All 2 branches missed.">          &amp;&amp; correctedImage.contains(&quot;ATTN&quot;)</span>
+<span class="nc bnc" id="L436" title="All 2 branches missed.">          &amp;&amp; correctedImage.contains(&quot;DECY&quot;)) { // NON-NLS</span>
+<span class="nc" id="L437">        double suvFactor = 0.0;</span>
+<span class="nc" id="L438">        String units = dicomObject.getString(Tag.Units);</span>
+        // DICOM $C.8.9.1.1.3 Units
+        // The units of the pixel values obtained after conversion from the stored pixel values (SV)
+        // (Pixel Data (7FE0,0010)) to pixel value units (U), as defined by Rescale Intercept
+        // (0028,1052) and Rescale Slope (0028,1053). Defined Terms:
+        // CNTS = counts
+        // NONE = unitless
+        // CM2 = centimeter**2
+        // PCNT = percent
+        // CPS = counts/second
+        // BQML = Becquerels/milliliter
+        // MGMINML = milligram/minute/milliliter
+        // UMOLMINML = micromole/minute/milliliter
+        // MLMING = milliliter/minute/gram
+        // MLG = milliliter/gram
+        // 1CM = 1/centimeter
+        // UMOLML = micromole/milliliter
+        // PROPCNTS = proportional to counts
+        // PROPCPS = proportional to counts/sec
+        // MLMINML = milliliter/minute/milliliter
+        // MLML = milliliter/milliliter
+        // GML = grams/milliliter
+        // STDDEV = standard deviations
+<span class="nc bnc" id="L461" title="All 2 branches missed.">        if (&quot;BQML&quot;.equals(units)) {</span>
+<span class="nc" id="L462">          Float weight =</span>
+<span class="nc" id="L463">              DicomUtils.getFloatFromDicomElement(dicomObject, Tag.PatientWeight, 0.0f); // in Kg</span>
+<span class="nc bnc" id="L464" title="All 2 branches missed.">          if (MathUtil.isDifferentFromZero(weight)) {</span>
+<span class="nc" id="L465">            Attributes dcm =</span>
+<span class="nc" id="L466">                dicomObject.getNestedDataset(Tag.RadiopharmaceuticalInformationSequence, index);</span>
+<span class="nc bnc" id="L467" title="All 2 branches missed.">            if (dcm != null) {</span>
+<span class="nc" id="L468">              Float totalDose =</span>
+<span class="nc" id="L469">                  DicomUtils.getFloatFromDicomElement(dcm, Tag.RadionuclideTotalDose, null);</span>
+<span class="nc" id="L470">              Float halfLife =</span>
+<span class="nc" id="L471">                  DicomUtils.getFloatFromDicomElement(dcm, Tag.RadionuclideHalfLife, null);</span>
+<span class="nc" id="L472">              Date injectTime =</span>
+<span class="nc" id="L473">                  DicomUtils.getDateFromDicomElement(dcm, Tag.RadiopharmaceuticalStartTime, null);</span>
+<span class="nc" id="L474">              Date injectDateTime =</span>
+<span class="nc" id="L475">                  DicomUtils.getDateFromDicomElement(</span>
+                      dcm, Tag.RadiopharmaceuticalStartDateTime, null);
+<span class="nc" id="L477">              Date acquisitionDateTime =</span>
+<span class="nc" id="L478">                  TagUtil.dateTime(</span>
+<span class="nc" id="L479">                      DicomUtils.getDateFromDicomElement(dicomObject, Tag.AcquisitionDate, null),</span>
+<span class="nc" id="L480">                      DicomUtils.getDateFromDicomElement(dicomObject, Tag.AcquisitionTime, null));</span>
+<span class="nc" id="L481">              Date scanDate = DicomUtils.getDateFromDicomElement(dicomObject, Tag.SeriesDate, null);</span>
+<span class="nc bnc" id="L482" title="All 14 branches missed.">              if (&quot;START&quot;.equals(dicomObject.getString(Tag.DecayCorrection))</span>
+                  &amp;&amp; totalDose != null
+                  &amp;&amp; halfLife != null
+                  &amp;&amp; acquisitionDateTime != null
+                  &amp;&amp; (injectDateTime != null || (scanDate != null &amp;&amp; injectTime != null))) {
+<span class="nc" id="L487">                double time = 0.0;</span>
+<span class="nc" id="L488">                long scanDateTime =</span>
+<span class="nc" id="L489">                    TagUtil.dateTime(</span>
+                            scanDate,
+<span class="nc" id="L491">                            DicomUtils.getDateFromDicomElement(dicomObject, Tag.SeriesTime, null))</span>
+<span class="nc" id="L492">                        .getTime();</span>
+<span class="nc bnc" id="L493" title="All 2 branches missed.">                if (injectDateTime == null) {</span>
+<span class="nc bnc" id="L494" title="All 2 branches missed.">                  if (scanDateTime &gt; acquisitionDateTime.getTime()) {</span>
+                    // per GE docs, may have been updated during post-processing into new series
+<span class="nc" id="L496">                    String privateCreator = dicomObject.getString(0x00090010);</span>
+<span class="nc" id="L497">                    Date privateScanDateTime =</span>
+<span class="nc" id="L498">                        DicomUtils.getDateFromDicomElement(dcm, 0x0009100d, null);</span>
+<span class="nc bnc" id="L499" title="All 4 branches missed.">                    if (&quot;GEMS_PETD_01&quot;.equals(privateCreator) // NON-NLS</span>
+                        &amp;&amp; privateScanDateTime != null) {
+<span class="nc" id="L501">                      scanDate = privateScanDateTime;</span>
+                    } else {
+<span class="nc" id="L503">                      scanDate = null;</span>
+                    }
+                  }
+<span class="nc bnc" id="L506" title="All 2 branches missed.">                  if (scanDate != null) {</span>
+<span class="nc" id="L507">                    injectDateTime = TagUtil.dateTime(scanDate, injectTime);</span>
+<span class="nc" id="L508">                    time = (double) scanDateTime - injectDateTime.getTime();</span>
+                  }
+
+                } else {
+<span class="nc" id="L512">                  time = (double) scanDateTime - injectDateTime.getTime();</span>
+                }
+                // Exclude negative value (case over midnight)
+<span class="nc bnc" id="L515" title="All 2 branches missed.">                if (time &gt; 0) {</span>
+<span class="nc" id="L516">                  double correctedDose = totalDose * Math.pow(2, -time / (1000.0 * halfLife));</span>
+                  // Weight converts in kg to g
+<span class="nc" id="L518">                  suvFactor = weight * 1000.0 / correctedDose;</span>
+                }
+              }
+            }
+          }
+<span class="nc bnc" id="L523" title="All 2 branches missed.">        } else if (&quot;CNTS&quot;.equals(units)) {</span>
+<span class="nc" id="L524">          String privateTagCreator = dicomObject.getString(0x70530010);</span>
+<span class="nc" id="L525">          double privateSUVFactor = dicomObject.getDouble(0x70531000, 0.0);</span>
+<span class="nc bnc" id="L526" title="All 2 branches missed.">          if (&quot;Philips PET Private Group&quot;.equals(privateTagCreator) // NON-NLS</span>
+<span class="nc bnc" id="L527" title="All 2 branches missed.">              &amp;&amp; MathUtil.isDifferentFromZero(privateSUVFactor)) {</span>
+<span class="nc" id="L528">            suvFactor = privateSUVFactor; // units =&gt; &quot;g/ml&quot;</span>
+          }
+<span class="nc bnc" id="L530" title="All 2 branches missed.">        } else if (&quot;GML&quot;.equals(units)) {</span>
+<span class="nc" id="L531">          suvFactor = 1.0;</span>
+        }
+<span class="nc bnc" id="L533" title="All 2 branches missed.">        if (MathUtil.isDifferentFromZero(suvFactor)) {</span>
+<span class="nc" id="L534">          taggable.setTag(TagW.SuvFactor, suvFactor);</span>
+        }
+      }
+    }
+<span class="nc" id="L538">  }</span>
+
+  public static double[] getFrameTime(Attributes attributes) {
+<span class="nc" id="L541">    double[] frameTimes = null;</span>
+<span class="nc" id="L542">    String frameIncrementPointer = attributes.getString(Tag.FrameIncrementPointer, null);</span>
+<span class="nc bnc" id="L543" title="All 2 branches missed.">    if (StringUtil.hasText(frameIncrementPointer)) {</span>
+<span class="nc" id="L544">      frameTimes =</span>
+<span class="nc" id="L545">          DicomUtils.getDoubleArrayFromDicomElement(</span>
+<span class="nc" id="L546">              attributes, TagUtils.intFromHexString(frameIncrementPointer), null);</span>
+    }
+
+<span class="nc bnc" id="L549" title="All 2 branches missed.">    if (frameTimes == null) {</span>
+<span class="nc" id="L550">      Integer frameRate =</span>
+<span class="nc" id="L551">          DicomUtils.getIntegerFromDicomElement(attributes, Tag.RecommendedDisplayFrameRate, null);</span>
+<span class="nc bnc" id="L552" title="All 2 branches missed.">      if (frameRate != null) {</span>
+<span class="nc" id="L553">        frameTimes = new double[] {1000f / frameRate};</span>
+      }
+<span class="nc" id="L555">    } else {</span>
+<span class="nc" id="L556">      frameTimes = validateFrameTime(frameTimes);</span>
+    }
+<span class="nc" id="L558">    return frameTimes;</span>
+  }
+
+  private static double[] validateFrameTime(double[] frameTimes) {
+<span class="nc bnc" id="L562" title="All 4 branches missed.">    if (frameTimes != null &amp;&amp; frameTimes.length &gt; 1) {</span>
+<span class="nc" id="L563">      boolean same = true;</span>
+<span class="nc" id="L564">      double first = frameTimes[0];</span>
+<span class="nc bnc" id="L565" title="All 2 branches missed.">      for (int i = 1; i &lt; frameTimes.length; i++) {</span>
+<span class="nc bnc" id="L566" title="All 2 branches missed.">        if (Math.abs(first - frameTimes[i]) &gt; MathUtil.DOUBLE_EPSILON</span>
+<span class="nc bnc" id="L567" title="All 2 branches missed.">            &amp;&amp; MathUtil.isDifferentFromZero(frameTimes[i])) {</span>
+<span class="nc" id="L568">          same = false;</span>
+<span class="nc" id="L569">          break;</span>
+        }
+      }
+<span class="nc bnc" id="L572" title="All 2 branches missed.">      if (same) {</span>
+<span class="nc" id="L573">        return new double[] {first};</span>
+      }
+    }
+<span class="nc" id="L576">    return frameTimes;</span>
+  }
+
+  public static Attributes createDicomPR(
+      Attributes dicomSourceAttribute, String seriesInstanceUID, String sopInstanceUID) {
+
+<span class="nc" id="L582">    final int[] patientStudyAttributes = {</span>
+      Tag.SpecificCharacterSet,
+      Tag.StudyDate,
+      Tag.StudyTime,
+      Tag.StudyDescription,
+      Tag.AccessionNumber,
+      Tag.IssuerOfAccessionNumberSequence,
+      Tag.ReferringPhysicianName,
+      Tag.PatientName,
+      Tag.PatientID,
+      Tag.IssuerOfPatientID,
+      Tag.PatientBirthDate,
+      Tag.PatientSex,
+      Tag.AdditionalPatientHistory,
+      Tag.StudyInstanceUID,
+      Tag.StudyID
+    };
+<span class="nc" id="L599">    Arrays.sort(patientStudyAttributes);</span>
+<span class="nc" id="L600">    Attributes pr = new Attributes(dicomSourceAttribute, patientStudyAttributes);</span>
+
+    // TODO implement other ColorSoftcopyPresentationStateStorageSOPClass...
+<span class="nc" id="L603">    pr.setString(Tag.SOPClassUID, VR.UI, UID.GrayscaleSoftcopyPresentationStateStorage);</span>
+<span class="nc" id="L604">    pr.setString(</span>
+        Tag.SOPInstanceUID,
+        VR.UI,
+<span class="nc bnc" id="L607" title="All 2 branches missed.">        StringUtil.hasText(sopInstanceUID) ? sopInstanceUID : UIDUtils.createUID());</span>
+<span class="nc" id="L608">    Date now = new Date();</span>
+<span class="nc" id="L609">    pr.setDate(Tag.PresentationCreationDateAndTime, now);</span>
+<span class="nc" id="L610">    pr.setDate(Tag.ContentDateAndTime, now);</span>
+<span class="nc" id="L611">    pr.setString(Tag.Modality, VR.CS, &quot;PR&quot;);</span>
+<span class="nc" id="L612">    pr.setString(</span>
+        Tag.SeriesInstanceUID,
+        VR.UI,
+<span class="nc bnc" id="L615" title="All 2 branches missed.">        StringUtil.hasText(seriesInstanceUID) ? seriesInstanceUID : UIDUtils.createUID());</span>
+<span class="nc" id="L616">    return pr;</span>
+  }
+
+  // ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  /**
+   * Creates a dicomKeyObjectSelection Attributes from another SOP Instance keeping its patient and
+   * study information. For instance, it can be can an IMAGE or a previous build dicomKOS Document.
+   *
+   * @param dicomSourceAttribute : Must be valid
+   * @param keyObjectDescription : Optional, can be null
+   * @param seriesInstanceUID is supposed to be valid and won't be verified, it's the user
+   *     responsibility to manage this value. If null a randomly new one will be generated instead
+   * @return new dicomKeyObjectSelection Document Attributes
+   */
+  public static Attributes createDicomKeyObject(
+      Attributes dicomSourceAttribute, String keyObjectDescription, String seriesInstanceUID) {
+
+    /**
+     * @see DICOM standard PS 3.3 - § C.17.6.1 Key Object Document Series Module
+     * @note Series of Key Object Selection Documents are separate from Series of Images or other
+     *     Composite SOP Instances. Key Object Documents do not reside in a Series of Images or
+     *     other Composite SOP Instances.
+     */
+
+    /**
+     * @note Loads properties that reference all &quot;Key Object Codes&quot; defined in the following
+     *     resource : KeyObjectSelectionCodes.xml
+     * @see These Codes are up-to-date regarding Dicom Conformance : &lt;br&gt;
+     *     PS 3.16 - § Context ID 7010 Key Object Selection Document Title &lt;br&gt;
+     *     PS 3.16 - § Context ID 7011 Rejected for Quality Reasons - &lt;br&gt;
+     *     PS 3.16 - § Context ID 7012 Best In Set&lt;br&gt;
+     *     Correction Proposal - § CP 1152 Parts 16 (Additional document titles for Key Object
+     *     Selection Document)
+     */
+<span class="nc" id="L651">    Map&lt;String, KeyObjectSelectionCode&gt; codeByValue = getKeyObjectSelectionMappingResources();</span>
+<span class="nc" id="L652">    Map&lt;String, Set&lt;KeyObjectSelectionCode&gt;&gt; resourcesByContextID = new HashMap&lt;&gt;();</span>
+
+<span class="nc bnc" id="L654" title="All 2 branches missed.">    for (KeyObjectSelectionCode code : codeByValue.values()) {</span>
+<span class="nc" id="L655">      Set&lt;KeyObjectSelectionCode&gt; resourceSet =</span>
+<span class="nc" id="L656">          resourcesByContextID.computeIfAbsent(code.contextGroupID, k -&gt; new TreeSet&lt;&gt;());</span>
+<span class="nc" id="L657">      resourceSet.add(code);</span>
+<span class="nc" id="L658">    }</span>
+
+    /**
+     * Document Title of created KOS - must be one of the values specified by &quot;Context ID 7010&quot; in
+     * KeyObjectSelectionCodes.xml&lt;br&gt;
+     *
+     * @note Default is code [DCM-113000] with following attributes : &lt;br&gt;
+     *     Tag.CodingSchemeDesignator = &quot;DCM&quot; &lt;br&gt;
+     *     Tag.CodeValue = 113000 &lt;br&gt;
+     *     Tag.CodeMeaning = &quot;Of Interest&quot;
+     */
+<span class="nc" id="L669">    final Attributes documentTitle = codeByValue.get(&quot;113000&quot;).toCodeItem();</span>
+    // TODO - the user or some preferences should be able to set this title value from a predefined
+    // list of code
+
+    /**
+     * @note &quot;Document Title Modifier&quot; should be set when &quot;Document Title&quot; meets one of the
+     *     following case : &lt;br&gt;
+     *     - Concept Name = (113001, DCM, &quot;Rejected for Quality Reasons&quot;) &lt;br&gt;
+     *     - Concept Name = (113010, DCM,&quot; Quality Issue&quot;) &lt;br&gt;
+     *     - Concept Name = (113013, DCM, &quot;Best In Set&quot;)
+     * @see PS 3.16 - Structured Reporting Templates § TID 2010 Key Object Selection
+     */
+
+    // TODO - add ability to set &quot;Optional Document Title Modifier&quot; for created KOS from the
+    // predefined list of code
+    // final Attributes documentTitleModifier = null;
+
+<span class="nc" id="L686">    final String seriesNumber = &quot;999&quot;; // A number that identifies the Series. (default: 999)</span>
+<span class="nc" id="L687">    final String instanceNumber = &quot;1&quot;; // A number that identifies the Document. (default: 1)</span>
+
+    // TODO - add ability to override default instanceNumber and seriesNumber from given parameters
+    // in case many
+    // KEY OBJECT DOCUMENT SERIES and KEY OBJECT DOCUMENT are build for the same Study in the same
+    // context
+
+<span class="nc" id="L694">    final int[] patientStudyAttributes = {</span>
+      Tag.SpecificCharacterSet,
+      Tag.StudyDate,
+      Tag.StudyTime,
+      Tag.AccessionNumber,
+      Tag.IssuerOfAccessionNumberSequence,
+      Tag.ReferringPhysicianName,
+      Tag.PatientName,
+      Tag.PatientID,
+      Tag.IssuerOfPatientID,
+      Tag.PatientBirthDate,
+      Tag.PatientSex,
+      Tag.StudyInstanceUID,
+      Tag.StudyID
+    };
+<span class="nc" id="L709">    Arrays.sort(patientStudyAttributes);</span>
+
+    /**
+     * @note Add selected attributes from another Attributes object to this. The specified array of
+     *     tag values must be sorted (as by the {@link java.util.Arrays#sort(int[])} method) prior
+     *     to making this call.
+     */
+<span class="nc" id="L716">    Attributes dKOS = new Attributes(dicomSourceAttribute, patientStudyAttributes);</span>
+
+<span class="nc" id="L718">    dKOS.setString(Tag.SOPClassUID, VR.UI, UID.KeyObjectSelectionDocumentStorage);</span>
+<span class="nc" id="L719">    dKOS.setString(Tag.SOPInstanceUID, VR.UI, UIDUtils.createUID());</span>
+<span class="nc" id="L720">    dKOS.setDate(Tag.ContentDateAndTime, new Date());</span>
+<span class="nc" id="L721">    dKOS.setString(Tag.Modality, VR.CS, &quot;KO&quot;);</span>
+<span class="nc" id="L722">    dKOS.setNull(Tag.ReferencedPerformedProcedureStepSequence, VR.SQ);</span>
+<span class="nc" id="L723">    dKOS.setString(</span>
+        Tag.SeriesInstanceUID,
+        VR.UI,
+<span class="nc bnc" id="L726" title="All 2 branches missed.">        StringUtil.hasText(seriesInstanceUID) ? seriesInstanceUID : UIDUtils.createUID());</span>
+<span class="nc" id="L727">    dKOS.setString(Tag.SeriesNumber, VR.IS, seriesNumber);</span>
+<span class="nc" id="L728">    dKOS.setString(Tag.InstanceNumber, VR.IS, instanceNumber);</span>
+<span class="nc" id="L729">    dKOS.setString(Tag.ValueType, VR.CS, &quot;CONTAINER&quot;);</span>
+<span class="nc" id="L730">    dKOS.setString(Tag.ContinuityOfContent, VR.CS, &quot;SEPARATE&quot;);</span>
+<span class="nc" id="L731">    dKOS.newSequence(Tag.ConceptNameCodeSequence, 1).add(documentTitle);</span>
+<span class="nc" id="L732">    dKOS.newSequence(Tag.CurrentRequestedProcedureEvidenceSequence, 1);</span>
+
+<span class="nc" id="L734">    Attributes templateIdentifier = new Attributes(2);</span>
+<span class="nc" id="L735">    templateIdentifier.setString(Tag.MappingResource, VR.CS, &quot;DCMR&quot;);</span>
+<span class="nc" id="L736">    templateIdentifier.setString(Tag.TemplateIdentifier, VR.CS, &quot;2010&quot;);</span>
+<span class="nc" id="L737">    dKOS.newSequence(Tag.ContentTemplateSequence, 1).add(templateIdentifier);</span>
+
+<span class="nc" id="L739">    Sequence contentSeq = dKOS.newSequence(Tag.ContentSequence, 1);</span>
+
+    // !! Dead Code !! uncomment this when documentTitleModifier will be handled (see above)
+    // if (documentTitleModifier != null) {
+    //
+    // Attributes documentTitleModifierSequence = new Attributes(4);
+    // documentTitleModifierSequence.setString(Tag.RelationshipType, VR.CS, &quot;HAS CONCEPT MOD&quot;);
+    // documentTitleModifierSequence.setString(Tag.ValueType, VR.CS, &quot;CODE&quot;);
+    // documentTitleModifierSequence.newSequence(Tag.ConceptNameCodeSequence, 1).add(
+    // makeKOS.toCodeItem(&quot;DCM-113011&quot;));
+    // documentTitleModifierSequence.newSequence(Tag.ConceptCodeSequence,
+    // 1).add(documentTitleModifier);
+    //
+    // contentSeq.add(documentTitleModifierSequence);
+    // }
+
+<span class="nc bnc" id="L755" title="All 2 branches missed.">    if (StringUtil.hasText(keyObjectDescription)) {</span>
+
+<span class="nc" id="L757">      Attributes keyObjectDescriptionSequence = new Attributes(4);</span>
+<span class="nc" id="L758">      keyObjectDescriptionSequence.setString(Tag.RelationshipType, VR.CS, &quot;CONTAINS&quot;);</span>
+<span class="nc" id="L759">      keyObjectDescriptionSequence.setString(Tag.ValueType, VR.CS, &quot;TEXT&quot;);</span>
+<span class="nc" id="L760">      keyObjectDescriptionSequence</span>
+<span class="nc" id="L761">          .newSequence(Tag.ConceptNameCodeSequence, 1)</span>
+<span class="nc" id="L762">          .add(codeByValue.get(&quot;113012&quot;).toCodeItem());</span>
+<span class="nc" id="L763">      keyObjectDescriptionSequence.setString(Tag.TextValue, VR.UT, keyObjectDescription);</span>
+
+<span class="nc" id="L765">      contentSeq.add(keyObjectDescriptionSequence);</span>
+<span class="nc" id="L766">      dKOS.setString(Tag.SeriesDescription, VR.LO, keyObjectDescription);</span>
+    }
+
+    // TODO - Handle Identical Documents Sequence (see below)
+    /**
+     * @see DICOM standard PS 3.3 - § C.17.6 Key Object Selection Modules &amp;&amp; § C.17.6.2.1 Identical
+     *     Documents
+     * @note The Unique identifier for the Study (studyInstanceUID) is supposed to be the same as to
+     *     one of the referenced image, but it's not necessary. Standard says that if the Current
+     *     Requested Procedure Evidence Sequence (0040,A375) references SOP Instances both in the
+     *     current study and in one or more other studies, this document shall be duplicated into
+     *     each of those other studies, and the duplicates shall be referenced in the Identical
+     *     Documents Sequence (0040,A525).
+     */
+<span class="nc" id="L780">    return dKOS;</span>
+  }
+
+  static Map&lt;String, KeyObjectSelectionCode&gt; getKeyObjectSelectionMappingResources() {
+
+<span class="nc" id="L785">    Map&lt;String, KeyObjectSelectionCode&gt; codeByValue = new HashMap&lt;&gt;();</span>
+
+<span class="nc" id="L787">    XMLStreamReader xmler = null;</span>
+<span class="nc" id="L788">    InputStream stream = null;</span>
+    try {
+<span class="nc" id="L790">      XMLInputFactory factory = XMLInputFactory.newInstance();</span>
+      // disable external entities for security
+<span class="nc" id="L792">      factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, Boolean.FALSE);</span>
+<span class="nc" id="L793">      factory.setProperty(XMLInputFactory.SUPPORT_DTD, Boolean.FALSE);</span>
+<span class="nc" id="L794">      stream =</span>
+<span class="nc" id="L795">          DicomMediaUtils.class.getResourceAsStream(</span>
+              &quot;/config/KeyObjectSelectionCodes.xml&quot;); // NON-NLS
+<span class="nc" id="L797">      xmler = factory.createXMLStreamReader(stream);</span>
+
+<span class="nc bnc" id="L799" title="All 2 branches missed.">      while (xmler.hasNext()) {</span>
+<span class="nc bnc" id="L800" title="All 2 branches missed.">        if (xmler.next() == XMLStreamConstants.START_ELEMENT) {</span>
+<span class="nc" id="L801">          String key = xmler.getName().getLocalPart();</span>
+<span class="nc bnc" id="L802" title="All 2 branches missed.">          if (&quot;resources&quot;.equals(key)) { // NON-NLS</span>
+<span class="nc bnc" id="L803" title="All 2 branches missed.">            while (xmler.hasNext()) {</span>
+<span class="nc bnc" id="L804" title="All 2 branches missed.">              if (xmler.next() == XMLStreamConstants.START_ELEMENT) {</span>
+<span class="nc" id="L805">                readCodeResource(xmler, codeByValue);</span>
+              }
+            }
+          }
+<span class="nc" id="L809">        }</span>
+      }
+<span class="nc" id="L811">    } catch (XMLStreamException e) {</span>
+<span class="nc" id="L812">      LOGGER.error(&quot;Reading KO Codes&quot;, e);</span>
+<span class="nc" id="L813">      codeByValue = null;</span>
+    } finally {
+<span class="nc" id="L815">      FileUtil.safeClose(xmler);</span>
+<span class="nc" id="L816">      FileUtil.safeClose(stream);</span>
+    }
+<span class="nc" id="L818">    return codeByValue;</span>
+  }
+
+  private static void readCodeResource(
+      XMLStreamReader xmler, Map&lt;String, KeyObjectSelectionCode&gt; codeByValue)
+      throws XMLStreamException {
+<span class="nc" id="L824">    String key = xmler.getName().getLocalPart();</span>
+<span class="nc bnc" id="L825" title="All 2 branches missed.">    if (&quot;resource&quot;.equals(key)) { // NON-NLS</span>
+<span class="nc" id="L826">      String resourceName = xmler.getAttributeValue(null, &quot;name&quot;); // NON-NLS</span>
+<span class="nc" id="L827">      String contextGroupID = xmler.getAttributeValue(null, &quot;contextId&quot;);</span>
+
+<span class="nc bnc" id="L829" title="All 2 branches missed.">      while (xmler.hasNext()) {</span>
+<span class="nc" id="L830">        int eventType = xmler.next();</span>
+<span class="nc bnc" id="L831" title="All 2 branches missed.">        if (eventType == XMLStreamConstants.START_ELEMENT) {</span>
+<span class="nc" id="L832">          key = xmler.getName().getLocalPart();</span>
+<span class="nc bnc" id="L833" title="All 2 branches missed.">          if (&quot;code&quot;.equals(key)) { // NON-NLS</span>
+
+<span class="nc" id="L835">            String codingSchemeDesignator = xmler.getAttributeValue(null, &quot;scheme&quot;); // NON-NLS</span>
+<span class="nc" id="L836">            String codeValue = xmler.getAttributeValue(null, &quot;value&quot;); // NON-NLS</span>
+<span class="nc" id="L837">            String codeMeaning = xmler.getAttributeValue(null, &quot;meaning&quot;); // NON-NLS</span>
+
+<span class="nc" id="L839">            String conceptNameCodeModifier = xmler.getAttributeValue(null, &quot;conceptMod&quot;);</span>
+<span class="nc" id="L840">            String contextGroupIdModifier = xmler.getAttributeValue(null, &quot;contexId&quot;);</span>
+
+<span class="nc" id="L842">            codeByValue.put(</span>
+                codeValue,
+                new KeyObjectSelectionCode(
+                    resourceName,
+                    contextGroupID,
+                    codingSchemeDesignator,
+                    codeValue,
+                    codeMeaning,
+                    conceptNameCodeModifier,
+                    contextGroupIdModifier));
+          }
+        }
+<span class="nc" id="L854">      }</span>
+    }
+<span class="nc" id="L856">  }</span>
+
+  public static class KeyObjectSelectionCode implements Comparable&lt;KeyObjectSelectionCode&gt; {
+
+    final String resourceName;
+    final String contextGroupID;
+
+    final String codingSchemeDesignator;
+    final String codeValue;
+    final String codeMeaning;
+
+    final String conceptNameCodeModifier;
+    final String contextGroupIdModifier;
+
+    public KeyObjectSelectionCode(
+        String resourceName,
+        String contextGroupID,
+        String codingSchemeDesignator,
+        String codeValue,
+        String codeMeaning,
+        String conceptNameCodeModifier,
+<span class="nc" id="L877">        String contextGroupIdModifier) {</span>
+
+<span class="nc" id="L879">      this.resourceName = resourceName;</span>
+<span class="nc" id="L880">      this.contextGroupID = contextGroupID;</span>
+
+<span class="nc" id="L882">      this.codingSchemeDesignator = codingSchemeDesignator;</span>
+<span class="nc" id="L883">      this.codeValue = codeValue;</span>
+<span class="nc" id="L884">      this.codeMeaning = codeMeaning;</span>
+
+<span class="nc" id="L886">      this.conceptNameCodeModifier = conceptNameCodeModifier;</span>
+<span class="nc" id="L887">      this.contextGroupIdModifier = contextGroupIdModifier;</span>
+<span class="nc" id="L888">    }</span>
+
+    final Boolean hasConceptModifier() {
+<span class="nc bnc" id="L891" title="All 2 branches missed.">      return conceptNameCodeModifier != null;</span>
+    }
+
+    @Override
+    public int compareTo(KeyObjectSelectionCode o) {
+<span class="nc" id="L896">      return this.codeValue.compareToIgnoreCase(o.codeValue);</span>
+    }
+
+    public Attributes toCodeItem() {
+<span class="nc" id="L900">      Attributes attrs = new Attributes(3);</span>
+<span class="nc" id="L901">      attrs.setString(Tag.CodeValue, VR.SH, codeValue);</span>
+<span class="nc" id="L902">      attrs.setString(Tag.CodingSchemeDesignator, VR.SH, codingSchemeDesignator);</span>
+<span class="nc" id="L903">      attrs.setString(Tag.CodeMeaning, VR.LO, codeMeaning);</span>
+<span class="nc" id="L904">      return attrs;</span>
+    }
+  }
+
+  public static TemporalAccessor getDateFromDicomElement(
+      TagType type,
+      Attributes dicom,
+      int tag,
+      String privateCreatorID,
+      TemporalAccessor defaultValue) {
+<span class="nc bnc" id="L914" title="All 4 branches missed.">    if (dicom == null || !dicom.containsValue(tag)) {</span>
+<span class="nc" id="L915">      return defaultValue;</span>
+    }
+<span class="nc" id="L917">    Date date = dicom.getDate(privateCreatorID, tag);</span>
+<span class="nc bnc" id="L918" title="All 2 branches missed.">    if (date == null) {</span>
+<span class="nc" id="L919">      return defaultValue;</span>
+    }
+<span class="nc bnc" id="L921" title="All 2 branches missed.">    if (TagType.DICOM_DATE == type) {</span>
+<span class="nc" id="L922">      return TagUtil.toLocalDate(date);</span>
+<span class="nc bnc" id="L923" title="All 2 branches missed.">    } else if (TagType.DICOM_TIME == type) {</span>
+<span class="nc" id="L924">      return TagUtil.toLocalTime(date);</span>
+    }
+<span class="nc" id="L926">    return TagUtil.toLocalDateTime(date);</span>
+  }
+
+  public static TemporalAccessor[] getDatesFromDicomElement(
+      TagType type,
+      Attributes dicom,
+      int tag,
+      String privateCreatorID,
+      TemporalAccessor[] defaultValue) {
+<span class="nc bnc" id="L935" title="All 4 branches missed.">    if (dicom == null || !dicom.containsValue(tag)) {</span>
+<span class="nc" id="L936">      return defaultValue;</span>
+    }
+<span class="nc" id="L938">    Date[] dates = dicom.getDates(privateCreatorID, tag);</span>
+<span class="nc bnc" id="L939" title="All 4 branches missed.">    if (dates == null || dates.length == 0) {</span>
+<span class="nc" id="L940">      return defaultValue;</span>
+    }
+
+    TemporalAccessor[] vals;
+<span class="nc bnc" id="L944" title="All 2 branches missed.">    if (TagType.DICOM_DATE == type) {</span>
+<span class="nc" id="L945">      vals = new LocalDate[dates.length];</span>
+<span class="nc bnc" id="L946" title="All 2 branches missed.">      for (int i = 0; i &lt; vals.length; i++) {</span>
+<span class="nc" id="L947">        vals[i] = TagUtil.toLocalDate(dates[i]);</span>
+      }
+<span class="nc bnc" id="L949" title="All 2 branches missed.">    } else if (TagType.DICOM_TIME == type) {</span>
+<span class="nc" id="L950">      vals = new LocalTime[dates.length];</span>
+<span class="nc bnc" id="L951" title="All 2 branches missed.">      for (int i = 0; i &lt; vals.length; i++) {</span>
+<span class="nc" id="L952">        vals[i] = TagUtil.toLocalTime(dates[i]);</span>
+      }
+    }
+
+<span class="nc" id="L956">    vals = new LocalDateTime[dates.length];</span>
+<span class="nc bnc" id="L957" title="All 2 branches missed.">    for (int i = 0; i &lt; vals.length; i++) {</span>
+<span class="nc" id="L958">      vals[i] = TagUtil.toLocalDateTime(dates[i]);</span>
+    }
+
+<span class="nc" id="L961">    return vals;</span>
+  }
+
+  public static TemporalAccessor getDateFromDicomElement(
+      XMLStreamReader xmler, String attribute, TagType type, TemporalAccessor defaultValue) {
+<span class="nc bnc" id="L966" title="All 2 branches missed.">    if (attribute != null) {</span>
+<span class="nc" id="L967">      String val = xmler.getAttributeValue(null, attribute);</span>
+<span class="nc bnc" id="L968" title="All 2 branches missed.">      if (val != null) {</span>
+<span class="nc bnc" id="L969" title="All 2 branches missed.">        if (TagType.DICOM_TIME.equals(type)) {</span>
+<span class="nc" id="L970">          return TagD.getDicomTime(val);</span>
+<span class="nc bnc" id="L971" title="All 2 branches missed.">        } else if (TagType.DICOM_DATETIME.equals(type)) {</span>
+<span class="nc" id="L972">          return TagD.getDicomDateTime(val);</span>
+        } else {
+<span class="nc" id="L974">          return TagD.getDicomDate(val);</span>
+        }
+      }
+    }
+<span class="nc" id="L978">    return defaultValue;</span>
+  }
+
+  public static TemporalAccessor[] getDatesFromDicomElement(
+      XMLStreamReader xmler, String attribute, TagType type, TemporalAccessor[] defaultValue) {
+<span class="nc" id="L983">    return getDatesFromDicomElement(xmler, attribute, type, defaultValue, &quot;\\&quot;);</span>
+  }
+
+  public static TemporalAccessor[] getDatesFromDicomElement(
+      XMLStreamReader xmler,
+      String attribute,
+      TagType type,
+      TemporalAccessor[] defaultValue,
+      String separator) {
+<span class="nc bnc" id="L992" title="All 2 branches missed.">    if (attribute != null) {</span>
+<span class="nc" id="L993">      String val = xmler.getAttributeValue(null, attribute);</span>
+<span class="nc bnc" id="L994" title="All 2 branches missed.">      if (val != null) {</span>
+<span class="nc" id="L995">        String[] strs = val.split(Pattern.quote(separator));</span>
+<span class="nc" id="L996">        TemporalAccessor[] vals = new TemporalAccessor[strs.length];</span>
+<span class="nc bnc" id="L997" title="All 2 branches missed.">        for (int i = 0; i &lt; strs.length; i++) {</span>
+<span class="nc bnc" id="L998" title="All 2 branches missed.">          if (TagType.DICOM_TIME.equals(type)) {</span>
+<span class="nc" id="L999">            vals[i] = TagD.getDicomTime(strs[i]);</span>
+<span class="nc bnc" id="L1000" title="All 2 branches missed.">          } else if (TagType.DICOM_DATETIME.equals(type)) {</span>
+<span class="nc" id="L1001">            vals[i] = TagD.getDicomDateTime(strs[i]);</span>
+          } else {
+<span class="nc" id="L1003">            vals[i] = TagD.getDicomDate(strs[i]);</span>
+          }
+        }
+<span class="nc" id="L1006">        return vals;</span>
+      }
+    }
+<span class="nc" id="L1009">    return defaultValue;</span>
+  }
+
+  public static void fillAttributes(Map&lt;TagW, Object&gt; tags, Attributes dataset) {
+<span class="nc bnc" id="L1013" title="All 4 branches missed.">    if (tags != null &amp;&amp; dataset != null) {</span>
+<span class="nc" id="L1014">      ElementDictionary dic = ElementDictionary.getStandardElementDictionary();</span>
+
+<span class="nc bnc" id="L1016" title="All 2 branches missed.">      for (Entry&lt;TagW, Object&gt; entry : tags.entrySet()) {</span>
+<span class="nc" id="L1017">        fillAttributes(dataset, entry.getKey(), entry.getValue(), dic);</span>
+<span class="nc" id="L1018">      }</span>
+    }
+<span class="nc" id="L1020">  }</span>
+
+  public static void fillAttributes(Iterator&lt;Entry&lt;TagW, Object&gt;&gt; iter, Attributes dataset) {
+<span class="nc bnc" id="L1023" title="All 4 branches missed.">    if (iter != null &amp;&amp; dataset != null) {</span>
+<span class="nc" id="L1024">      ElementDictionary dic = ElementDictionary.getStandardElementDictionary();</span>
+
+<span class="nc bnc" id="L1026" title="All 2 branches missed.">      while (iter.hasNext()) {</span>
+<span class="nc" id="L1027">        Entry&lt;TagW, Object&gt; entry = iter.next();</span>
+<span class="nc" id="L1028">        fillAttributes(dataset, entry.getKey(), entry.getValue(), dic);</span>
+<span class="nc" id="L1029">      }</span>
+    }
+<span class="nc" id="L1031">  }</span>
+
+  public static void fillAttributes(
+      Attributes dataset, final TagW tag, final Object val, ElementDictionary dic) {
+<span class="nc bnc" id="L1035" title="All 4 branches missed.">    if (dataset != null &amp;&amp; tag != null) {</span>
+<span class="nc" id="L1036">      TagType type = tag.getType();</span>
+<span class="nc" id="L1037">      int id = tag.getId();</span>
+<span class="nc" id="L1038">      String key = dic.keywordOf(id);</span>
+<span class="nc bnc" id="L1039" title="All 4 branches missed.">      if (val == null || !StringUtil.hasLength(key)) {</span>
+<span class="nc" id="L1040">        return;</span>
+      }
+
+<span class="nc bnc" id="L1043" title="All 2 branches missed.">      if (tag.isStringFamilyType()) {</span>
+<span class="nc bnc" id="L1044" title="All 2 branches missed.">        if (val instanceof String[] stringArray) {</span>
+<span class="nc" id="L1045">          dataset.setString(id, dic.vrOf(id), stringArray);</span>
+        } else {
+<span class="nc" id="L1047">          dataset.setString(id, dic.vrOf(id), val.toString());</span>
+        }
+<span class="nc bnc" id="L1049" title="All 2 branches missed.">      } else if (TagType.DICOM_DATE.equals(type)</span>
+<span class="nc bnc" id="L1050" title="All 2 branches missed.">          || TagType.DICOM_TIME.equals(type)</span>
+<span class="nc bnc" id="L1051" title="All 2 branches missed.">          || TagType.DICOM_DATETIME.equals(type)) {</span>
+<span class="nc bnc" id="L1052" title="All 2 branches missed.">        if (val instanceof TemporalAccessor temporalAccessor) {</span>
+<span class="nc" id="L1053">          dataset.setDate(id, dic.vrOf(id), TagUtil.toLocalDate(temporalAccessor));</span>
+<span class="nc bnc" id="L1054" title="All 2 branches missed.">        } else if (val.getClass().isArray()) {</span>
+<span class="nc" id="L1055">          dataset.setDate(id, dic.vrOf(id), TagUtil.toLocalDates(val));</span>
+        }
+<span class="nc bnc" id="L1057" title="All 2 branches missed.">      } else if (TagType.INTEGER.equals(type)) {</span>
+<span class="nc bnc" id="L1058" title="All 2 branches missed.">        if (val instanceof Integer integer) {</span>
+<span class="nc" id="L1059">          dataset.setInt(id, dic.vrOf(id), integer);</span>
+<span class="nc bnc" id="L1060" title="All 2 branches missed.">        } else if (val instanceof int[] intArray) {</span>
+<span class="nc" id="L1061">          dataset.setInt(id, dic.vrOf(id), intArray);</span>
+        }
+<span class="nc bnc" id="L1063" title="All 2 branches missed.">      } else if (TagType.FLOAT.equals(type)) {</span>
+<span class="nc bnc" id="L1064" title="All 2 branches missed.">        if (val instanceof Float floatVal) {</span>
+<span class="nc" id="L1065">          dataset.setFloat(id, dic.vrOf(id), floatVal);</span>
+<span class="nc bnc" id="L1066" title="All 2 branches missed.">        } else if (val instanceof float[] floatArray) {</span>
+<span class="nc" id="L1067">          dataset.setFloat(id, dic.vrOf(id), floatArray);</span>
+        }
+<span class="nc bnc" id="L1069" title="All 2 branches missed.">      } else if (TagType.DOUBLE.equals(type)) {</span>
+<span class="nc bnc" id="L1070" title="All 2 branches missed.">        if (val instanceof Double doubleVal) {</span>
+<span class="nc" id="L1071">          dataset.setDouble(id, dic.vrOf(id), doubleVal);</span>
+<span class="nc bnc" id="L1072" title="All 2 branches missed.">        } else if (val instanceof double[] doubleArray) {</span>
+<span class="nc" id="L1073">          dataset.setDouble(id, dic.vrOf(id), doubleArray);</span>
+        }
+<span class="nc bnc" id="L1075" title="All 4 branches missed.">      } else if (TagType.DICOM_SEQUENCE.equals(type) &amp;&amp; val instanceof Attributes[] sIn) {</span>
+<span class="nc" id="L1076">        Sequence sOut = dataset.newSequence(id, sIn.length);</span>
+<span class="nc bnc" id="L1077" title="All 2 branches missed.">        for (Attributes attributes : sIn) {</span>
+<span class="nc" id="L1078">          sOut.add(new Attributes(attributes));</span>
+        }
+      }
+    }
+<span class="nc" id="L1082">  }</span>
+
+  public static double getThickness(ImageElement firstDcm, ImageElement lastDcm) {
+<span class="nc" id="L1085">    double[] p1 = (double[]) firstDcm.getTagValue(TagW.SlicePosition);</span>
+<span class="nc" id="L1086">    double[] p2 = (double[]) lastDcm.getTagValue(TagW.SlicePosition);</span>
+<span class="nc bnc" id="L1087" title="All 4 branches missed.">    if (p1 != null &amp;&amp; p2 != null) {</span>
+<span class="nc" id="L1088">      double diff = Math.abs((p2[0] + p2[1] + p2[2]) - (p1[0] + p1[1] + p1[2]));</span>
+
+<span class="nc" id="L1090">      Double t1 = TagD.getTagValue(firstDcm, Tag.SliceThickness, Double.class);</span>
+<span class="nc bnc" id="L1091" title="All 2 branches missed.">      if (t1 != null) {</span>
+<span class="nc" id="L1092">        diff += t1 / 2;</span>
+      }
+
+<span class="nc" id="L1095">      t1 = TagD.getTagValue(lastDcm, Tag.SliceThickness, Double.class);</span>
+<span class="nc bnc" id="L1096" title="All 2 branches missed.">      if (t1 != null) {</span>
+<span class="nc" id="L1097">        diff += t1 / 2;</span>
+      }
+
+<span class="nc" id="L1100">      return diff;</span>
+    }
+<span class="nc" id="L1102">    return 0.0;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

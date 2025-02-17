@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>NativeOpenCVCodec.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.internal.cv</a> &gt; <span class="el_source">NativeOpenCVCodec.java</span></div><h1>NativeOpenCVCodec.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.internal.cv;
+
+import java.net.URI;
+import java.util.Hashtable;
+import org.opencv.osgi.OpenCVNativeLoader;
+import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Deactivate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.image.cv.ImageCVIO;
+import org.weasis.core.api.media.data.Codec;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.media.data.MediaReader;
+
+@org.osgi.service.component.annotations.Component(service = Codec.class)
+<span class="nc" id="L26">public class NativeOpenCVCodec implements Codec&lt;ImageElement&gt; {</span>
+<span class="nc" id="L27">  private static final Logger LOGGER = LoggerFactory.getLogger(NativeOpenCVCodec.class);</span>
+
+<span class="nc" id="L29">  private static final String[] readerMIMETypes = {</span>
+    &quot;image/bmp&quot;,
+    &quot;image/x-bmp&quot;, // NON-NLS
+    &quot;image/x-windows-bmp&quot;, // NON-NLS
+    &quot;image/jpeg&quot;,
+    &quot;image/pjpeg&quot;, // NON-NLS
+    &quot;image/png&quot;,
+    &quot;image/x-portable-bitmap&quot;,
+    &quot;image/x-portable-graymap&quot;,
+    &quot;image/x-portable-greymap&quot;, // NON-NLS
+    &quot;image/x-portable-pixmap&quot;,
+    &quot;image/x-portable-anymap&quot;,
+    &quot;application/x-portable-anymap&quot;, // NON-NLS
+    &quot;image/cmu-raster&quot;, // NON-NLS
+    &quot;application/x-cmu-raster&quot;, // NON-NLS
+    &quot;image/x-cmu-raster&quot;, // NON-NLS
+    &quot;image/tiff&quot;,
+    &quot;image/x-tiff&quot;, // NON-NLS
+    &quot;image/hdr&quot;, // NON-NLS
+    &quot;image/jp2&quot;, // NON-NLS
+    &quot;image/jp2k&quot;, // NON-NLS
+    &quot;image/j2k&quot;, // NON-NLS
+    &quot;image/j2c&quot; // NON-NLS
+  };
+<span class="nc" id="L53">  private static final String[] readerFileSuffixes = {</span>
+    &quot;bm&quot;,
+    &quot;bmp&quot;,
+    &quot;dib&quot;,
+    &quot;jpeg&quot;,
+    &quot;jpg&quot;,
+    &quot;jpe&quot;,
+    &quot;png&quot;,
+    &quot;x-png&quot;,
+    &quot;pbm&quot;,
+    &quot;pgm&quot;,
+    &quot;ppm&quot;,
+    &quot;pxm&quot;, // NON-NLS
+    &quot;pnm&quot;,
+    &quot;ras&quot;,
+    &quot;rast&quot;, // NON-NLS
+    &quot;tiff&quot;,
+    &quot;tif&quot;,
+    &quot;hdr&quot;,
+    &quot;jp2&quot;,
+    &quot;jp2k&quot;, // NON-NLS
+    &quot;j2k&quot;,
+    &quot;j2c&quot; // NON-NLS
+  };
+
+<span class="nc" id="L78">  private static final String[] writerMIMETypes = {};</span>
+<span class="nc" id="L79">  private static final String[] writerFileSuffixes = {};</span>
+
+  @Override
+  public String[] getReaderMIMETypes() {
+<span class="nc" id="L83">    return readerMIMETypes;</span>
+  }
+
+  @Override
+  public String[] getReaderExtensions() {
+<span class="nc" id="L88">    return readerFileSuffixes;</span>
+  }
+
+  @Override
+  public boolean isMimeTypeSupported(String mimeType) {
+<span class="nc bnc" id="L93" title="All 2 branches missed.">    if (mimeType != null) {</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">      for (String mime : getReaderMIMETypes()) {</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">        if (mimeType.equals(mime)) {</span>
+<span class="nc" id="L96">          return true;</span>
+        }
+      }
+    }
+<span class="nc" id="L100">    return false;</span>
+  }
+
+  @Override
+  public MediaReader&lt;ImageElement&gt; getMediaIO(
+      URI media, String mimeType, Hashtable&lt;String, Object&gt; properties) {
+<span class="nc bnc" id="L106" title="All 2 branches missed.">    if (isMimeTypeSupported(mimeType)) {</span>
+<span class="nc" id="L107">      return new ImageCVIO(media, mimeType, this);</span>
+    }
+<span class="nc" id="L109">    return null;</span>
+  }
+
+  @Override
+  public String getCodecName() {
+<span class="nc" id="L114">    return &quot;OpenCV imgcodecs&quot;; // NON-NLS</span>
+  }
+
+  @Override
+  public String[] getWriterExtensions() {
+<span class="nc" id="L119">    return writerFileSuffixes;</span>
+  }
+
+  @Override
+  public String[] getWriterMIMETypes() {
+<span class="nc" id="L124">    return writerMIMETypes;</span>
+  }
+
+  // ================================================================================
+  // OSGI service implementation
+  // ================================================================================
+
+  @Activate
+  protected void activate(ComponentContext context) {
+    // Load the native OpenCV library
+<span class="nc" id="L134">    OpenCVNativeLoader loader = new OpenCVNativeLoader();</span>
+<span class="nc" id="L135">    loader.init();</span>
+<span class="nc" id="L136">    LOGGER.info(&quot;Native OpenCV is activated&quot;);</span>
+<span class="nc" id="L137">  }</span>
+
+  @Deactivate
+<span class="nc" id="L140">  protected void deactivate(ComponentContext context) {}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

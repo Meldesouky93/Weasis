@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AcquireImageValues.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer</a> &gt; <span class="el_source">AcquireImageValues.java</span></div><h1>AcquireImageValues.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer;
+
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.util.Objects;
+import java.util.Optional;
+import org.weasis.core.api.image.util.Unit;
+import org.weasis.core.api.util.Copyable;
+
+/**
+ * Store all modifiable values. Enable to compare two objects for dirty check.
+ *
+ * @author Yannick LARVOR
+ * @since 2.5.0
+ */
+public class AcquireImageValues implements Copyable&lt;AcquireImageValues&gt; {
+<span class="nc" id="L26">  private Rectangle cropZone = null;</span>
+<span class="nc" id="L27">  private Point layerOffset = null;</span>
+<span class="nc" id="L28">  private int orientation = 0;</span>
+<span class="nc" id="L29">  private int rotation = 0;</span>
+<span class="nc" id="L30">  private int brightness = 0;</span>
+<span class="nc" id="L31">  private int contrast = 100;</span>
+<span class="nc" id="L32">  private boolean autoLevel = false;</span>
+<span class="nc" id="L33">  private Unit calibrationUnit = Unit.PIXEL;</span>
+<span class="nc" id="L34">  private double calibrationRatio = 1.0;</span>
+<span class="nc" id="L35">  private Double ratio = null;</span>
+
+  public AcquireImageValues() {
+<span class="nc" id="L38">    super();</span>
+<span class="nc" id="L39">  }</span>
+
+<span class="nc" id="L41">  public AcquireImageValues(AcquireImageValues object) {</span>
+<span class="nc" id="L42">    setCropZone(Optional.ofNullable(object.cropZone).map(Rectangle::getBounds).orElse(null));</span>
+<span class="nc" id="L43">    setLayerOffset(Optional.ofNullable(object.layerOffset).map(Point::getLocation).orElse(null));</span>
+<span class="nc" id="L44">    setOrientation(object.orientation);</span>
+<span class="nc" id="L45">    setRotation(object.rotation);</span>
+<span class="nc" id="L46">    setBrightness(object.brightness);</span>
+<span class="nc" id="L47">    setContrast(object.contrast);</span>
+<span class="nc" id="L48">    setAutoLevel(object.autoLevel);</span>
+<span class="nc" id="L49">    setCalibrationUnit(object.calibrationUnit);</span>
+<span class="nc" id="L50">    setCalibrationRatio(object.calibrationRatio);</span>
+<span class="nc" id="L51">    setRatio(object.ratio);</span>
+<span class="nc" id="L52">  }</span>
+
+  public int getOrientation() {
+<span class="nc" id="L55">    return orientation;</span>
+  }
+
+  public void setOrientation(int orientation) {
+<span class="nc" id="L59">    this.orientation = orientation;</span>
+<span class="nc" id="L60">  }</span>
+
+  public Rectangle getCropZone() {
+<span class="nc" id="L63">    return cropZone;</span>
+  }
+
+  public void setCropZone(Rectangle cropZone) {
+<span class="nc" id="L67">    this.cropZone = cropZone;</span>
+<span class="nc" id="L68">  }</span>
+
+  public Point getLayerOffset() {
+<span class="nc" id="L71">    return layerOffset;</span>
+  }
+
+  public void setLayerOffset(Point layerOffset) {
+<span class="nc" id="L75">    this.layerOffset = layerOffset;</span>
+<span class="nc" id="L76">  }</span>
+
+  public int getBrightness() {
+<span class="nc" id="L79">    return brightness;</span>
+  }
+
+  public void setBrightness(int brightness) {
+<span class="nc" id="L83">    this.brightness = brightness;</span>
+<span class="nc" id="L84">  }</span>
+
+  public int getContrast() {
+<span class="nc" id="L87">    return contrast;</span>
+  }
+
+  public void setContrast(int contrast) {
+<span class="nc" id="L91">    this.contrast = contrast;</span>
+<span class="nc" id="L92">  }</span>
+
+  public int getFullRotation() {
+<span class="nc" id="L95">    return rotation + orientation;</span>
+  }
+
+  public Unit getCalibrationUnit() {
+<span class="nc" id="L99">    return calibrationUnit;</span>
+  }
+
+  public void setCalibrationUnit(Unit calibrationUnit) {
+<span class="nc" id="L103">    this.calibrationUnit = calibrationUnit;</span>
+<span class="nc" id="L104">  }</span>
+
+  public double getCalibrationRatio() {
+<span class="nc" id="L107">    return calibrationRatio;</span>
+  }
+
+  public void setCalibrationRatio(double calibrationRatio) {
+<span class="nc" id="L111">    this.calibrationRatio = calibrationRatio;</span>
+<span class="nc" id="L112">  }</span>
+
+  @Override
+  public AcquireImageValues copy() {
+<span class="nc" id="L116">    return new AcquireImageValues(this);</span>
+  }
+
+  public boolean isAutoLevel() {
+<span class="nc" id="L120">    return autoLevel;</span>
+  }
+
+  public void setAutoLevel(boolean autoLevel) {
+<span class="nc" id="L124">    this.autoLevel = autoLevel;</span>
+<span class="nc" id="L125">  }</span>
+
+  public void toggleAutoLevel() {
+<span class="nc bnc" id="L128" title="All 2 branches missed.">    this.autoLevel = !this.autoLevel;</span>
+<span class="nc" id="L129">  }</span>
+
+  public int getRotation() {
+<span class="nc" id="L132">    return rotation;</span>
+  }
+
+  public void setRotation(int rotation) {
+<span class="nc" id="L136">    this.rotation = rotation;</span>
+<span class="nc" id="L137">  }</span>
+
+  public Double getRatio() {
+<span class="nc" id="L140">    return ratio;</span>
+  }
+
+  public void setRatio(Double ratio) {
+<span class="nc" id="L144">    this.ratio = ratio;</span>
+<span class="nc" id="L145">  }</span>
+
+  @Override
+  public boolean equals(Object o) {
+<span class="nc bnc" id="L149" title="All 2 branches missed.">    if (this == o) {</span>
+<span class="nc" id="L150">      return true;</span>
+    }
+<span class="nc bnc" id="L152" title="All 4 branches missed.">    if (o == null || getClass() != o.getClass()) {</span>
+<span class="nc" id="L153">      return false;</span>
+    }
+<span class="nc" id="L155">    AcquireImageValues that = (AcquireImageValues) o;</span>
+<span class="nc bnc" id="L156" title="All 10 branches missed.">    return orientation == that.orientation</span>
+        &amp;&amp; rotation == that.rotation
+        &amp;&amp; brightness == that.brightness
+        &amp;&amp; contrast == that.contrast
+        &amp;&amp; autoLevel == that.autoLevel
+<span class="nc bnc" id="L161" title="All 2 branches missed.">        &amp;&amp; Double.compare(that.calibrationRatio, calibrationRatio) == 0</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">        &amp;&amp; Objects.equals(cropZone, that.cropZone)</span>
+<span class="nc bnc" id="L163" title="All 4 branches missed.">        &amp;&amp; Objects.equals(layerOffset, that.layerOffset)</span>
+        &amp;&amp; calibrationUnit == that.calibrationUnit
+<span class="nc bnc" id="L165" title="All 2 branches missed.">        &amp;&amp; Objects.equals(ratio, that.ratio);</span>
+  }
+
+  @Override
+  public int hashCode() {
+<span class="nc" id="L170">    return Objects.hash(</span>
+        cropZone,
+        layerOffset,
+<span class="nc" id="L173">        orientation,</span>
+<span class="nc" id="L174">        rotation,</span>
+<span class="nc" id="L175">        brightness,</span>
+<span class="nc" id="L176">        contrast,</span>
+<span class="nc" id="L177">        autoLevel,</span>
+        calibrationUnit,
+<span class="nc" id="L179">        calibrationRatio,</span>
+        ratio);
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L185">    return &quot;AcquireImageValues[cropZone=&gt;&quot; // NON-NLS</span>
+        + cropZone
+        + &quot;layerOffset=&gt;&quot; // NON-NLS
+        + layerOffset
+        + &quot;orientation=&gt;&quot; // NON-NLS
+        + orientation
+        + &quot;rotation=&gt;&quot; // NON-NLS
+        + rotation
+        + &quot;brightness=&gt;&quot; // NON-NLS
+        + brightness
+        + &quot;contrast=&gt;&quot; // NON-NLS
+        + contrast
+        + &quot;autoLevel=&gt;&quot; // NON-NLS
+        + autoLevel
+        + &quot;calibrationUnit=&gt;&quot; // NON-NLS
+        + calibrationUnit
+        + &quot;calibrationRatio=&gt;&quot; // NON-NLS
+        + calibrationRatio
+        + &quot;ratio=&gt;&quot; // NON-NLS
+        + ratio;
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

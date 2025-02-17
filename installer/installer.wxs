@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+    <Product Id="*" Name="Weasis" Language="1033" Version="1.0.0.0" Manufacturer="map" UpgradeCode="PUT-GUID-HERE">
+        <Package InstallerVersion="500" Compressed="yes" />
+        
+        <Directory Id="TARGETDIR" Name="SourceDir">
+            <Directory Id="ProgramFilesFolder">
+                <Directory Id="INSTALLFOLDER" Name="Weasis">
+                    <Component Id="weasis-launcher" Guid="9766d408-232c-4940-bff8-b19169e6c054">
+                        <File Id="weasis-launcher-file" Source="/workspaces/Weasis/weasis-launcher/target/weasis-launcher-4.6.0-SNAPSHOT.jar" />
+                    </Component>
+                </Directory>
+            </Directory>
+        </Directory>
+
+        <Feature Id="ProductFeature" Title="Weasis" Level="1">
+            <ComponentRef Id="weasis-launcher" />
+        </Feature>
+    </Product>
+</Wix>

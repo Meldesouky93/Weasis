@@ -1,0 +1,292 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>WProperties.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.service</a> &gt; <span class="el_source">WProperties.java</span></div><h1>WProperties.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.service;
+
+import java.awt.Color;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.Properties;
+import org.osgi.framework.BundleContext;
+import org.osgi.service.prefs.Preferences;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.gui.util.AppProperties;
+import org.weasis.core.api.util.GzipManager;
+import org.weasis.core.util.StringUtil;
+
+public class WProperties extends Properties {
+
+<span class="nc" id="L27">  private static final Logger LOGGER = LoggerFactory.getLogger(WProperties.class);</span>
+
+  private final transient BundleContext context;
+
+<span class="nc" id="L31">  public WProperties() {</span>
+<span class="nc" id="L32">    context = AppProperties.getBundleContext();</span>
+<span class="nc" id="L33">  }</span>
+
+  @Override
+  public synchronized Object setProperty(String key, String value) {
+<span class="nc bnc" id="L37" title="All 2 branches missed.">    if (isValid(key, value)) {</span>
+<span class="nc" id="L38">      return super.setProperty(key, value);</span>
+    }
+<span class="nc" id="L40">    return null;</span>
+  }
+
+  // Get value from: 1) Local preferences 2) Java System properties 3) base.json
+  @Override
+  public String getProperty(String key) {
+<span class="nc" id="L46">    String value = super.getProperty(key);</span>
+<span class="nc bnc" id="L47" title="All 2 branches missed.">    if (value == null) {</span>
+<span class="nc" id="L48">      value = System.getProperty(key, null);</span>
+<span class="nc bnc" id="L49" title="All 2 branches missed.">      if (value == null) {</span>
+<span class="nc bnc" id="L50" title="All 2 branches missed.">        value = context == null ? null : context.getProperty(key);</span>
+      }
+    }
+<span class="nc" id="L53">    return value;</span>
+  }
+
+  public void resetProperty(String key, String defaultValue) {
+<span class="nc bnc" id="L57" title="All 2 branches missed.">    if (isKeyValid(key)) {</span>
+<span class="nc" id="L58">      String value = System.getProperty(key, null);</span>
+<span class="nc bnc" id="L59" title="All 2 branches missed.">      if (value == null) {</span>
+<span class="nc bnc" id="L60" title="All 2 branches missed.">        value = context == null ? null : context.getProperty(key);</span>
+<span class="nc bnc" id="L61" title="All 2 branches missed.">        if (value == null) {</span>
+<span class="nc" id="L62">          value = defaultValue;</span>
+        }
+      }
+<span class="nc bnc" id="L65" title="All 2 branches missed.">      if (isValid(key, value)) {</span>
+<span class="nc" id="L66">        this.put(key, value);</span>
+      }
+    }
+<span class="nc" id="L69">  }</span>
+
+  // Special property used by a OSGI service through BundleContext
+  public void resetServiceProperty(String key, String defaultValue) {
+<span class="nc bnc" id="L73" title="All 2 branches missed.">    if (isKeyValid(key)) {</span>
+<span class="nc" id="L74">      String value = System.getProperty(key, null);</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">      if (value == null) {</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">        value = context == null ? null : context.getProperty(&quot;def.&quot; + key); // NON-NLS</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">        if (value == null) {</span>
+<span class="nc" id="L78">          value = defaultValue;</span>
+        }
+      }
+<span class="nc bnc" id="L81" title="All 2 branches missed.">      if (isValid(key, value)) {</span>
+<span class="nc" id="L82">        this.put(key, value);</span>
+      }
+    }
+<span class="nc" id="L85">  }</span>
+
+  public void putIntProperty(String key, int value) {
+<span class="nc bnc" id="L88" title="All 2 branches missed.">    if (isKeyValid(key)) {</span>
+<span class="nc" id="L89">      this.put(key, String.valueOf(value));</span>
+    }
+<span class="nc" id="L91">  }</span>
+
+  public int getIntProperty(String key, int def) {
+<span class="nc" id="L94">    int result = def;</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">    if (isKeyValid(key)) {</span>
+<span class="nc" id="L96">      final String value = this.getProperty(key);</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">      if (value != null) {</span>
+        try {
+<span class="nc" id="L99">          result = Integer.parseInt(value);</span>
+<span class="nc" id="L100">        } catch (NumberFormatException ignore) {</span>
+          // return the default value
+<span class="nc" id="L102">        }</span>
+      }
+    }
+<span class="nc" id="L105">    return result;</span>
+  }
+
+  public void putLongProperty(String key, long value) {
+<span class="nc bnc" id="L109" title="All 2 branches missed.">    if (isKeyValid(key)) {</span>
+<span class="nc" id="L110">      this.put(key, String.valueOf(value));</span>
+    }
+<span class="nc" id="L112">  }</span>
+
+  public long getLongProperty(String key, long def) {
+<span class="nc" id="L115">    long result = def;</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">    if (isKeyValid(key)) {</span>
+<span class="nc" id="L117">      final String value = this.getProperty(key);</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">      if (value != null) {</span>
+        try {
+<span class="nc" id="L120">          result = Long.parseLong(value);</span>
+<span class="nc" id="L121">        } catch (NumberFormatException ignore) {</span>
+          // return the default value
+<span class="nc" id="L123">        }</span>
+      }
+    }
+<span class="nc" id="L126">    return result;</span>
+  }
+
+  public void putBooleanProperty(String key, boolean value) {
+<span class="nc bnc" id="L130" title="All 2 branches missed.">    if (isKeyValid(key)) {</span>
+<span class="nc" id="L131">      this.put(key, String.valueOf(value));</span>
+    }
+<span class="nc" id="L133">  }</span>
+
+  public boolean getBooleanProperty(String key, boolean def) {
+<span class="nc" id="L136">    boolean result = def;</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">    if (isKeyValid(key)) {</span>
+<span class="nc" id="L138">      final String value = this.getProperty(key);</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">      if (value != null) {</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">        if (Boolean.TRUE.toString().equalsIgnoreCase(value)) {</span>
+<span class="nc" id="L141">          result = true;</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">        } else if (Boolean.FALSE.toString().equalsIgnoreCase(value)) {</span>
+<span class="nc" id="L143">          result = false;</span>
+        }
+      }
+    }
+<span class="nc" id="L147">    return result;</span>
+  }
+
+  public void putFloatProperty(String key, float value) {
+<span class="nc bnc" id="L151" title="All 2 branches missed.">    if (isKeyValid(key)) {</span>
+<span class="nc" id="L152">      this.put(key, String.valueOf(value));</span>
+    }
+<span class="nc" id="L154">  }</span>
+
+  public float getFloatProperty(String key, float def) {
+<span class="nc" id="L157">    float result = def;</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">    if (isKeyValid(key)) {</span>
+<span class="nc" id="L159">      final String value = this.getProperty(key);</span>
+<span class="nc bnc" id="L160" title="All 2 branches missed.">      if (value != null) {</span>
+        try {
+<span class="nc" id="L162">          result = Float.parseFloat(value);</span>
+<span class="nc" id="L163">        } catch (NumberFormatException ignore) {</span>
+          // return the default value
+<span class="nc" id="L165">        }</span>
+      }
+    }
+<span class="nc" id="L168">    return result;</span>
+  }
+
+  public void putDoubleProperty(String key, double value) {
+<span class="nc bnc" id="L172" title="All 2 branches missed.">    if (isKeyValid(key)) {</span>
+<span class="nc" id="L173">      this.put(key, String.valueOf(value));</span>
+    }
+<span class="nc" id="L175">  }</span>
+
+  public double getDoubleProperty(String key, double def) {
+<span class="nc" id="L178">    double result = def;</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">    if (isKeyValid(key)) {</span>
+<span class="nc" id="L180">      final String value = this.getProperty(key);</span>
+<span class="nc bnc" id="L181" title="All 2 branches missed.">      if (value != null) {</span>
+        try {
+<span class="nc" id="L183">          result = Double.parseDouble(value);</span>
+<span class="nc" id="L184">        } catch (NumberFormatException ignore) {</span>
+          // return the default value
+<span class="nc" id="L186">        }</span>
+      }
+    }
+<span class="nc" id="L189">    return result;</span>
+  }
+
+  public Color getColorProperty(String key) {
+<span class="nc" id="L193">    return hexadecimal2Color(this.getProperty(key));</span>
+  }
+
+  public Color getColorProperty(String key, Color defaultColor) {
+<span class="nc" id="L197">    String val = this.getProperty(key);</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">    if (!StringUtil.hasText(val)) {</span>
+<span class="nc" id="L199">      return defaultColor;</span>
+    }
+<span class="nc" id="L201">    return hexadecimal2Color(val);</span>
+  }
+
+  public void putColorProperty(String key, Color color) {
+<span class="nc bnc" id="L205" title="All 2 branches missed.">    if (isValid(key, color)) {</span>
+<span class="nc" id="L206">      this.put(key, color2Hexadecimal(color, true));</span>
+    }
+<span class="nc" id="L208">  }</span>
+
+  public void putByteArrayProperty(String key, byte[] value) {
+<span class="nc bnc" id="L211" title="All 2 branches missed.">    if (isKeyValid(key)) {</span>
+      try {
+<span class="nc" id="L213">        String val = StringUtil.EMPTY_STRING;</span>
+<span class="nc bnc" id="L214" title="All 4 branches missed.">        if (value != null &amp;&amp; value.length &gt; 0) {</span>
+<span class="nc" id="L215">          val =</span>
+              new String(
+<span class="nc" id="L217">                  Base64.getEncoder().encode(GzipManager.gzipCompressToByte(value)),</span>
+                  StandardCharsets.UTF_8);
+        }
+<span class="nc" id="L220">        this.put(key, val);</span>
+<span class="nc" id="L221">      } catch (IOException e) {</span>
+<span class="nc" id="L222">        LOGGER.error(&quot;Set byte property&quot;, e);</span>
+<span class="nc" id="L223">      }</span>
+    }
+<span class="nc" id="L225">  }</span>
+
+  public byte[] getByteArrayProperty(String key, byte[] def) {
+<span class="nc" id="L228">    byte[] result = def;</span>
+<span class="nc bnc" id="L229" title="All 2 branches missed.">    if (isKeyValid(key)) {</span>
+<span class="nc" id="L230">      String value = this.getProperty(key);</span>
+<span class="nc bnc" id="L231" title="All 2 branches missed.">      if (StringUtil.hasText(value)) {</span>
+        try {
+          result =
+<span class="nc" id="L234">              GzipManager.gzipUncompressToByte(</span>
+<span class="nc" id="L235">                  Base64.getDecoder().decode(value.getBytes(StandardCharsets.UTF_8)));</span>
+<span class="nc" id="L236">        } catch (IOException e) {</span>
+<span class="nc" id="L237">          LOGGER.error(&quot;Get byte property&quot;, e);</span>
+<span class="nc" id="L238">        }</span>
+      }
+    }
+<span class="nc" id="L241">    return result;</span>
+  }
+
+  private static boolean isValid(String key, Object value) {
+<span class="nc bnc" id="L245" title="All 4 branches missed.">    return key != null &amp;&amp; value != null;</span>
+  }
+
+  private static boolean isKeyValid(String key) {
+<span class="nc bnc" id="L249" title="All 2 branches missed.">    return key != null;</span>
+  }
+
+  public static String color2Hexadecimal(Color c, boolean alpha) {
+    int val;
+<span class="nc bnc" id="L254" title="All 2 branches missed.">    if (c == null) {</span>
+<span class="nc" id="L255">      val = 0;</span>
+    } else {
+<span class="nc bnc" id="L257" title="All 2 branches missed.">      if (alpha) {</span>
+<span class="nc" id="L258">        val = c.getRGB();</span>
+      } else {
+<span class="nc" id="L260">        val = c.getRGB() &amp; 0x00ffffff;</span>
+      }
+    }
+<span class="nc" id="L263">    return Integer.toHexString(val);</span>
+  }
+
+  public static Color hexadecimal2Color(String hexColor) {
+<span class="nc" id="L267">    int intValue = 0xff000000;</span>
+
+    try {
+<span class="nc bnc" id="L270" title="All 4 branches missed.">      if (hexColor != null &amp;&amp; hexColor.length() &gt; 6) {</span>
+<span class="nc" id="L271">        intValue = (int) (Long.parseLong(hexColor, 16));</span>
+      } else {
+<span class="nc" id="L273">        intValue |= Integer.parseInt(hexColor, 16);</span>
+      }
+<span class="nc" id="L275">    } catch (NumberFormatException e) {</span>
+<span class="nc" id="L276">      LOGGER.error(&quot;Cannot parse color {} into int&quot;, hexColor);</span>
+<span class="nc" id="L277">    }</span>
+<span class="nc" id="L278">    return new Color(intValue, true);</span>
+  }
+
+  public static void setProperty(
+      WProperties properties, String key, Preferences prefNode, String defaultValue) {
+<span class="nc bnc" id="L283" title="All 4 branches missed.">    if (properties != null &amp;&amp; key != null) {</span>
+<span class="nc" id="L284">      String val = prefNode.get(key, null);</span>
+<span class="nc bnc" id="L285" title="All 2 branches missed.">      if (val == null) {</span>
+<span class="nc" id="L286">        val = properties.getProperty(key, defaultValue);</span>
+      }
+<span class="nc" id="L288">      properties.setProperty(key, val);</span>
+    }
+<span class="nc" id="L290">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

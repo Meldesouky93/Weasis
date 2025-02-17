@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>PropertiesDialog.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.dialog</a> &gt; <span class="el_source">PropertiesDialog.java</span></div><h1>PropertiesDialog.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.dialog;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.Window;
+import java.awt.event.WindowEvent;
+import javax.swing.BorderFactory;
+import javax.swing.DefaultBoundedRangeModel;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JColorChooser;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JSpinner;
+import javax.swing.border.TitledBorder;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.DecFormatter;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.gui.util.JSliderW;
+import org.weasis.core.api.gui.util.SliderChangeListener;
+import org.weasis.core.api.util.FontItem;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.api.util.ResourceUtil.ActionIcon;
+import org.weasis.core.util.StringUtil;
+
+public abstract class PropertiesDialog extends JDialog {
+
+<span class="nc" id="L39">  public static final String FILL_OPACITY = Messages.getString(&quot;fill.opacity&quot;);</span>
+  protected Color color;
+
+<span class="nc" id="L42">  private final JPanel panel1 = new JPanel();</span>
+<span class="nc" id="L43">  private final JButton jButtonOk = new JButton();</span>
+<span class="nc" id="L44">  private final JButton jButtonCancel = new JButton();</span>
+<span class="nc" id="L45">  protected final JSpinner spinnerLineWidth = new JSpinner();</span>
+<span class="nc" id="L46">  protected final JLabel jLabelLineWidth = new JLabel();</span>
+<span class="nc" id="L47">  protected final JLabel jLabelLineColor = new JLabel();</span>
+<span class="nc" id="L48">  protected final JButton jButtonColor = new JButton(ResourceUtil.getIcon(ActionIcon.PIPETTE));</span>
+<span class="nc" id="L49">  protected final JCheckBox jCheckBoxFilled = new JCheckBox();</span>
+<span class="nc" id="L50">  protected final JSliderW slicerOpacity = createOpacitySlider(FILL_OPACITY);</span>
+<span class="nc" id="L51">  protected final JButton overrideMultipleValues =</span>
+<span class="nc" id="L52">      new JButton(Messages.getString(&quot;PropertiesDialog.header_override&quot;));</span>
+<span class="nc" id="L53">  protected final JCheckBox checkBoxColor = new JCheckBox();</span>
+<span class="nc" id="L54">  protected final JCheckBox checkBoxFillOpacity = new JCheckBox();</span>
+<span class="nc" id="L55">  protected final JCheckBox checkBoxWidth = new JCheckBox();</span>
+<span class="nc" id="L56">  protected final JCheckBox checkBoxFill = new JCheckBox();</span>
+
+<span class="nc" id="L58">  protected final JPanel panelColor = GuiUtils.getFlowLayoutPanel(FlowLayout.TRAILING, 2, 5);</span>
+<span class="nc" id="L59">  protected final JPanel panelLine = GuiUtils.getFlowLayoutPanel(FlowLayout.TRAILING, 2, 5);</span>
+<span class="nc" id="L60">  protected final JPanel panelFilled = GuiUtils.getFlowLayoutPanel(FlowLayout.TRAILING, 2, 5);</span>
+<span class="nc" id="L61">  protected final JPanel panelOpacity = GuiUtils.getFlowLayoutPanel(FlowLayout.TRAILING, 2, 5);</span>
+
+  protected PropertiesDialog(Window parent, String title) {
+<span class="nc" id="L64">    super(parent, title, ModalityType.APPLICATION_MODAL);</span>
+<span class="nc" id="L65">    init();</span>
+<span class="nc" id="L66">  }</span>
+
+  private void init() {
+<span class="nc" id="L69">    panel1.setBorder(GuiUtils.getEmptyBorder(10, 15, 0, 15));</span>
+<span class="nc" id="L70">    panel1.setLayout(new BorderLayout());</span>
+
+<span class="nc" id="L72">    jButtonOk.setText(Messages.getString(&quot;PropertiesDialog.ok&quot;));</span>
+<span class="nc" id="L73">    jButtonOk.addActionListener(e -&gt; okAction());</span>
+<span class="nc" id="L74">    jButtonCancel.setText(Messages.getString(&quot;PropertiesDialog.cancel&quot;));</span>
+<span class="nc" id="L75">    jButtonCancel.addActionListener(e -&gt; quitWithoutSaving());</span>
+
+<span class="nc" id="L77">    GuiUtils.setNumberModel(spinnerLineWidth, 1, 1, 8, 1);</span>
+<span class="nc" id="L78">    jLabelLineWidth.setText(Messages.getString(&quot;PropertiesDialog.line_width&quot;) + StringUtil.COLON);</span>
+<span class="nc" id="L79">    jLabelLineColor.setText(Messages.getString(&quot;PropertiesDialog.line_color&quot;) + StringUtil.COLON);</span>
+<span class="nc" id="L80">    jButtonColor.setToolTipText(Messages.getString(&quot;MeasureTool.pick&quot;));</span>
+<span class="nc" id="L81">    jButtonColor.addActionListener(e -&gt; openColorChooser((JButton) e.getSource()));</span>
+
+<span class="nc" id="L83">    jCheckBoxFilled.setText(Messages.getString(&quot;PropertiesDialog.fill_shape&quot;));</span>
+<span class="nc" id="L84">    slicerOpacity.addChangeListener(_ -&gt; updateSlider(slicerOpacity, FILL_OPACITY));</span>
+
+<span class="nc" id="L86">    getContentPane().add(panel1);</span>
+
+<span class="nc" id="L88">    JPanel jPanelFooter =</span>
+<span class="nc" id="L89">        GuiUtils.getFlowLayoutPanel(FlowLayout.TRAILING, 15, 15, jButtonOk, jButtonCancel);</span>
+<span class="nc" id="L90">    panel1.add(jPanelFooter, BorderLayout.SOUTH);</span>
+
+<span class="nc" id="L92">    overrideMultipleValues.setEnabled(false);</span>
+
+<span class="nc" id="L94">    checkBoxColor.addActionListener(</span>
+        e -&gt; {
+<span class="nc" id="L96">          JCheckBox box = (JCheckBox) e.getSource();</span>
+<span class="nc" id="L97">          jLabelLineColor.setEnabled(box.isSelected());</span>
+<span class="nc" id="L98">          jButtonColor.setEnabled(box.isSelected());</span>
+<span class="nc" id="L99">        });</span>
+<span class="nc" id="L100">    checkBoxWidth.addActionListener(</span>
+        e -&gt; {
+<span class="nc" id="L102">          JCheckBox box = (JCheckBox) e.getSource();</span>
+<span class="nc" id="L103">          jLabelLineWidth.setEnabled(box.isSelected());</span>
+<span class="nc" id="L104">          spinnerLineWidth.setEnabled(box.isSelected());</span>
+<span class="nc" id="L105">        });</span>
+<span class="nc" id="L106">    checkBoxFill.addActionListener(</span>
+        e -&gt; {
+<span class="nc" id="L108">          JCheckBox box = (JCheckBox) e.getSource();</span>
+<span class="nc" id="L109">          jCheckBoxFilled.setEnabled(box.isSelected());</span>
+<span class="nc" id="L110">        });</span>
+<span class="nc" id="L111">    checkBoxFillOpacity.addActionListener(</span>
+        e -&gt; {
+<span class="nc" id="L113">          JCheckBox box = (JCheckBox) e.getSource();</span>
+<span class="nc" id="L114">          slicerOpacity.setEnabled(box.isSelected());</span>
+<span class="nc" id="L115">        });</span>
+
+<span class="nc" id="L117">    JPanel centerPanel = GuiUtils.getVerticalBoxLayoutPanel();</span>
+<span class="nc" id="L118">    centerPanel.add(GuiUtils.getFlowLayoutPanel(FlowLayout.TRAILING, 2, 5, overrideMultipleValues));</span>
+
+<span class="nc" id="L120">    panelColor.add(jLabelLineColor);</span>
+<span class="nc" id="L121">    panelColor.add(jButtonColor);</span>
+
+<span class="nc" id="L123">    panelLine.add(jLabelLineWidth);</span>
+<span class="nc" id="L124">    panelLine.add(spinnerLineWidth);</span>
+
+<span class="nc" id="L126">    panelFilled.add(jCheckBoxFilled);</span>
+<span class="nc" id="L127">    panelOpacity.add(slicerOpacity);</span>
+
+<span class="nc" id="L129">    centerPanel.add(panelColor);</span>
+<span class="nc" id="L130">    centerPanel.add(panelLine);</span>
+<span class="nc" id="L131">    centerPanel.add(panelFilled);</span>
+<span class="nc" id="L132">    centerPanel.add(panelOpacity);</span>
+<span class="nc" id="L133">    centerPanel.add(GuiUtils.boxVerticalStrut(10));</span>
+<span class="nc" id="L134">    panel1.add(centerPanel, BorderLayout.CENTER);</span>
+<span class="nc" id="L135">  }</span>
+
+  // Overridden so we can exit when window is closed
+  @Override
+  protected void processWindowEvent(WindowEvent e) {
+<span class="nc bnc" id="L140" title="All 2 branches missed.">    if (e.getID() == WindowEvent.WINDOW_CLOSING) {</span>
+<span class="nc" id="L141">      quitWithoutSaving();</span>
+    }
+<span class="nc" id="L143">    super.processWindowEvent(e);</span>
+<span class="nc" id="L144">  }</span>
+
+  public static float updateSlider(JSliderW slider, String titlePrefix) {
+<span class="nc" id="L147">    float value = slider.getValue() / 100f;</span>
+<span class="nc" id="L148">    SliderChangeListener.updateSliderProperties(slider, getOpacityTitle(titlePrefix, value));</span>
+<span class="nc" id="L149">    return value;</span>
+  }
+
+  private static String getOpacityTitle(String titlePrefix, float value) {
+<span class="nc" id="L153">    return titlePrefix + StringUtil.COLON_AND_SPACE + DecFormatter.percentTwoDecimal(value);</span>
+  }
+
+  public static JSliderW createOpacitySlider(String titlePrefix) {
+<span class="nc" id="L157">    DefaultBoundedRangeModel model = new DefaultBoundedRangeModel(100, 0, 0, 100);</span>
+<span class="nc" id="L158">    TitledBorder titledBorder =</span>
+        new TitledBorder(
+<span class="nc" id="L160">            BorderFactory.createEmptyBorder(),</span>
+<span class="nc" id="L161">            getOpacityTitle(titlePrefix, model.getValue() / 100f),</span>
+            TitledBorder.LEADING,
+            TitledBorder.DEFAULT_POSITION,
+<span class="nc" id="L164">            FontItem.MEDIUM.getFont(),</span>
+            null);
+<span class="nc" id="L166">    JSliderW s = new JSliderW(model);</span>
+<span class="nc" id="L167">    s.setDisplayValueInTitle(true);</span>
+<span class="nc" id="L168">    s.setBorder(titledBorder);</span>
+<span class="nc" id="L169">    return s;</span>
+  }
+
+  protected abstract void okAction();
+
+  protected void quitWithoutSaving() {
+<span class="nc" id="L175">    dispose();</span>
+<span class="nc" id="L176">  }</span>
+
+  public void openColorChooser(JButton button) {
+<span class="nc bnc" id="L179" title="All 2 branches missed.">    if (button != null) {</span>
+<span class="nc" id="L180">      Color newColor =</span>
+<span class="nc" id="L181">          JColorChooser.showDialog(button, Messages.getString(&quot;MeasureTool.pick_color&quot;), color);</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">      if (newColor != null) {</span>
+<span class="nc" id="L183">        color = newColor;</span>
+      }
+    }
+<span class="nc" id="L186">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

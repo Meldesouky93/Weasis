@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>BundleTools.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.service</a> &gt; <span class="el_source">BundleTools.java</span></div><h1>BundleTools.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.service;
+
+import java.util.Collections;
+import java.util.List;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.Constants;
+import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceEvent;
+import org.osgi.framework.ServiceReference;
+import org.osgi.service.prefs.Preferences;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.explorer.DataExplorerView;
+import org.weasis.core.api.explorer.ObservableEvent;
+import org.weasis.core.api.explorer.ObservableEvent.BasicAction;
+import org.weasis.core.api.gui.Insertable;
+import org.weasis.core.api.gui.Insertable.Type;
+import org.weasis.core.api.gui.InsertableFactory;
+import org.weasis.core.api.gui.InsertableUtil;
+import org.weasis.core.api.gui.util.AppProperties;
+import org.weasis.core.api.gui.util.GuiExecutor;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.media.data.Codec;
+import org.weasis.core.api.media.data.MediaElement;
+import org.weasis.core.ui.docking.DockableTool;
+import org.weasis.core.ui.editor.SeriesViewerUI;
+import org.weasis.core.ui.editor.ViewerPluginBuilder;
+import org.weasis.core.ui.util.Toolbar;
+
+public class BundleTools {
+<span class="nc" id="L40">  private static final Logger LOGGER = LoggerFactory.getLogger(BundleTools.class);</span>
+
+  private BundleTools() {}
+
+  public static Codec&lt;MediaElement&gt; getCodec(String mimeType, String preferredCodec) {
+<span class="nc" id="L45">    Codec&lt;MediaElement&gt; codec = null;</span>
+<span class="nc" id="L46">    List&lt;Codec&lt;MediaElement&gt;&gt; codecs = GuiUtils.getUICore().getCodecPlugins();</span>
+<span class="nc" id="L47">    synchronized (codecs) {</span>
+<span class="nc bnc" id="L48" title="All 2 branches missed.">      for (Codec&lt;MediaElement&gt; c : codecs) {</span>
+<span class="nc bnc" id="L49" title="All 2 branches missed.">        if (c.isMimeTypeSupported(mimeType)) {</span>
+<span class="nc bnc" id="L50" title="All 2 branches missed.">          if (c.getCodecName().equals(preferredCodec)) {</span>
+<span class="nc" id="L51">            codec = c;</span>
+<span class="nc" id="L52">            break;</span>
+          }
+          // If the preferred codec cannot be found, the first-found codec is retained
+<span class="nc bnc" id="L55" title="All 2 branches missed.">          if (codec == null) {</span>
+<span class="nc" id="L56">            codec = c;</span>
+          }
+        }
+<span class="nc" id="L59">      }</span>
+<span class="nc" id="L60">      return codec;</span>
+    }
+  }
+
+  public static String createServiceFilter(Class&lt;?&gt;... interfaces) {
+<span class="nc" id="L65">    StringBuilder builder = new StringBuilder();</span>
+
+<span class="nc" id="L67">    builder.append(&quot;( |&quot;);</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">    for (Class&lt;?&gt; clazz : interfaces) {</span>
+<span class="nc" id="L69">      builder.append(String.format(&quot;(%s=%s) &quot;, Constants.OBJECTCLASS, clazz.getName())); // NON-NLS</span>
+    }
+
+<span class="nc" id="L72">    builder.append(&quot; ) &quot;);</span>
+<span class="nc" id="L73">    return builder.toString();</span>
+  }
+
+  public static void dataExplorerChanged(final ServiceEvent event, SeriesViewerUI ui) {
+
+<span class="nc" id="L78">    final ServiceReference&lt;?&gt; mref = event.getServiceReference();</span>
+    // The View2dContainer name should be referenced as a property in the provided service
+<span class="nc bnc" id="L80" title="All 2 branches missed.">    if (Boolean.parseBoolean((String) mref.getProperty(ui.clazz.getName()))) {</span>
+<span class="nc" id="L81">      final BundleContext context = AppProperties.getBundleContext(ui.clazz);</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">      if (context == null) {</span>
+<span class="nc" id="L83">        return;</span>
+      }
+<span class="nc" id="L85">      GuiExecutor.execute(</span>
+          () -&gt; {
+<span class="nc" id="L87">            Object service = context.getService(mref);</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">            if (service instanceof InsertableFactory factory) {</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">              if (event.getType() == ServiceEvent.REGISTERED) {</span>
+<span class="nc" id="L90">                registerComponent(factory, ui);</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">              } else if (event.getType() == ServiceEvent.UNREGISTERING) {</span>
+<span class="nc bnc" id="L92" title="All 2 branches missed.">                if (Type.TOOLBAR.equals(factory.getType())) {</span>
+<span class="nc" id="L93">                  unregisterToolBar(factory, context, ui);</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">                } else if (Type.TOOL.equals(factory.getType())) {</span>
+<span class="nc" id="L95">                  unregisterTool(factory, context, ui);</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">                } else if (Type.TOOL_EXT.equals(factory.getType())) {</span>
+<span class="nc" id="L97">                  unregisterDynamicTool(factory, ui);</span>
+                }
+              }
+            }
+<span class="nc" id="L101">          });</span>
+    }
+<span class="nc" id="L103">  }</span>
+
+  public static void registerExistingComponents(BundleContext bundleContext, SeriesViewerUI ui) {
+    try {
+      for (ServiceReference&lt;InsertableFactory&gt; serviceReference :
+<span class="nc bnc" id="L108" title="All 2 branches missed.">          bundleContext.getServiceReferences(InsertableFactory.class, null)) {</span>
+        // The View2dContainer name should be referenced as a property in the provided service
+<span class="nc bnc" id="L110" title="All 2 branches missed.">        if (Boolean.parseBoolean((String) serviceReference.getProperty(ui.clazz.getName()))) {</span>
+          // Instantiate UI components in EDT
+<span class="nc" id="L112">          GuiExecutor.execute(</span>
+<span class="nc" id="L113">              () -&gt; registerComponent(bundleContext.getService(serviceReference), ui));</span>
+        }
+<span class="nc" id="L115">      }</span>
+<span class="nc" id="L116">    } catch (InvalidSyntaxException e1) {</span>
+<span class="nc" id="L117">      LOGGER.error(&quot;Register tool and toolbar&quot;, e1);</span>
+<span class="nc" id="L118">    }</span>
+<span class="nc" id="L119">  }</span>
+
+  private static void registerComponent(InsertableFactory factory, SeriesViewerUI ui) {
+<span class="nc bnc" id="L122" title="All 2 branches missed.">    if (factory == null) {</span>
+<span class="nc" id="L123">      return;</span>
+    }
+
+<span class="nc bnc" id="L126" title="All 2 branches missed.">    if (Type.TOOLBAR.equals(factory.getType())) {</span>
+<span class="nc" id="L127">      registerToolBar(factory.createInstance(null), ui);</span>
+<span class="nc bnc" id="L128" title="All 2 branches missed.">    } else if (Type.TOOL.equals(factory.getType())) {</span>
+<span class="nc" id="L129">      registerTool(factory.createInstance(null), ui);</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">    } else if (Type.TOOL_EXT.equals(factory.getType())) {</span>
+<span class="nc" id="L131">      registerToolExt(factory, ui);</span>
+    }
+<span class="nc" id="L133">  }</span>
+
+  private static void registerToolBar(Insertable instance, SeriesViewerUI ui) {
+<span class="nc" id="L136">    List&lt;Toolbar&gt; toolBars = ui.getToolBars();</span>
+<span class="nc bnc" id="L137" title="All 4 branches missed.">    if (instance instanceof Toolbar bar &amp;&amp; !toolBars.contains(instance)) {</span>
+<span class="nc" id="L138">      toolBars.add(bar);</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">      if (ui.clazz.getPackageName().contains(&quot;dicom&quot;)) { // NON-NLS</span>
+<span class="nc" id="L140">        notifyDicomModel(ObservableEvent.BasicAction.UPDATE_TOOLBARS, ui);</span>
+      } else {
+<span class="nc" id="L142">        notifyDefaultDataModel(ObservableEvent.BasicAction.UPDATE_TOOLBARS, ui);</span>
+      }
+<span class="nc" id="L144">      LOGGER.debug(&quot;Add Toolbar [{}] for {}&quot;, bar, ui.clazz.getName());</span>
+    }
+<span class="nc" id="L146">  }</span>
+
+  private static void registerTool(Insertable instance, SeriesViewerUI ui) {
+<span class="nc" id="L149">    List&lt;DockableTool&gt; tools = ui.getTools();</span>
+<span class="nc bnc" id="L150" title="All 4 branches missed.">    if (instance instanceof DockableTool tool &amp;&amp; !tools.contains(tool)) {</span>
+<span class="nc" id="L151">      tools.add(tool);</span>
+<span class="nc" id="L152">      LOGGER.debug(&quot;Add Tool [{}] for {}&quot;, tool, ui.clazz.getName());</span>
+    }
+<span class="nc" id="L154">  }</span>
+
+  private static void registerToolExt(InsertableFactory factory, SeriesViewerUI ui) {
+<span class="nc" id="L157">    List&lt;InsertableFactory&gt; tools = ui.getDynamicTools();</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">    if (!tools.contains(factory)) {</span>
+<span class="nc" id="L159">      tools.add(factory);</span>
+<span class="nc" id="L160">      LOGGER.debug(&quot;Add Tool Extension [{}] for {}&quot;, factory, ui.clazz.getName());</span>
+    }
+<span class="nc" id="L162">  }</span>
+
+  private static void unregisterToolBar(
+      InsertableFactory factory, final BundleContext context, SeriesViewerUI ui) {
+<span class="nc" id="L166">    boolean updateGUI = false;</span>
+<span class="nc" id="L167">    List&lt;Toolbar&gt; toolBars = ui.getToolBars();</span>
+<span class="nc" id="L168">    synchronized (toolBars) {</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">      for (int i = toolBars.size() - 1; i &gt;= 0; i--) {</span>
+<span class="nc" id="L170">        Insertable b = toolBars.get(i);</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">        if (factory.isComponentCreatedByThisFactory(b)) {</span>
+<span class="nc" id="L172">          Preferences prefs = BundlePreferences.getDefaultPreferences(context);</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">          if (prefs != null) {</span>
+<span class="nc" id="L174">            List&lt;Insertable&gt; list = Collections.singletonList(b);</span>
+<span class="nc" id="L175">            InsertableUtil.savePreferences(</span>
+<span class="nc" id="L176">                list, prefs.node(ui.clazz.getSimpleName().toLowerCase()), Type.TOOLBAR);</span>
+          }
+
+<span class="nc" id="L179">          toolBars.remove(i);</span>
+<span class="nc" id="L180">          factory.dispose(b);</span>
+<span class="nc" id="L181">          updateGUI = true;</span>
+        }
+      }
+<span class="nc" id="L184">    }</span>
+<span class="nc bnc" id="L185" title="All 2 branches missed.">    if (updateGUI) {</span>
+<span class="nc" id="L186">      notifyDicomModel(ObservableEvent.BasicAction.UPDATE_TOOLBARS, ui);</span>
+    }
+<span class="nc" id="L188">  }</span>
+
+  private static void unregisterTool(
+      InsertableFactory factory, final BundleContext context, SeriesViewerUI ui) {
+<span class="nc" id="L192">    List&lt;DockableTool&gt; tools = ui.getTools();</span>
+<span class="nc" id="L193">    synchronized (tools) {</span>
+<span class="nc bnc" id="L194" title="All 2 branches missed.">      for (int i = tools.size() - 1; i &gt;= 0; i--) {</span>
+<span class="nc" id="L195">        DockableTool t = tools.get(i);</span>
+<span class="nc bnc" id="L196" title="All 2 branches missed.">        if (factory.isComponentCreatedByThisFactory(t)) {</span>
+<span class="nc" id="L197">          Preferences prefs = BundlePreferences.getDefaultPreferences(context);</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">          if (prefs != null) {</span>
+<span class="nc" id="L199">            Preferences containerNode = prefs.node(ui.clazz.getSimpleName().toLowerCase());</span>
+<span class="nc" id="L200">            InsertableUtil.savePreferences(Collections.singletonList(t), containerNode, Type.TOOL);</span>
+          }
+
+<span class="nc" id="L203">          tools.remove(i);</span>
+<span class="nc" id="L204">          factory.dispose(t);</span>
+<span class="nc" id="L205">          t.closeDockable();</span>
+        }
+      }
+<span class="nc" id="L208">    }</span>
+<span class="nc" id="L209">  }</span>
+
+  private static void unregisterDynamicTool(InsertableFactory factory, SeriesViewerUI ui) {
+<span class="nc" id="L212">    List&lt;InsertableFactory&gt; tools = ui.getDynamicTools();</span>
+<span class="nc" id="L213">    synchronized (tools) {</span>
+<span class="nc bnc" id="L214" title="All 2 branches missed.">      for (int i = tools.size() - 1; i &gt;= 0; i--) {</span>
+<span class="nc" id="L215">        InsertableFactory t = tools.get(i);</span>
+<span class="nc bnc" id="L216" title="All 2 branches missed.">        if (factory.equals(t)) {</span>
+<span class="nc" id="L217">          tools.remove(i);</span>
+        }
+      }
+<span class="nc" id="L220">    }</span>
+<span class="nc" id="L221">  }</span>
+
+  public static void notifyDicomModel(BasicAction action, SeriesViewerUI ui) {
+<span class="nc bnc" id="L224" title="All 2 branches missed.">    if (ui != null) {</span>
+<span class="nc" id="L225">      List&lt;DataExplorerView&gt; explorerPlugins = GuiUtils.getUICore().getExplorerPlugins();</span>
+<span class="nc" id="L226">      explorerPlugins.stream()</span>
+<span class="nc" id="L227">          .map(DataExplorerView::getDataExplorerModel)</span>
+<span class="nc" id="L228">          .filter(m -&gt; &quot;DICOM&quot;.equals(m.toString()))</span>
+<span class="nc" id="L229">          .findFirst()</span>
+<span class="nc" id="L230">          .ifPresent(model -&gt; model.firePropertyChange(new ObservableEvent(action, ui, null, ui)));</span>
+    }
+<span class="nc" id="L232">  }</span>
+
+  public static void notifyDefaultDataModel(BasicAction action, SeriesViewerUI ui) {
+<span class="nc bnc" id="L235" title="All 2 branches missed.">    if (ui != null) {</span>
+<span class="nc" id="L236">      ViewerPluginBuilder.DefaultDataModel.firePropertyChange(</span>
+          new ObservableEvent(action, ui, null, ui));
+    }
+<span class="nc" id="L239">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

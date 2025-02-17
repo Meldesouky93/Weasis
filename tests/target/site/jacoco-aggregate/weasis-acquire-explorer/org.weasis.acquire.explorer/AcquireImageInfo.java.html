@@ -1,0 +1,388 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AcquireImageInfo.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer</a> &gt; <span class="el_source">AcquireImageInfo.java</span></div><h1>AcquireImageInfo.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer;
+
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.NoninvertibleTransformException;
+import java.awt.geom.Rectangle2D;
+import java.io.File;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Consumer;
+import org.dcm4che3.data.Attributes;
+import org.dcm4che3.data.Tag;
+import org.dcm4che3.util.UIDUtils;
+import org.opencv.core.Mat;
+import org.opencv.core.Rect;
+import org.opencv.core.RotatedRect;
+import org.opencv.core.Size;
+import org.opencv.imgproc.Imgproc;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.acquire.explorer.core.bean.SeriesGroup;
+import org.weasis.core.api.image.AutoLevelsOp;
+import org.weasis.core.api.image.BrightnessOp;
+import org.weasis.core.api.image.CropOp;
+import org.weasis.core.api.image.ImageOpNode;
+import org.weasis.core.api.image.MaskOp;
+import org.weasis.core.api.image.RotationOp;
+import org.weasis.core.api.image.SimpleOpManager;
+import org.weasis.core.api.image.WindowOp;
+import org.weasis.core.api.image.ZoomOp;
+import org.weasis.core.api.image.util.ImageLayer;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.media.data.TagUtil;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.ui.editor.image.Panner;
+import org.weasis.core.ui.editor.image.ViewCanvas;
+import org.weasis.core.ui.model.GraphicModel;
+import org.weasis.core.ui.model.layer.LayerType;
+import org.weasis.core.ui.model.utils.imp.DefaultViewModel;
+import org.weasis.core.util.StringUtil;
+import org.weasis.dicom.codec.TagD;
+import org.weasis.dicom.codec.TagD.Level;
+import org.weasis.opencv.data.PlanarImage;
+import org.weasis.opencv.op.ImageConversion;
+
+/**
+ * @author Yannick LARVOR
+ * @since 2.5.0
+ */
+public class AcquireImageInfo {
+<span class="nc" id="L66">  private static final Logger LOGGER = LoggerFactory.getLogger(AcquireImageInfo.class);</span>
+
+  private final ImageElement image;
+  private SeriesGroup seriesGroup;
+  private final Attributes attributes;
+  private AcquireImageStatus status;
+
+  private final SimpleOpManager postProcessOpManager;
+
+  private final AcquireImageValues defaultValues;
+  private AcquireImageValues currentValues;
+  private AcquireImageValues nextValues;
+
+<span class="nc" id="L79">  public AcquireImageInfo(ImageElement image) {</span>
+<span class="nc" id="L80">    this.image = Objects.requireNonNull(image);</span>
+    // Create a SOPInstanceUID if not present
+<span class="nc" id="L82">    TagW tagUid = TagD.getUID(Level.INSTANCE);</span>
+<span class="nc" id="L83">    String uuid = (String) image.getTagValue(tagUid);</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">    if (uuid == null) {</span>
+<span class="nc" id="L85">      uuid = UIDUtils.createUID();</span>
+<span class="nc" id="L86">      image.setTag(tagUid, uuid);</span>
+    }
+<span class="nc" id="L88">    readTags(image);</span>
+
+<span class="nc" id="L90">    this.setStatus(AcquireImageStatus.TO_PUBLISH);</span>
+<span class="nc" id="L91">    this.attributes = new Attributes();</span>
+
+<span class="nc" id="L93">    this.postProcessOpManager = new SimpleOpManager();</span>
+<span class="nc" id="L94">    this.postProcessOpManager.addImageOperationAction(new RotationOp());</span>
+<span class="nc" id="L95">    this.postProcessOpManager.addImageOperationAction(new MaskOp());</span>
+<span class="nc" id="L96">    this.postProcessOpManager.addImageOperationAction(new CropOp());</span>
+<span class="nc" id="L97">    this.postProcessOpManager.addImageOperationAction(new BrightnessOp());</span>
+<span class="nc" id="L98">    this.postProcessOpManager.addImageOperationAction(new AutoLevelsOp());</span>
+<span class="nc" id="L99">    this.postProcessOpManager.addImageOperationAction(new ZoomOp());</span>
+
+<span class="nc" id="L101">    defaultValues = new AcquireImageValues();</span>
+<span class="nc" id="L102">    currentValues = defaultValues.copy();</span>
+<span class="nc" id="L103">    nextValues = defaultValues.copy();</span>
+<span class="nc" id="L104">  }</span>
+
+  public String getUID() {
+<span class="nc" id="L107">    return TagD.getTagValue(image, Tag.SOPInstanceUID, String.class);</span>
+  }
+
+  public ImageElement getImage() {
+<span class="nc" id="L111">    return image;</span>
+  }
+
+  public Attributes getAttributes() {
+<span class="nc" id="L115">    return attributes;</span>
+  }
+
+  public SimpleOpManager getPostProcessOpManager() {
+<span class="nc" id="L119">    return this.postProcessOpManager;</span>
+  }
+
+  public void applyFinalProcessing(ViewCanvas&lt;ImageElement&gt; view) {
+<span class="nc" id="L123">    boolean dirty = isDirty();</span>
+<span class="nc bnc" id="L124" title="All 2 branches missed.">    if (dirty) {</span>
+<span class="nc" id="L125">      reloadFinalProcessing(view);</span>
+    }
+<span class="nc" id="L127">  }</span>
+
+  public void applyNRotation(ViewCanvas&lt;ImageElement&gt; view) {
+<span class="nc" id="L130">    int rotation = (nextValues.getFullRotation() + 720) % 360;</span>
+<span class="nc" id="L131">    ImageOpNode node = postProcessOpManager.getNode(RotationOp.OP_NAME);</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">    if (node != null) {</span>
+<span class="nc" id="L133">      node.clearIOCache();</span>
+<span class="nc" id="L134">      node.setParam(RotationOp.P_ROTATE, rotation);</span>
+<span class="nc" id="L135">      Rectangle area = ImageConversion.getBounds(view.getSourceImage());</span>
+<span class="nc bnc" id="L136" title="All 4 branches missed.">      if (area.width &gt; 1 &amp;&amp; area.height &gt; 1) {</span>
+<span class="nc" id="L137">        ((DefaultViewModel) view.getViewModel())</span>
+<span class="nc" id="L138">            .adjustMinViewScaleFromImage(area.width, area.height);</span>
+<span class="nc" id="L139">        view.getViewModel().setModelArea(new Rectangle(0, 0, area.width, area.height));</span>
+<span class="nc" id="L140">        view.getImageLayer().setOffset(new Point(area.x, area.y));</span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">        if (nextValues.getCropZone() == null) {</span>
+<span class="nc" id="L142">          nextValues.setCropZone(area);</span>
+        }
+      }
+    }
+<span class="nc" id="L146">  }</span>
+
+  public void reloadFinalProcessing(ViewCanvas&lt;ImageElement&gt; view) {
+<span class="nc bnc" id="L149" title="All 4 branches missed.">    if (view == null || view.getSourceImage() == null) {</span>
+<span class="nc" id="L150">      return;</span>
+    }
+<span class="nc" id="L152">    postProcessOpManager.setParamValue(CropOp.OP_NAME, CropOp.P_AREA, null);</span>
+<span class="nc" id="L153">    applyNRotation(view);</span>
+
+<span class="nc" id="L155">    Rectangle area = nextValues.getCropZone();</span>
+<span class="nc" id="L156">    PlanarImage source = view.getSourceImage();</span>
+<span class="nc bnc" id="L157" title="All 6 branches missed.">    if (source != null &amp;&amp; area != null &amp;&amp; !area.equals(view.getViewModel().getModelArea())) {</span>
+<span class="nc" id="L158">      Rectangle imgBounds = ImageConversion.getBounds(source);</span>
+<span class="nc" id="L159">      area = area.intersection(imgBounds);</span>
+<span class="nc bnc" id="L160" title="All 6 branches missed.">      if (area.width &gt; 1 &amp;&amp; area.height &gt; 1 &amp;&amp; !area.equals(imgBounds)) {</span>
+<span class="nc" id="L161">        ((DefaultViewModel) view.getViewModel())</span>
+<span class="nc" id="L162">            .adjustMinViewScaleFromImage(area.width, area.height);</span>
+<span class="nc" id="L163">        view.getViewModel().setModelArea(new Rectangle(0, 0, area.width, area.height));</span>
+<span class="nc" id="L164">        view.getImageLayer().setOffset(new Point(area.x, area.y));</span>
+
+<span class="nc" id="L166">        postProcessOpManager.setParamValue(CropOp.OP_NAME, CropOp.P_AREA, area);</span>
+      }
+    }
+<span class="nc" id="L169">    view.resetZoom();</span>
+
+<span class="nc bnc" id="L171" title="All 2 branches missed.">    if (nextValues.getBrightness() != currentValues.getBrightness()</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">        || nextValues.getContrast() != currentValues.getContrast()) {</span>
+<span class="nc" id="L173">      postProcessOpManager.setParamValue(</span>
+          BrightnessOp.OP_NAME,
+          BrightnessOp.P_BRIGHTNESS_VALUE,
+<span class="nc" id="L176">          (double) nextValues.getBrightness());</span>
+<span class="nc" id="L177">      postProcessOpManager.setParamValue(</span>
+<span class="nc" id="L178">          BrightnessOp.OP_NAME, BrightnessOp.P_CONTRAST_VALUE, (double) nextValues.getContrast());</span>
+    }
+
+<span class="nc" id="L181">    postProcessOpManager.setParamValue(</span>
+<span class="nc" id="L182">        AutoLevelsOp.OP_NAME, AutoLevelsOp.P_AUTO_LEVEL, nextValues.isAutoLevel());</span>
+
+<span class="nc bnc" id="L184" title="All 2 branches missed.">    if (!Objects.equals(nextValues.getRatio(), currentValues.getRatio())) {</span>
+<span class="nc" id="L185">      postProcessOpManager.setParamValue(ZoomOp.OP_NAME, ZoomOp.P_RATIO_X, nextValues.getRatio());</span>
+<span class="nc" id="L186">      postProcessOpManager.setParamValue(ZoomOp.OP_NAME, ZoomOp.P_RATIO_Y, nextValues.getRatio());</span>
+<span class="nc" id="L187">      postProcessOpManager.setParamValue(</span>
+          ZoomOp.OP_NAME, ZoomOp.P_INTERPOLATION, ZoomOp.Interpolation.BICUBIC);
+    }
+
+    // Reset preprocess cache
+<span class="nc" id="L192">    postProcessOpManager.clearNodeIOCache();</span>
+<span class="nc" id="L193">    view.getImageLayer().setImage(image, postProcessOpManager);</span>
+<span class="nc" id="L194">    updateTags(view.getImage());</span>
+<span class="nc" id="L195">    updateImageGeometry(view);</span>
+
+    // Next value become the current value. Register the step.
+<span class="nc" id="L198">    currentValues = nextValues;</span>
+<span class="nc" id="L199">    nextValues = currentValues.copy();</span>
+<span class="nc" id="L200">  }</span>
+
+  public void updateImageGeometry(ViewCanvas&lt;ImageElement&gt; view) {
+<span class="nc bnc" id="L203" title="All 2 branches missed.">    if (view != null) {</span>
+<span class="nc" id="L204">      Panner&lt;?&gt; panner = view.getPanner();</span>
+<span class="nc bnc" id="L205" title="All 2 branches missed.">      if (panner != null) {</span>
+<span class="nc" id="L206">        panner.updateImage();</span>
+      }
+    }
+<span class="nc" id="L209">  }</span>
+
+  public void applyCurrentProcessing(ViewCanvas&lt;ImageElement&gt; view) {
+<span class="nc bnc" id="L212" title="All 2 branches missed.">    if (view != null) {</span>
+<span class="nc" id="L213">      ImageLayer&lt;ImageElement&gt; imageLayer = view.getImageLayer();</span>
+<span class="nc" id="L214">      ImageOpNode node = imageLayer.getDisplayOpManager().getNode(WindowOp.OP_NAME);</span>
+<span class="nc bnc" id="L215" title="All 2 branches missed.">      if (node != null) {</span>
+<span class="nc" id="L216">        node.setEnabled(false);</span>
+      }
+<span class="nc" id="L218">      imageLayer.setImage(image, postProcessOpManager);</span>
+    }
+<span class="nc" id="L220">  }</span>
+
+  public void removeLayer(ViewCanvas&lt;ImageElement&gt; view) {
+<span class="nc bnc" id="L223" title="All 2 branches missed.">    if (view != null) {</span>
+<span class="nc" id="L224">      GraphicModel gm = view.getGraphicManager();</span>
+<span class="nc" id="L225">      gm.deleteByLayerType(LayerType.ACQUIRE);</span>
+<span class="nc" id="L226">      view.getJComponent().repaint();</span>
+    }
+<span class="nc" id="L228">  }</span>
+
+  private void updateTags(ImageElement image) {
+<span class="nc" id="L231">    this.image.setTag(TagW.ImageWidth, image.getTagValue(TagW.ImageWidth));</span>
+<span class="nc" id="L232">    this.image.setTag(TagW.ImageHeight, image.getTagValue(TagW.ImageHeight));</span>
+<span class="nc" id="L233">  }</span>
+
+  public AcquireImageValues getNextValues() {
+<span class="nc" id="L236">    return nextValues;</span>
+  }
+
+  public AcquireImageValues getCurrentValues() {
+<span class="nc" id="L240">    return currentValues;</span>
+  }
+
+  public AcquireImageValues getDefaultValues() {
+<span class="nc" id="L244">    return defaultValues;</span>
+  }
+
+  public boolean isDirtyFromDefault() {
+<span class="nc bnc" id="L248" title="All 2 branches missed.">    return !defaultValues.equals(nextValues);</span>
+  }
+
+  public boolean isDirty() {
+<span class="nc bnc" id="L252" title="All 2 branches missed.">    return !currentValues.equals(nextValues);</span>
+  }
+
+  public AcquireImageValues restore(ViewCanvas&lt;ImageElement&gt; view) {
+<span class="nc" id="L256">    image.setPixelSpacingUnit(defaultValues.getCalibrationUnit());</span>
+<span class="nc" id="L257">    image.setPixelSize(defaultValues.getCalibrationRatio());</span>
+
+<span class="nc" id="L259">    postProcessOpManager.setParamValue(</span>
+<span class="nc" id="L260">        RotationOp.OP_NAME, RotationOp.P_ROTATE, defaultValues.getOrientation());</span>
+<span class="nc" id="L261">    postProcessOpManager.setParamValue(CropOp.OP_NAME, CropOp.P_AREA, null);</span>
+
+<span class="nc" id="L263">    postProcessOpManager.setParamValue(</span>
+        BrightnessOp.OP_NAME,
+        BrightnessOp.P_BRIGHTNESS_VALUE,
+<span class="nc" id="L266">        (double) defaultValues.getBrightness());</span>
+<span class="nc" id="L267">    postProcessOpManager.setParamValue(</span>
+<span class="nc" id="L268">        BrightnessOp.OP_NAME, BrightnessOp.P_CONTRAST_VALUE, (double) defaultValues.getContrast());</span>
+<span class="nc" id="L269">    postProcessOpManager.setParamValue(</span>
+<span class="nc" id="L270">        AutoLevelsOp.OP_NAME, AutoLevelsOp.P_AUTO_LEVEL, defaultValues.isAutoLevel());</span>
+
+<span class="nc bnc" id="L272" title="All 2 branches missed.">    if (view != null) {</span>
+<span class="nc" id="L273">      view.getImageLayer().setImage(image, postProcessOpManager);</span>
+    }
+
+<span class="nc" id="L276">    currentValues = defaultValues.copy();</span>
+<span class="nc" id="L277">    nextValues = defaultValues.copy();</span>
+
+<span class="nc" id="L279">    return defaultValues;</span>
+  }
+
+  public SeriesGroup getSeries() {
+<span class="nc" id="L283">    return seriesGroup;</span>
+  }
+
+  public void setSeries(SeriesGroup seriesGroup) {
+<span class="nc" id="L287">    this.seriesGroup = seriesGroup;</span>
+<span class="nc bnc" id="L288" title="All 2 branches missed.">    if (seriesGroup != null) {</span>
+<span class="nc" id="L289">      image.setTag(TagD.get(Tag.SeriesInstanceUID), seriesGroup.getUID());</span>
+
+<span class="nc" id="L291">      String seriesDescription = TagD.getTagValue(seriesGroup, Tag.SeriesDescription, String.class);</span>
+<span class="nc bnc" id="L292" title="All 2 branches missed.">      if (!StringUtil.hasText(seriesDescription)</span>
+<span class="nc bnc" id="L293" title="All 2 branches missed.">          &amp;&amp; seriesGroup.getType() != SeriesGroup.Type.NONE) {</span>
+<span class="nc" id="L294">        seriesGroup.setTag(TagD.get(Tag.SeriesDescription), seriesGroup.getDisplayName());</span>
+      }
+    }
+<span class="nc" id="L297">  }</span>
+
+  @Override
+  public String toString() {
+<span class="nc" id="L301">    return Optional.ofNullable(image).map(ImageElement::getName).orElse(&quot;&quot;);</span>
+  }
+
+  public AcquireImageStatus getStatus() {
+<span class="nc" id="L305">    return status;</span>
+  }
+
+  public void setStatus(AcquireImageStatus status) {
+<span class="nc" id="L309">    this.status = Objects.requireNonNull(status);</span>
+<span class="nc" id="L310">  }</span>
+
+  public static Consumer&lt;AcquireImageInfo&gt; changeStatus(AcquireImageStatus status) {
+<span class="nc" id="L313">    return imgInfo -&gt; imgInfo.setStatus(status);</span>
+  }
+
+  public AffineTransform getAffineTransform(int rotation, boolean inverse) {
+<span class="nc" id="L317">    AffineTransform transform = new AffineTransform();</span>
+<span class="nc bnc" id="L318" title="All 2 branches missed.">    if (rotation != 0) {</span>
+<span class="nc" id="L319">      PlanarImage img = image.getImage();</span>
+<span class="nc" id="L320">      Rectangle2D modelArea = new Rectangle2D.Double(0.0, 0.0, img.width(), img.height());</span>
+<span class="nc" id="L321">      double w = modelArea.getWidth();</span>
+<span class="nc" id="L322">      double h = modelArea.getHeight();</span>
+<span class="nc" id="L323">      org.opencv.core.Point ptCenter = new org.opencv.core.Point(w / 2.0, h / 2.0);</span>
+<span class="nc" id="L324">      Mat rot = Imgproc.getRotationMatrix2D(ptCenter, -rotation, 1.0);</span>
+
+<span class="nc" id="L326">      Rect bbox = new RotatedRect(ptCenter, new Size(w, h), -rotation).boundingRect();</span>
+<span class="nc" id="L327">      double[] m = new double[rot.cols() * rot.rows()];</span>
+      // adjust transformation matrix
+<span class="nc" id="L329">      rot.get(0, 0, m);</span>
+<span class="nc" id="L330">      m[2] += bbox.width / 2.0 - ptCenter.x;</span>
+<span class="nc" id="L331">      m[rot.cols() + 2] += bbox.height / 2.0 - ptCenter.y;</span>
+
+<span class="nc" id="L333">      transform.setTransform(m[0], m[3], m[1], m[4], m[2], m[5]);</span>
+<span class="nc bnc" id="L334" title="All 2 branches missed.">      if (inverse) {</span>
+        try {
+<span class="nc" id="L336">          return transform.createInverse();</span>
+<span class="nc" id="L337">        } catch (NoninvertibleTransformException e) {</span>
+<span class="nc" id="L338">          LOGGER.error(&quot;Cannot create inverse transform for graphics&quot;);</span>
+        }
+      }
+    }
+<span class="nc" id="L342">    return transform;</span>
+  }
+
+  /**
+   * Check if ImageElement has a SOPInstanceUID TAG value and if not create a new UUID. Read Exif
+   * metaData from original file and populate relevant ImageElement TAGS. &lt;br&gt;
+   *
+   * @param imageElement the ImageElement value
+   */
+  private static void readTags(ImageElement imageElement) {
+    // Convert Exif TAG to DICOM attributes
+<span class="nc" id="L353">    Optional&lt;File&gt; file = imageElement.getFileCache().getOriginalFile();</span>
+
+<span class="nc bnc" id="L355" title="All 2 branches missed.">    if (file.isPresent()) {</span>
+<span class="nc" id="L356">      imageElement.setTagNoNull(</span>
+<span class="nc" id="L357">          TagD.get(Tag.Manufacturer), imageElement.getTagValue(TagW.ExifMake));</span>
+<span class="nc" id="L358">      imageElement.setTagNoNull(</span>
+<span class="nc" id="L359">          TagD.get(Tag.ManufacturerModelName), imageElement.getTagValue(TagW.ExifModel));</span>
+
+<span class="nc" id="L361">      String date = (String) TagUtil.getTagValue(TagW.ExifDateTime, imageElement);</span>
+<span class="nc" id="L362">      LocalDateTime dateTime = null;</span>
+<span class="nc bnc" id="L363" title="All 2 branches missed.">      if (StringUtil.hasText(date)) {</span>
+<span class="nc" id="L364">        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(&quot;yyyy:MM:dd HH:mm:ss&quot;); // NON-NLS</span>
+        try {
+<span class="nc" id="L366">          dateTime = LocalDateTime.parse(date, formatter);</span>
+<span class="nc" id="L367">        } catch (DateTimeParseException ex) {</span>
+          // Do nothing
+<span class="nc" id="L369">        }</span>
+      }
+<span class="nc bnc" id="L371" title="All 2 branches missed.">      if (dateTime == null) {</span>
+<span class="nc" id="L372">        dateTime =</span>
+<span class="nc" id="L373">            LocalDateTime.from(</span>
+<span class="nc" id="L374">                Instant.ofEpochMilli(imageElement.getLastModified())</span>
+<span class="nc" id="L375">                    .atZone(ZoneId.systemDefault()));</span>
+      }
+<span class="nc" id="L377">      imageElement.setTagNoNull(TagD.get(Tag.ContentDate), dateTime.toLocalDate());</span>
+<span class="nc" id="L378">      imageElement.setTagNoNull(TagD.get(Tag.ContentTime), dateTime.toLocalTime());</span>
+
+<span class="nc" id="L380">      String imgDescription = (String) imageElement.getTagValue(TagW.ExifImageDescription);</span>
+<span class="nc bnc" id="L381" title="All 2 branches missed.">      if (!StringUtil.hasText(imgDescription)) {</span>
+<span class="nc" id="L382">        imgDescription = file.get().getName();</span>
+      }
+<span class="nc" id="L384">      imageElement.setTagNoNull(TagD.get(Tag.ImageComments), imgDescription);</span>
+    }
+<span class="nc" id="L386">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

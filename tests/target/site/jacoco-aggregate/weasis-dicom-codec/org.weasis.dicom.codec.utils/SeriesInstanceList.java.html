@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>SeriesInstanceList.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec.utils</a> &gt; <span class="el_source">SeriesInstanceList.java</span></div><h1>SeriesInstanceList.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec.utils;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.weasis.dicom.mf.SopInstance;
+
+<span class="nc" id="L19">public class SeriesInstanceList {</span>
+<span class="nc" id="L20">  private final Map&lt;String, SopInstance&gt; dicomInstanceMap = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L21">  private final Map&lt;String, SopInstance&gt; dicomUniqueSopInstanceMap = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L22">  private boolean containsMultiframes = false;</span>
+
+  public void addSopInstance(SopInstance s) {
+<span class="nc bnc" id="L25" title="All 2 branches missed.">    if (s != null) {</span>
+<span class="nc" id="L26">      SopInstance.addSopInstance(dicomInstanceMap, s);</span>
+<span class="nc" id="L27">      SopInstance sop = dicomUniqueSopInstanceMap.get(s.getSopInstanceUID());</span>
+<span class="nc bnc" id="L28" title="All 2 branches missed.">      if (sop == null) {</span>
+<span class="nc" id="L29">        dicomUniqueSopInstanceMap.put(s.getSopInstanceUID(), s);</span>
+      } else {
+<span class="nc" id="L31">        containsMultiframes = true;</span>
+      }
+    }
+<span class="nc" id="L34">  }</span>
+
+  public SopInstance getSopInstance(String sopUID, Integer instanceNumber) {
+<span class="nc" id="L37">    return SopInstance.getSopInstance(dicomInstanceMap, sopUID, instanceNumber);</span>
+  }
+
+  public SopInstance getSopInstance(String sopUID) {
+<span class="nc" id="L41">    return dicomUniqueSopInstanceMap.get(sopUID);</span>
+  }
+
+  public boolean isContainsMultiframes() {
+<span class="nc" id="L45">    return containsMultiframes;</span>
+  }
+
+  public boolean isEmpty() {
+<span class="nc" id="L49">    return dicomInstanceMap.isEmpty();</span>
+  }
+
+  public int size() {
+<span class="nc" id="L53">    return dicomInstanceMap.size();</span>
+  }
+
+  public List&lt;SopInstance&gt; getSortedList() {
+<span class="nc" id="L57">    ArrayList&lt;SopInstance&gt; sopList = new ArrayList&lt;&gt;(dicomInstanceMap.values());</span>
+<span class="nc" id="L58">    Collections.sort(sopList);</span>
+<span class="nc" id="L59">    return sopList;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

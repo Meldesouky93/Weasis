@@ -1,0 +1,706 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>GeomUtil.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.gui.util</a> &gt; <span class="el_source">GeomUtil.java</span></div><h1>GeomUtil.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.gui.util;
+
+import java.awt.Shape;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.FlatteningPathIterator;
+import java.awt.geom.Line2D;
+import java.awt.geom.Path2D;
+import java.awt.geom.PathIterator;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.util.Arrays;
+import java.util.List;
+import org.weasis.core.util.MathUtil;
+
+public final class GeomUtil {
+
+  private GeomUtil() {}
+
+  public static boolean isLineValid(Point2D ptA, Point2D ptB) {
+<span class="nc bnc" id="L29" title="All 6 branches missed.">    return ptA != null &amp;&amp; ptB != null &amp;&amp; !ptA.equals(ptB);</span>
+  }
+
+  /**
+   * @return angle between BA &amp; BC line segment in Radiant&lt;br&gt;
+   *     0 is returned if any argument is invalid
+   */
+  public static double getAngleRad(Point2D ptA, Point2D ptB, Point2D ptC) {
+<span class="nc bnc" id="L37" title="All 6 branches missed.">    if (ptA != null &amp;&amp; ptB != null &amp;&amp; ptC != null) {</span>
+<span class="nc" id="L38">      return getAngleRad(ptB, ptC) - getAngleRad(ptB, ptA);</span>
+    }
+<span class="nc" id="L40">    return 0;</span>
+  }
+
+  /**
+   * @return angle between BA &amp; BC line segment in Degree&lt;br&gt;
+   *     0 is returned if any argument is invalid
+   */
+  public static double getAngleDeg(Point2D ptA, Point2D ptB, Point2D ptC) {
+<span class="nc bnc" id="L48" title="All 6 branches missed.">    if (ptA != null &amp;&amp; ptB != null &amp;&amp; ptC != null) {</span>
+<span class="nc" id="L49">      return Math.toDegrees(getAngleRad(ptA, ptB, ptC));</span>
+    }
+<span class="nc" id="L51">    return 0;</span>
+  }
+
+  /**
+   * Compute angle into image system basis where positive angle are defined in a ClockWise
+   * orientation&lt;br&gt;
+   * Note : angle should be computed with &quot;Math.atan2(ptB.getY() - ptA.getY(), ptB.getX() -
+   * ptA.getX())&quot; in an ortho-normal basis system where positive angle is defined in a
+   * CounterClockWise orientation.
+   *
+   * @return angle of AB line segment in radiant&lt;br&gt;
+   *     0 is returned if any argument is invalid
+   */
+  public static double getAngleRad(Point2D ptA, Point2D ptB) {
+<span class="nc" id="L65">    return Math.atan2(ptA.getY() - ptB.getY(), ptB.getX() - ptA.getX());</span>
+  }
+
+  /**
+   * @return angle of AB line segment in radiant&lt;br&gt;
+   *     0 is returned if any argument is invalid
+   */
+  public static double getAngleDeg(Point2D ptA, Point2D ptB) {
+<span class="nc" id="L73">    return Math.toDegrees(getAngleRad(ptA, ptB));</span>
+  }
+
+  /**
+   * Normalizes angle in the range of [-π, +π]
+   *
+   * @param angle in Radiant
+   * @return the normalized angle in radiant in the range of [-π, +π]
+   */
+  public static double normalizeAngle(double angle) {
+<span class="nc" id="L83">    angle = (angle + Math.PI) % (2 * Math.PI) - Math.PI;</span>
+    // Normalize angle to [-π, +π]
+<span class="nc bnc" id="L85" title="All 2 branches missed.">    if (angle &gt; Math.PI) {</span>
+<span class="nc" id="L86">      angle -= 2 * Math.PI;</span>
+<span class="nc bnc" id="L87" title="All 2 branches missed.">    } else if (angle &lt; -Math.PI) {</span>
+<span class="nc" id="L88">      angle += 2 * Math.PI;</span>
+    }
+<span class="nc" id="L90">    return angle;</span>
+  }
+
+  /**
+   * @param angle in Radiant
+   * @return angle in the range of [-π, +π]
+   */
+  public static double getSmallestRotationAngleRad(double angle) {
+<span class="nc" id="L98">    double a = angle % (2 * Math.PI);</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">    if (Math.abs(a) &gt; Math.PI) {</span>
+<span class="nc" id="L100">      a -= Math.signum(a) * (2.0 * Math.PI);</span>
+    }
+<span class="nc" id="L102">    return a;</span>
+  }
+
+  /**
+   * @param angle in Degree
+   * @return angle in the range of [ -180, 180 ]
+   */
+  public static double getSmallestRotationAngleDeg(double angle) {
+<span class="nc" id="L110">    double a = angle % 360.0;</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">    if (Math.abs(a) &gt; 180.0) {</span>
+<span class="nc" id="L112">      a -= Math.signum(a) * 360.0;</span>
+    }
+<span class="nc" id="L114">    return a;</span>
+  }
+
+  /**
+   * @param angle in Radiant
+   * @return angle in the range of [-π, +π]
+   */
+  public static double getSmallestAngleRad(double angle) {
+<span class="nc" id="L122">    double a = angle % Math.PI;</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">    if (Math.abs(a) &gt; (Math.PI / 2.0)) {</span>
+<span class="nc" id="L124">      a -= Math.signum(a) * Math.PI;</span>
+    }
+<span class="nc" id="L126">    return a;</span>
+  }
+
+  /**
+   * @param angle in Degree
+   * @return angle in the range of [ -90 ; 90 ]
+   */
+  public static double getSmallestAngleDeg(double angle) {
+<span class="nc" id="L134">    double a = angle % 180.0;</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">    if (Math.abs(a) &gt; 90.0) {</span>
+<span class="nc" id="L136">      a -= Math.signum(a) * 180.0;</span>
+    }
+<span class="nc" id="L138">    return a;</span>
+  }
+
+  /**
+   * @return midPoint or null if any argument is invalid
+   */
+  public static Point2D getMidPoint(Point2D ptA, Point2D ptB) {
+<span class="nc bnc" id="L145" title="All 4 branches missed.">    if (ptA != null &amp;&amp; ptB != null) {</span>
+<span class="nc" id="L146">      return new Point2D.Double((ptA.getX() + ptB.getX()) / 2.0, (ptA.getY() + ptB.getY()) / 2.0);</span>
+    }
+<span class="nc" id="L148">    return null;</span>
+  }
+
+  /**
+   * @param ptA the first point of line segment
+   * @param ptB the last point of line segment
+   * @param newLength represents length from ptA to the return point ptC along AB line segment.&lt;br&gt;
+   *     If &gt;AB , ptC point will be located on extension of AB&lt;br&gt;
+   *     If &lt;0 , ptC point will be located on extension of BA &lt;br&gt;
+   *     If &gt;0 &amp;&amp; &lt; AB , ptC point will be interior of AB&lt;br&gt;
+   * @return New point ptC coordinates or null if any argument is invalid
+   */
+  public static Point2D getColinearPointWithLength(Point2D ptA, Point2D ptB, double newLength) {
+<span class="nc bnc" id="L161" title="All 4 branches missed.">    if (ptA != null &amp;&amp; ptB != null) {</span>
+<span class="nc" id="L162">      return getCollinearPointWithRatio(ptA, ptB, newLength / ptA.distance(ptB));</span>
+    }
+<span class="nc" id="L164">    return null;</span>
+  }
+
+  /**
+   * @param ptA first point of line segment
+   * @param ptB last point of line segment
+   * @param k represents ratio between AB and AC, ptC being the returned point along AB line
+   *     segment.&lt;br&gt;
+   *     If &gt;1 , ptC point will be located on extension of AB&lt;br&gt;
+   *     If &lt;0 , ptC point will be located on extension of BA &lt;br&gt;
+   *     If &gt;0 &amp;&amp; &lt;AB , ptC point will be interior of AB&lt;br&gt;
+   * @return New point ptC coordinates or null if any argument is invalid
+   */
+  public static Point2D.Double getCollinearPointWithRatio(Point2D ptA, Point2D ptB, double k) {
+<span class="nc bnc" id="L178" title="All 4 branches missed.">    if (ptA != null &amp;&amp; ptB != null) {</span>
+<span class="nc" id="L179">      return new Point2D.Double(</span>
+<span class="nc" id="L180">          ptB.getX() * k + ptA.getX() * (1 - k), ptB.getY() * k + ptA.getY() * (1 - k));</span>
+    }
+<span class="nc" id="L182">    return null;</span>
+  }
+
+  /**
+   * @return median line or null if any argument is invalid
+   */
+  public static Line2D getMedianLine(Line2D line1, Line2D line2) {
+<span class="nc bnc" id="L189" title="All 4 branches missed.">    if (line1 == null || line2 == null) {</span>
+<span class="nc" id="L190">      return null;</span>
+    }
+
+<span class="nc" id="L193">    Point2D ptA = line1.getP1();</span>
+<span class="nc" id="L194">    Point2D ptB = line1.getP2();</span>
+<span class="nc" id="L195">    Point2D ptC = line2.getP1();</span>
+<span class="nc" id="L196">    Point2D ptD = line2.getP2();</span>
+
+<span class="nc" id="L198">    Line2D line3 = new Line2D.Double(ptA, ptC);</span>
+<span class="nc" id="L199">    Line2D line4 = new Line2D.Double(ptB, ptD);</span>
+
+    Point2D ptM;
+    Point2D ptN;
+
+<span class="nc bnc" id="L204" title="All 2 branches missed.">    if (line3.intersectsLine(line4)) {</span>
+<span class="nc" id="L205">      ptM = new Point2D.Double((ptA.getX() + ptD.getX()) / 2, (ptA.getY() + ptD.getY()) / 2);</span>
+<span class="nc" id="L206">      ptN = new Point2D.Double((ptB.getX() + ptC.getX()) / 2, (ptB.getY() + ptC.getY()) / 2);</span>
+    } else {
+<span class="nc" id="L208">      ptM = new Point2D.Double((ptA.getX() + ptC.getX()) / 2, (ptA.getY() + ptC.getY()) / 2);</span>
+<span class="nc" id="L209">      ptN = new Point2D.Double((ptB.getX() + ptD.getX()) / 2, (ptB.getY() + ptD.getY()) / 2);</span>
+    }
+
+<span class="nc" id="L212">    return new Line2D.Double(ptM, ptN);</span>
+  }
+
+  /**
+   * @return median line or null if any argument is invalid
+   */
+  public static Line2D getMedianLine(Point2D ptA, Point2D ptB, Point2D ptC, Point2D ptD) {
+<span class="nc bnc" id="L219" title="All 8 branches missed.">    if (ptA == null || ptB == null || ptC == null || ptD == null) {</span>
+<span class="nc" id="L220">      return null;</span>
+    }
+<span class="nc" id="L222">    return getMedianLine(new Line2D.Double(ptA, ptB), new Line2D.Double(ptC, ptD));</span>
+  }
+
+  /**
+   * Let ptA,ptB,ptC,ptD be 2-space position vectors.
+   *
+   * @return intersect point. Null if segment lines are parallel
+   */
+  public static Point2D getIntersectPoint(Point2D ptA, Point2D ptB, Point2D ptC, Point2D ptD) {
+<span class="nc bnc" id="L231" title="All 8 branches missed.">    if (ptA == null || ptB == null || ptC == null || ptD == null) {</span>
+<span class="nc" id="L232">      return null;</span>
+    }
+
+<span class="nc" id="L235">    Point2D.Double ptP = null;</span>
+
+<span class="nc" id="L237">    double denominator =</span>
+<span class="nc" id="L238">        (ptB.getX() - ptA.getX()) * (ptD.getY() - ptC.getY())</span>
+<span class="nc" id="L239">            - (ptB.getY() - ptA.getY()) * (ptD.getX() - ptC.getX());</span>
+
+<span class="nc bnc" id="L241" title="All 2 branches missed.">    if (MathUtil.isDifferentFromZero(denominator)) {</span>
+<span class="nc" id="L242">      double numerator =</span>
+<span class="nc" id="L243">          (ptA.getY() - ptC.getY()) * (ptD.getX() - ptC.getX())</span>
+<span class="nc" id="L244">              - (ptA.getX() - ptC.getX()) * (ptD.getY() - ptC.getY());</span>
+
+<span class="nc" id="L246">      double r = numerator / denominator;</span>
+
+<span class="nc" id="L248">      ptP =</span>
+          new Point2D.Double(
+<span class="nc" id="L250">              ptA.getX() + r * (ptB.getX() - ptA.getX()),</span>
+<span class="nc" id="L251">              ptA.getY() + r * (ptB.getY() - ptA.getY()));</span>
+    }
+
+<span class="nc" id="L254">    return ptP;</span>
+  }
+
+  public static Point2D getIntersectPoint(Line2D line1, Line2D line2) {
+<span class="nc bnc" id="L258" title="All 4 branches missed.">    if (line1 == null || line2 == null) {</span>
+<span class="nc" id="L259">      return null;</span>
+    }
+<span class="nc" id="L261">    return getIntersectPoint(line1.getP1(), line1.getP2(), line2.getP1(), line2.getP2());</span>
+  }
+
+  public static Point2D getIntersectPoint(Line2D line, Rectangle2D rect) {
+<span class="nc bnc" id="L265" title="All 4 branches missed.">    if (line == null || rect == null) {</span>
+<span class="nc" id="L266">      return null;</span>
+    }
+
+<span class="nc" id="L269">    Point2D p =</span>
+<span class="nc" id="L270">        lineIntersection(</span>
+            line,
+<span class="nc" id="L272">            new Line2D.Double(rect.getMinX(), rect.getMinY(), rect.getMaxX(), rect.getMinY()));</span>
+<span class="nc bnc" id="L273" title="All 2 branches missed.">    if (p == null) {</span>
+<span class="nc" id="L274">      p =</span>
+<span class="nc" id="L275">          lineIntersection(</span>
+              line,
+<span class="nc" id="L277">              new Line2D.Double(rect.getMinX(), rect.getMaxY(), rect.getMaxX(), rect.getMaxY()));</span>
+<span class="nc bnc" id="L278" title="All 2 branches missed.">      if (p == null) {</span>
+<span class="nc" id="L279">        p =</span>
+<span class="nc" id="L280">            lineIntersection(</span>
+                line,
+<span class="nc" id="L282">                new Line2D.Double(rect.getMinX(), rect.getMinY(), rect.getMinX(), rect.getMaxY()));</span>
+<span class="nc bnc" id="L283" title="All 2 branches missed.">        if (p == null) {</span>
+<span class="nc" id="L284">          p =</span>
+<span class="nc" id="L285">              lineIntersection(</span>
+                  line,
+                  new Line2D.Double(
+<span class="nc" id="L288">                      rect.getMaxX(), rect.getMinY(), rect.getMaxX(), rect.getMaxY()));</span>
+        }
+      }
+    }
+<span class="nc" id="L292">    return p;</span>
+  }
+
+  public static Line2D cropLine(Line2D line, Rectangle2D rect) {
+<span class="nc bnc" id="L296" title="All 6 branches missed.">    if (line == null || rect == null || rect.isEmpty()) {</span>
+<span class="nc" id="L297">      return line;</span>
+    }
+
+<span class="nc" id="L300">    Point2D p1 =</span>
+<span class="nc" id="L301">        lineIntersection(</span>
+            line,
+<span class="nc" id="L303">            new Line2D.Double(rect.getMinX(), rect.getMinY(), rect.getMaxX(), rect.getMinY()));</span>
+<span class="nc" id="L304">    Point2D p2 =</span>
+<span class="nc" id="L305">        lineIntersection(</span>
+            line,
+<span class="nc" id="L307">            new Line2D.Double(rect.getMinX(), rect.getMaxY(), rect.getMaxX(), rect.getMaxY()));</span>
+<span class="nc" id="L308">    Point2D p3 =</span>
+<span class="nc" id="L309">        lineIntersection(</span>
+            line,
+<span class="nc" id="L311">            new Line2D.Double(rect.getMinX(), rect.getMinY(), rect.getMinX(), rect.getMaxY()));</span>
+<span class="nc" id="L312">    Point2D p4 =</span>
+<span class="nc" id="L313">        lineIntersection(</span>
+            line,
+<span class="nc" id="L315">            new Line2D.Double(rect.getMaxX(), rect.getMinY(), rect.getMaxX(), rect.getMaxY()));</span>
+
+<span class="nc" id="L317">    Point2D pl1 = null;</span>
+<span class="nc" id="L318">    Point2D pl2 = null;</span>
+
+<span class="nc bnc" id="L320" title="All 2 branches missed.">    for (Point2D p : Arrays.asList(p1, p2, p3, p4)) {</span>
+<span class="nc bnc" id="L321" title="All 2 branches missed.">      if (p != null) {</span>
+<span class="nc bnc" id="L322" title="All 2 branches missed.">        if (pl1 == null) {</span>
+<span class="nc" id="L323">          pl1 = p;</span>
+        } else {
+<span class="nc" id="L325">          pl2 = p;</span>
+<span class="nc" id="L326">          break;</span>
+        }
+      }
+<span class="nc" id="L329">    }</span>
+
+<span class="nc" id="L331">    return getLine2D(line, pl1, pl2, rect);</span>
+  }
+
+  /**
+   * Crops the given line (Line2D) to the boundaries of the provided Path2D.
+   *
+   * @param line The line to crop.
+   * @param path The boundary Path2D to which the line should be cropped.
+   * @return A new cropped Line2D, or the original line if no intersection occurs.
+   */
+  public static Line2D cropLine(Line2D line, Path2D path) {
+<span class="nc bnc" id="L342" title="All 4 branches missed.">    if (line == null || path == null) {</span>
+<span class="nc" id="L343">      return line;</span>
+    }
+
+<span class="nc" id="L346">    Point2D pl1 = null;</span>
+<span class="nc" id="L347">    Point2D pl2 = null;</span>
+
+<span class="nc" id="L349">    PathIterator iterator = new FlatteningPathIterator(path.getPathIterator(null), 2);</span>
+<span class="nc" id="L350">    double[] coords = new double[6];</span>
+<span class="nc" id="L351">    Point2D.Double lastPoint = null;</span>
+
+<span class="nc bnc" id="L353" title="All 2 branches missed.">    while (!iterator.isDone()) {</span>
+<span class="nc" id="L354">      int segmentType = iterator.currentSegment(coords);</span>
+<span class="nc bnc" id="L355" title="All 2 branches missed.">      if (segmentType == PathIterator.SEG_MOVETO) {</span>
+<span class="nc" id="L356">        lastPoint = new Point2D.Double(coords[0], coords[1]);</span>
+<span class="nc bnc" id="L357" title="All 2 branches missed.">      } else if (segmentType == PathIterator.SEG_LINETO) {</span>
+<span class="nc" id="L358">        Point2D.Double currentPoint = new Point2D.Double(coords[0], coords[1]);</span>
+<span class="nc" id="L359">        Point2D intersection = lineIntersection(line, new Line2D.Double(lastPoint, currentPoint));</span>
+<span class="nc bnc" id="L360" title="All 2 branches missed.">        if (intersection != null) {</span>
+<span class="nc bnc" id="L361" title="All 2 branches missed.">          if (pl1 == null) {</span>
+<span class="nc" id="L362">            pl1 = intersection;</span>
+          } else {
+<span class="nc" id="L364">            pl2 = intersection;</span>
+<span class="nc" id="L365">            break;</span>
+          }
+        }
+<span class="nc" id="L368">        lastPoint = currentPoint;</span>
+      }
+<span class="nc" id="L370">      iterator.next();</span>
+<span class="nc" id="L371">    }</span>
+
+<span class="nc" id="L373">    return getLine2D(line, pl1, pl2, path);</span>
+  }
+
+  private static Line2D getLine2D(Line2D line, Point2D pl1, Point2D pl2, Shape path) {
+<span class="nc bnc" id="L377" title="All 4 branches missed.">    if (pl1 != null &amp;&amp; pl2 != null) {</span>
+<span class="nc" id="L378">      return keepLineOrientation(line, pl1, pl2);</span>
+<span class="nc bnc" id="L379" title="All 2 branches missed.">    } else if (pl1 != null) {</span>
+<span class="nc bnc" id="L380" title="All 2 branches missed.">      if (path.contains(line.getP1())) {</span>
+<span class="nc" id="L381">        return keepLineOrientation(line, pl1, line.getP1());</span>
+<span class="nc bnc" id="L382" title="All 2 branches missed.">      } else if (path.contains(line.getP2())) {</span>
+<span class="nc" id="L383">        return keepLineOrientation(line, pl1, line.getP2());</span>
+      }
+    }
+
+<span class="nc" id="L387">    return line;</span>
+  }
+
+  private static Line2D keepLineOrientation(Line2D line, Point2D pl1, Point2D pl2) {
+<span class="nc bnc" id="L391" title="All 2 branches missed.">    if (line.getP1().distance(pl1) &lt; line.getP1().distance(pl2)) {</span>
+<span class="nc" id="L392">      return new Line2D.Double(pl1, pl2);</span>
+    } else {
+<span class="nc" id="L394">      return new Line2D.Double(pl2, pl1);</span>
+    }
+  }
+
+  private static Point2D lineIntersection(Line2D line1, Line2D line2) {
+<span class="nc bnc" id="L399" title="All 2 branches missed.">    if (line1.intersectsLine(line2)) {</span>
+<span class="nc" id="L400">      return GeomUtil.getIntersectPoint(line1, line2);</span>
+    }
+<span class="nc" id="L402">    return null;</span>
+  }
+
+  public static boolean lineParallel(Point2D ptA, Point2D ptB, Point2D ptC, Point2D ptD) {
+<span class="nc bnc" id="L406" title="All 8 branches missed.">    if (ptA == null || ptB == null || ptC == null || ptD == null) {</span>
+<span class="nc" id="L407">      throw new IllegalArgumentException(&quot;All the points must not be null&quot;);</span>
+    }
+<span class="nc" id="L409">    return MathUtil.isEqualToZero(</span>
+<span class="nc" id="L410">        (ptB.getX() - ptA.getX()) * (ptD.getY() - ptC.getY())</span>
+<span class="nc" id="L411">            - (ptB.getY() - ptA.getY()) * (ptD.getX() - ptC.getX()));</span>
+  }
+
+  public static boolean lineColinear(Point2D ptA, Point2D ptB, Point2D ptC, Point2D ptD) {
+<span class="nc bnc" id="L415" title="All 2 branches missed.">    if (lineParallel(ptA, ptB, ptC, ptD)) {</span>
+<span class="nc" id="L416">      return MathUtil.isEqualToZero(</span>
+<span class="nc" id="L417">          (ptA.getY() - ptC.getY()) * (ptD.getX() - ptC.getX())</span>
+<span class="nc" id="L418">              - (ptA.getX() - ptC.getX()) * (ptD.getY() - ptC.getY()));</span>
+    }
+<span class="nc" id="L420">    return false;</span>
+  }
+
+  public static Point2D getPerpendicularPointToLine(Point2D ptA, Point2D ptB, Point2D ptC) {
+<span class="nc bnc" id="L424" title="All 8 branches missed.">    if (ptA == null || ptB == null || ptA.equals(ptB) || ptC == null) {</span>
+<span class="nc" id="L425">      return null;</span>
+    }
+
+<span class="nc" id="L428">    double ax = ptA.getX();</span>
+<span class="nc" id="L429">    double ay = ptA.getY();</span>
+<span class="nc" id="L430">    double bx = ptB.getX();</span>
+<span class="nc" id="L431">    double by = ptB.getY();</span>
+<span class="nc" id="L432">    double cx = ptC.getX();</span>
+<span class="nc" id="L433">    double cy = ptC.getY();</span>
+
+<span class="nc" id="L435">    double r = ((ay - cy) * (ay - by) + (ax - cx) * (ax - bx)) / Point2D.distanceSq(ax, ay, bx, by);</span>
+
+<span class="nc" id="L437">    return new Point2D.Double(ax + r * (bx - ax), ay + r * (by - ay));</span>
+  }
+
+  public static Point2D getPerpendicularPointToLine(Line2D line, Point2D ptC) {
+<span class="nc bnc" id="L441" title="All 4 branches missed.">    if (line == null || ptC == null) {</span>
+<span class="nc" id="L442">      return null;</span>
+    }
+<span class="nc" id="L444">    return getPerpendicularPointToLine(line.getP1(), line.getP2(), ptC);</span>
+  }
+
+  /**
+   * Find a point at a given perpendicular distance from a line
+   *
+   * @param ptA Start of line segment
+   * @param ptB End of line segment
+   * @param ptP Point of AB line
+   * @param distPC Distance from line to return Point ptC &lt;br&gt;
+   *     If &gt;0 angle between AB and PC is +90° &lt;br&gt;
+   *     If &lt;0 angle between AB and PC is -+90°
+   * @return perpendicular point
+   */
+  public static Point2D getPerpendicularPointFromLine(
+      Point2D ptA, Point2D ptB, Point2D ptP, double distPC) {
+<span class="nc bnc" id="L460" title="All 8 branches missed.">    if (ptA == null || ptB == null || ptA.equals(ptB) || ptP == null) {</span>
+<span class="nc" id="L461">      return null;</span>
+    }
+
+<span class="nc" id="L464">    double distAB = ptA.distance(ptB);</span>
+<span class="nc" id="L465">    double ux = -(ptB.getY() - ptA.getY()) / distAB;</span>
+<span class="nc" id="L466">    double uy = (ptB.getX() - ptA.getX()) / distAB;</span>
+
+<span class="nc" id="L468">    return new Point2D.Double(ptP.getX() + distPC * ux, ptP.getY() + distPC * uy);</span>
+  }
+
+  public static Point2D getPerpendicularPointFromLine(
+      Point2D ptA, Point2D ptB, double distAP, double distPC) {
+<span class="nc" id="L473">    return getPerpendicularPointFromLine(</span>
+<span class="nc" id="L474">        ptA, ptB, getColinearPointWithLength(ptA, ptB, distAP), distPC);</span>
+  }
+
+  /**
+   * @param ptA Start of line segment
+   * @param ptB End of line segment
+   * @param dist Distance from AB line to the parallel CD line &lt;br&gt;
+   * @return parallel line
+   */
+  public static Line2D getParallelLine(Point2D ptA, Point2D ptB, double dist) {
+<span class="nc bnc" id="L484" title="All 6 branches missed.">    if (ptA == null || ptB == null || ptA.equals(ptB)) {</span>
+<span class="nc" id="L485">      return null;</span>
+    }
+
+<span class="nc" id="L488">    double abX = ptB.getX() - ptA.getX();</span>
+<span class="nc" id="L489">    double abY = ptB.getY() - ptA.getY();</span>
+
+<span class="nc" id="L491">    double perpSize = Math.sqrt(abX * abX + abY * abY);</span>
+
+<span class="nc" id="L493">    double sideVectorX = dist * -abY / perpSize;</span>
+<span class="nc" id="L494">    double sideVectorY = dist * abX / perpSize;</span>
+
+<span class="nc" id="L496">    Point2D ptC = new Point2D.Double(ptA.getX() + sideVectorX, ptA.getY() + sideVectorY);</span>
+<span class="nc" id="L497">    Point2D ptD = new Point2D.Double(ptB.getX() + sideVectorX, ptB.getY() + sideVectorY);</span>
+
+<span class="nc" id="L499">    return new Line2D.Double(ptC, ptD);</span>
+  }
+
+  /**
+   * @param ptList the list of Point2D
+   * @return center point
+   */
+  public static Point2D getCircleCenter(List&lt;Point2D&gt; ptList) {
+<span class="nc bnc" id="L507" title="All 2 branches missed.">    if (ptList == null) {</span>
+<span class="nc" id="L508">      return null;</span>
+    }
+
+<span class="nc bnc" id="L511" title="All 3 branches missed.">    return switch (ptList.size()) {</span>
+<span class="nc" id="L512">      case 3 -&gt; getCircleCenter(ptList.get(0), ptList.get(1), ptList.get(2));</span>
+      case 2 -&gt;
+<span class="nc" id="L514">          new Point2D.Double(</span>
+<span class="nc" id="L515">              (ptList.get(0).getX() + ptList.get(1).getX()) / 2.0,</span>
+<span class="nc" id="L516">              (ptList.get(0).getY() + ptList.get(1).getY()) / 2.0);</span>
+<span class="nc" id="L517">      default -&gt; null;</span>
+    };
+  }
+
+  public static Point2D getCircleCenter(Point2D ptA, Point2D ptB, Point2D ptC) {
+<span class="nc bnc" id="L522" title="All 6 branches missed.">    if (ptA == null || ptB == null || ptC == null) {</span>
+<span class="nc" id="L523">      return null;</span>
+    }
+
+<span class="nc" id="L526">    double ax = ptA.getX();</span>
+<span class="nc" id="L527">    double ay = ptA.getY();</span>
+<span class="nc" id="L528">    double bx = ptB.getX();</span>
+<span class="nc" id="L529">    double by = ptB.getY();</span>
+<span class="nc" id="L530">    double cx = ptC.getX();</span>
+<span class="nc" id="L531">    double cy = ptC.getY();</span>
+
+<span class="nc" id="L533">    double c1 = bx - ax;</span>
+<span class="nc" id="L534">    double c2 = by - ay;</span>
+<span class="nc" id="L535">    double c3 = cx - ax;</span>
+<span class="nc" id="L536">    double c4 = cy - ay;</span>
+<span class="nc" id="L537">    double c5 = c1 * (ax + bx) + c2 * (ay + by);</span>
+<span class="nc" id="L538">    double c6 = c3 * (ax + cx) + c4 * (ay + cy);</span>
+
+<span class="nc" id="L540">    double denom = 2 * (c1 * (cy - by) - c2 * (cx - bx));</span>
+
+<span class="nc bnc" id="L542" title="All 2 branches missed.">    if (MathUtil.isEqualToZero(denom)) {</span>
+<span class="nc" id="L543">      return null; // a, b, c must be collinear</span>
+    }
+
+<span class="nc" id="L546">    double px = (c4 * c5 - c2 * c6) / denom;</span>
+<span class="nc" id="L547">    double py = (c1 * c6 - c3 * c5) / denom;</span>
+
+<span class="nc" id="L549">    return new Point2D.Double(px, py);</span>
+  }
+
+  /**
+   * Extract scaling from AffineTransform&lt;br&gt;
+   * Let assume that the AffineTransform is a composite of scales, translates, and rotates. &lt;br&gt;
+   * No independent shear has to be applied and scaling must be uniform along the two axes.
+   *
+   * @param transform current AffineTransform
+   */
+  public static double extractScalingFactor(AffineTransform transform) {
+<span class="nc" id="L560">    double scalingFactor = 1.0;</span>
+
+<span class="nc bnc" id="L562" title="All 2 branches missed.">    if (transform != null) {</span>
+<span class="nc" id="L563">      double sx = transform.getScaleX();</span>
+<span class="nc" id="L564">      double shx = transform.getShearX();</span>
+<span class="nc bnc" id="L565" title="All 4 branches missed.">      if (MathUtil.isDifferentFromZero(sx) || MathUtil.isDifferentFromZero(shx)) {</span>
+<span class="nc" id="L566">        scalingFactor = Math.sqrt(sx * sx + shx * shx);</span>
+      }
+    }
+
+<span class="nc" id="L570">    return scalingFactor;</span>
+  }
+
+  /**
+   * Extract rotation Angle from a given AffineTransform Matrix.&lt;br&gt;
+   * This function handle cases of mirror image flip about some axis. This changes right-handed
+   * coordinate system into a left-handed system. Hence, returned angle has an opposite value.
+   *
+   * @param transform the AffineTransform value
+   * @return angle in the range of [ -PI ; PI ]
+   */
+  public static double extractAngleRad(AffineTransform transform) {
+<span class="nc" id="L582">    double angleRad = 0.0;</span>
+
+<span class="nc bnc" id="L584" title="All 2 branches missed.">    if (transform != null) {</span>
+<span class="nc" id="L585">      double sinTheta = transform.getShearY();</span>
+<span class="nc" id="L586">      double cosTheta = transform.getScaleX();</span>
+
+<span class="nc" id="L588">      angleRad = Math.atan2(sinTheta, cosTheta);</span>
+
+<span class="nc bnc" id="L590" title="All 2 branches missed.">      if ((transform.getType() &amp; AffineTransform.TYPE_FLIP) != 0) {</span>
+<span class="nc" id="L591">        angleRad *= -1.0;</span>
+      }
+    }
+
+<span class="nc" id="L595">    return angleRad;</span>
+  }
+
+  /**
+   * Do a scaling transformation around the anchor point
+   *
+   * @param shape the Shape value
+   * @param scalingFactor the scaling factor
+   * @param anchorPoint can be null
+   * @return null if either shape is null or scaling factor is zero
+   */
+  public static Shape getScaledShape(final Shape shape, double scalingFactor, Point2D anchorPoint) {
+<span class="nc bnc" id="L607" title="All 4 branches missed.">    if (shape == null || MathUtil.isEqualToZero(scalingFactor)) {</span>
+<span class="nc" id="L608">      return null;</span>
+    }
+
+<span class="nc" id="L611">    AffineTransform scaleTransform = new AffineTransform(); // Identity transformation.</span>
+
+<span class="nc bnc" id="L613" title="All 2 branches missed.">    if (MathUtil.isDifferent(scalingFactor, 1.0)) {</span>
+<span class="nc bnc" id="L614" title="All 2 branches missed.">      if (anchorPoint != null) {</span>
+<span class="nc" id="L615">        scaleTransform.translate(anchorPoint.getX(), anchorPoint.getY());</span>
+      }
+
+<span class="nc" id="L618">      scaleTransform.scale(scalingFactor, scalingFactor);</span>
+
+<span class="nc bnc" id="L620" title="All 2 branches missed.">      if (anchorPoint != null) {</span>
+<span class="nc" id="L621">        scaleTransform.translate(-anchorPoint.getX(), -anchorPoint.getY());</span>
+      }
+    }
+
+<span class="nc" id="L625">    return scaleTransform.createTransformedShape(shape);</span>
+  }
+
+  public static Rectangle2D getScaledRectangle(final Rectangle2D rect, double scalingFactor) {
+<span class="nc" id="L629">    Rectangle2D newRect = null;</span>
+
+<span class="nc bnc" id="L631" title="All 4 branches missed.">    if (rect != null &amp;&amp; MathUtil.isDifferent(scalingFactor, 1.0)) {</span>
+<span class="nc" id="L632">      double resizedWidth = rect.getWidth() * scalingFactor;</span>
+<span class="nc" id="L633">      double resizedHeight = rect.getHeight() * scalingFactor;</span>
+
+<span class="nc" id="L635">      newRect = (Rectangle2D) rect.clone();</span>
+<span class="nc" id="L636">      newRect.setRect(rect.getX(), rect.getY(), resizedWidth, resizedHeight);</span>
+    }
+
+<span class="nc" id="L639">    return newRect;</span>
+  }
+
+  public static Shape getCornerShape(Point2D ptA, Point2D ptO, Point2D ptB, double cornerSize) {
+<span class="nc bnc" id="L643" title="All 10 branches missed.">    if (ptA == null || ptO == null || ptB == null || ptA.equals(ptO) || ptB.equals(ptO)) {</span>
+<span class="nc" id="L644">      return null;</span>
+    }
+
+<span class="nc" id="L647">    Point2D ptI1 = GeomUtil.getColinearPointWithLength(ptO, ptA, cornerSize);</span>
+<span class="nc" id="L648">    Point2D ptI2 = GeomUtil.getColinearPointWithLength(ptO, ptB, cornerSize);</span>
+
+<span class="nc" id="L650">    double rotSignum =</span>
+<span class="nc" id="L651">        Math.signum(GeomUtil.getSmallestRotationAngleDeg(GeomUtil.getAngleDeg(ptB, ptO, ptA)));</span>
+<span class="nc" id="L652">    Point2D ptI3 = GeomUtil.getPerpendicularPointFromLine(ptO, ptA, ptI1, rotSignum * cornerSize);</span>
+<span class="nc bnc" id="L653" title="All 2 branches missed.">    if (ptI3 == null) {</span>
+<span class="nc" id="L654">      return null;</span>
+    }
+
+<span class="nc" id="L657">    Path2D path = new Path2D.Double(Path2D.WIND_NON_ZERO, 3);</span>
+<span class="nc" id="L658">    path.moveTo(ptI1.getX(), ptI1.getY());</span>
+<span class="nc" id="L659">    path.lineTo(ptI3.getX(), ptI3.getY());</span>
+<span class="nc" id="L660">    path.lineTo(ptI2.getX(), ptI2.getY());</span>
+
+<span class="nc" id="L662">    return path;</span>
+  }
+
+  public static Shape getArrowShape(Point2D ptO, Point2D ptB, double length, double width) {
+<span class="nc bnc" id="L666" title="All 6 branches missed.">    if (ptO == null || ptB == null || ptB.equals(ptO)) {</span>
+<span class="nc" id="L667">      return null;</span>
+    }
+<span class="nc" id="L669">    Point2D ptI2 = GeomUtil.getColinearPointWithLength(ptO, ptB, length);</span>
+<span class="nc" id="L670">    Point2D ptI3 = GeomUtil.getPerpendicularPointFromLine(ptO, ptB, ptI2, width / 2.0);</span>
+<span class="nc bnc" id="L671" title="All 2 branches missed.">    if (ptI3 == null) {</span>
+<span class="nc" id="L672">      return null;</span>
+    }
+
+<span class="nc" id="L675">    Path2D path = new Path2D.Double(Path2D.WIND_NON_ZERO, 5);</span>
+<span class="nc" id="L676">    path.moveTo(ptI2.getX(), ptI2.getY());</span>
+<span class="nc" id="L677">    path.lineTo(ptI3.getX(), ptI3.getY());</span>
+<span class="nc" id="L678">    path.lineTo(ptO.getX(), ptO.getY());</span>
+<span class="nc" id="L679">    path.lineTo(</span>
+<span class="nc" id="L680">        ptI2.getX() - (ptI3.getX() - ptI2.getX()), ptI2.getY() - (ptI3.getY() - ptI2.getY()));</span>
+<span class="nc" id="L681">    path.lineTo(ptI2.getX(), ptI2.getY());</span>
+
+<span class="nc" id="L683">    return path;</span>
+  }
+
+  public static Rectangle2D getGrowingRectangle(Rectangle2D rect, double growingSize) {
+<span class="nc bnc" id="L687" title="All 2 branches missed.">    Rectangle2D growingRect = rect != null ? (Rectangle2D) rect.clone() : null;</span>
+<span class="nc" id="L688">    growRectangle(growingRect, growingSize);</span>
+<span class="nc" id="L689">    return growingRect;</span>
+  }
+
+  public static void growRectangle(Rectangle2D rect, double growingSize) {
+<span class="nc bnc" id="L693" title="All 2 branches missed.">    if (rect == null) {</span>
+<span class="nc" id="L694">      return;</span>
+    }
+
+<span class="nc bnc" id="L697" title="All 2 branches missed.">    if (MathUtil.isDifferentFromZero(growingSize)) {</span>
+<span class="nc" id="L698">      double newX = rect.getX() - growingSize;</span>
+<span class="nc" id="L699">      double newY = rect.getY() - growingSize;</span>
+<span class="nc" id="L700">      double newWidth = rect.getWidth() + (2.0 * growingSize);</span>
+<span class="nc" id="L701">      double newHeight = rect.getHeight() + (2.0 * growingSize);</span>
+<span class="nc" id="L702">      rect.setRect(newX, newY, newWidth, newHeight);</span>
+    }
+<span class="nc" id="L704">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

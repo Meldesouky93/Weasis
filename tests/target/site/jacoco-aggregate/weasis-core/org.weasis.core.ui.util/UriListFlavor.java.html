@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>UriListFlavor.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.util</a> &gt; <span class="el_source">UriListFlavor.java</span></div><h1>UriListFlavor.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.util;
+
+import java.awt.datatransfer.DataFlavor;
+import java.io.File;
+import java.net.URI;
+import java.util.Arrays;
+import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.util.StringUtil;
+
+public class UriListFlavor {
+<span class="nc" id="L22">  private static final Logger LOGGER = LoggerFactory.getLogger(UriListFlavor.class);</span>
+
+<span class="nc" id="L24">  public static final DataFlavor flavor = createDataFlavor();</span>
+
+<span class="nc" id="L26">  private static final DataFlavor[] flavors =</span>
+      new DataFlavor[] {DataFlavor.javaFileListFlavor, flavor};
+
+  private UriListFlavor() {}
+
+  private static DataFlavor createDataFlavor() {
+    try {
+<span class="nc" id="L33">      return new DataFlavor(</span>
+<span class="nc" id="L34">          &quot;text/uri-list;class=java.lang.String&quot;, null, UriListFlavor.class.getClassLoader());</span>
+<span class="nc" id="L35">    } catch (Exception e) {</span>
+<span class="nc" id="L36">      LOGGER.error(&quot;Build uri flavor&quot;, e);</span>
+<span class="nc" id="L37">      return null;</span>
+    }
+  }
+
+  public static List&lt;File&gt; textURIListToFileList(String uriList) {
+<span class="nc" id="L42">    List&lt;File&gt; list = new java.util.ArrayList&lt;&gt;();</span>
+<span class="nc" id="L43">    for (java.util.StringTokenizer st = new java.util.StringTokenizer(uriList, &quot;\r\n&quot;);</span>
+<span class="nc bnc" id="L44" title="All 2 branches missed.">        st.hasMoreTokens(); ) {</span>
+<span class="nc" id="L45">      String s = st.nextToken();</span>
+      // Check if the line is a comment (as per the RFC 2483)
+<span class="nc bnc" id="L47" title="All 2 branches missed.">      if (!s.startsWith(&quot;#&quot;)) {</span>
+        try {
+<span class="nc" id="L49">          list.add(new File(new URI(s)));</span>
+<span class="nc" id="L50">        } catch (Exception e) {</span>
+<span class="nc" id="L51">          LOGGER.error(&quot;Build file from URI&quot;, e);</span>
+<span class="nc" id="L52">        }</span>
+      }
+<span class="nc" id="L54">    }</span>
+<span class="nc" id="L55">    return list;</span>
+  }
+
+  public static boolean isValidURI(String uriString) {
+<span class="nc bnc" id="L59" title="All 2 branches missed.">    if (!StringUtil.hasText(uriString)) {</span>
+<span class="nc" id="L60">      return false;</span>
+    }
+    try {
+<span class="nc" id="L63">      new URI(uriString);</span>
+<span class="nc" id="L64">      return true;</span>
+<span class="nc" id="L65">    } catch (Exception e) {</span>
+<span class="nc" id="L66">      return false;</span>
+    }
+  }
+
+  public static DataFlavor[] getTransferDataFlavors() {
+<span class="nc" id="L71">    return Arrays.copyOf(flavors, flavors.length);</span>
+  }
+
+  public static boolean isDataFlavorSupported(DataFlavor flavor) {
+<span class="nc" id="L75">    return Arrays.stream(flavors).anyMatch(flavor::equals);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

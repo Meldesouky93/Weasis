@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>PseudoColorOp.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.image</a> &gt; <span class="el_source">PseudoColorOp.java</span></div><h1>PseudoColorOp.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.image;
+
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.ActionW;
+import org.weasis.core.api.image.op.ByteLutCollection;
+import org.weasis.core.util.LangUtil;
+import org.weasis.opencv.data.PlanarImage;
+import org.weasis.opencv.op.ImageProcessor;
+import org.weasis.opencv.op.lut.ByteLut;
+
+public class PseudoColorOp extends AbstractOp {
+
+<span class="nc" id="L22">  public static final String OP_NAME = Messages.getString(&quot;PseudoColorOperation.title&quot;);</span>
+
+  /**
+   * Set the lookup table (Required parameter).
+   *
+   * &lt;p&gt;org.weasis.core.api.image.op.ByteLut value.
+   */
+<span class="nc" id="L29">  public static final String P_LUT = ActionW.LUT.cmd();</span>
+
+  /**
+   * Whether the LUT must be inverted (Optional parameter).
+   *
+   * &lt;p&gt;Boolean value. Default value is false.
+   */
+<span class="nc" id="L36">  public static final String P_LUT_INVERSE = ActionW.INVERT_LUT.cmd();</span>
+
+<span class="nc" id="L38">  public PseudoColorOp() {</span>
+<span class="nc" id="L39">    setName(OP_NAME);</span>
+<span class="nc" id="L40">  }</span>
+
+  public PseudoColorOp(PseudoColorOp op) {
+<span class="nc" id="L43">    super(op);</span>
+<span class="nc" id="L44">  }</span>
+
+  @Override
+  public PseudoColorOp copy() {
+<span class="nc" id="L48">    return new PseudoColorOp(this);</span>
+  }
+
+  @Override
+  public void process() throws Exception {
+<span class="nc" id="L53">    PlanarImage source = (PlanarImage) params.get(Param.INPUT_IMG);</span>
+<span class="nc" id="L54">    PlanarImage result = source;</span>
+<span class="nc" id="L55">    ByteLut lutTable = (ByteLut) params.get(P_LUT);</span>
+
+<span class="nc bnc" id="L57" title="All 2 branches missed.">    if (lutTable != null) {</span>
+<span class="nc" id="L58">      boolean invert = LangUtil.getNULLtoFalse((Boolean) params.get(P_LUT_INVERSE));</span>
+<span class="nc" id="L59">      byte[][] lut = lutTable.lutTable();</span>
+<span class="nc bnc" id="L60" title="All 2 branches missed.">      if (lut == null) {</span>
+<span class="nc bnc" id="L61" title="All 2 branches missed.">        if (invert) {</span>
+<span class="nc" id="L62">          result = ImageProcessor.invertLUT(source.toImageCV());</span>
+        }
+      } else {
+<span class="nc bnc" id="L65" title="All 2 branches missed.">        if (invert) {</span>
+<span class="nc" id="L66">          lut = ByteLutCollection.invert(lut);</span>
+        }
+<span class="nc" id="L68">        result = ImageProcessor.applyLUT(source.toMat(), lut);</span>
+        // result = new LookupTableCV(lut).lookup(source);
+      }
+    }
+
+<span class="nc" id="L73">    params.put(Param.OUTPUT_IMG, result);</span>
+<span class="nc" id="L74">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

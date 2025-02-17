@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AcquireMetadataPanel.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer.gui.central.meta.panel</a> &gt; <span class="el_source">AcquireMetadataPanel.java</span></div><h1>AcquireMetadataPanel.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer.gui.central.meta.panel;
+
+import com.github.lgooddatepicker.components.DatePickerSettings;
+import com.github.lgooddatepicker.tableeditors.DateTableEditor;
+import com.github.lgooddatepicker.tableeditors.TimeTableEditor;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Font;
+import java.awt.Insets;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import javax.swing.AbstractCellEditor;
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.DefaultCellEditor;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTable;
+import javax.swing.JTextField;
+import javax.swing.border.TitledBorder;
+import javax.swing.event.TableModelEvent;
+import javax.swing.event.TableModelListener;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableCellEditor;
+import org.dcm4che3.data.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.acquire.explorer.AcquireImageInfo;
+import org.weasis.acquire.explorer.gui.central.meta.model.AcquireMetadataTableModel;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.gui.util.GuiUtils.IconColor;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.api.media.data.TagW.TagType;
+import org.weasis.core.api.util.FontItem;
+import org.weasis.core.ui.util.CalendarUtil;
+import org.weasis.core.ui.util.LimitedTextField;
+import org.weasis.core.ui.util.TableColumnAdjuster;
+import org.weasis.core.util.StringUtil;
+import org.weasis.dicom.codec.TagD;
+import org.weasis.dicom.codec.TagD.Sex;
+import org.weasis.dicom.codec.display.Modality;
+
+public abstract class AcquireMetadataPanel extends JPanel implements TableModelListener {
+<span class="nc" id="L58">  private static final Logger LOGGER = LoggerFactory.getLogger(AcquireMetadataPanel.class);</span>
+
+  protected final String title;
+<span class="nc" id="L61">  protected final JLabel label = new JLabel();</span>
+  protected final JTable table;
+  protected AcquireImageInfo imageInfo;
+  protected TitledBorder titleBorder;
+<span class="nc" id="L65">  protected static final Font SMALL_FONT = FontItem.SMALL.getFont();</span>
+
+<span class="nc" id="L67">  protected AcquireMetadataPanel(String title) {</span>
+<span class="nc" id="L68">    this.title = title;</span>
+<span class="nc" id="L69">    this.titleBorder = GuiUtils.getTitledBorder(getDisplayText());</span>
+<span class="nc" id="L70">    setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));</span>
+<span class="nc" id="L71">    setBorder(titleBorder);</span>
+
+<span class="nc" id="L73">    this.table = new JTable();</span>
+    // Force committing value when losing the focus
+<span class="nc" id="L75">    table.putClientProperty(&quot;terminateEditOnFocusLost&quot;, Boolean.TRUE);</span>
+<span class="nc" id="L76">    table.setFont(SMALL_FONT);</span>
+<span class="nc" id="L77">    table.getTableHeader().setReorderingAllowed(false);</span>
+<span class="nc" id="L78">    table.setShowHorizontalLines(true);</span>
+<span class="nc" id="L79">    table.setShowVerticalLines(true);</span>
+<span class="nc" id="L80">    table.setIntercellSpacing(GuiUtils.getDimension(2, 2));</span>
+<span class="nc" id="L81">    updateTable();</span>
+<span class="nc" id="L82">    setMetaVisible(false);</span>
+<span class="nc" id="L83">  }</span>
+
+  public abstract AcquireMetadataTableModel newTableModel();
+
+  public String getDisplayText() {
+<span class="nc" id="L88">    return title;</span>
+  }
+
+  public void stopEditing() {
+<span class="nc" id="L92">    TableCellEditor editor = table.getCellEditor();</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">    if (editor != null) {</span>
+<span class="nc" id="L94">      editor.stopCellEditing();</span>
+    }
+<span class="nc" id="L96">  }</span>
+
+  public void setImageInfo(AcquireImageInfo imageInfo) {
+<span class="nc" id="L99">    this.imageInfo = imageInfo;</span>
+<span class="nc" id="L100">    this.titleBorder.setTitle(getDisplayText());</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">    setMetaVisible(imageInfo != null);</span>
+<span class="nc" id="L102">    update();</span>
+<span class="nc" id="L103">  }</span>
+
+  public void setMetaVisible(boolean visible) {
+<span class="nc" id="L106">    setVisible(visible);</span>
+<span class="nc" id="L107">  }</span>
+
+  public void update() {
+<span class="nc" id="L110">    updateLabel();</span>
+<span class="nc" id="L111">    updateTable();</span>
+<span class="nc" id="L112">  }</span>
+
+  public void updateLabel() {
+<span class="nc" id="L115">    this.titleBorder.setTitle(getDisplayText());</span>
+<span class="nc" id="L116">  }</span>
+
+  public void updateTable() {
+<span class="nc bnc" id="L119" title="All 2 branches missed.">    if (table.isEditing()) table.getCellEditor().stopCellEditing();</span>
+<span class="nc" id="L120">    removeAll();</span>
+<span class="nc" id="L121">    AcquireMetadataTableModel model = newTableModel();</span>
+<span class="nc" id="L122">    model.addTableModelListener(this);</span>
+<span class="nc" id="L123">    table.setModel(model);</span>
+<span class="nc" id="L124">    table.getColumnModel().getColumn(1).setCellRenderer(new TagRenderer());</span>
+<span class="nc" id="L125">    table.getColumnModel().getColumn(1).setCellEditor(new AcquireImageCellEditor(imageInfo));</span>
+<span class="nc" id="L126">    TableColumnAdjuster.pack(table);</span>
+<span class="nc" id="L127">    add(table.getTableHeader());</span>
+<span class="nc" id="L128">    add(table);</span>
+<span class="nc" id="L129">  }</span>
+
+  @Override
+  public void tableChanged(TableModelEvent e) {
+    // DO NOTHING
+<span class="nc" id="L134">  }</span>
+
+<span class="nc" id="L136">  public static class TagRenderer extends DefaultTableCellRenderer {</span>
+
+    @Override
+    public Component getTableCellRendererComponent(
+        JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+<span class="nc" id="L141">      Component val =</span>
+<span class="nc" id="L142">          super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);</span>
+
+<span class="nc" id="L144">      AcquireMetadataTableModel model = (AcquireMetadataTableModel) table.getModel();</span>
+<span class="nc bnc" id="L145" title="All 2 branches missed.">      if (model.isCellEditable(row, column)) {</span>
+        Color c =
+<span class="nc bnc" id="L147" title="All 4 branches missed.">            model.isValueRequired(row) &amp;&amp; isEmptyValue(value)</span>
+<span class="nc" id="L148">                ? IconColor.ACTIONS_RED.getColor()</span>
+<span class="nc" id="L149">                : getForeground();</span>
+<span class="nc" id="L150">        setBorder(BorderFactory.createDashedBorder(c, 2, 2));</span>
+      }
+
+<span class="nc" id="L153">      Object tag = model.getValueAt(row, 0);</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">      if (tag instanceof TagW tagW) {</span>
+<span class="nc" id="L155">        setValue(tagW.getFormattedTagValue(value, null));</span>
+      }
+<span class="nc" id="L157">      return val;</span>
+    }
+
+    private boolean isEmptyValue(Object value) {
+<span class="nc bnc" id="L161" title="All 2 branches missed.">      if (value == null) {</span>
+<span class="nc" id="L162">        return true;</span>
+      }
+<span class="nc bnc" id="L164" title="All 2 branches missed.">      if (value instanceof String s) {</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">        return !StringUtil.hasText(s);</span>
+      }
+<span class="nc" id="L167">      return false;</span>
+    }
+  }
+
+  public static class AcquireImageCellEditor extends AbstractCellEditor implements TableCellEditor {
+<span class="nc" id="L172">    private static final JComboBox&lt;TagD.Sex&gt; sexCombo = new JComboBox&lt;&gt;(TagD.Sex.values());</span>
+<span class="nc" id="L173">    private static final JComboBox&lt;Modality&gt; modalityCombo =</span>
+<span class="nc" id="L174">        new JComboBox&lt;&gt;(Modality.getAllModalitiesExceptDefault());</span>
+<span class="nc" id="L175">    private static final JComboBox&lt;String&gt; studyDescCombo =</span>
+<span class="nc" id="L176">        new JComboBox&lt;&gt;(getValues(&quot;weasis.acquire.meta.study.description&quot;, null));</span>
+<span class="nc" id="L177">    private static final JComboBox&lt;String&gt; seriesDescCombo =</span>
+<span class="nc" id="L178">        new JComboBox&lt;&gt;(getValues(&quot;weasis.acquire.meta.series.description&quot;, null));</span>
+
+    static {
+<span class="nc" id="L181">      initCombo(sexCombo);</span>
+<span class="nc" id="L182">      initCombo(modalityCombo);</span>
+<span class="nc" id="L183">      initCombo(studyDescCombo);</span>
+<span class="nc" id="L184">      initCombo(seriesDescCombo);</span>
+<span class="nc" id="L185">    }</span>
+
+    private final AcquireImageInfo imageInfo;
+    private Optional&lt;TableCellEditor&gt; editor;
+
+<span class="nc" id="L190">    public AcquireImageCellEditor(AcquireImageInfo imageInfo) {</span>
+<span class="nc" id="L191">      this.imageInfo = imageInfo;</span>
+<span class="nc" id="L192">    }</span>
+
+    @Override
+    public Object getCellEditorValue() {
+<span class="nc" id="L196">      return editor.map(e -&gt; convertValue(e.getCellEditorValue())).orElse(null);</span>
+    }
+
+    private Object convertValue(Object val) {
+<span class="nc bnc" id="L200" title="All 2 branches missed.">      if (val instanceof TagD.Sex sex) {</span>
+<span class="nc" id="L201">        return sex.getValue();</span>
+<span class="nc bnc" id="L202" title="All 2 branches missed.">      } else if (val instanceof Modality modality) {</span>
+<span class="nc" id="L203">        return modality.name();</span>
+      }
+<span class="nc" id="L205">      return val;</span>
+    }
+
+    @Override
+    public Component getTableCellEditorComponent(
+        JTable table, Object value, boolean isSelected, int row, int column) {
+      TableCellEditor cellEditor;
+<span class="nc" id="L212">      Object tag = table.getModel().getValueAt(row, 0);</span>
+<span class="nc" id="L213">      int tagID = 0;</span>
+<span class="nc" id="L214">      boolean date = false;</span>
+<span class="nc" id="L215">      boolean time = false;</span>
+<span class="nc" id="L216">      int limitedChars = 64;</span>
+<span class="nc bnc" id="L217" title="All 2 branches missed.">      if (tag instanceof TagW tagW) {</span>
+<span class="nc" id="L218">        tagID = tagW.getId();</span>
+<span class="nc" id="L219">        TagType type = tagW.getType();</span>
+<span class="nc bnc" id="L220" title="All 4 branches missed.">        date = TagType.DICOM_DATE == type || TagType.DATE == type;</span>
+<span class="nc bnc" id="L221" title="All 4 branches missed.">        time = TagType.DICOM_TIME == type || TagType.TIME == type;</span>
+<span class="nc bnc" id="L222" title="All 2 branches missed.">        if (tag instanceof TagD tagD) {</span>
+<span class="nc" id="L223">          limitedChars = tagD.getMaximumChars();</span>
+        }
+      }
+<span class="nc bnc" id="L226" title="All 2 branches missed.">      if (tagID == TagW.AnatomicRegion.getId()) {</span>
+<span class="nc" id="L227">        cellEditor = new AnatomicRegionCellEditor(imageInfo);</span>
+<span class="nc bnc" id="L228" title="All 2 branches missed.">      } else if (tagID == Tag.PatientSex) {</span>
+<span class="nc" id="L229">        cellEditor = getTableCellEditor(Sex.getSex((String) value), sexCombo, limitedChars);</span>
+<span class="nc bnc" id="L230" title="All 2 branches missed.">      } else if (tagID == Tag.Modality) {</span>
+<span class="nc" id="L231">        cellEditor =</span>
+<span class="nc" id="L232">            getTableCellEditor(Modality.getModality((String) value), modalityCombo, limitedChars);</span>
+<span class="nc bnc" id="L233" title="All 2 branches missed.">      } else if (tagID == Tag.StudyDescription) {</span>
+<span class="nc" id="L234">        cellEditor = getTableCellEditor(value, studyDescCombo, limitedChars);</span>
+<span class="nc bnc" id="L235" title="All 2 branches missed.">      } else if (tagID == Tag.SeriesDescription) {</span>
+<span class="nc" id="L236">        cellEditor = getTableCellEditor(value, seriesDescCombo, limitedChars);</span>
+<span class="nc bnc" id="L237" title="All 2 branches missed.">      } else if (date) {</span>
+<span class="nc" id="L238">        DateTableEditor datePicker = buildDatePicker();</span>
+<span class="nc" id="L239">        JTextField picker = datePicker.getDatePicker().getComponentDateTextField();</span>
+<span class="nc" id="L240">        Insets margin = picker.getMargin();</span>
+<span class="nc" id="L241">        int height = table.getRowHeight(row) - margin.top - margin.bottom;</span>
+<span class="nc" id="L242">        GuiUtils.setPreferredHeight(picker, height);</span>
+<span class="nc" id="L243">        GuiUtils.setPreferredHeight(</span>
+<span class="nc" id="L244">            datePicker.getDatePicker().getComponentToggleCalendarButton(), height);</span>
+<span class="nc" id="L245">        cellEditor = datePicker;</span>
+<span class="nc bnc" id="L246" title="All 2 branches missed.">      } else if (time) {</span>
+<span class="nc" id="L247">        TimeTableEditor tableEditor = new TimeTableEditor(false, true, true);</span>
+<span class="nc" id="L248">        tableEditor.getTimePickerSettings().fontInvalidTime = SMALL_FONT;</span>
+<span class="nc" id="L249">        tableEditor.getTimePickerSettings().fontValidTime = SMALL_FONT;</span>
+<span class="nc" id="L250">        tableEditor.getTimePickerSettings().fontVetoedTime = SMALL_FONT;</span>
+<span class="nc" id="L251">        JButton button = tableEditor.getTimePicker().getComponentToggleTimeMenuButton();</span>
+<span class="nc" id="L252">        Insets margin = button.getMargin();</span>
+<span class="nc" id="L253">        int height = table.getRowHeight(row) - margin.top - margin.bottom;</span>
+<span class="nc" id="L254">        GuiUtils.setPreferredHeight(button, height, height);</span>
+<span class="nc" id="L255">        GuiUtils.setPreferredHeight(tableEditor.getTimePicker(), height, height);</span>
+<span class="nc" id="L256">        GuiUtils.setPreferredHeight(</span>
+<span class="nc" id="L257">            tableEditor.getTimePicker().getComponentTimeTextField(), height, height);</span>
+<span class="nc" id="L258">        cellEditor = tableEditor;</span>
+<span class="nc" id="L259">      } else {</span>
+<span class="nc" id="L260">        cellEditor = new DefaultCellEditor(new LimitedTextField(limitedChars));</span>
+      }
+<span class="nc" id="L262">      editor = Optional.of(cellEditor);</span>
+<span class="nc" id="L263">      Component c = cellEditor.getTableCellEditorComponent(table, value, isSelected, row, column);</span>
+<span class="nc" id="L264">      c.setFont(SMALL_FONT);</span>
+<span class="nc" id="L265">      return c;</span>
+    }
+
+    private static TableCellEditor getTableCellEditor(
+        Object value, JComboBox&lt;?&gt; studyDescCombo, int limitedChars) {
+<span class="nc bnc" id="L270" title="All 2 branches missed.">      if (value != null) {</span>
+<span class="nc" id="L271">        studyDescCombo.setSelectedItem(value);</span>
+      }
+<span class="nc" id="L273">      return getCellEditor(studyDescCombo, limitedChars);</span>
+    }
+
+    private static DefaultCellEditor getCellEditor(JComboBox&lt;?&gt; combo, int limitedChars) {
+<span class="nc bnc" id="L277" title="All 2 branches missed.">      if (combo.getItemCount() == 0) {</span>
+<span class="nc" id="L278">        return new DefaultCellEditor(new LimitedTextField(limitedChars));</span>
+      } else {
+<span class="nc" id="L280">        return new DefaultCellEditor(combo);</span>
+      }
+    }
+
+    private static void initCombo(JComboBox&lt;?&gt; combo) {
+<span class="nc" id="L285">      combo.setFont(AcquireMetadataPanel.SMALL_FONT);</span>
+<span class="nc" id="L286">      combo.setMaximumRowCount(15);</span>
+<span class="nc" id="L287">      GuiUtils.setPreferredWidth(combo, 80);</span>
+<span class="nc" id="L288">    }</span>
+
+    private DateTableEditor buildDatePicker() {
+<span class="nc" id="L291">      DateTableEditor d = new DateTableEditor(false, true, true);</span>
+<span class="nc" id="L292">      DatePickerSettings settings = d.getDatePickerSettings();</span>
+<span class="nc" id="L293">      settings.setFontInvalidDate(SMALL_FONT);</span>
+<span class="nc" id="L294">      settings.setFontValidDate(SMALL_FONT);</span>
+<span class="nc" id="L295">      settings.setFontVetoedDate(SMALL_FONT);</span>
+
+<span class="nc" id="L297">      CalendarUtil.adaptCalendarColors(settings);</span>
+
+<span class="nc" id="L299">      settings.setFormatForDatesCommonEra(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM));</span>
+<span class="nc" id="L300">      settings.setFormatForDatesBeforeCommonEra(</span>
+<span class="nc" id="L301">          DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM));</span>
+
+<span class="nc" id="L303">      settings.setFormatForDatesCommonEra(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM));</span>
+<span class="nc" id="L304">      settings.setFormatForDatesBeforeCommonEra(</span>
+<span class="nc" id="L305">          DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM));</span>
+<span class="nc" id="L306">      return d;</span>
+    }
+
+    public static String[] getValues(String property, String defaultValues) {
+      String values =
+<span class="nc" id="L311">          GuiUtils.getUICore().getSystemPreferences().getProperty(property, defaultValues);</span>
+<span class="nc bnc" id="L312" title="All 2 branches missed.">      if (values == null) {</span>
+<span class="nc" id="L313">        return new String[0];</span>
+      }
+<span class="nc" id="L315">      String[] val = values.split(&quot;,&quot;);</span>
+<span class="nc" id="L316">      List&lt;String&gt; list = new ArrayList&lt;&gt;(val.length);</span>
+<span class="nc bnc" id="L317" title="All 2 branches missed.">      for (String s : val) {</span>
+<span class="nc bnc" id="L318" title="All 2 branches missed.">        if (StringUtil.hasText(s)) {</span>
+<span class="nc" id="L319">          list.add(s.trim());</span>
+        }
+      }
+<span class="nc" id="L322">      return list.toArray(new String[0]);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ImageOpEvent.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.image</a> &gt; <span class="el_source">ImageOpEvent.java</span></div><h1>ImageOpEvent.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.image;
+
+import java.util.Map;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.media.data.MediaSeries;
+
+public class ImageOpEvent {
+
+<span class="nc" id="L18">  public enum OpEvent {</span>
+<span class="nc" id="L19">    RESET_DISPLAY,</span>
+<span class="nc" id="L20">    SERIES_CHANGE,</span>
+<span class="nc" id="L21">    IMAGE_CHANGE,</span>
+<span class="nc" id="L22">    APPLY_PR</span>
+  }
+
+  private final OpEvent eventType;
+  private final MediaSeries series;
+  private final ImageElement image;
+  private final Map&lt;String, Object&gt; params;
+
+  public ImageOpEvent(
+<span class="nc" id="L31">      OpEvent eventType, MediaSeries series, ImageElement image, Map&lt;String, Object&gt; params) {</span>
+<span class="nc bnc" id="L32" title="All 2 branches missed.">    if (eventType == null) {</span>
+<span class="nc" id="L33">      throw new IllegalArgumentException();</span>
+    }
+<span class="nc" id="L35">    this.eventType = eventType;</span>
+<span class="nc" id="L36">    this.series = series;</span>
+<span class="nc" id="L37">    this.image = image;</span>
+<span class="nc" id="L38">    this.params = params;</span>
+<span class="nc" id="L39">  }</span>
+
+  public OpEvent getEventType() {
+<span class="nc" id="L42">    return eventType;</span>
+  }
+
+  public MediaSeries getSeries() {
+<span class="nc" id="L46">    return series;</span>
+  }
+
+  public ImageElement getImage() {
+<span class="nc" id="L50">    return image;</span>
+  }
+
+  public Map&lt;String, Object&gt; getParams() {
+<span class="nc" id="L54">    return params;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

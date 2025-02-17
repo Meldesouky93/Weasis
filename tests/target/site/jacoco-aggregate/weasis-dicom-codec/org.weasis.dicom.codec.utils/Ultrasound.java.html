@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>Ultrasound.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec.utils</a> &gt; <span class="el_source">Ultrasound.java</span></div><h1>Ultrasound.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2021 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec.utils;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import org.dcm4che3.data.Attributes;
+import org.dcm4che3.data.Sequence;
+import org.dcm4che3.data.Tag;
+import org.dcm4che3.img.util.DicomUtils;
+
+public class Ultrasound {
+
+  private Ultrasound() {}
+
+  public static List&lt;Attributes&gt; getRegions(Attributes attributes) {
+<span class="nc" id="L26">    Sequence seq = attributes.getSequence(Tag.SequenceOfUltrasoundRegions);</span>
+<span class="nc bnc" id="L27" title="All 4 branches missed.">    if (seq == null || seq.isEmpty()) {</span>
+<span class="nc" id="L28">      return Collections.emptyList();</span>
+    }
+
+<span class="nc" id="L31">    ArrayList&lt;Attributes&gt; list = new ArrayList&lt;&gt;(seq.size());</span>
+<span class="nc bnc" id="L32" title="All 2 branches missed.">    for (Attributes attr : seq) {</span>
+<span class="nc" id="L33">      list.add(new Attributes(attr));</span>
+<span class="nc" id="L34">    }</span>
+<span class="nc" id="L35">    return list;</span>
+  }
+
+  public static Attributes getUniqueSpatialRegion(Attributes attributes) {
+<span class="nc" id="L39">    List&lt;Attributes&gt; regions = Ultrasound.getRegions(attributes);</span>
+<span class="nc" id="L40">    Attributes spatialCalib = null;</span>
+<span class="nc bnc" id="L41" title="All 2 branches missed.">    for (Attributes r : regions) {</span>
+<span class="nc" id="L42">      Integer unit = getUnitsForXY(r);</span>
+<span class="nc bnc" id="L43" title="All 4 branches missed.">      if (unit != null &amp;&amp; unit.equals(3)) {</span>
+<span class="nc bnc" id="L44" title="All 2 branches missed.">        if (spatialCalib == null) {</span>
+<span class="nc" id="L45">          spatialCalib = r;</span>
+        } else {
+<span class="nc" id="L47">          Double calib1X =</span>
+<span class="nc" id="L48">              DicomUtils.getDoubleFromDicomElement(spatialCalib, Tag.PhysicalDeltaX, null);</span>
+<span class="nc" id="L49">          Double calib1Y =</span>
+<span class="nc" id="L50">              DicomUtils.getDoubleFromDicomElement(spatialCalib, Tag.PhysicalDeltaY, null);</span>
+<span class="nc" id="L51">          Double calib2X = DicomUtils.getDoubleFromDicomElement(r, Tag.PhysicalDeltaX, null);</span>
+<span class="nc" id="L52">          Double calib2Y = DicomUtils.getDoubleFromDicomElement(r, Tag.PhysicalDeltaY, null);</span>
+<span class="nc bnc" id="L53" title="All 4 branches missed.">          if (!Objects.equals(calib1X, calib2X) || !Objects.equals(calib1Y, calib2Y)) {</span>
+<span class="nc" id="L54">            return null; // currently, cannot handle multiple spatial calibration</span>
+          }
+        }
+      }
+<span class="nc" id="L58">    }</span>
+<span class="nc" id="L59">    return spatialCalib;</span>
+  }
+
+  public static Integer getUnitsForXY(Attributes region) {
+<span class="nc" id="L63">    Integer unitX =</span>
+<span class="nc" id="L64">        DicomUtils.getIntegerFromDicomElement(region, Tag.PhysicalUnitsXDirection, null);</span>
+<span class="nc" id="L65">    Integer unitY =</span>
+<span class="nc" id="L66">        DicomUtils.getIntegerFromDicomElement(region, Tag.PhysicalUnitsYDirection, null);</span>
+<span class="nc bnc" id="L67" title="All 4 branches missed.">    if (unitX != null &amp;&amp; unitX.equals(unitY)) {</span>
+<span class="nc" id="L68">      return unitX;</span>
+    }
+<span class="nc" id="L70">    return null;</span>
+  }
+
+  public static String valueOfUnits(int id) {
+<span class="nc bnc" id="L74" title="All 13 branches missed.">    return switch (id) {</span>
+<span class="nc" id="L75">      case 1 -&gt; &quot;Percent&quot;; // NON-NLS</span>
+<span class="nc" id="L76">      case 2 -&gt; &quot;dB&quot;; // NON-NLS</span>
+<span class="nc" id="L77">      case 3 -&gt; &quot;cm&quot;; // NON-NLS</span>
+<span class="nc" id="L78">      case 4 -&gt; &quot;seconds&quot;; // NON-NLS</span>
+<span class="nc" id="L79">      case 5 -&gt; &quot;hertz(seconds-1)&quot;; // NON-NLS</span>
+<span class="nc" id="L80">      case 6 -&gt; &quot;dB/seconds&quot;; // NON-NLS</span>
+<span class="nc" id="L81">      case 7 -&gt; &quot;cm/sec&quot;; // NON-NLS</span>
+<span class="nc" id="L82">      case 8 -&gt; &quot;cm2&quot;; // NON-NLS</span>
+<span class="nc" id="L83">      case 9 -&gt; &quot;cm2/sec&quot;; // NON-NLS</span>
+<span class="nc" id="L84">      case 10 -&gt; &quot;cm3&quot;; // NON-NLS</span>
+<span class="nc" id="L85">      case 11 -&gt; &quot;cm3/sec&quot;; // NON-NLS</span>
+<span class="nc" id="L86">      case 12 -&gt; &quot;degrees&quot;; // NON-NLS</span>
+<span class="nc" id="L87">      default -&gt; &quot;None&quot;; // NON-NLS</span>
+    };
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

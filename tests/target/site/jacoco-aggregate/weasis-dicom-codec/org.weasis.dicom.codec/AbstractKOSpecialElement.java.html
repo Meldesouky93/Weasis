@@ -1,0 +1,624 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AbstractKOSpecialElement.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec</a> &gt; <span class="el_source">AbstractKOSpecialElement.java</span></div><h1>AbstractKOSpecialElement.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+import org.dcm4che3.data.Attributes;
+import org.dcm4che3.data.Tag;
+import org.weasis.core.api.gui.util.Filter;
+import org.weasis.core.api.util.ResourceUtil.OtherIcon;
+import org.weasis.core.api.util.ResourceUtil.ResourceIconPath;
+import org.weasis.core.util.StringUtil;
+import org.weasis.dicom.macro.HierarchicalSOPInstanceReference;
+import org.weasis.dicom.macro.KODocumentModule;
+import org.weasis.dicom.macro.SOPInstanceReferenceAndMAC;
+import org.weasis.dicom.macro.SeriesAndInstanceReference;
+
+public class AbstractKOSpecialElement extends HiddenSpecialElement {
+
+  public static class Reference {
+    private final String studyInstanceUID;
+    private final String seriesInstanceUID;
+    private final String sopInstanceUID;
+    private final String sopClassUID;
+    private final List&lt;Integer&gt; frameList;
+    private final Integer instanceNumber;
+
+<span class="nc" id="L46">    public Reference(DicomImageElement dicomImage) {</span>
+<span class="nc" id="L47">      studyInstanceUID = TagD.getTagValue(dicomImage, Tag.StudyInstanceUID, String.class);</span>
+<span class="nc" id="L48">      seriesInstanceUID = TagD.getTagValue(dicomImage, Tag.SeriesInstanceUID, String.class);</span>
+<span class="nc" id="L49">      sopInstanceUID = TagD.getTagValue(dicomImage, Tag.SOPInstanceUID, String.class);</span>
+<span class="nc" id="L50">      sopClassUID = TagD.getTagValue(dicomImage, Tag.SOPClassUID, String.class);</span>
+<span class="nc" id="L51">      instanceNumber = TagD.getTagValue(dicomImage, Tag.InstanceNumber, Integer.class);</span>
+
+<span class="nc bnc" id="L53" title="All 2 branches missed.">      if (dicomImage.getMediaReader().getMediaElementNumber() &gt; 1) {</span>
+<span class="nc" id="L54">        Integer frame = TagD.getTagValue(dicomImage, Tag.InstanceNumber, Integer.class);</span>
+<span class="nc" id="L55">        frameList = new ArrayList&lt;&gt;(1);</span>
+<span class="nc" id="L56">        frameList.add(frame);</span>
+<span class="nc" id="L57">      } else {</span>
+<span class="nc" id="L58">        frameList = Collections.emptyList();</span>
+      }
+<span class="nc" id="L60">    }</span>
+
+    public Reference(
+        String studyInstanceUID,
+        String seriesInstanceUID,
+        String sopInstanceUID,
+        String sopClassUID,
+        Integer instanceNumber,
+<span class="nc" id="L68">        int[] frames) {</span>
+<span class="nc" id="L69">      this.studyInstanceUID = studyInstanceUID;</span>
+<span class="nc" id="L70">      this.seriesInstanceUID = seriesInstanceUID;</span>
+<span class="nc" id="L71">      this.sopInstanceUID = sopInstanceUID;</span>
+<span class="nc" id="L72">      this.sopClassUID = sopClassUID;</span>
+<span class="nc" id="L73">      this.instanceNumber = instanceNumber;</span>
+<span class="nc" id="L74">      this.frameList =</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">          frames == null</span>
+<span class="nc" id="L76">              ? Collections.emptyList()</span>
+<span class="nc" id="L77">              : Arrays.stream(frames).boxed().collect(Collectors.toList());</span>
+<span class="nc" id="L78">    }</span>
+
+    public String getStudyInstanceUID() {
+<span class="nc" id="L81">      return studyInstanceUID;</span>
+    }
+
+    public String getSeriesInstanceUID() {
+<span class="nc" id="L85">      return seriesInstanceUID;</span>
+    }
+
+    public String getSopInstanceUID() {
+<span class="nc" id="L89">      return sopInstanceUID;</span>
+    }
+
+    public String getSopClassUID() {
+<span class="nc" id="L93">      return sopClassUID;</span>
+    }
+
+    public Integer getInstanceNumber() {
+<span class="nc" id="L97">      return instanceNumber;</span>
+    }
+
+    public List&lt;Integer&gt; getFrameList() {
+<span class="nc" id="L101">      return frameList;</span>
+    }
+  }
+
+  protected Map&lt;String, Map&lt;String, SOPInstanceReferenceAndMAC&gt;&gt; sopInstanceReferenceMapBySeriesUID;
+  protected Map&lt;String, Map&lt;String, SeriesAndInstanceReference&gt;&gt;
+      seriesAndInstanceReferenceMapByStudyUID;
+  protected Map&lt;String, HierarchicalSOPInstanceReference&gt;
+      hierarchicalSOPInstanceReferenceByStudyUID;
+
+  public AbstractKOSpecialElement(DicomMediaIO mediaIO) {
+<span class="nc" id="L112">    super(mediaIO);</span>
+<span class="nc" id="L113">  }</span>
+
+  @Override
+  protected void initLabel() {
+    /*
+     * DICOM PS 3.3 - 2011 - C.17.3 SR Document Content Module
+     *
+     * Concept Name Code Sequence: mandatory when type is CONTAINER or the root content item.
+     */
+<span class="nc" id="L122">    StringBuilder buf = new StringBuilder(getLabelPrefix());</span>
+
+<span class="nc" id="L124">    String name = getLabelWithoutPrefix();</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">    if (name != null) {</span>
+<span class="nc" id="L126">      buf.append(name);</span>
+    }
+<span class="nc" id="L128">    label = buf.toString();</span>
+<span class="nc" id="L129">  }</span>
+
+  @Override
+  public ResourceIconPath getIconPath() {
+<span class="nc" id="L133">    return OtherIcon.KEY;</span>
+  }
+
+  protected String getLabelWithoutPrefix() {
+<span class="nc" id="L137">    Attributes dicom = ((DicomMediaIO) mediaIO).getDicomObject();</span>
+<span class="nc" id="L138">    Attributes item = dicom.getNestedDataset(Tag.ContentSequence);</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">    if (item != null) {</span>
+<span class="nc" id="L140">      return item.getString(Tag.TextValue);</span>
+    }
+<span class="nc" id="L142">    return null;</span>
+  }
+
+  public Set&lt;String&gt; getReferencedStudyInstanceUIDSet() {
+<span class="nc bnc" id="L146" title="All 2 branches missed.">    if (hierarchicalSOPInstanceReferenceByStudyUID == null) {</span>
+<span class="nc" id="L147">      updateHierarchicalSOPInstanceReference();</span>
+    }
+<span class="nc" id="L149">    return hierarchicalSOPInstanceReferenceByStudyUID.keySet();</span>
+  }
+
+  public boolean containsStudyInstanceUIDReference(String studyInstanceUIDReference) {
+<span class="nc bnc" id="L153" title="All 2 branches missed.">    if (hierarchicalSOPInstanceReferenceByStudyUID == null) {</span>
+<span class="nc" id="L154">      updateHierarchicalSOPInstanceReference();</span>
+    }
+<span class="nc" id="L156">    return hierarchicalSOPInstanceReferenceByStudyUID.containsKey(studyInstanceUIDReference);</span>
+  }
+
+  public Set&lt;String&gt; getReferencedSeriesInstanceUIDSet(String studyUID) {
+<span class="nc bnc" id="L160" title="All 2 branches missed.">    if (seriesAndInstanceReferenceMapByStudyUID == null) {</span>
+<span class="nc" id="L161">      updateHierarchicalSOPInstanceReference();</span>
+    }
+<span class="nc" id="L163">    Map&lt;String, SeriesAndInstanceReference&gt; seriesAndInstanceReferenceBySeriesUID =</span>
+<span class="nc" id="L164">        seriesAndInstanceReferenceMapByStudyUID.get(studyUID);</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">    return seriesAndInstanceReferenceBySeriesUID != null</span>
+<span class="nc" id="L166">        ? seriesAndInstanceReferenceMapByStudyUID.get(studyUID).keySet()</span>
+<span class="nc" id="L167">        : null;</span>
+  }
+
+  public Set&lt;String&gt; getReferencedSeriesInstanceUIDSet() {
+<span class="nc bnc" id="L171" title="All 2 branches missed.">    if (sopInstanceReferenceMapBySeriesUID == null) {</span>
+<span class="nc" id="L172">      updateHierarchicalSOPInstanceReference();</span>
+    }
+
+<span class="nc" id="L175">    return sopInstanceReferenceMapBySeriesUID.keySet();</span>
+  }
+
+  public boolean containsSeriesInstanceUIDReference(String seriesInstanceUIDReference) {
+<span class="nc bnc" id="L179" title="All 2 branches missed.">    if (sopInstanceReferenceMapBySeriesUID == null) {</span>
+<span class="nc" id="L180">      updateHierarchicalSOPInstanceReference();</span>
+    }
+<span class="nc" id="L182">    return sopInstanceReferenceMapBySeriesUID.containsKey(seriesInstanceUIDReference);</span>
+  }
+
+  public Set&lt;String&gt; getReferencedSOPInstanceUIDSet() {
+<span class="nc bnc" id="L186" title="All 2 branches missed.">    if (sopInstanceReferenceMapBySeriesUID == null) {</span>
+<span class="nc" id="L187">      updateHierarchicalSOPInstanceReference();</span>
+    }
+
+<span class="nc" id="L190">    Set&lt;String&gt; referencedSOPInstanceUIDSet = new LinkedHashSet&lt;&gt;();</span>
+    for (Map&lt;String, SOPInstanceReferenceAndMAC&gt; sopInstanceReference :
+<span class="nc bnc" id="L192" title="All 2 branches missed.">        sopInstanceReferenceMapBySeriesUID.values()) {</span>
+<span class="nc" id="L193">      referencedSOPInstanceUIDSet.addAll(sopInstanceReference.keySet());</span>
+<span class="nc" id="L194">    }</span>
+<span class="nc" id="L195">    return referencedSOPInstanceUIDSet;</span>
+  }
+
+  public Set&lt;String&gt; getReferencedSOPInstanceUIDSet(String seriesUID) {
+<span class="nc bnc" id="L199" title="All 2 branches missed.">    if (seriesUID == null) {</span>
+<span class="nc" id="L200">      return getReferencedSOPInstanceUIDSet();</span>
+    }
+
+<span class="nc bnc" id="L203" title="All 2 branches missed.">    if (sopInstanceReferenceMapBySeriesUID == null) {</span>
+<span class="nc" id="L204">      updateHierarchicalSOPInstanceReference();</span>
+    }
+
+<span class="nc" id="L207">    Map&lt;String, SOPInstanceReferenceAndMAC&gt; sopInstanceReferenceBySOPInstanceUID =</span>
+<span class="nc" id="L208">        sopInstanceReferenceMapBySeriesUID.get(seriesUID);</span>
+<span class="nc bnc" id="L209" title="All 2 branches missed.">    return sopInstanceReferenceBySOPInstanceUID != null</span>
+<span class="nc" id="L210">        ? sopInstanceReferenceBySOPInstanceUID.keySet()</span>
+<span class="nc" id="L211">        : null;</span>
+  }
+
+  public Map&lt;String, SOPInstanceReferenceAndMAC&gt; getReferencedSOPInstanceUIDObject(
+      String seriesUID) {
+<span class="nc bnc" id="L216" title="All 2 branches missed.">    if (seriesUID == null) {</span>
+<span class="nc" id="L217">      return null;</span>
+    }
+
+<span class="nc bnc" id="L220" title="All 2 branches missed.">    if (sopInstanceReferenceMapBySeriesUID == null) {</span>
+<span class="nc" id="L221">      updateHierarchicalSOPInstanceReference();</span>
+    }
+<span class="nc" id="L223">    return sopInstanceReferenceMapBySeriesUID.get(seriesUID);</span>
+  }
+
+  public int getNumberSelectedImages() {
+<span class="nc" id="L227">    return sopInstanceReferenceMapBySeriesUID.values().stream()</span>
+<span class="nc" id="L228">        .mapToInt(</span>
+            m -&gt;
+<span class="nc" id="L230">                m.values().stream()</span>
+<span class="nc" id="L231">                    .mapToInt(</span>
+                        v -&gt; {
+<span class="nc" id="L233">                          int[] frames = v.getReferencedFrameNumber();</span>
+<span class="nc bnc" id="L234" title="All 4 branches missed.">                          if (frames == null || frames.length == 0) {</span>
+<span class="nc" id="L235">                            return 1;</span>
+                          } else {
+<span class="nc" id="L237">                            return frames.length;</span>
+                          }
+                        })
+<span class="nc" id="L240">                    .sum())</span>
+<span class="nc" id="L241">        .sum();</span>
+  }
+
+  public boolean containsSopInstanceUIDReference(
+      String seriesInstanceUID, String sopInstanceUIDReference, Integer frame) {
+<span class="nc" id="L246">    return isSopuidInReferencedSeriesSequence(</span>
+<span class="nc" id="L247">        getReferencedSOPInstanceUIDObject(seriesInstanceUID), sopInstanceUIDReference, frame);</span>
+  }
+
+  public boolean isEmpty() {
+<span class="nc bnc" id="L251" title="All 2 branches missed.">    if (sopInstanceReferenceMapBySeriesUID == null) {</span>
+<span class="nc" id="L252">      updateHierarchicalSOPInstanceReference();</span>
+    }
+<span class="nc" id="L254">    return sopInstanceReferenceMapBySeriesUID.isEmpty();</span>
+  }
+
+  /**
+   * Extract all the hierarchical SOP Instance References from the
+   * CurrentRequestedProcedureEvidences of the root DicomObject into the dedicated Maps. These
+   * collections are used to improve access performance for data queries.
+   *
+   * &lt;p&gt;This method should be called only once since any call to add/remove methods should keep in
+   * sync with the CurrentRequestedProcedureEvidences of the root DicomObject
+   */
+  protected void updateHierarchicalSOPInstanceReference() {
+<span class="nc" id="L266">    init();</span>
+
+<span class="nc" id="L268">    Attributes dcmItems = getMediaReader().getDicomObject();</span>
+<span class="nc bnc" id="L269" title="All 2 branches missed.">    if (dcmItems != null) {</span>
+<span class="nc" id="L270">      Collection&lt;HierarchicalSOPInstanceReference&gt; referencedStudySequence =</span>
+<span class="nc" id="L271">          HierarchicalSOPInstanceReference.toHierarchicalSOPInstanceReferenceMacros(</span>
+<span class="nc" id="L272">              dcmItems.getSequence(Tag.CurrentRequestedProcedureEvidenceSequence));</span>
+<span class="nc" id="L273">      boolean sopInstanceExist = false;</span>
+
+<span class="nc bnc" id="L275" title="All 2 branches missed.">      for (HierarchicalSOPInstanceReference studyRef : referencedStudySequence) {</span>
+<span class="nc" id="L276">        Collection&lt;SeriesAndInstanceReference&gt; referencedSeriesSequence =</span>
+<span class="nc" id="L277">            studyRef.getReferencedSeries();</span>
+<span class="nc" id="L278">        String studyUID = studyRef.getStudyInstanceUID();</span>
+
+<span class="nc bnc" id="L280" title="All 2 branches missed.">        for (SeriesAndInstanceReference seriesRef : referencedSeriesSequence) {</span>
+<span class="nc" id="L281">          Collection&lt;SOPInstanceReferenceAndMAC&gt; referencedSOPInstanceSequence =</span>
+<span class="nc" id="L282">              seriesRef.getReferencedSOPInstances();</span>
+<span class="nc" id="L283">          String seriesUID = seriesRef.getSeriesInstanceUID();</span>
+
+<span class="nc bnc" id="L285" title="All 2 branches missed.">          for (SOPInstanceReferenceAndMAC sopRef : referencedSOPInstanceSequence) {</span>
+<span class="nc" id="L286">            String sopInstanceUID = sopRef.getReferencedSOPInstanceUID();</span>
+
+<span class="nc bnc" id="L288" title="All 2 branches missed.">            if (!StringUtil.hasText(sopInstanceUID)) {</span>
+<span class="nc" id="L289">              continue;</span>
+            }
+
+<span class="nc" id="L292">            Map&lt;String, SOPInstanceReferenceAndMAC&gt; sopInstanceReferenceBySOPInstanceUID =</span>
+<span class="nc" id="L293">                sopInstanceReferenceMapBySeriesUID.computeIfAbsent(</span>
+<span class="nc" id="L294">                    seriesUID, k -&gt; new LinkedHashMap&lt;&gt;());</span>
+
+<span class="nc" id="L296">            sopInstanceReferenceBySOPInstanceUID.put(sopInstanceUID, sopRef);</span>
+<span class="nc" id="L297">            sopInstanceExist = true;</span>
+<span class="nc" id="L298">          }</span>
+
+<span class="nc bnc" id="L300" title="All 2 branches missed.">          if (sopInstanceExist) {</span>
+<span class="nc" id="L301">            Map&lt;String, SeriesAndInstanceReference&gt; seriesAndInstanceReferenceBySeriesUID =</span>
+<span class="nc" id="L302">                seriesAndInstanceReferenceMapByStudyUID.computeIfAbsent(</span>
+<span class="nc" id="L303">                    studyUID, k -&gt; new LinkedHashMap&lt;&gt;());</span>
+
+<span class="nc" id="L305">            seriesAndInstanceReferenceBySeriesUID.put(seriesUID, seriesRef);</span>
+          }
+<span class="nc" id="L307">        }</span>
+
+<span class="nc bnc" id="L309" title="All 2 branches missed.">        if (sopInstanceExist) {</span>
+<span class="nc" id="L310">          hierarchicalSOPInstanceReferenceByStudyUID.put(studyUID, studyRef);</span>
+        }
+<span class="nc" id="L312">      }</span>
+    }
+<span class="nc" id="L314">  }</span>
+
+  private void init() {
+<span class="nc bnc" id="L317" title="All 2 branches missed.">    if (hierarchicalSOPInstanceReferenceByStudyUID == null) {</span>
+<span class="nc" id="L318">      hierarchicalSOPInstanceReferenceByStudyUID = new LinkedHashMap&lt;&gt;();</span>
+    }
+<span class="nc bnc" id="L320" title="All 2 branches missed.">    if (seriesAndInstanceReferenceMapByStudyUID == null) {</span>
+<span class="nc" id="L321">      seriesAndInstanceReferenceMapByStudyUID = new LinkedHashMap&lt;&gt;();</span>
+    }
+<span class="nc bnc" id="L323" title="All 2 branches missed.">    if (sopInstanceReferenceMapBySeriesUID == null) {</span>
+<span class="nc" id="L324">      sopInstanceReferenceMapBySeriesUID = new LinkedHashMap&lt;&gt;();</span>
+    }
+<span class="nc" id="L326">  }</span>
+
+  // ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  public boolean addKeyObject(DicomImageElement dicomImage) {
+<span class="nc" id="L331">    return addKeyObject(new Reference(dicomImage));</span>
+  }
+
+  public boolean addKeyObject(Reference ref) {
+
+<span class="nc bnc" id="L336" title="All 2 branches missed.">    if (hierarchicalSOPInstanceReferenceByStudyUID == null) {</span>
+<span class="nc" id="L337">      updateHierarchicalSOPInstanceReference();</span>
+    }
+
+    // Get the SOPInstanceReferenceMap for this seriesUID
+<span class="nc" id="L341">    Map&lt;String, SOPInstanceReferenceAndMAC&gt; sopInstanceReferenceBySOPInstanceUID =</span>
+<span class="nc" id="L342">        sopInstanceReferenceMapBySeriesUID.get(ref.seriesInstanceUID);</span>
+
+<span class="nc bnc" id="L344" title="All 2 branches missed.">    if (sopInstanceReferenceBySOPInstanceUID == null) {</span>
+      // the seriesUID is not referenced, create a new SOPInstanceReferenceMap
+<span class="nc" id="L346">      sopInstanceReferenceBySOPInstanceUID = new LinkedHashMap&lt;&gt;();</span>
+<span class="nc" id="L347">      sopInstanceReferenceMapBySeriesUID.put(</span>
+          ref.seriesInstanceUID, sopInstanceReferenceBySOPInstanceUID);
+<span class="nc bnc" id="L349" title="All 2 branches missed.">    } else if (sopInstanceReferenceBySOPInstanceUID.containsKey(ref.sopInstanceUID)) {</span>
+<span class="nc bnc" id="L350" title="All 4 branches missed.">      if (ref.frameList == null || ref.frameList.isEmpty()) {</span>
+        // the sopInstanceUID is already referenced, skip the job
+<span class="nc" id="L352">        return false;</span>
+      } else {
+<span class="nc" id="L354">        SOPInstanceReferenceAndMAC val =</span>
+<span class="nc" id="L355">            sopInstanceReferenceBySOPInstanceUID.get(ref.sopInstanceUID);</span>
+<span class="nc bnc" id="L356" title="All 2 branches missed.">        int[] seqFrame = val == null ? null : val.getReferencedFrameNumber();</span>
+<span class="nc bnc" id="L357" title="All 4 branches missed.">        if (seqFrame != null &amp;&amp; seqFrame.length != 0) {</span>
+<span class="nc" id="L358">          val.setReferencedFrameNumber(mergeFrames(seqFrame, ref.frameList));</span>
+          // has updated all the frame, skip the job
+<span class="nc" id="L360">          return true;</span>
+        }
+      }
+    }
+
+    // Create the new SOPInstanceReferenceAndMAC and add to the SOPInstanceReferenceMap
+<span class="nc" id="L366">    SOPInstanceReferenceAndMAC referencedSOP = new SOPInstanceReferenceAndMAC();</span>
+<span class="nc" id="L367">    referencedSOP.setReferencedSOPInstanceUID(ref.sopInstanceUID);</span>
+<span class="nc" id="L368">    referencedSOP.setReferencedSOPClassUID(ref.sopClassUID);</span>
+<span class="nc" id="L369">    referencedSOP.setInstanceNumber(ref.getInstanceNumber());</span>
+<span class="nc" id="L370">    referencedSOP.setReferencedFrameNumber(ref.frameList.stream().mapToInt(i -&gt; i).toArray());</span>
+<span class="nc" id="L371">    sopInstanceReferenceBySOPInstanceUID.put(ref.sopInstanceUID, referencedSOP);</span>
+
+    // Get the SeriesAndInstanceReferenceMap for this studyUID
+<span class="nc" id="L374">    Map&lt;String, SeriesAndInstanceReference&gt; seriesAndInstanceReferenceBySeriesUID =</span>
+<span class="nc" id="L375">        seriesAndInstanceReferenceMapByStudyUID.computeIfAbsent(</span>
+<span class="nc" id="L376">            ref.studyInstanceUID, k -&gt; new LinkedHashMap&lt;&gt;());</span>
+    // the studyUID is not referenced, create a new one SeriesAndInstanceReferenceMap
+
+    // Get the SeriesAndInstanceReference for this seriesUID
+<span class="nc" id="L380">    SeriesAndInstanceReference referencedSeries =</span>
+<span class="nc" id="L381">        seriesAndInstanceReferenceBySeriesUID.get(ref.seriesInstanceUID);</span>
+<span class="nc bnc" id="L382" title="All 2 branches missed.">    if (referencedSeries == null) {</span>
+      // the seriesUID is not referenced, create a new SeriesAndInstanceReference
+<span class="nc" id="L384">      referencedSeries = new SeriesAndInstanceReference();</span>
+<span class="nc" id="L385">      referencedSeries.setSeriesInstanceUID(ref.seriesInstanceUID);</span>
+<span class="nc" id="L386">      seriesAndInstanceReferenceBySeriesUID.put(ref.seriesInstanceUID, referencedSeries);</span>
+    }
+
+    // Update the current SeriesAndInstanceReference with the referencedSOPInstance Sequence
+<span class="nc" id="L390">    referencedSeries.setReferencedSOPInstances(sopInstanceReferenceBySOPInstanceUID.values());</span>
+
+    // Get the HierarchicalSOPInstanceReference for this studyUID
+<span class="nc" id="L393">    HierarchicalSOPInstanceReference hierarchicalDicom =</span>
+<span class="nc" id="L394">        hierarchicalSOPInstanceReferenceByStudyUID.get(ref.studyInstanceUID);</span>
+
+<span class="nc bnc" id="L396" title="All 2 branches missed.">    if (hierarchicalDicom == null) {</span>
+      // the studyUID is not referenced, create a new one HierarchicalSOPInstanceReference
+<span class="nc" id="L398">      hierarchicalDicom = new HierarchicalSOPInstanceReference();</span>
+<span class="nc" id="L399">      hierarchicalDicom.setStudyInstanceUID(ref.studyInstanceUID);</span>
+<span class="nc" id="L400">      hierarchicalSOPInstanceReferenceByStudyUID.put(ref.studyInstanceUID, hierarchicalDicom);</span>
+    }
+
+    // Update the current HierarchicalSOPInstance with the referencedSeries Sequence
+<span class="nc" id="L404">    hierarchicalDicom.setReferencedSeries(seriesAndInstanceReferenceBySeriesUID.values());</span>
+
+    // Update the CurrentRequestedProcedureEvidences for the root dcmItems
+<span class="nc" id="L407">    Attributes dcmItems = getMediaReader().getDicomObject();</span>
+
+<span class="nc" id="L409">    new KODocumentModule(dcmItems)</span>
+<span class="nc" id="L410">        .setCurrentRequestedProcedureEvidences(hierarchicalSOPInstanceReferenceByStudyUID.values());</span>
+
+<span class="nc" id="L412">    return true;</span>
+  }
+
+  public boolean removeKeyObject(DicomImageElement dicomImage) {
+<span class="nc" id="L416">    return removeKeyObject(new Reference(dicomImage));</span>
+  }
+
+  public boolean removeKeyObject(Reference ref) {
+
+<span class="nc bnc" id="L421" title="All 2 branches missed.">    if (hierarchicalSOPInstanceReferenceByStudyUID == null) {</span>
+<span class="nc" id="L422">      updateHierarchicalSOPInstanceReference();</span>
+    }
+
+    // Get the SeriesAndInstanceReferenceMap for this studyUID
+<span class="nc" id="L426">    Map&lt;String, SeriesAndInstanceReference&gt; seriesAndInstanceReferenceBySeriesUID =</span>
+<span class="nc" id="L427">        seriesAndInstanceReferenceMapByStudyUID.get(ref.studyInstanceUID);</span>
+
+    // Get the SOPInstanceReferenceMap for this seriesUID
+<span class="nc" id="L430">    Map&lt;String, SOPInstanceReferenceAndMAC&gt; sopInstanceReferenceBySOPInstanceUID =</span>
+<span class="nc" id="L431">        sopInstanceReferenceMapBySeriesUID.get(ref.seriesInstanceUID);</span>
+
+<span class="nc bnc" id="L433" title="All 4 branches missed.">    if (sopInstanceReferenceBySOPInstanceUID == null</span>
+        || seriesAndInstanceReferenceBySeriesUID == null
+<span class="nc bnc" id="L435" title="All 2 branches missed.">        || !sopInstanceReferenceBySOPInstanceUID.containsKey(ref.sopInstanceUID)) {</span>
+      // UIDs parameters were not referenced, skip the job
+<span class="nc" id="L437">      return false;</span>
+    }
+
+<span class="nc bnc" id="L440" title="All 4 branches missed.">    if (ref.frameList != null &amp;&amp; !ref.frameList.isEmpty()) {</span>
+<span class="nc" id="L441">      SOPInstanceReferenceAndMAC val = sopInstanceReferenceBySOPInstanceUID.get(ref.sopInstanceUID);</span>
+<span class="nc bnc" id="L442" title="All 2 branches missed.">      int[] seqFrame = val == null ? null : val.getReferencedFrameNumber();</span>
+<span class="nc bnc" id="L443" title="All 4 branches missed.">      if (seqFrame != null &amp;&amp; seqFrame.length != 0) {</span>
+<span class="nc" id="L444">        int[] frames = removeFrames(seqFrame, ref.frameList);</span>
+<span class="nc" id="L445">        val.setReferencedFrameNumber(frames);</span>
+<span class="nc bnc" id="L446" title="All 2 branches missed.">        if (frames.length &gt; 0) {</span>
+          // has updated all the frame, skip the job
+<span class="nc" id="L448">          return true;</span>
+        }
+      }
+    }
+<span class="nc" id="L452">    sopInstanceReferenceBySOPInstanceUID.remove(ref.sopInstanceUID);</span>
+
+<span class="nc bnc" id="L454" title="All 2 branches missed.">    if (sopInstanceReferenceBySOPInstanceUID.isEmpty()) {</span>
+<span class="nc" id="L455">      sopInstanceReferenceMapBySeriesUID.remove(ref.seriesInstanceUID);</span>
+<span class="nc" id="L456">      seriesAndInstanceReferenceBySeriesUID.remove(ref.seriesInstanceUID);</span>
+
+<span class="nc bnc" id="L458" title="All 2 branches missed.">      if (seriesAndInstanceReferenceBySeriesUID.isEmpty()) {</span>
+<span class="nc" id="L459">        seriesAndInstanceReferenceMapByStudyUID.remove(ref.studyInstanceUID);</span>
+<span class="nc" id="L460">        hierarchicalSOPInstanceReferenceByStudyUID.remove(ref.studyInstanceUID);</span>
+      } else {
+        // Get the HierarchicalSOPInstanceReference for this studyUID
+<span class="nc" id="L463">        HierarchicalSOPInstanceReference hierarchicalDicom =</span>
+<span class="nc" id="L464">            hierarchicalSOPInstanceReferenceByStudyUID.get(ref.studyInstanceUID);</span>
+
+        // Update the current HierarchicalSOPInstance with the referencedSeries Sequence
+<span class="nc" id="L467">        hierarchicalDicom.setReferencedSeries(seriesAndInstanceReferenceBySeriesUID.values());</span>
+<span class="nc" id="L468">      }</span>
+
+    } else {
+      // Get the SeriesAndInstanceReference for this seriesUID
+<span class="nc" id="L472">      SeriesAndInstanceReference referencedSeries =</span>
+<span class="nc" id="L473">          seriesAndInstanceReferenceBySeriesUID.get(ref.seriesInstanceUID);</span>
+
+      // Update the current SeriesAndInstanceReference with the referencedSOPInstance Sequence
+<span class="nc" id="L476">      referencedSeries.setReferencedSOPInstances(sopInstanceReferenceBySOPInstanceUID.values());</span>
+    }
+
+    // Update the CurrentRequestedProcedureEvidences for the root dcmItems
+<span class="nc" id="L480">    Attributes dcmItems = getMediaReader().getDicomObject();</span>
+<span class="nc" id="L481">    List&lt;HierarchicalSOPInstanceReference&gt; referencedStudies = null;</span>
+
+<span class="nc bnc" id="L483" title="All 2 branches missed.">    if (!hierarchicalSOPInstanceReferenceByStudyUID.isEmpty()) {</span>
+<span class="nc" id="L484">      referencedStudies = new ArrayList&lt;&gt;(hierarchicalSOPInstanceReferenceByStudyUID.values());</span>
+    }
+
+<span class="nc" id="L487">    new KODocumentModule(dcmItems).setCurrentRequestedProcedureEvidences(referencedStudies);</span>
+
+<span class="nc" id="L489">    return true;</span>
+  }
+
+  public Filter&lt;DicomImageElement&gt; getSOPInstanceUIDFilter() {
+<span class="nc" id="L493">    return new Filter&lt;&gt;() {</span>
+      @Override
+      public boolean passes(DicomImageElement dicom) {
+<span class="nc" id="L496">        String seriesInstanceUID = TagD.getTagValue(dicom, Tag.SeriesInstanceUID, String.class);</span>
+<span class="nc bnc" id="L497" title="All 4 branches missed.">        if (dicom == null || seriesInstanceUID == null) {</span>
+<span class="nc" id="L498">          return false;</span>
+        }
+<span class="nc" id="L500">        String sopInstanceUID = TagD.getTagValue(dicom, Tag.SOPInstanceUID, String.class);</span>
+<span class="nc" id="L501">        Integer frame = TagD.getTagValue(dicom, Tag.InstanceNumber, Integer.class);</span>
+<span class="nc" id="L502">        return isSopuidInReferencedSeriesSequence(</span>
+<span class="nc" id="L503">            getReferencedSOPInstanceUIDObject(seriesInstanceUID), sopInstanceUID, frame);</span>
+      }
+    };
+  }
+
+  public String getDocumentTitle() {
+<span class="nc" id="L509">    Attributes dcmItems = getMediaReader().getDicomObject();</span>
+<span class="nc bnc" id="L510" title="All 2 branches missed.">    if (dcmItems != null) {</span>
+<span class="nc" id="L511">      Attributes item = dcmItems.getNestedDataset(Tag.ConceptNameCodeSequence);</span>
+<span class="nc bnc" id="L512" title="All 2 branches missed.">      if (item != null) {</span>
+<span class="nc" id="L513">        return item.getString(Tag.CodeMeaning, null);</span>
+      }
+    }
+<span class="nc" id="L516">    return null;</span>
+  }
+
+  private static int[] mergeFrames(int[] arr1, List&lt;Integer&gt; frameList) {
+<span class="nc" id="L520">    Set&lt;Integer&gt; result = new HashSet&lt;&gt;();</span>
+<span class="nc bnc" id="L521" title="All 2 branches missed.">    for (int i : arr1) {</span>
+<span class="nc" id="L522">      result.add(i);</span>
+    }
+<span class="nc" id="L524">    result.addAll(frameList);</span>
+<span class="nc" id="L525">    return result.stream().mapToInt(i -&gt; i).toArray();</span>
+  }
+
+  private static int[] removeFrames(int[] arr1, List&lt;Integer&gt; frameList) {
+<span class="nc" id="L529">    Set&lt;Integer&gt; result = new HashSet&lt;&gt;();</span>
+<span class="nc bnc" id="L530" title="All 2 branches missed.">    for (int i : arr1) {</span>
+<span class="nc" id="L531">      result.add(i);</span>
+    }
+<span class="nc bnc" id="L533" title="All 2 branches missed.">    for (Integer integer : frameList) {</span>
+<span class="nc" id="L534">      result.remove(integer);</span>
+<span class="nc" id="L535">    }</span>
+<span class="nc" id="L536">    return result.stream().mapToInt(i -&gt; i).toArray();</span>
+  }
+
+  /**
+   * @param seriesUID the Series Instance UID
+   * @param specialElements the list of DicomSpecialElement
+   * @return the KOSpecialElement collection for the given parameters, if the referenced seriesUID
+   *     is null all the KOSpecialElement from specialElements collection are returned. In any case
+   *     all the KOSpecialElement that are writable will be added to the returned collection
+   *     whatever is the seriesUID. These KO are part of the new created one's by users of the
+   *     application
+   */
+  public static Collection&lt;KOSpecialElement&gt; getKoSpecialElements(
+      Collection&lt;KOSpecialElement&gt; specialElements, String seriesUID) {
+
+<span class="nc bnc" id="L551" title="All 2 branches missed.">    if (specialElements == null) {</span>
+<span class="nc" id="L552">      return Collections.emptySet();</span>
+    }
+
+<span class="nc" id="L555">    SortedSet&lt;KOSpecialElement&gt; koElementSet = null;</span>
+<span class="nc bnc" id="L556" title="All 2 branches missed.">    for (KOSpecialElement koElement : specialElements) {</span>
+<span class="nc" id="L557">      Set&lt;String&gt; referencedSeriesInstanceUIDSet = koElement.getReferencedSeriesInstanceUIDSet();</span>
+<span class="nc bnc" id="L558" title="All 2 branches missed.">      if (seriesUID == null</span>
+<span class="nc bnc" id="L559" title="All 2 branches missed.">          || referencedSeriesInstanceUIDSet.contains(seriesUID)</span>
+<span class="nc bnc" id="L560" title="All 2 branches missed.">          || koElement.getMediaReader().isEditableDicom()) {</span>
+
+<span class="nc bnc" id="L562" title="All 2 branches missed.">        if (koElementSet == null) {</span>
+<span class="nc" id="L563">          koElementSet = new TreeSet&lt;&gt;(ORDER_BY_DATE);</span>
+        }
+<span class="nc" id="L565">        koElementSet.add(koElement);</span>
+      }
+<span class="nc" id="L567">    }</span>
+<span class="nc bnc" id="L568" title="All 2 branches missed.">    return koElementSet == null ? Collections.emptySet() : koElementSet;</span>
+  }
+
+  public static Collection&lt;RejectedKOSpecialElement&gt; getRejectionKoSpecialElements(
+      Collection&lt;RejectedKOSpecialElement&gt; specialElements, String seriesUID) {
+
+<span class="nc bnc" id="L574" title="All 2 branches missed.">    if (specialElements == null) {</span>
+<span class="nc" id="L575">      return Collections.emptySet();</span>
+    }
+
+<span class="nc" id="L578">    SortedSet&lt;RejectedKOSpecialElement&gt; sortedSet = null;</span>
+<span class="nc bnc" id="L579" title="All 2 branches missed.">    for (RejectedKOSpecialElement element : specialElements) {</span>
+<span class="nc" id="L580">      Set&lt;String&gt; referencedSeriesInstanceUIDSet = element.getReferencedSeriesInstanceUIDSet();</span>
+
+<span class="nc bnc" id="L582" title="All 2 branches missed.">      if (seriesUID == null</span>
+<span class="nc bnc" id="L583" title="All 2 branches missed.">          || referencedSeriesInstanceUIDSet.contains(seriesUID)</span>
+<span class="nc bnc" id="L584" title="All 2 branches missed.">          || element.getMediaReader().isEditableDicom()) {</span>
+
+<span class="nc bnc" id="L586" title="All 2 branches missed.">        if (sortedSet == null) {</span>
+<span class="nc" id="L587">          sortedSet = new TreeSet&lt;&gt;(ORDER_BY_DATE);</span>
+        }
+<span class="nc" id="L589">        sortedSet.add(element);</span>
+      }
+<span class="nc" id="L591">    }</span>
+<span class="nc bnc" id="L592" title="All 2 branches missed.">    return sortedSet == null ? Collections.emptySet() : sortedSet;</span>
+  }
+
+  public static RejectedKOSpecialElement getRejectionKoSpecialElement(
+      Collection&lt;RejectedKOSpecialElement&gt; specialElements,
+      String seriesUID,
+      String sopUID,
+      Integer dicomFrameNumber) {
+
+<span class="nc bnc" id="L601" title="All 2 branches missed.">    if (specialElements == null) {</span>
+<span class="nc" id="L602">      return null;</span>
+    }
+<span class="nc" id="L604">    List&lt;RejectedKOSpecialElement&gt; koList = null;</span>
+
+<span class="nc bnc" id="L606" title="All 2 branches missed.">    for (RejectedKOSpecialElement koElement : specialElements) {</span>
+<span class="nc bnc" id="L607" title="All 2 branches missed.">      if (isSopuidInReferencedSeriesSequence(</span>
+<span class="nc" id="L608">          koElement.getReferencedSOPInstanceUIDObject(seriesUID), sopUID, dicomFrameNumber)) {</span>
+<span class="nc bnc" id="L609" title="All 2 branches missed.">        if (koList == null) {</span>
+<span class="nc" id="L610">          koList = new ArrayList&lt;&gt;();</span>
+        }
+<span class="nc" id="L612">        koList.add(koElement);</span>
+      }
+<span class="nc" id="L614">    }</span>
+
+<span class="nc bnc" id="L616" title="All 4 branches missed.">    if (koList != null &amp;&amp; !koList.isEmpty()) {</span>
+      // return the most recent Rejection Object
+<span class="nc" id="L618">      koList.sort(ORDER_BY_DATE);</span>
+<span class="nc" id="L619">      return koList.getFirst();</span>
+    }
+<span class="nc" id="L621">    return null;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

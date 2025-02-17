@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>Panner.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image</a> &gt; <span class="el_source">Panner.java</span></div><h1>Panner.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image;
+
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.Insets;
+import java.awt.Point;
+import java.awt.event.MouseEvent;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import javax.swing.event.MouseInputAdapter;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.media.data.Thumbnail;
+
+/**
+ * @author Nicolas Roduit
+ */
+public final class Panner&lt;E extends ImageElement&gt; extends Thumbnail {
+
+<span class="nc" id="L28">  private final MouseClickHandler mouseClickHandler = new MouseClickHandler();</span>
+
+  private final DefaultView2d&lt;E&gt; view;
+  private final Rectangle2D slider;
+  private final Rectangle2D panArea;
+  private boolean updatingImageDisplay;
+
+  public Panner(DefaultView2d&lt;E&gt; view) {
+<span class="nc" id="L36">    super(156);</span>
+<span class="nc" id="L37">    this.view = view;</span>
+<span class="nc" id="L38">    setForeground(Color.RED);</span>
+<span class="nc" id="L39">    this.slider = new Rectangle2D.Double();</span>
+<span class="nc" id="L40">    this.panArea = new Rectangle2D.Double();</span>
+<span class="nc" id="L41">  }</span>
+
+  @Override
+  public void registerListeners() {
+<span class="nc" id="L45">    super.registerListeners();</span>
+<span class="nc" id="L46">    addMouseListener(mouseClickHandler);</span>
+<span class="nc" id="L47">    addMouseMotionListener(mouseClickHandler);</span>
+<span class="nc" id="L48">  }</span>
+
+  @Override
+  public void doLayout() {
+<span class="nc" id="L52">    super.doLayout();</span>
+<span class="nc" id="L53">    updateImageSize();</span>
+<span class="nc" id="L54">  }</span>
+
+  public boolean isUpdatingImageDisplay() {
+<span class="nc" id="L57">    return updatingImageDisplay;</span>
+  }
+
+  public void updateImage() {
+<span class="nc bnc" id="L61" title="All 2 branches missed.">    if (view != null) {</span>
+<span class="nc" id="L62">      E img = view.getImage();</span>
+<span class="nc bnc" id="L63" title="All 2 branches missed.">      if (img != null) {</span>
+<span class="nc" id="L64">        thumbnailPath = null;</span>
+<span class="nc" id="L65">        readable = true;</span>
+<span class="nc" id="L66">        removeImageFromCache();</span>
+        // Keep image in cache (do not release the current image after building thumbnail)
+<span class="nc" id="L68">        buildThumbnail(img, true, view.getImageLayer().getPreprocessing());</span>
+<span class="nc" id="L69">        updateImageSize();</span>
+      }
+    }
+<span class="nc" id="L72">  }</span>
+
+  public void updateImageSize() {
+<span class="nc bnc" id="L75" title="All 2 branches missed.">    if (view != null) {</span>
+<span class="nc" id="L76">      final Insets insets = getInsets();</span>
+<span class="nc" id="L77">      int imageWidth = getWidth() - (insets.left + insets.right);</span>
+<span class="nc" id="L78">      int imageHeight = getHeight() - (insets.top + insets.bottom);</span>
+<span class="nc" id="L79">      final double imageRatio = (double) imageWidth / (double) imageHeight;</span>
+<span class="nc" id="L80">      final Rectangle2D ma = view.getViewModel().getModelArea();</span>
+<span class="nc" id="L81">      final double modelRatio = ma.getWidth() / ma.getHeight();</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">      if (imageRatio &lt; modelRatio) {</span>
+<span class="nc" id="L83">        imageHeight = (int) Math.round(imageWidth / modelRatio);</span>
+      } else {
+<span class="nc" id="L85">        imageWidth = (int) Math.round(imageHeight * modelRatio);</span>
+      }
+<span class="nc bnc" id="L87" title="All 4 branches missed.">      if (imageWidth &gt; 0 &amp;&amp; imageHeight &gt; 0) {</span>
+<span class="nc" id="L88">        double x = 0.0;</span>
+<span class="nc" id="L89">        double y = 0.0;</span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">        if (imageWidth &lt; getWidth()) {</span>
+<span class="nc" id="L91">          x = (getWidth() - imageWidth) * 0.5;</span>
+        }
+<span class="nc bnc" id="L93" title="All 2 branches missed.">        if (imageHeight &lt; getHeight()) {</span>
+<span class="nc" id="L94">          y = (getHeight() - imageHeight) * 0.5;</span>
+        }
+<span class="nc" id="L96">        panArea.setRect(x, y, imageWidth, imageHeight);</span>
+<span class="nc" id="L97">        updateSlider();</span>
+      }
+    }
+<span class="nc" id="L100">  }</span>
+
+  public void updateSlider() {
+<span class="nc bnc" id="L103" title="All 4 branches missed.">    if (updatingImageDisplay || view == null) {</span>
+<span class="nc" id="L104">      return;</span>
+    }
+<span class="nc" id="L106">    final Rectangle2D ma = view.getViewModel().getModelArea();</span>
+<span class="nc" id="L107">    final double vs = view.getViewModel().getViewScale();</span>
+
+<span class="nc" id="L109">    double x =</span>
+<span class="nc" id="L110">        panArea.getX()</span>
+<span class="nc" id="L111">            + panArea.getWidth()</span>
+<span class="nc" id="L112">                * (view.getViewModel().getModelOffsetX() + ma.getWidth() * 0.5)</span>
+<span class="nc" id="L113">                / ma.getWidth()</span>
+<span class="nc" id="L114">            - slider.getWidth() * 0.5;</span>
+<span class="nc" id="L115">    double y =</span>
+<span class="nc" id="L116">        panArea.getY()</span>
+<span class="nc" id="L117">            + panArea.getHeight()</span>
+<span class="nc" id="L118">                * (view.getViewModel().getModelOffsetY() + ma.getHeight() * 0.5)</span>
+<span class="nc" id="L119">                / ma.getHeight()</span>
+<span class="nc" id="L120">            - slider.getHeight() * 0.5;</span>
+<span class="nc" id="L121">    double w = panArea.getWidth() * view.getWidth() / (ma.getWidth() * vs);</span>
+<span class="nc" id="L122">    double h = panArea.getHeight() * view.getHeight() / (ma.getHeight() * vs);</span>
+<span class="nc" id="L123">    slider.setFrame(x, y, w, h);</span>
+<span class="nc" id="L124">    repaint();</span>
+<span class="nc" id="L125">  }</span>
+
+  public void moveToOrigin() {
+<span class="nc bnc" id="L128" title="All 2 branches missed.">    if (view != null) {</span>
+<span class="nc" id="L129">      Rectangle2D area = view.getViewModel().getModelArea();</span>
+<span class="nc" id="L130">      view.setCenter(</span>
+<span class="nc" id="L131">          (view.viewToModelLength((double) view.getWidth()) - area.getWidth()) * 0.5,</span>
+<span class="nc" id="L132">          (view.viewToModelLength((double) view.getHeight()) - area.getHeight()) * 0.5);</span>
+    }
+<span class="nc" id="L134">  }</span>
+
+  public void moveToCenter() {
+<span class="nc bnc" id="L137" title="All 2 branches missed.">    if (view != null) {</span>
+<span class="nc" id="L138">      view.center();</span>
+    }
+<span class="nc" id="L140">  }</span>
+
+  @Override
+  protected void drawOverIcon(Graphics2D g2d, int x, int y, int width, int height) {
+<span class="nc" id="L144">    g2d.setColor(</span>
+        new Color(
+<span class="nc" id="L146">            getForeground().getRed(), getForeground().getGreen(), getForeground().getBlue(), 40));</span>
+<span class="nc" id="L147">    g2d.fill(slider);</span>
+<span class="nc" id="L148">    g2d.setColor(getForeground());</span>
+<span class="nc" id="L149">    g2d.draw(slider);</span>
+<span class="nc" id="L150">  }</span>
+
+<span class="nc" id="L152">  class MouseClickHandler extends MouseInputAdapter {</span>
+
+    private Point pickPoint;
+    private Point2D sliderPoint;
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+<span class="nc" id="L159">      pickPoint = e.getPoint();</span>
+<span class="nc bnc" id="L160" title="All 2 branches missed.">      if (!slider.contains(pickPoint)) {</span>
+<span class="nc" id="L161">        slider.setFrame(</span>
+<span class="nc" id="L162">            pickPoint.x - slider.getWidth() * 0.5,</span>
+<span class="nc" id="L163">            pickPoint.y - slider.getHeight() * 0.5,</span>
+<span class="nc" id="L164">            slider.getWidth(),</span>
+<span class="nc" id="L165">            slider.getHeight());</span>
+<span class="nc" id="L166">        repaint();</span>
+      }
+<span class="nc" id="L168">      sliderPoint = new Point2D.Double(slider.getX(), slider.getY());</span>
+<span class="nc" id="L169">      updateImageDisplay();</span>
+<span class="nc" id="L170">    }</span>
+
+    @Override
+    public void mouseReleased(MouseEvent mouseevent) {
+<span class="nc" id="L174">      updateImageDisplay();</span>
+<span class="nc" id="L175">      repaint();</span>
+<span class="nc" id="L176">    }</span>
+
+    @Override
+    public void mouseDragged(MouseEvent e) {
+<span class="nc bnc" id="L180" title="All 2 branches missed.">      if (pickPoint != null) {</span>
+<span class="nc" id="L181">        slider.setFrame(</span>
+<span class="nc" id="L182">            sliderPoint.getX() + (e.getX() - pickPoint.x),</span>
+<span class="nc" id="L183">            sliderPoint.getY() + (e.getY() - pickPoint.y),</span>
+<span class="nc" id="L184">            slider.getWidth(),</span>
+<span class="nc" id="L185">            slider.getHeight());</span>
+<span class="nc" id="L186">        updateImageDisplay();</span>
+<span class="nc" id="L187">        repaint();</span>
+      }
+<span class="nc" id="L189">    }</span>
+
+    private void updateImageDisplay() {
+<span class="nc bnc" id="L192" title="All 2 branches missed.">      if (view != null) {</span>
+<span class="nc" id="L193">        final Rectangle2D ma = view.getViewModel().getModelArea();</span>
+<span class="nc" id="L194">        double mpX =</span>
+<span class="nc" id="L195">            (slider.getCenterX() - panArea.getCenterX()) * ma.getWidth() / panArea.getWidth();</span>
+<span class="nc" id="L196">        double mpY =</span>
+<span class="nc" id="L197">            (slider.getCenterY() - panArea.getCenterY()) * ma.getHeight() / panArea.getHeight();</span>
+<span class="nc" id="L198">        updatingImageDisplay = true;</span>
+<span class="nc" id="L199">        view.setCenter(mpX, mpY);</span>
+<span class="nc" id="L200">        updatingImageDisplay = false;</span>
+      }
+<span class="nc" id="L202">    }</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

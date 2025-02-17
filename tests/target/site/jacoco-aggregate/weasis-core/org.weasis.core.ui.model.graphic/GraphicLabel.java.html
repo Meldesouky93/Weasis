@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>GraphicLabel.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.graphic</a> &gt; <span class="el_source">GraphicLabel.java</span></div><h1>GraphicLabel.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.graphic;
+
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import java.awt.Graphics2D;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Area;
+import java.awt.geom.Rectangle2D;
+import org.weasis.core.api.util.Copyable;
+import org.weasis.core.ui.editor.image.ViewCanvas;
+import org.weasis.core.ui.model.utils.imp.DefaultGraphicLabel;
+
+@XmlJavaTypeAdapter(DefaultGraphicLabel.Adapter.class)
+public interface GraphicLabel extends Copyable&lt;GraphicLabel&gt; {
+  /**
+   * Minimum value is 3 because paintBoundOutline grows of 2 pixels the outer rectangle painting,
+   * and paintFontOutline grows of 1 pixel all string painting
+   */
+  int GROWING_BOUND = 3;
+
+<span class="nc" id="L29">  Double DEFAULT_OFFSET_X = 0d;</span>
+<span class="nc" id="L30">  Double DEFAULT_OFFSET_Y = 0d;</span>
+
+  void reset();
+
+  /**
+   * @return Label array of strings if defined
+   */
+  String[] getLabels();
+
+  Rectangle2D getLabelBounds();
+
+  /**
+   * Should be used to check if mouse coordinates are inside/outside label bounding rectangle. Also,
+   * useful to check intersection with clipping rectangle.
+   *
+   * @param transform the AffineTransform value
+   * @return Labels bounding rectangle in real world with size rescaled. It takes care of the
+   *     current transformation scaling factor so labels painting have invariant size according to
+   *     the given transformation.
+   */
+  Rectangle2D getBounds(AffineTransform transform);
+
+  /**
+   * @param transform the AffineTransform value
+   * @return Real label bounding rectangle translated according to given transformation. &lt;br&gt;
+   */
+  Rectangle2D getTransformedBounds(AffineTransform transform);
+
+  /**
+   * Sets label strings and compute bounding rectangle size and position in pixel world according to
+   * the DefaultView which defines current &quot;Font&quot;&lt;br&gt;
+   */
+  void setLabel(ViewCanvas&lt;?&gt; view2d, Double xPos, Double yPos, String... labels);
+
+  void paint(Graphics2D g2d, AffineTransform transform, boolean selected);
+
+  Area getArea(AffineTransform transform);
+
+  void move(Double deltaX, Double deltaY);
+
+  Double getOffsetX();
+
+  Double getOffsetY();
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

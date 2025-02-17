@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AcquireCentralThumbnailPane.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer.gui.central.tumbnail</a> &gt; <span class="el_source">AcquireCentralThumbnailPane.java</span></div><h1>AcquireCentralThumbnailPane.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer.gui.central.tumbnail;
+
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+import javax.swing.JComponent;
+import javax.swing.event.ListSelectionListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.acquire.explorer.AcquireImageInfo;
+import org.weasis.acquire.explorer.AcquireManager;
+import org.weasis.acquire.explorer.core.bean.SeriesGroup;
+import org.weasis.acquire.explorer.gui.central.AcquireTabPanel;
+import org.weasis.acquire.explorer.gui.central.SeriesButton;
+import org.weasis.base.explorer.JIThumbnailCache;
+import org.weasis.base.explorer.list.AThumbnailListPane;
+import org.weasis.base.explorer.list.IThumbnailModel;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.media.data.MediaElement;
+import org.weasis.core.api.media.data.MediaReader;
+import org.weasis.core.api.media.data.Series;
+import org.weasis.core.ui.editor.ViewerPluginBuilder;
+import org.weasis.core.ui.editor.image.SequenceHandler;
+
+public class AcquireCentralThumbnailPane&lt;E extends MediaElement&gt; extends AThumbnailListPane&lt;E&gt; {
+
+<span class="nc" id="L39">  private static final Logger LOGGER = LoggerFactory.getLogger(AcquireCentralThumbnailPane.class);</span>
+
+  public AcquireCentralThumbnailPane(List&lt;E&gt; list, JIThumbnailCache thumbCache) {
+<span class="nc" id="L42">    super(new AcquireCentralThumbnailList&lt;&gt;(thumbCache));</span>
+<span class="nc" id="L43">    setList(list);</span>
+<span class="nc" id="L44">    setTransferHandler(new SeriesHandler());</span>
+<span class="nc" id="L45">  }</span>
+
+  public void setAcquireTabPanel(AcquireTabPanel acquireTabPanel) {
+<span class="nc" id="L48">    ((AcquireCentralThumbnailList&lt;?&gt;) this.thumbnailList).setAcquireTabPanel(acquireTabPanel);</span>
+<span class="nc" id="L49">  }</span>
+
+  public void addListSelectionListener(ListSelectionListener listener) {
+<span class="nc" id="L52">    this.thumbnailList.addListSelectionListener(listener);</span>
+<span class="nc" id="L53">  }</span>
+
+  public void addElements(List&lt;E&gt; elements) {
+<span class="nc bnc" id="L56" title="All 2 branches missed.">    if (elements != null) {</span>
+<span class="nc" id="L57">      IThumbnailModel&lt;E&gt; model = this.thumbnailList.getThumbnailListModel();</span>
+<span class="nc" id="L58">      elements.forEach(model::addElement);</span>
+<span class="nc" id="L59">      repaintList();</span>
+    }
+<span class="nc" id="L61">  }</span>
+
+  public void setList(List&lt;E&gt; elements) {
+<span class="nc" id="L64">    IThumbnailModel&lt;E&gt; model = this.thumbnailList.getThumbnailListModel();</span>
+<span class="nc" id="L65">    model.clear();</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">    if (elements != null) {</span>
+<span class="nc" id="L67">      elements.forEach(model::addElement);</span>
+<span class="nc" id="L68">      repaintList();</span>
+    }
+<span class="nc" id="L70">  }</span>
+
+  public void repaintList() {
+    // Repaint the scroll pane correctly (otherwise not all the elements of JList are repainted)
+<span class="nc bnc" id="L74" title="All 2 branches missed.">    if (thumbnailList.asComponent() instanceof JComponent component) {</span>
+<span class="nc" id="L75">      component.updateUI();</span>
+    }
+<span class="nc" id="L77">  }</span>
+
+<span class="nc" id="L79">  private class SeriesHandler extends SequenceHandler {</span>
+
+    @Override
+    public boolean canImport(TransferSupport support) {
+<span class="nc" id="L83">      boolean result = super.canImport(support);</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">      if (result</span>
+<span class="nc bnc" id="L85" title="All 2 branches missed.">          &amp;&amp; AcquireManager.getInstance().getAcquireExplorer().getImportPanel().isLoading()) {</span>
+<span class="nc" id="L86">        result = false;</span>
+      }
+<span class="nc" id="L88">      return result;</span>
+    }
+
+    protected boolean importDataExt(TransferSupport support) {
+<span class="nc" id="L92">      Transferable transferable = support.getTransferable();</span>
+      try {
+<span class="nc" id="L94">        Object object = transferable.getTransferData(Series.sequenceDataFlavor);</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">        if (object instanceof Series&lt;?&gt; series) {</span>
+<span class="nc" id="L96">          MediaElement media = series.getMedia(0, null, null);</span>
+<span class="nc" id="L97">          addToSeries(media);</span>
+        }
+<span class="nc" id="L99">      } catch (UnsupportedFlavorException | IOException e) {</span>
+<span class="nc" id="L100">        LOGGER.error(&quot;Drop thumbnail&quot;, e);</span>
+<span class="nc" id="L101">      }</span>
+
+<span class="nc" id="L103">      return true;</span>
+    }
+
+    private void addToSeries(MediaElement media) {
+<span class="nc bnc" id="L107" title="All 2 branches missed.">      if (media instanceof ImageElement imageElement) {</span>
+<span class="nc" id="L108">        AcquireCentralThumbnailList&lt;?&gt; thumbnailList =</span>
+<span class="nc" id="L109">            (AcquireCentralThumbnailList&lt;?&gt;) AcquireCentralThumbnailPane.this.thumbnailList;</span>
+<span class="nc" id="L110">        AcquireImageInfo info = AcquireManager.findByImage(imageElement);</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">        if (info != null) {</span>
+<span class="nc" id="L112">          SeriesGroup seriesGroup =</span>
+<span class="nc" id="L113">              Optional.ofNullable(thumbnailList.getSelectedSeries())</span>
+<span class="nc" id="L114">                  .map(SeriesButton::getSeries)</span>
+<span class="nc" id="L115">                  .orElse(null);</span>
+<span class="nc" id="L116">          AcquireManager.importImage(info, seriesGroup);</span>
+        }
+      }
+<span class="nc" id="L119">    }</span>
+
+    @Override
+    protected boolean dropFiles(List&lt;File&gt; files, TransferSupport support) {
+<span class="nc bnc" id="L123" title="All 2 branches missed.">      if (files == null) {</span>
+<span class="nc" id="L124">        return false;</span>
+      }
+<span class="nc bnc" id="L126" title="All 2 branches missed.">      for (File file : files) {</span>
+<span class="nc" id="L127">        MediaReader&lt;?&gt; reader = ViewerPluginBuilder.getMedia(file, false);</span>
+<span class="nc bnc" id="L128" title="All 4 branches missed.">        if (reader != null &amp;&amp; !reader.getMediaFragmentMimeType().contains(&quot;dicom&quot;)) { // NON-NLS</span>
+<span class="nc" id="L129">          MediaElement[] medias = reader.getMediaElement();</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">          if (medias != null) {</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">            for (MediaElement mediaElement : medias) {</span>
+<span class="nc" id="L132">              addToSeries(mediaElement);</span>
+            }
+          }
+        }
+<span class="nc" id="L136">      }</span>
+<span class="nc" id="L137">      return true;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

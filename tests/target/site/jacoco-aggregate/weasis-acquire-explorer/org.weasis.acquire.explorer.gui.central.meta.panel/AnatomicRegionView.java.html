@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AnatomicRegionView.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer.gui.central.meta.panel</a> &gt; <span class="el_source">AnatomicRegionView.java</span></div><h1>AnatomicRegionView.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer.gui.central.meta.panel;
+
+import java.awt.Font;
+import java.awt.Insets;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.swing.ButtonGroup;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JRadioButton;
+import net.miginfocom.swing.MigLayout;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.acquire.explorer.Messages;
+import org.weasis.core.api.gui.util.CheckBoxModel;
+import org.weasis.core.api.gui.util.DropDownButton;
+import org.weasis.core.api.gui.util.GroupCheckBoxMenu;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.util.FontItem;
+import org.weasis.core.ui.util.SearchableComboBox;
+import org.weasis.core.util.StringUtil;
+import org.weasis.dicom.ref.AnatomicBuilder;
+import org.weasis.dicom.ref.AnatomicBuilder.Category;
+import org.weasis.dicom.ref.AnatomicBuilder.CategoryBuilder;
+import org.weasis.dicom.ref.AnatomicItem;
+import org.weasis.dicom.ref.AnatomicModifier;
+import org.weasis.dicom.ref.AnatomicRegion;
+
+public class AnatomicRegionView extends JPanel {
+
+<span class="nc" id="L48">  private static final Logger LOGGER = LoggerFactory.getLogger(AnatomicRegionView.class);</span>
+
+  private JComboBox&lt;CategoryBuilder&gt; comboBox1;
+  private JComboBox&lt;AnatomicItem&gt; comboBox2;
+
+<span class="nc" id="L53">  private final ButtonGroup ratioGroup = new ButtonGroup();</span>
+<span class="nc" id="L54">  private final JRadioButton radioButtonSeries =</span>
+<span class="nc" id="L55">      new JRadioButton(org.weasis.core.Messages.getString(&quot;CalibrationView.series&quot;));</span>
+<span class="nc" id="L56">  private final JRadioButton radioButtonImage =</span>
+<span class="nc" id="L57">      new JRadioButton(org.weasis.core.Messages.getString(&quot;CalibrationView.current&quot;));</span>
+<span class="nc" id="L58">  private final GroupCheckBoxMenu modifierGroup = new GroupCheckBoxMenu();</span>
+<span class="nc" id="L59">  private final DropDownButton modifiersDropdown =</span>
+      new DropDownButton(
+          &quot;search_mod&quot;, // NON-NLS
+<span class="nc" id="L62">          Messages.getString(&quot;modifiers&quot;),</span>
+<span class="nc" id="L63">          GuiUtils.getDownArrowIcon(),</span>
+<span class="nc" id="L64">          modifierGroup) {</span>
+        @Override
+        protected JPopupMenu getPopupMenu() {
+          JPopupMenu menu =
+<span class="nc bnc" id="L68" title="All 2 branches missed.">              (getMenuModel() == null) ? new JPopupMenu() : getMenuModel().createJPopupMenu();</span>
+<span class="nc" id="L69">          menu.setInvoker(this);</span>
+<span class="nc" id="L70">          return menu;</span>
+        }
+      };
+
+<span class="nc" id="L74">  public AnatomicRegionView(AnatomicRegion region, boolean selectSeries) {</span>
+    try {
+<span class="nc" id="L76">      jbInit();</span>
+<span class="nc" id="L77">      radioButtonSeries.setSelected(selectSeries);</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">      if (!selectSeries) {</span>
+<span class="nc" id="L79">        radioButtonImage.setSelected(true);</span>
+      }
+<span class="nc" id="L81">      initialize(region);</span>
+<span class="nc" id="L82">    } catch (Exception e) {</span>
+<span class="nc" id="L83">      LOGGER.error(e.getMessage(), e);</span>
+<span class="nc" id="L84">    }</span>
+<span class="nc" id="L85">  }</span>
+
+  void jbInit() {
+<span class="nc" id="L88">    setLayout(new MigLayout(&quot;wrap 2, insets 0&quot;, &quot;[right][grow]&quot;, &quot;[]10[]10[]20[]&quot;)); // NON-NLS</span>
+<span class="nc" id="L89">    CategoryBuilder[] sortedCategories =</span>
+<span class="nc" id="L90">        AnatomicBuilder.categoryMap.keySet().stream()</span>
+<span class="nc" id="L91">            .sorted(Comparator.comparing(CategoryBuilder::toString))</span>
+<span class="nc" id="L92">            .toArray(CategoryBuilder[]::new);</span>
+<span class="nc" id="L93">    comboBox1 = new JComboBox&lt;&gt;(sortedCategories);</span>
+<span class="nc" id="L94">    comboBox1.setSelectedItem(Category.SURFACE);</span>
+<span class="nc" id="L95">    comboBox1.addActionListener(_ -&gt; updateComboBox2());</span>
+
+    // Create the second combo box
+<span class="nc" id="L98">    comboBox2 = new SearchableComboBox&lt;&gt;();</span>
+
+<span class="nc" id="L100">    Font font = comboBox2.getFont();</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">    if (font == null) {</span>
+<span class="nc" id="L102">      font = FontItem.DEFAULT.getFont();</span>
+    }
+<span class="nc" id="L104">    int maxWidth = 0;</span>
+<span class="nc" id="L105">    Collection&lt;List&lt;AnatomicItem&gt;&gt; categories = AnatomicBuilder.categoryMap.values();</span>
+<span class="nc bnc" id="L106" title="All 2 branches missed.">    for (List&lt;AnatomicItem&gt; list : categories) {</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">      for (AnatomicItem item : list) {</span>
+<span class="nc" id="L108">        int width = comboBox2.getFontMetrics(font).stringWidth(item.getCodeMeaning());</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        if (width &gt; maxWidth) {</span>
+<span class="nc" id="L110">          maxWidth = width;</span>
+        }
+<span class="nc" id="L112">      }</span>
+<span class="nc" id="L113">    }</span>
+<span class="nc" id="L114">    Insets insets = comboBox2.getInsets();</span>
+<span class="nc" id="L115">    updateComboBox2();</span>
+<span class="nc" id="L116">    GuiUtils.setPreferredWidth(comboBox2, maxWidth + insets.left + insets.right);</span>
+
+<span class="nc" id="L118">    JLabel lblApplyTo =</span>
+<span class="nc" id="L119">        new JLabel(org.weasis.core.Messages.getString(&quot;CalibrationView.apply&quot;) + StringUtil.COLON);</span>
+<span class="nc" id="L120">    ratioGroup.add(radioButtonSeries);</span>
+<span class="nc" id="L121">    ratioGroup.add(radioButtonImage);</span>
+
+<span class="nc" id="L123">    add(new JLabel(&quot;Category&quot; + StringUtil.COLON), &quot;right&quot;); // NON-NLS</span>
+<span class="nc" id="L124">    add(comboBox1, &quot;growx&quot;); // NON-NLS</span>
+
+<span class="nc" id="L126">    add(new JLabel(&quot;Region&quot; + StringUtil.COLON), &quot;right&quot;); // NON-NLS</span>
+<span class="nc" id="L127">    add(comboBox2, &quot;growx 500&quot;); // NON-NLS</span>
+
+<span class="nc" id="L129">    List&lt;Object&gt; list = Stream.of(AnatomicModifier.values()).collect(Collectors.toList());</span>
+<span class="nc" id="L130">    modifierGroup.setModel(list, false, false);</span>
+<span class="nc" id="L131">    modifiersDropdown.setToolTipText(Messages.getString(&quot;select.modifiers&quot;));</span>
+<span class="nc" id="L132">    add(modifiersDropdown, &quot;cell 1 2, span&quot;); // NON-NLS</span>
+
+<span class="nc" id="L134">    add(lblApplyTo, &quot;span, split 3, right, gaptop 20&quot;); // NON-NLS</span>
+<span class="nc" id="L135">    add(radioButtonSeries);</span>
+<span class="nc" id="L136">    add(radioButtonImage);</span>
+<span class="nc" id="L137">  }</span>
+
+  public AnatomicItem getSelectedAnatomicItem() {
+<span class="nc" id="L140">    Object item = comboBox2.getSelectedItem();</span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">    return item instanceof AnatomicItem val ? val : null;</span>
+  }
+
+  public CategoryBuilder getSelectedCategory() {
+<span class="nc" id="L145">    return (CategoryBuilder) comboBox1.getSelectedItem();</span>
+  }
+
+  public Set&lt;AnatomicModifier&gt; getModifiers() {
+<span class="nc" id="L149">    return modifierGroup.getModelList().stream()</span>
+<span class="nc" id="L150">        .filter(CheckBoxModel::isSelected)</span>
+<span class="nc" id="L151">        .map(c -&gt; (AnatomicModifier) c.getObject())</span>
+<span class="nc" id="L152">        .collect(Collectors.toCollection(HashSet::new));</span>
+  }
+
+  void updateComboBox2() {
+<span class="nc" id="L156">    List&lt;AnatomicItem&gt; list = AnatomicBuilder.categoryMap.get(getSelectedCategory());</span>
+<span class="nc bnc" id="L157" title="All 2 branches missed.">    if (list != null) {</span>
+<span class="nc" id="L158">      comboBox2.setModel(new DefaultComboBoxModel&lt;&gt;(list.toArray(new AnatomicItem[0])));</span>
+    } else {
+<span class="nc" id="L160">      comboBox2.setModel(new DefaultComboBoxModel&lt;&gt;());</span>
+    }
+<span class="nc" id="L162">  }</span>
+
+  public boolean isApplyingToSeries() {
+<span class="nc" id="L165">    return radioButtonSeries.isSelected();</span>
+  }
+
+  private void initialize(AnatomicRegion region) {
+<span class="nc bnc" id="L169" title="All 2 branches missed.">    if (region != null) {</span>
+<span class="nc" id="L170">      CategoryBuilder category = region.getCategory();</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">      if (category != null) {</span>
+<span class="nc" id="L172">        comboBox1.setSelectedItem(category);</span>
+      }
+<span class="nc" id="L174">      comboBox2.setSelectedItem(region.getRegion());</span>
+<span class="nc" id="L175">      Set&lt;AnatomicModifier&gt; modifiers = region.getModifiers();</span>
+<span class="nc" id="L176">      modifierGroup.getModelList().forEach(c -&gt; c.setSelected(modifiers.contains(c.getObject())));</span>
+    }
+<span class="nc" id="L178">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

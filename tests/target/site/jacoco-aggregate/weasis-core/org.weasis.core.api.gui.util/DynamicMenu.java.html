@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>DynamicMenu.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.gui.util</a> &gt; <span class="el_source">DynamicMenu.java</span></div><h1>DynamicMenu.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.gui.util;
+
+import com.formdev.flatlaf.util.SystemInfo;
+import java.util.Timer;
+import java.util.TimerTask;
+import javax.swing.Action;
+import javax.swing.JMenu;
+import javax.swing.JPopupMenu;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
+
+public abstract class DynamicMenu extends JMenu {
+
+  protected DynamicMenu() {
+<span class="nc" id="L24">    super();</span>
+<span class="nc" id="L25">  }</span>
+
+  protected DynamicMenu(Action a) {
+<span class="nc" id="L28">    super(a);</span>
+<span class="nc" id="L29">  }</span>
+
+  protected DynamicMenu(String s, boolean b) {
+<span class="nc" id="L32">    super(s, b);</span>
+<span class="nc" id="L33">  }</span>
+
+  protected DynamicMenu(String s) {
+<span class="nc" id="L36">    super(s);</span>
+<span class="nc" id="L37">  }</span>
+
+  public abstract void popupMenuWillBecomeVisible();
+
+  public void popupMenuWillBecomeInvisible() {
+    // Wait the action performed of JMenuItem (Bug on Mac menu bar)
+<span class="nc" id="L43">    TimerTask task =</span>
+<span class="nc" id="L44">        new TimerTask() {</span>
+
+          @Override
+          public void run() {
+<span class="nc" id="L48">            removeAll();</span>
+<span class="nc" id="L49">          }</span>
+        };
+<span class="nc" id="L51">    Timer timer = new Timer();</span>
+<span class="nc" id="L52">    timer.schedule(task, 250);</span>
+<span class="nc" id="L53">  }</span>
+
+<span class="nc" id="L55">  public void popupMenuCanceled() {}</span>
+
+  public void addPopupMenuListener() {
+    // #WEA-6 - workaround, PopupMenuListener doesn't work on Mac in the top bar
+<span class="nc bnc" id="L59" title="All 2 branches missed.">    if (SystemInfo.isMacOS</span>
+        &amp;&amp; Boolean.TRUE
+<span class="nc" id="L61">            .toString()</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">            .equals(</span>
+<span class="nc" id="L63">                System.getProperty(</span>
+<span class="nc" id="L64">                    &quot;apple.laf.useScreenMenuBar&quot;, Boolean.FALSE.toString()))) { // NON-NLS</span>
+<span class="nc" id="L65">      this.addChangeListener(</span>
+          e -&gt; {
+<span class="nc bnc" id="L67" title="All 2 branches missed.">            if (DynamicMenu.this.isSelected()) {</span>
+<span class="nc" id="L68">              DynamicMenu.this.removeAll();</span>
+<span class="nc" id="L69">              DynamicMenu.this.popupMenuWillBecomeVisible();</span>
+            } else {
+<span class="nc" id="L71">              DynamicMenu.this.popupMenuWillBecomeInvisible();</span>
+            }
+<span class="nc" id="L73">          });</span>
+    } else {
+<span class="nc" id="L75">      JPopupMenu menuExport = this.getPopupMenu();</span>
+<span class="nc" id="L76">      menuExport.addPopupMenuListener(</span>
+<span class="nc" id="L77">          new PopupMenuListener() {</span>
+
+            @Override
+            public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+<span class="nc" id="L81">              DynamicMenu.this.popupMenuWillBecomeVisible();</span>
+<span class="nc" id="L82">            }</span>
+
+            @Override
+            public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+<span class="nc" id="L86">              DynamicMenu.this.popupMenuWillBecomeInvisible();</span>
+<span class="nc" id="L87">            }</span>
+
+            @Override
+            public void popupMenuCanceled(PopupMenuEvent e) {
+<span class="nc" id="L91">              DynamicMenu.this.popupMenuCanceled();</span>
+<span class="nc" id="L92">            }</span>
+          });
+    }
+<span class="nc" id="L95">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

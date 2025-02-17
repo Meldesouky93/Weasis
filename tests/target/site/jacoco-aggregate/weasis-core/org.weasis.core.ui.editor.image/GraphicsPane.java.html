@@ -1,0 +1,414 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>GraphicsPane.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image</a> &gt; <span class="el_source">GraphicsPane.java</span></div><h1>GraphicsPane.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image;
+
+import java.awt.Graphics;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.Shape;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.NoninvertibleTransformException;
+import java.awt.geom.Path2D;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.beans.PropertyChangeListener;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import javax.swing.JComponent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.gui.Image2DViewer;
+import org.weasis.core.api.gui.model.ViewModel;
+import org.weasis.core.api.gui.model.ViewModelChangeListener;
+import org.weasis.core.api.gui.util.ActionW;
+import org.weasis.core.api.image.AffineTransformOp;
+import org.weasis.core.api.image.ImageOpNode;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.ui.model.GraphicModel;
+import org.weasis.core.ui.model.imp.XmlGraphicModel;
+import org.weasis.core.ui.model.layer.GraphicModelChangeListener;
+import org.weasis.core.ui.model.layer.imp.RenderedImageLayer;
+import org.weasis.core.ui.model.utils.imp.DefaultViewModel;
+import org.weasis.core.util.LangUtil;
+
+/**
+ * The Class GraphicsPane.
+ *
+ * @author Nicolas Roduit
+ */
+public abstract class GraphicsPane extends JComponent implements Canvas {
+
+<span class="nc" id="L51">  private static final Logger LOGGER = LoggerFactory.getLogger(GraphicsPane.class);</span>
+
+  protected GraphicModel graphicManager;
+  protected ViewModel viewModel;
+  protected final LayerModelHandler layerModelHandler;
+  protected final ViewModelHandler viewModelHandler;
+
+  protected final DrawingsKeyListeners drawingsKeyListeners;
+<span class="nc" id="L59">  protected final HashMap&lt;String, Object&gt; actionsInView = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L60">  protected final AffineTransform affineTransform = new AffineTransform();</span>
+<span class="nc" id="L61">  protected final AffineTransform inverseTransform = new AffineTransform();</span>
+
+  protected final PropertyChangeListener graphicsChangeHandler;
+
+<span class="nc" id="L65">  public GraphicsPane(ViewModel viewModel) {</span>
+<span class="nc" id="L66">    setOpaque(false);</span>
+
+<span class="nc" id="L68">    this.layerModelHandler = new LayerModelHandler();</span>
+
+<span class="nc" id="L70">    this.graphicManager = new XmlGraphicModel();</span>
+<span class="nc" id="L71">    this.graphicManager.addChangeListener(layerModelHandler);</span>
+
+<span class="nc" id="L73">    this.viewModelHandler = new ViewModelHandler();</span>
+
+<span class="nc" id="L75">    this.viewModel = Optional.ofNullable(viewModel).orElseGet(DefaultViewModel::new);</span>
+<span class="nc" id="L76">    this.viewModel.addViewModelChangeListener(viewModelHandler);</span>
+<span class="nc" id="L77">    this.drawingsKeyListeners = new DrawingsKeyListeners(this);</span>
+<span class="nc" id="L78">    this.graphicsChangeHandler = new PropertyChangeHandler(this);</span>
+<span class="nc" id="L79">  }</span>
+
+  @Override
+  public void setGraphicManager(GraphicModel graphicManager) {
+<span class="nc" id="L83">    Objects.requireNonNull(graphicManager);</span>
+<span class="nc" id="L84">    GraphicModel graphicManagerOld = this.graphicManager;</span>
+<span class="nc bnc" id="L85" title="All 2 branches missed.">    if (!Objects.equals(graphicManager, graphicManagerOld)) {</span>
+<span class="nc" id="L86">      removeGraphicManager(graphicManagerOld, layerModelHandler);</span>
+<span class="nc" id="L87">      this.graphicManager = graphicManager;</span>
+<span class="nc" id="L88">      graphicManager.addGraphicChangeHandler(graphicsChangeHandler);</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">      if (this instanceof ViewCanvas&lt;?&gt; viewCanvas) {</span>
+<span class="nc" id="L90">        graphicManager.updateLabels(Boolean.TRUE, viewCanvas);</span>
+      }
+<span class="nc" id="L92">      graphicManager.addChangeListener(layerModelHandler);</span>
+<span class="nc" id="L93">      firePropertyChange(&quot;graphicManager&quot;, graphicManagerOld, this.graphicManager);</span>
+    }
+<span class="nc" id="L95">  }</span>
+
+  public DrawingsKeyListeners getDrawingsKeyListeners() {
+<span class="nc" id="L98">    return drawingsKeyListeners;</span>
+  }
+
+  @Override
+  public GraphicModel getGraphicManager() {
+<span class="nc" id="L103">    return graphicManager;</span>
+  }
+
+  @Override
+  public AffineTransform getAffineTransform() {
+<span class="nc" id="L108">    return affineTransform;</span>
+  }
+
+  @Override
+  public AffineTransform getInverseTransform() {
+<span class="nc" id="L113">    return inverseTransform;</span>
+  }
+
+  @Override
+  public PropertyChangeListener getGraphicsChangeHandler() {
+<span class="nc" id="L118">    return graphicsChangeHandler;</span>
+  }
+
+  @Override
+  public void disposeView() {
+<span class="nc" id="L123">    Optional.ofNullable(viewModel)</span>
+<span class="nc" id="L124">        .ifPresent(model -&gt; model.removeViewModelChangeListener(viewModelHandler));</span>
+    // Unregister listener
+<span class="nc" id="L126">    removeGraphicManager(graphicManager, layerModelHandler);</span>
+<span class="nc" id="L127">  }</span>
+
+  /**
+   * Gets the view model.
+   *
+   * @return the view model, never null
+   */
+  @Override
+  public ViewModel getViewModel() {
+<span class="nc" id="L136">    return viewModel;</span>
+  }
+
+  /**
+   * Sets the view model.
+   *
+   * @param viewModel the view model, never null
+   */
+  @Override
+  public void setViewModel(ViewModel viewModel) {
+<span class="nc" id="L146">    ViewModel viewModelOld = this.viewModel;</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">    if (viewModelOld != viewModel) {</span>
+<span class="nc bnc" id="L148" title="All 2 branches missed.">      if (viewModelOld != null) {</span>
+<span class="nc" id="L149">        viewModelOld.removeViewModelChangeListener(viewModelHandler);</span>
+      }
+<span class="nc" id="L151">      this.viewModel = viewModel;</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">      if (this.viewModel != null) {</span>
+<span class="nc" id="L153">        this.viewModel.addViewModelChangeListener(viewModelHandler);</span>
+      }
+<span class="nc" id="L155">      firePropertyChange(&quot;viewModel&quot;, viewModelOld, this.viewModel);</span>
+    }
+<span class="nc" id="L157">  }</span>
+
+  @Override
+  public Object getActionValue(String action) {
+<span class="nc bnc" id="L161" title="All 2 branches missed.">    if (action == null) {</span>
+<span class="nc" id="L162">      return null;</span>
+    }
+<span class="nc" id="L164">    return actionsInView.get(action);</span>
+  }
+
+  @Override
+  public Map&lt;String, Object&gt; getActionsInView() {
+<span class="nc" id="L169">    return actionsInView;</span>
+  }
+
+  @Override
+  public JComponent getJComponent() {
+<span class="nc" id="L174">    return this;</span>
+  }
+
+  @Override
+  public void zoom(Double viewScale) {
+<span class="nc" id="L179">    getViewModel()</span>
+<span class="nc" id="L180">        .setModelOffset(</span>
+<span class="nc" id="L181">            viewModel.getModelOffsetX(), viewModel.getModelOffsetY(), cropViewScale(viewScale));</span>
+<span class="nc" id="L182">  }</span>
+
+  public void zoom(Rectangle2D zoomRect) {
+<span class="nc" id="L185">    final Rectangle2D modelArea = viewModel.getModelArea();</span>
+<span class="nc" id="L186">    getViewModel()</span>
+<span class="nc" id="L187">        .setModelOffset(</span>
+<span class="nc" id="L188">            modelArea.getCenterX() - zoomRect.getCenterX(),</span>
+<span class="nc" id="L189">            modelArea.getCenterY() - zoomRect.getCenterY(),</span>
+<span class="nc" id="L190">            Math.min(getWidth() / zoomRect.getWidth(), getHeight() / zoomRect.getHeight()));</span>
+<span class="nc" id="L191">  }</span>
+
+  @Override
+  public double getBestFitViewScale() {
+<span class="nc" id="L195">    final Rectangle2D modelArea = viewModel.getModelArea();</span>
+<span class="nc" id="L196">    return cropViewScale(</span>
+<span class="nc" id="L197">        Math.min(getWidth() / modelArea.getWidth(), getHeight() / modelArea.getHeight()));</span>
+  }
+
+  @Override
+  public Point2D viewToModel(Double viewX, Double viewY) {
+<span class="nc" id="L202">    Point2D p = getViewCoordinatesOffset();</span>
+<span class="nc" id="L203">    p.setLocation(viewX - p.getX(), viewY - p.getY());</span>
+<span class="nc" id="L204">    inverseTransform.transform(p, p);</span>
+<span class="nc" id="L205">    return p;</span>
+  }
+
+  @Override
+  public double viewToModelLength(Double viewLength) {
+<span class="nc" id="L210">    return viewLength / viewModel.getViewScale();</span>
+  }
+
+  @Override
+  public Point2D modelToView(Double modelX, Double modelY) {
+<span class="nc" id="L215">    Point2D p2 = new Point2D.Double(modelX, modelY);</span>
+<span class="nc" id="L216">    affineTransform.transform(p2, p2);</span>
+
+<span class="nc" id="L218">    Point2D p = getViewCoordinatesOffset();</span>
+<span class="nc" id="L219">    p2.setLocation(p2.getX() + p.getX(), p2.getY() + p.getY());</span>
+<span class="nc" id="L220">    return p2;</span>
+  }
+
+  @Override
+  public double modelToViewLength(Double modelLength) {
+<span class="nc" id="L225">    return modelLength * viewModel.getViewScale();</span>
+  }
+
+  @Override
+  public Point2D getViewCoordinatesOffset() {
+<span class="nc" id="L230">    Rectangle2D b = getImageViewBounds(getWidth(), getHeight());</span>
+<span class="nc" id="L231">    return new Point2D.Double(b.getX(), b.getY());</span>
+  }
+
+  public Path2D getVisibleImageViewBounds() {
+<span class="nc" id="L235">    Point2D p = getClipViewCoordinatesOffset();</span>
+<span class="nc" id="L236">    Rectangle2D bounds = new Rectangle2D.Double(-p.getX(), -p.getY(), getWidth(), getHeight());</span>
+<span class="nc" id="L237">    Shape path = inverseTransform.createTransformedShape(bounds);</span>
+<span class="nc bnc" id="L238" title="All 2 branches missed.">    if (path instanceof Path2D path2D) {</span>
+<span class="nc" id="L239">      return path2D;</span>
+    }
+<span class="nc" id="L241">    Path2D path2D = new Path2D.Double();</span>
+<span class="nc" id="L242">    path2D.append(bounds, false);</span>
+<span class="nc" id="L243">    return path2D;</span>
+  }
+
+  @Override
+  public Rectangle2D getImageViewBounds() {
+<span class="nc" id="L248">    return getImageViewBounds(getWidth(), getHeight());</span>
+  }
+
+  @Override
+  public Rectangle2D getImageViewBounds(double viewportWidth, double viewportHeight) {
+<span class="nc" id="L253">    Rectangle2D b = affineTransform.createTransformedShape(viewModel.getModelArea()).getBounds2D();</span>
+<span class="nc" id="L254">    ViewModel m = getViewModel();</span>
+<span class="nc" id="L255">    double viewOffsetX = (viewportWidth - b.getWidth()) * 0.5;</span>
+<span class="nc" id="L256">    double viewOffsetY = (viewportHeight - b.getHeight()) * 0.5;</span>
+<span class="nc" id="L257">    double offsetX = viewOffsetX - m.getModelOffsetX() * m.getViewScale();</span>
+<span class="nc" id="L258">    double offsetY = viewOffsetY - m.getModelOffsetY() * m.getViewScale();</span>
+<span class="nc" id="L259">    b.setRect(offsetX, offsetY, b.getWidth(), b.getHeight());</span>
+<span class="nc" id="L260">    return b;</span>
+  }
+
+  @Override
+  public Point2D getClipViewCoordinatesOffset() {
+<span class="nc" id="L265">    Point2D p = getViewCoordinatesOffset();</span>
+<span class="nc" id="L266">    p.setLocation(Math.max(p.getX(), 0.0), Math.max(p.getY(), 0.0));</span>
+<span class="nc" id="L267">    return p;</span>
+  }
+
+  @Override
+  public Point2D getImageCoordinatesFromMouse(Integer x, Integer y) {
+<span class="nc" id="L272">    Point2D p = getClipViewCoordinatesOffset();</span>
+<span class="nc" id="L273">    p.setLocation(x - p.getX(), y - p.getY());</span>
+
+<span class="nc" id="L275">    inverseTransform.transform(p, p);</span>
+<span class="nc" id="L276">    return p;</span>
+  }
+
+  @Override
+  public Point getMouseCoordinatesFromImage(Double x, Double y) {
+<span class="nc" id="L281">    Point2D p2 = new Point2D.Double(x, y);</span>
+<span class="nc" id="L282">    affineTransform.transform(p2, p2);</span>
+
+<span class="nc" id="L284">    Point2D p = getClipViewCoordinatesOffset();</span>
+<span class="nc" id="L285">    return new Point(</span>
+<span class="nc" id="L286">        (int) Math.floor(p2.getX() + p.getX() + 0.5), (int) Math.floor(p2.getY() + p.getY() + 0.5));</span>
+  }
+
+  protected void updateAffineTransform(
+      Image2DViewer&lt;? extends ImageElement&gt; view2d,
+      ImageOpNode node,
+      RenderedImageLayer&lt;?&gt; imageLayer,
+      double viewSizeShift) {
+<span class="nc" id="L294">    Rectangle2D modelArea = getViewModel().getModelArea();</span>
+<span class="nc" id="L295">    double viewScale = getViewModel().getViewScale();</span>
+
+<span class="nc" id="L297">    double rWidth = modelArea.getWidth();</span>
+<span class="nc" id="L298">    double rHeight = modelArea.getHeight();</span>
+
+<span class="nc" id="L300">    boolean flip = LangUtil.getNULLtoFalse((Boolean) view2d.getActionValue((ActionW.FLIP.cmd())));</span>
+<span class="nc" id="L301">    Integer rotationAngle = (Integer) view2d.getActionValue(ActionW.ROTATION.cmd());</span>
+
+<span class="nc bnc" id="L303" title="All 2 branches missed.">    affineTransform.setToScale(flip ? -viewScale : viewScale, viewScale);</span>
+<span class="nc bnc" id="L304" title="All 4 branches missed.">    if (rotationAngle != null &amp;&amp; rotationAngle &gt; 0) {</span>
+<span class="nc" id="L305">      affineTransform.rotate(Math.toRadians(rotationAngle), rWidth / 2.0, rHeight / 2.0);</span>
+    }
+<span class="nc bnc" id="L307" title="All 2 branches missed.">    if (flip) {</span>
+<span class="nc" id="L308">      affineTransform.translate(-rWidth, 0.0);</span>
+    }
+
+<span class="nc bnc" id="L311" title="All 2 branches missed.">    if (node != null) {</span>
+<span class="nc" id="L312">      Rectangle2D imgBounds = affineTransform.createTransformedShape(modelArea).getBounds2D();</span>
+
+<span class="nc" id="L314">      double diffX = 0.0;</span>
+<span class="nc" id="L315">      double diffY = 0.0;</span>
+<span class="nc" id="L316">      Rectangle2D viewBounds =</span>
+<span class="nc" id="L317">          new Rectangle2D.Double(0, 0, getWidth() + viewSizeShift, getHeight() + viewSizeShift);</span>
+<span class="nc" id="L318">      Rectangle2D srcBounds = getImageViewBounds(viewBounds.getWidth(), viewBounds.getHeight());</span>
+
+      Rectangle2D dstBounds;
+<span class="nc bnc" id="L321" title="All 2 branches missed.">      if (viewBounds.contains(srcBounds)) {</span>
+<span class="nc" id="L322">        dstBounds = srcBounds;</span>
+      } else {
+<span class="nc" id="L324">        dstBounds = viewBounds.createIntersection(srcBounds);</span>
+
+<span class="nc bnc" id="L326" title="All 2 branches missed.">        if (srcBounds.getX() &lt; 0.0) {</span>
+<span class="nc" id="L327">          diffX += srcBounds.getX();</span>
+        }
+<span class="nc bnc" id="L329" title="All 2 branches missed.">        if (srcBounds.getY() &lt; 0.0) {</span>
+<span class="nc" id="L330">          diffY += srcBounds.getY();</span>
+        }
+      }
+
+<span class="nc" id="L334">      double[] fmx = new double[6];</span>
+<span class="nc" id="L335">      affineTransform.getMatrix(fmx);</span>
+      // adjust transformation matrix =&gt; move the center to keep all the image
+<span class="nc" id="L337">      fmx[4] -= imgBounds.getX() - diffX;</span>
+<span class="nc" id="L338">      fmx[5] -= imgBounds.getY() - diffY;</span>
+<span class="nc" id="L339">      affineTransform.setTransform(fmx[0], fmx[1], fmx[2], fmx[3], fmx[4], fmx[5]);</span>
+
+      // Convert to openCV affine matrix
+<span class="nc" id="L342">      List&lt;Double&gt; m = List.of(fmx[0], fmx[2], fmx[4], fmx[1], fmx[3], fmx[5]);</span>
+<span class="nc" id="L343">      node.setParam(AffineTransformOp.P_AFFINE_MATRIX, m);</span>
+
+<span class="nc" id="L345">      node.setParam(AffineTransformOp.P_DST_BOUNDS, dstBounds);</span>
+<span class="nc" id="L346">      imageLayer.updateDisplayOperations();</span>
+    }
+
+    // Keep the coordinates of the original image when cropping
+<span class="nc" id="L350">    Point offset = view2d.getImageLayer().getOffset();</span>
+<span class="nc bnc" id="L351" title="All 2 branches missed.">    if (offset != null) {</span>
+<span class="nc" id="L352">      affineTransform.translate(-offset.getX(), -offset.getY());</span>
+    }
+
+    try {
+<span class="nc" id="L356">      inverseTransform.setTransform(affineTransform.createInverse());</span>
+<span class="nc" id="L357">    } catch (NoninvertibleTransformException e) {</span>
+<span class="nc" id="L358">      LOGGER.error(&quot;Create inverse transform&quot;, e);</span>
+<span class="nc" id="L359">    }</span>
+<span class="nc" id="L360">  }</span>
+
+  @Override
+  protected void paintComponent(Graphics g) {
+    // honor the opaque property
+<span class="nc bnc" id="L365" title="All 2 branches missed.">    if (isOpaque()) {</span>
+<span class="nc" id="L366">      g.setColor(getBackground());</span>
+<span class="nc" id="L367">      g.fillRect(0, 0, getWidth(), getHeight());</span>
+    }
+<span class="nc" id="L369">  }</span>
+
+  // /////////////////////////////////////////////////////////////////////////////////////
+  // Helpers
+  private double cropViewScale(double viewScale) {
+<span class="nc" id="L374">    return DefaultViewModel.cropViewScale(</span>
+<span class="nc" id="L375">        viewScale, viewModel.getViewScaleMin(), viewModel.getViewScaleMax());</span>
+  }
+
+  public static void repaint(Canvas canvas, Rectangle rectangle) {
+<span class="nc bnc" id="L379" title="All 2 branches missed.">    if (rectangle != null) {</span>
+      // Add the offset of the canvas
+<span class="nc" id="L381">      Point2D p = canvas.getClipViewCoordinatesOffset();</span>
+<span class="nc" id="L382">      int x = (int) (rectangle.x + p.getX());</span>
+<span class="nc" id="L383">      int y = (int) (rectangle.y + p.getY());</span>
+<span class="nc" id="L384">      canvas.getJComponent().repaint(new Rectangle(x, y, rectangle.width, rectangle.height));</span>
+    }
+<span class="nc" id="L386">  }</span>
+
+  // /////////////////////////////////////////////////////////////////////////////////////
+  // Inner Classes
+  /**
+   * The Class LayerModelHandler.
+   *
+   * @author Nicolas Roduit
+   */
+<span class="nc" id="L395">  private class LayerModelHandler implements GraphicModelChangeListener {</span>
+    @Override
+    public void handleModelChanged(GraphicModel modelList) {
+<span class="nc" id="L398">      repaint();</span>
+<span class="nc" id="L399">    }</span>
+  }
+
+  /**
+   * The Class ViewModelHandler.
+   *
+   * @author Nicolas Roduit
+   */
+<span class="nc" id="L407">  private class ViewModelHandler implements ViewModelChangeListener {</span>
+    @Override
+    public void handleViewModelChanged(ViewModel viewModel) {
+<span class="nc" id="L410">      repaint();</span>
+<span class="nc" id="L411">    }</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

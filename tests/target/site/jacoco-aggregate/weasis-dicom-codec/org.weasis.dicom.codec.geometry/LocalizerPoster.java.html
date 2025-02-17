@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>LocalizerPoster.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec.geometry</a> &gt; <span class="el_source">LocalizerPoster.java</span></div><h1>LocalizerPoster.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec.geometry;
+
+import java.awt.geom.Point2D;
+import java.util.ArrayList;
+import java.util.List;
+import org.joml.Matrix3d;
+import org.joml.Vector3d;
+import org.weasis.core.util.MathUtil;
+
+/**
+ * An abstract class that provides the basis for posting the position of specified slices and
+ * volumes on (usually orthogonal) localizer images.
+ *
+ * &lt;p&gt;This base class provides the interface, common storage and various utility methods, and
+ * specific methods of performing the localization operation are performed by concrete subclasses,
+ * instantiated through a factory class.
+ *
+ * &lt;p&gt;Typically this would b used as follows, to get outlines in the form of a vector of shapes
+ * whose coordinates are those of the localizer image:
+ *
+ * &lt;pre&gt;
+ * GeometryOfSlice localizerGeometry = new GeometryOfSliceFromAttributeList(localizerAttributeList);
+ * GeometryOfSlice postImageGeometry = new GeometryOfSliceFromAttributeList(postImageAttributeList);
+ * LocalizerPoster localizerPoster = LocalizerPosterFactory.getLocalizerPoster(false, false);
+ * localizerPoster.setLocalizerGeometry(localizerGeometry);
+ * Vector shapes = localizerPoster.getOutlineOnLocalizerForThisGeometry(postImageGeometry);
+ * &lt;/pre&gt;
+ *
+ * @see org.weasis.dicom.codec.geometry.GeometryOfSlice
+ * @author David A. Clunie
+ */
+public abstract class LocalizerPoster {
+
+  protected Vector3d localizerRow;
+
+  protected Vector3d localizerColumn;
+
+  protected Vector3d localizerNormal;
+
+  protected Vector3d localizerTLHC;
+
+  protected Vector3d
+      localizerVoxelSpacing; // row spacing (between centers of adjacent rows), then column spacing,
+  // then slice spacing
+
+  protected Vector3d
+      localizerDimensions; // number of rows, then number of columns, then number of slices
+
+  protected Matrix3d rotateIntoLocalizerSpace;
+
+  public LocalizerPoster(
+<span class="nc" id="L61">      Vector3d row, Vector3d column, Vector3d tlhc, Vector3d voxelSpacing, Vector3d dimensions) {</span>
+<span class="nc" id="L62">    localizerRow = row;</span>
+<span class="nc" id="L63">    localizerColumn = column;</span>
+<span class="nc" id="L64">    localizerTLHC = tlhc;</span>
+<span class="nc" id="L65">    localizerVoxelSpacing = voxelSpacing;</span>
+<span class="nc" id="L66">    localizerDimensions = dimensions;</span>
+<span class="nc" id="L67">    doCommonConstructorStuff();</span>
+<span class="nc" id="L68">  }</span>
+
+<span class="nc" id="L70">  public LocalizerPoster(GeometryOfSlice geometry) {</span>
+<span class="nc" id="L71">    localizerRow = geometry.getRow();</span>
+<span class="nc" id="L72">    localizerColumn = geometry.getColumn();</span>
+<span class="nc" id="L73">    localizerTLHC = geometry.getTLHC();</span>
+<span class="nc" id="L74">    localizerVoxelSpacing = geometry.getVoxelSpacing();</span>
+<span class="nc" id="L75">    localizerDimensions = geometry.getDimensions();</span>
+<span class="nc" id="L76">    doCommonConstructorStuff();</span>
+<span class="nc" id="L77">  }</span>
+
+  /**
+   * Check that the row and column vectors are unit vectors and are orthogonal.
+   *
+   * @param row the row direction cosines
+   * @param column the column direction cosines
+   * @throws IllegalArgumentException thrown if not
+   */
+  public static void validateDirectionCosines(Vector3d row, Vector3d column) {
+<span class="nc bnc" id="L87" title="All 2 branches missed.">    if (Math.abs(row.lengthSquared() - 1) &gt; 0.001) {</span>
+<span class="nc" id="L88">      throw new IllegalArgumentException(&quot;Row not a unit vector&quot;);</span>
+    }
+<span class="nc bnc" id="L90" title="All 2 branches missed.">    if (Math.abs(column.lengthSquared() - 1) &gt; 0.001) {</span>
+<span class="nc" id="L91">      throw new IllegalArgumentException(&quot;Column not a unit vector&quot;);</span>
+    }
+<span class="nc bnc" id="L93" title="All 2 branches missed.">    if (row.dot(column) &gt; 0.005) { // dot product should be cos(90)=0 if orthogonal</span>
+<span class="nc" id="L94">      throw new IllegalArgumentException(&quot;Row and column vectors are not orthogonal&quot;);</span>
+    }
+<span class="nc" id="L96">  }</span>
+
+  /**
+   * Get the corners of a slice in the 3D coordinate space of that slice.
+   *
+   * @param row the direction of the row as X, Y and Z components (direction cosines, unit vector)
+   *     LPH+
+   * @param column the direction of the column as X, Y and Z components (direction cosines, unit
+   *     vector) LPH+
+   * @param originalTLHC the position of the top left-hand corner of the slice as a point (X, Y and
+   *     Z) LPH+
+   * @param voxelSpacing the row and column spacing and the slice interval
+   * @param dimensions the row and column dimensions and 1 for the third dimension
+   * @return an array of four points that are the tlhc,trhc, brhc, blhc of the slice
+   */
+  public static Vector3d[] getCornersOfSourceRectangleInSourceSpace(
+      Vector3d row,
+      Vector3d column,
+      Vector3d originalTLHC,
+      Vector3d voxelSpacing,
+      Vector3d dimensions) {
+
+<span class="nc" id="L118">    validateDirectionCosines(row, column);</span>
+
+<span class="nc" id="L120">    Vector3d distanceAlongRow = new Vector3d(row).mul(dimensions.y * voxelSpacing.y);</span>
+<span class="nc" id="L121">    Vector3d distanceAlongColumn = new Vector3d(column).mul(dimensions.x * voxelSpacing.x);</span>
+
+    // Build a square to project with 4 corners TLHC, TRHC, BRHC, BLHC ...
+<span class="nc" id="L124">    Vector3d tlhc = new Vector3d(originalTLHC);</span>
+<span class="nc" id="L125">    Vector3d trhc = new Vector3d(tlhc).add(distanceAlongRow);</span>
+<span class="nc" id="L126">    Vector3d blhc = new Vector3d(tlhc).add(distanceAlongColumn);</span>
+<span class="nc" id="L127">    Vector3d brhc = new Vector3d(tlhc).add(distanceAlongRow).add(distanceAlongColumn);</span>
+
+<span class="nc" id="L129">    return new Vector3d[] {tlhc, trhc, brhc, blhc};</span>
+  }
+
+  /**
+   * Get the corners of a volume in the 3D coordinate space of that volume.
+   *
+   * @param row the direction of the row as X, Y and Z components (direction cosines, unit vector)
+   *     LPH+
+   * @param column the direction of the column as X, Y and Z components (direction cosines, unit
+   *     vector) LPH+
+   * @param originalTLHC the position of the top left-hand corner of the slice as a point (X, Y and
+   *     Z) LPH+
+   * @param voxelSpacing the row and column spacing and the slice interval
+   * @param sliceThickness the slice thickness
+   * @param dimensions the row and column dimensions and number of frames for the third dimension
+   * @return an array of eight points that are the tlhcT, trhcT, brhcT, blhcT, tlhcB, trhcB, brhcB,
+   *     blhcB of the volume
+   */
+  public static Vector3d[] getCornersOfSourceCubeInSourceSpace(
+      Vector3d row,
+      Vector3d column,
+      Vector3d originalTLHC,
+      Vector3d voxelSpacing,
+      double sliceThickness,
+      Vector3d dimensions) {
+
+<span class="nc" id="L155">    validateDirectionCosines(row, column);</span>
+    // the normal to the plane is the cross product of the row and column
+<span class="nc" id="L157">    Vector3d normal = new Vector3d(row).cross(column);</span>
+
+<span class="nc" id="L159">    Vector3d distanceAlongRow = new Vector3d(row).mul(dimensions.y * voxelSpacing.y);</span>
+<span class="nc" id="L160">    Vector3d distanceAlongColumn = new Vector3d(column).mul(dimensions.x * voxelSpacing.x);</span>
+    // divide by two ... half on either side of center
+<span class="nc" id="L162">    Vector3d distanceAlongNormal = new Vector3d(normal).mul(dimensions.z / 2 * sliceThickness);</span>
+
+    // Build the &quot;top&quot; square to project with 4 corners TLHC, TRHC, BRHC, BLHC ...
+
+<span class="nc" id="L166">    Vector3d tlhcT = new Vector3d(originalTLHC).add(distanceAlongNormal);</span>
+<span class="nc" id="L167">    Vector3d trhcT = new Vector3d(tlhcT).add(distanceAlongRow);</span>
+<span class="nc" id="L168">    Vector3d blhcT = new Vector3d(tlhcT).add(distanceAlongColumn);</span>
+<span class="nc" id="L169">    Vector3d brhcT = new Vector3d(tlhcT).add(distanceAlongRow).add(distanceAlongColumn);</span>
+
+    // Build the &quot;bottom&quot; square to project with 4 corners TLHC, TRHC, BRHC, BLHC ...
+
+<span class="nc" id="L173">    Vector3d tlhcB = new Vector3d(originalTLHC).sub(distanceAlongNormal);</span>
+<span class="nc" id="L174">    Vector3d trhcB = new Vector3d(tlhcB).add(distanceAlongRow);</span>
+<span class="nc" id="L175">    Vector3d blhcB = new Vector3d(tlhcB).add(distanceAlongColumn);</span>
+<span class="nc" id="L176">    Vector3d brhcB = new Vector3d(tlhcB).add(distanceAlongRow).add(distanceAlongColumn);</span>
+
+<span class="nc" id="L178">    return new Vector3d[] {tlhcT, trhcT, brhcT, blhcT, tlhcB, trhcB, brhcB, blhcB};</span>
+  }
+
+  /**
+   * Transform a point into the &quot;viewport&quot; defined by the localizer that we are an instance of.
+   *
+   * @param point a 3D point to be transformed
+   * @return a new, transformed point
+   */
+  protected Vector3d transformPointFromSourceSpaceIntoLocalizerSpace(Vector3d point) {
+<span class="nc" id="L188">    Vector3d newPoint = new Vector3d(point); // do not overwrite the supplied point</span>
+<span class="nc" id="L189">    newPoint.sub(localizerTLHC); // move everything to origin of the target localizer</span>
+<span class="nc" id="L190">    rotateIntoLocalizerSpace.transform(newPoint);</span>
+<span class="nc" id="L191">    return newPoint;</span>
+  }
+
+  /**
+   * Project a point in localizer 3D space onto the plane of the localizer by ignoring the Z
+   * component, and return the X and Y coordinates as image-TLHC relative column and row offsets.
+   *
+   * &lt;p&gt;Will return sub-pixel values ranging from 0.5 to 0.5 less than the maximum dimensions of the
+   * image, which allows points at the very edges of the rendered image to be drawn (e.g. a column
+   * of 0.5 will draw at the extreme left and a column of 255.5 will draw at the extreme right of a
+   * 256 pixel wide image (whereas 256.0 will not, though 0.0 will).
+   *
+   * @param point the point in 3D localizer space, the Z coordinate of which is ignored
+   * @return an array of 2 values in which the column, then the row location on the image is
+   *     returned
+   */
+  protected Point2D.Double transformPointInLocalizerPlaneIntoImageSpace(Vector3d point) {
+    // number of rows
+<span class="nc" id="L209">    double scaleSubPixelHeightOfColumn = (localizerDimensions.x - 1) / localizerDimensions.x;</span>
+    // number of cols
+<span class="nc" id="L211">    double scaleSubPixelWidthOfRow = (localizerDimensions.y - 1) / localizerDimensions.y;</span>
+
+    /*
+     * NB. x is the column; use as height number of rows spacing between rows
+     *
+     * NB. y is the row; use as width number of cols * spacing between cols
+     */
+<span class="nc" id="L218">    return new Point2D.Double(</span>
+        point.x / localizerVoxelSpacing.y * scaleSubPixelHeightOfColumn + 0.5,
+        point.y / localizerVoxelSpacing.x * scaleSubPixelWidthOfRow + 0.5);
+  }
+
+  protected List&lt;Point2D&gt; drawOutlineOnLocalizer(List&lt;Vector3d&gt; corners) {
+<span class="nc bnc" id="L224" title="All 4 branches missed.">    if (corners != null &amp;&amp; !corners.isEmpty()) {</span>
+<span class="nc" id="L225">      Vector3d[] cornersArray = new Vector3d[corners.size()];</span>
+<span class="nc" id="L226">      return drawOutlineOnLocalizer(corners.toArray(cornersArray));</span>
+    }
+<span class="nc" id="L228">    return null;</span>
+  }
+
+  protected List&lt;Point2D&gt; drawOutlineOnLocalizer(Vector3d[] corners) {
+<span class="nc" id="L232">    ArrayList&lt;Point2D&gt; shapes = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L233" title="All 2 branches missed.">    for (Vector3d corner : corners) {</span>
+<span class="nc" id="L234">      shapes.add(transformPointInLocalizerPlaneIntoImageSpace(corner));</span>
+    }
+<span class="nc" id="L236">    return shapes;</span>
+  }
+
+  protected Vector3d intersectLineBetweenTwoPointsWithPlaneWhereZIsZero(Vector3d aP, Vector3d bP) {
+<span class="nc" id="L240">    double[] u = new double[3];</span>
+    // be careful not to divide by zero when slope infinite (and unnecessary, since multiplicand is
+    // then zero)
+    // Z of unknown point is zero
+<span class="nc" id="L244">    u[1] =</span>
+<span class="nc bnc" id="L245" title="All 2 branches missed.">        (MathUtil.isEqual(bP.z, aP.z)) ? aP.y : (bP.y - aP.y) / (bP.z - aP.z) * (0 - aP.z) + aP.y;</span>
+<span class="nc" id="L246">    u[0] =</span>
+<span class="nc bnc" id="L247" title="All 2 branches missed.">        (MathUtil.isEqual(bP.y, aP.y))</span>
+<span class="nc" id="L248">            ? aP.x</span>
+<span class="nc" id="L249">            : (bP.x - aP.x) / (bP.y - aP.y) * (u[1] - aP.y) + aP.x;</span>
+<span class="nc" id="L250">    u[2] = 0;</span>
+<span class="nc" id="L251">    return new Vector3d(u);</span>
+  }
+
+  protected List&lt;Point2D&gt; drawLinesBetweenAnyPointsWhichIntersectPlaneWhereZIsZero(
+      Vector3d[] corners) {
+<span class="nc" id="L256">    int size = corners.length;</span>
+<span class="nc" id="L257">    ArrayList&lt;Vector3d&gt; intersections = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L258" title="All 2 branches missed.">    for (int i = 0; i &lt; size; ++i) {</span>
+<span class="nc bnc" id="L259" title="All 2 branches missed.">      int next = (i == size - 1) ? 0 : i + 1;</span>
+<span class="nc" id="L260">      double thisZ = corners[i].z;</span>
+<span class="nc" id="L261">      double nextZ = corners[next].z;</span>
+<span class="nc bnc" id="L262" title="All 8 branches missed.">      if ((thisZ &lt;= 0 &amp;&amp; nextZ &gt;= 0) || (thisZ &gt;= 0 &amp;&amp; nextZ &lt;= 0)) {</span>
+<span class="nc" id="L263">        Vector3d intersection =</span>
+<span class="nc" id="L264">            intersectLineBetweenTwoPointsWithPlaneWhereZIsZero(corners[i], corners[next]);</span>
+<span class="nc" id="L265">        intersections.add(intersection);</span>
+      }
+    }
+<span class="nc bnc" id="L268" title="All 2 branches missed.">    return !intersections.isEmpty() ? drawOutlineOnLocalizer(intersections) : null;</span>
+  }
+
+  protected static boolean classifyCornersIntoEdgeCrossingZPlane(
+      Vector3d startCorner, Vector3d endCorner) {
+<span class="nc" id="L273">    double startZ = startCorner.z;</span>
+<span class="nc" id="L274">    double endZ = endCorner.z;</span>
+<span class="nc bnc" id="L275" title="All 8 branches missed.">    return (startZ &lt;= 0 &amp;&amp; endZ &gt;= 0) || (startZ &gt;= 0 &amp;&amp; endZ &lt;= 0);</span>
+  }
+
+  protected List&lt;Vector3d&gt; getIntersectionsOfCubeWithZPlane(Vector3d[] corners) {
+<span class="nc" id="L279">    ArrayList&lt;Vector3d&gt; intersections = new ArrayList&lt;&gt;(4);</span>
+
+    // the check and traversal order are very dependent on the order of the
+    // corners which are: tlhcT, trhcT, brhcT, blhcT, tlhcB, trhcB, brhcB, blhcB
+    // as established in LocalizerPoster.getCornersOfSourceCubeInSourceSpace()
+
+    // traverse each of the (three) possibilities for which opposite edges intersect the Z plane ...
+
+<span class="nc" id="L287">    int[][] edgePairs = {</span>
+      {0, 1, 2, 3, 6, 7, 4, 5},
+      {0, 3, 1, 2, 5, 6, 4, 7},
+      {0, 4, 1, 5, 2, 6, 3, 7}
+    };
+
+<span class="nc bnc" id="L293" title="All 2 branches missed.">    for (int[] pair : edgePairs) {</span>
+<span class="nc bnc" id="L294" title="All 2 branches missed.">      if (classifyCornersIntoEdgeCrossingZPlane(corners[pair[0]], corners[pair[1]])</span>
+<span class="nc bnc" id="L295" title="All 2 branches missed.">          &amp;&amp; classifyCornersIntoEdgeCrossingZPlane(corners[pair[2]], corners[pair[3]])</span>
+<span class="nc bnc" id="L296" title="All 2 branches missed.">          &amp;&amp; classifyCornersIntoEdgeCrossingZPlane(corners[pair[4]], corners[pair[5]])</span>
+<span class="nc bnc" id="L297" title="All 2 branches missed.">          &amp;&amp; classifyCornersIntoEdgeCrossingZPlane(corners[pair[6]], corners[pair[7]])) {</span>
+<span class="nc" id="L298">        intersections.add(</span>
+<span class="nc" id="L299">            intersectLineBetweenTwoPointsWithPlaneWhereZIsZero(corners[pair[0]], corners[pair[1]]));</span>
+<span class="nc" id="L300">        intersections.add(</span>
+<span class="nc" id="L301">            intersectLineBetweenTwoPointsWithPlaneWhereZIsZero(corners[pair[2]], corners[pair[3]]));</span>
+<span class="nc" id="L302">        intersections.add(</span>
+<span class="nc" id="L303">            intersectLineBetweenTwoPointsWithPlaneWhereZIsZero(corners[pair[4]], corners[pair[5]]));</span>
+<span class="nc" id="L304">        intersections.add(</span>
+<span class="nc" id="L305">            intersectLineBetweenTwoPointsWithPlaneWhereZIsZero(corners[pair[6]], corners[pair[7]]));</span>
+<span class="nc" id="L306">        break;</span>
+      }
+    }
+<span class="nc" id="L309">    return intersections;</span>
+  }
+
+  protected void doCommonConstructorStuff() {
+<span class="nc" id="L313">    validateDirectionCosines(localizerRow, localizerColumn);</span>
+    // the normal to the plane is the cross product of the row and column
+<span class="nc" id="L315">    localizerNormal = new Vector3d(localizerRow).cross(localizerColumn);</span>
+<span class="nc" id="L316">    rotateIntoLocalizerSpace = new Matrix3d();</span>
+<span class="nc" id="L317">    rotateIntoLocalizerSpace.setRow(0, localizerRow);</span>
+<span class="nc" id="L318">    rotateIntoLocalizerSpace.setRow(1, localizerColumn);</span>
+<span class="nc" id="L319">    rotateIntoLocalizerSpace.setRow(2, localizerNormal);</span>
+<span class="nc" id="L320">  }</span>
+
+  /**
+   * Get the shapes on the localizer of the specified slice.
+   *
+   * @param row the unit vector (direction cosine) of the row direction in the DICOM coordinate
+   *     system
+   * @param column the unit vector (direction cosine) of the row direction in the DICOM coordinate
+   *     system
+   * @param tlhc the position in the DICOM coordinate system of the center of the top left-hand
+   *     corner pixel of the slice
+   * @param voxelSpacing the row and column and slice interval in mm
+   * @param sliceThickness the slice thickness in mm
+   * @param dimensions the number of rows and columns and slices
+   * @return vector of shapes {@link java.awt.Shape java.awt.Shape} to be drawn in the localizer row
+   *     and column coordinates
+   */
+  public abstract List&lt;Point2D&gt; getOutlineOnLocalizerForThisGeometry(
+      Vector3d row,
+      Vector3d column,
+      Vector3d tlhc,
+      Vector3d voxelSpacing,
+      double sliceThickness,
+      Vector3d dimensions);
+
+  /**
+   * Get the shape on the localizer of a zero-thickness slice specified by the geometry of a 2D
+   * rectangle.
+   *
+   * @param geometry
+   * @return vector of shapes {@link java.awt.Shape java.awt.Shape} to be drawn in the localizer row
+   *     and column coordinates
+   */
+  public final List&lt;Point2D&gt; getOutlineOnLocalizerForThisGeometry(GeometryOfSlice geometry) {
+<span class="nc" id="L354">    return getOutlineOnLocalizerForThisGeometry(</span>
+<span class="nc" id="L355">        geometry.getRow(),</span>
+<span class="nc" id="L356">        geometry.getColumn(),</span>
+<span class="nc" id="L357">        geometry.getTLHC(),</span>
+<span class="nc" id="L358">        geometry.getVoxelSpacing(),</span>
+<span class="nc" id="L359">        geometry.getSliceThickness(),</span>
+<span class="nc" id="L360">        geometry.getDimensions());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

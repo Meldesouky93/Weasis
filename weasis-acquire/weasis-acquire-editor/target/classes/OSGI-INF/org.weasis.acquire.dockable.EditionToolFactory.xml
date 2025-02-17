@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.3.0" name="org.weasis.acquire.dockable.EditionToolFactory">
+  <property name="org.weasis.base.viewer2d.View2dContainer" type="String" value="true"/>
+  <service>
+    <provide interface="org.weasis.core.api.gui.InsertableFactory"/>
+  </service>
+  <implementation class="org.weasis.acquire.dockable.EditionToolFactory"/>
+</scr:component>

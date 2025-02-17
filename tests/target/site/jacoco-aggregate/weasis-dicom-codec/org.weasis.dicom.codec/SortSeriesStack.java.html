@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>SortSeriesStack.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec</a> &gt; <span class="el_source">SortSeriesStack.java</span></div><h1>SortSeriesStack.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec;
+
+import java.time.LocalTime;
+import org.dcm4che3.data.Tag;
+import org.weasis.core.api.media.data.SeriesComparator;
+import org.weasis.core.api.media.data.TagW;
+
+public final class SortSeriesStack {
+
+  // Comparator cannot be a generic list of DicomOpImage because the Collection to sort has an
+  // AbstractImage type
+<span class="nc" id="L21">  public static final SeriesComparator&lt;DicomImageElement&gt; instanceNumber =</span>
+<span class="nc" id="L22">      new SeriesComparator&lt;&gt;() {</span>
+
+        @Override
+        public int compare(DicomImageElement m1, DicomImageElement m2) {
+<span class="nc" id="L26">          Integer val1 = TagD.getTagValue(m1, Tag.InstanceNumber, Integer.class);</span>
+<span class="nc" id="L27">          Integer val2 = TagD.getTagValue(m2, Tag.InstanceNumber, Integer.class);</span>
+<span class="nc bnc" id="L28" title="All 4 branches missed.">          if (val1 == null || val2 == null) {</span>
+<span class="nc" id="L29">            return 0;</span>
+          }
+<span class="nc" id="L31">          return val1.compareTo(val2);</span>
+        }
+
+        @Override
+        public String toString() {
+<span class="nc" id="L36">          return Messages.getString(&quot;SortSeriesStack.inst&quot;);</span>
+        }
+      };
+<span class="nc" id="L39">  public static final SeriesComparator&lt;DicomImageElement&gt; slicePosition =</span>
+<span class="nc" id="L40">      new SeriesComparator&lt;&gt;() {</span>
+
+        @Override
+        public int compare(DicomImageElement m1, DicomImageElement m2) {
+<span class="nc" id="L44">          double[] val1 = (double[]) m1.getTagValue(TagW.SlicePosition);</span>
+<span class="nc" id="L45">          double[] val2 = (double[]) m2.getTagValue(TagW.SlicePosition);</span>
+<span class="nc bnc" id="L46" title="All 4 branches missed.">          if (val1 == null || val2 == null) {</span>
+<span class="nc" id="L47">            return 0;</span>
+          }
+          // Invert the x-axis to have the same orientation as the Patient Coordinate System
+<span class="nc" id="L50">          return Double.compare(-val1[0] + val1[1] + val1[2], -val2[0] + val2[1] + val2[2]);</span>
+        }
+
+        @Override
+        public String toString() {
+<span class="nc" id="L55">          return Messages.getString(&quot;SortSeriesStack.pos_orient&quot;);</span>
+        }
+      };
+
+<span class="nc" id="L59">  public static final SeriesComparator&lt;DicomImageElement&gt; sliceLocation =</span>
+<span class="nc" id="L60">      new SeriesComparator&lt;&gt;() {</span>
+
+        @Override
+        public int compare(DicomImageElement m1, DicomImageElement m2) {
+<span class="nc" id="L64">          Double val1 = TagD.getTagValue(m1, Tag.SliceLocation, Double.class);</span>
+<span class="nc" id="L65">          Double val2 = TagD.getTagValue(m2, Tag.SliceLocation, Double.class);</span>
+<span class="nc bnc" id="L66" title="All 4 branches missed.">          if (val1 == null || val2 == null) {</span>
+<span class="nc" id="L67">            return 0;</span>
+          }
+<span class="nc" id="L69">          return val1.compareTo(val2);</span>
+        }
+
+        @Override
+        public String toString() {
+<span class="nc" id="L74">          return Messages.getString(&quot;SortSeriesStack.location&quot;);</span>
+        }
+      };
+
+<span class="nc" id="L78">  public static final SeriesComparator&lt;DicomImageElement&gt; acquisitionTime =</span>
+<span class="nc" id="L79">      new SeriesComparator&lt;&gt;() {</span>
+
+        @Override
+        public int compare(DicomImageElement m1, DicomImageElement m2) {
+<span class="nc" id="L83">          LocalTime val1 = TagD.getTagValue(m1, Tag.AcquisitionTime, LocalTime.class);</span>
+<span class="nc" id="L84">          LocalTime val2 = TagD.getTagValue(m2, Tag.AcquisitionTime, LocalTime.class);</span>
+<span class="nc bnc" id="L85" title="All 4 branches missed.">          if (val1 == null || val2 == null) {</span>
+<span class="nc" id="L86">            return 0;</span>
+          }
+<span class="nc" id="L88">          return val1.compareTo(val2);</span>
+        }
+
+        @Override
+        public String toString() {
+<span class="nc" id="L93">          return Messages.getString(&quot;SortSeriesStack.time&quot;);</span>
+        }
+      };
+<span class="nc" id="L96">  public static final SeriesComparator&lt;DicomImageElement&gt; contentTime =</span>
+<span class="nc" id="L97">      new SeriesComparator&lt;&gt;() {</span>
+
+        @Override
+        public int compare(DicomImageElement m1, DicomImageElement m2) {
+<span class="nc" id="L101">          LocalTime val1 = TagD.getTagValue(m1, Tag.ContentTime, LocalTime.class);</span>
+<span class="nc" id="L102">          LocalTime val2 = TagD.getTagValue(m2, Tag.ContentTime, LocalTime.class);</span>
+<span class="nc bnc" id="L103" title="All 4 branches missed.">          if (val1 == null || val2 == null) {</span>
+<span class="nc" id="L104">            return 0;</span>
+          }
+<span class="nc" id="L106">          return val1.compareTo(val2);</span>
+        }
+
+        @Override
+        public String toString() {
+<span class="nc" id="L111">          return Messages.getString(&quot;SortSeriesStack.content_time&quot;);</span>
+        }
+      };
+
+<span class="nc" id="L115">  public static final SeriesComparator&lt;DicomImageElement&gt; diffusionBValue =</span>
+<span class="nc" id="L116">      new SeriesComparator&lt;&gt;() {</span>
+
+        @Override
+        public int compare(DicomImageElement m1, DicomImageElement m2) {
+<span class="nc" id="L120">          Double val1 = TagD.getTagValue(m1, Tag.DiffusionBValue, Double.class);</span>
+<span class="nc" id="L121">          Double val2 = TagD.getTagValue(m2, Tag.DiffusionBValue, Double.class);</span>
+<span class="nc bnc" id="L122" title="All 4 branches missed.">          if (val1 == null || val2 == null) {</span>
+<span class="nc" id="L123">            return 0;</span>
+          }
+<span class="nc" id="L125">          return val1.compareTo(val2);</span>
+        }
+
+        @Override
+        public String toString() {
+<span class="nc" id="L130">          return Messages.getString(&quot;SortSeriesStack.dvalue&quot;);</span>
+        }
+      };
+
+  private SortSeriesStack() {}
+
+  public static SeriesComparator&lt;DicomImageElement&gt;[] getValues() {
+<span class="nc" id="L137">    return new SeriesComparator[] {</span>
+      instanceNumber, slicePosition, sliceLocation, contentTime, acquisitionTime, diffusionBValue
+    };
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,251 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AcquireExplorer.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer</a> &gt; <span class="el_source">AcquireExplorer.java</span></div><h1>AcquireExplorer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer;
+
+import bibliothek.gui.dock.common.CLocation;
+import bibliothek.gui.dock.common.mode.ExtendedMode;
+import java.awt.BorderLayout;
+import java.beans.PropertyChangeEvent;
+import java.io.File;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import javax.swing.Action;
+import javax.swing.Icon;
+import org.weasis.acquire.explorer.core.bean.SeriesGroup;
+import org.weasis.acquire.explorer.gui.central.ImageGroupPane;
+import org.weasis.acquire.explorer.gui.control.BrowsePanel;
+import org.weasis.acquire.explorer.gui.control.ImportPanel;
+import org.weasis.acquire.explorer.gui.list.AcquireThumbnailListPane;
+import org.weasis.acquire.explorer.media.FileSystemDrive;
+import org.weasis.acquire.explorer.media.MediaSource;
+import org.weasis.base.explorer.JIThumbnailCache;
+import org.weasis.core.api.explorer.DataExplorerView;
+import org.weasis.core.api.explorer.ObservableEvent;
+import org.weasis.core.api.explorer.model.DataExplorerModel;
+import org.weasis.core.api.gui.Insertable;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.media.data.MediaElement;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.ui.docking.PluginTool;
+
+public class AcquireExplorer extends PluginTool implements DataExplorerView {
+
+  public static final String BUTTON_NAME = &quot;dicomizer&quot;; // NON-NLS
+<span class="nc" id="L46">  public static final String TOOL_NAME = Messages.getString(&quot;AcquireExplorer.acquisition&quot;);</span>
+  public static final String P_LAST_DIR = &quot;acquire.explorer.last.dir&quot;;
+  public static final String PREFERENCE_NODE = &quot;importer&quot;; // NON-NLS
+
+  public static final int MEDIA_SOURCE_LIST_MAX = 5;
+
+  private MediaSource systemDrive;
+
+  private final ImageGroupPane centralPane;
+
+  private final AcquireThumbnailListPane&lt;MediaElement&gt; acquireThumbnailListPane;
+  private final BrowsePanel browsePanel;
+  private final ImportPanel importPanel;
+
+  public AcquireExplorer() {
+<span class="nc" id="L61">    super(TOOL_NAME, POSITION.WEST, ExtendedMode.NORMALIZED, Insertable.Type.EXPLORER, 20);</span>
+<span class="nc" id="L62">    setDockableWidth(400);</span>
+
+<span class="nc" id="L64">    JIThumbnailCache thumbCache = new JIThumbnailCache();</span>
+<span class="nc" id="L65">    centralPane = new ImageGroupPane(Messages.getString(&quot;AcquireExplorer.album&quot;), thumbCache);</span>
+
+<span class="nc" id="L67">    browsePanel = new BrowsePanel(this);</span>
+<span class="nc" id="L68">    acquireThumbnailListPane = new AcquireThumbnailListPane&lt;&gt;(thumbCache);</span>
+<span class="nc" id="L69">    importPanel = new ImportPanel(acquireThumbnailListPane, centralPane);</span>
+
+<span class="nc" id="L71">    setLayout(new BorderLayout(0, 0));</span>
+<span class="nc" id="L72">    add(browsePanel, BorderLayout.NORTH);</span>
+<span class="nc" id="L73">    add(acquireThumbnailListPane, BorderLayout.CENTER);</span>
+<span class="nc" id="L74">    add(importPanel, BorderLayout.SOUTH);</span>
+
+<span class="nc" id="L76">    this.acquireThumbnailListPane.loadDirectory(Paths.get(systemDrive.getPath()));</span>
+
+    // Remove dropping capabilities in the central area (limit to import
+    // from browse panel)
+<span class="nc" id="L80">    GuiUtils.getUICore().getMainArea().getComponent().setTransferHandler(null);</span>
+<span class="nc" id="L81">  }</span>
+
+  public static String getLastPath() {
+<span class="nc" id="L84">    String home = System.getProperty(&quot;user.home&quot;);</span>
+<span class="nc" id="L85">    File prefDir =</span>
+        new File(
+<span class="nc" id="L87">            GuiUtils.getUICore()</span>
+<span class="nc" id="L88">                .getLocalPersistence()</span>
+<span class="nc" id="L89">                .getProperty(AcquireExplorer.P_LAST_DIR, home));</span>
+<span class="nc bnc" id="L90" title="All 4 branches missed.">    if (prefDir.canRead() &amp;&amp; prefDir.isDirectory()) {</span>
+<span class="nc" id="L91">      return prefDir.getPath();</span>
+    }
+<span class="nc" id="L93">    return home;</span>
+  }
+
+  void saveLastPath() {
+<span class="nc bnc" id="L97" title="All 2 branches missed.">    if (systemDrive != null) {</span>
+<span class="nc" id="L98">      File dir = new File(systemDrive.getPath());</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">      if (dir.canRead()) {</span>
+<span class="nc" id="L100">        GuiUtils.getUICore().getLocalPersistence().setProperty(P_LAST_DIR, dir.getPath());</span>
+      }
+    }
+<span class="nc" id="L103">  }</span>
+
+  public void initImageGroupPane() {
+<span class="nc" id="L106">    centralPane.getDockable().setCloseable(false);</span>
+<span class="nc" id="L107">    centralPane.showDockable();</span>
+<span class="nc" id="L108">    centralPane.setSelectedAndGetFocus();</span>
+<span class="nc" id="L109">  }</span>
+
+  @SuppressWarnings(&quot;unchecked&quot;)
+  @Override
+  public void propertyChange(PropertyChangeEvent evt) {
+<span class="nc bnc" id="L114" title="All 2 branches missed.">    if (evt instanceof ObservableEvent observableEvent) {</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">      if (evt.getSource() instanceof AcquireManager) {</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">        if (ObservableEvent.BasicAction.REPLACE.equals(observableEvent.getActionCommand())) {</span>
+
+<span class="nc" id="L118">          String newPatientName =</span>
+<span class="nc" id="L119">              Optional.ofNullable(evt.getNewValue())</span>
+<span class="nc" id="L120">                  .filter(String.class::isInstance)</span>
+<span class="nc" id="L121">                  .map(String.class::cast)</span>
+<span class="nc" id="L122">                  .orElse(Messages.getString(&quot;AcquireExplorer.album&quot;));</span>
+
+<span class="nc bnc" id="L124" title="All 2 branches missed.">          if (TagW.NO_VALUE.equals(newPatientName)) {</span>
+<span class="nc" id="L125">            newPatientName = Messages.getString(&quot;AcquireExplorer.album&quot;);</span>
+          }
+
+<span class="nc" id="L128">          centralPane.setPluginName(newPatientName);</span>
+<span class="nc" id="L129">          centralPane.tabbedPane.clearAll();</span>
+<span class="nc" id="L130">          centralPane.tabbedPane.repaint();</span>
+
+<span class="nc bnc" id="L132" title="All 2 branches missed.">        } else if (ObservableEvent.BasicAction.REMOVE.equals(observableEvent.getActionCommand())) {</span>
+
+<span class="nc bnc" id="L134" title="All 2 branches missed.">          if (evt.getNewValue() instanceof Collection&lt;?&gt;) {</span>
+<span class="nc" id="L135">            centralPane.tabbedPane.removeImages((Collection&lt;AcquireImageInfo&gt;) evt.getNewValue());</span>
+<span class="nc" id="L136">            centralPane.tabbedPane.repaint();</span>
+
+<span class="nc bnc" id="L138" title="All 2 branches missed.">          } else if (evt.getNewValue() instanceof AcquireImageInfo info) {</span>
+<span class="nc" id="L139">            centralPane.tabbedPane.removeImage(info);</span>
+<span class="nc" id="L140">            centralPane.tabbedPane.repaint();</span>
+          }
+
+<span class="nc bnc" id="L143" title="All 2 branches missed.">        } else if (ObservableEvent.BasicAction.UPDATE.equals(observableEvent.getActionCommand())) {</span>
+<span class="nc" id="L144">          centralPane.tabbedPane.refreshGUI();</span>
+<span class="nc" id="L145">          centralPane.tabbedPane.repaint();</span>
+
+<span class="nc bnc" id="L147" title="All 2 branches missed.">        } else if (ObservableEvent.BasicAction.ADD.equals(observableEvent.getActionCommand())) {</span>
+
+<span class="nc bnc" id="L149" title="All 2 branches missed.">          if (evt.getNewValue() instanceof Collection&lt;?&gt;) {</span>
+<span class="nc" id="L150">            ((Collection&lt;AcquireImageInfo&gt;) evt.getNewValue())</span>
+<span class="nc" id="L151">                .stream()</span>
+<span class="nc" id="L152">                    .collect(Collectors.groupingBy(AcquireImageInfo::getSeries))</span>
+<span class="nc" id="L153">                    .forEach(centralPane.tabbedPane::addSeriesElement);</span>
+
+<span class="nc bnc" id="L155" title="All 2 branches missed.">          } else if (evt.getNewValue() instanceof AcquireImageInfo info) {</span>
+<span class="nc" id="L156">            SeriesGroup series = info.getSeries();</span>
+<span class="nc" id="L157">            ArrayList&lt;AcquireImageInfo&gt; infos = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L158">            infos.add(info);</span>
+<span class="nc" id="L159">            centralPane.tabbedPane.addSeriesElement(series, infos);</span>
+          }
+
+<span class="nc" id="L162">          centralPane.tabbedPane.refreshGUI();</span>
+<span class="nc" id="L163">          centralPane.tabbedPane.repaint();</span>
+        }
+      }
+    }
+<span class="nc" id="L167">  }</span>
+
+  @Override
+  public Icon getIcon() {
+<span class="nc" id="L171">    return null;</span>
+  }
+
+  @Override
+  public String getUIName() {
+<span class="nc" id="L176">    return TOOL_NAME;</span>
+  }
+
+  @Override
+  public String getDescription() {
+<span class="nc" id="L181">    return null;</span>
+  }
+
+  @Override
+  public void dispose() {
+<span class="nc" id="L186">    super.closeDockable();</span>
+<span class="nc" id="L187">  }</span>
+
+  @Override
+  public DataExplorerModel getDataExplorerModel() {
+<span class="nc" id="L191">    return null;</span>
+  }
+
+  @Override
+  public List&lt;Action&gt; getOpenImportDialogAction() {
+<span class="nc" id="L196">    return Collections.emptyList();</span>
+  }
+
+  @Override
+  public List&lt;Action&gt; getOpenExportDialogAction() {
+<span class="nc" id="L201">    return Collections.emptyList();</span>
+  }
+
+  @Override
+  public void importFiles(File[] files, boolean recursive) {
+    // Do nothing
+<span class="nc" id="L207">  }</span>
+
+  @Override
+  public boolean canImportFiles() {
+<span class="nc" id="L211">    return false;</span>
+  }
+
+  @Override
+  protected void changeToolWindowAnchor(CLocation clocation) {
+    // Do nothing
+<span class="nc" id="L217">  }</span>
+
+  public MediaSource getSystemDrive() {
+<span class="nc" id="L220">    return systemDrive;</span>
+  }
+
+  public void setSystemDrive(MediaSource systemDrive) {
+<span class="nc" id="L224">    this.systemDrive = systemDrive;</span>
+<span class="nc" id="L225">  }</span>
+
+  public ImageGroupPane getCentralPane() {
+<span class="nc" id="L228">    return centralPane;</span>
+  }
+
+  public ImportPanel getImportPanel() {
+<span class="nc" id="L232">    return importPanel;</span>
+  }
+
+  public void applyNewPath(String newRootPath) {
+<span class="nc" id="L236">    setSystemDrive(new FileSystemDrive(newRootPath));</span>
+
+<span class="nc" id="L238">    var mediaSourceList = browsePanel.getMediaSourceList();</span>
+<span class="nc" id="L239">    mediaSourceList.insertItem(0, systemDrive);</span>
+<span class="nc bnc" id="L240" title="All 2 branches missed.">    if (mediaSourceList.getSize() &gt;= MEDIA_SOURCE_LIST_MAX) {</span>
+<span class="nc" id="L241">      mediaSourceList.removeItem(MEDIA_SOURCE_LIST_MAX - 1);</span>
+    }
+<span class="nc" id="L243">    browsePanel.getMediaSourceSelectionCombo().setSelectedItem(systemDrive);</span>
+<span class="nc" id="L244">    loadSystemDrive();</span>
+<span class="nc" id="L245">  }</span>
+
+  public void loadSystemDrive() {
+<span class="nc" id="L248">    acquireThumbnailListPane.loadDirectory(Paths.get(systemDrive.getPath()));</span>
+<span class="nc" id="L249">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

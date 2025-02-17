@@ -1,0 +1,40 @@
+Manifest-Version: 1.0
+Bundle-ClassPath: .,lib/iso9660-writer-2.1.0.jar,lib/sabre-2.1.0.jar
+Bundle-Description: Plug-in for creating and burning iso9660 image of 
+ a DICOM CD
+Bundle-License: "EPL-2.0 OR Apache-2.0";link="https://github.com/nrodu
+ it/Weasis/blob/master/LICENSE"
+Bundle-ManifestVersion: 2
+Bundle-Name: DICOM - Export ISO image [weasis-dicom-isowriter]
+Bundle-SymbolicName: weasis-dicom-isowriter
+Bundle-Version: 4.6.0.SNAPSHOT
+Export-Package: org.weasis.dicom.isowriter;version="4.6.0";uses:="java
+ x.swing,org.osgi.service.component,org.weasis.dicom.explorer"
+Import-Package: org.slf4j,com.formdev.flatlaf.util,java.awt,java.io,ja
+ va.lang,java.lang.invoke,java.net,java.nio,java.nio.file,java.nio.fil
+ e.attribute,java.util,java.util.regex,javax.swing,javax.swing.filecho
+ oser,org.osgi.framework;version="[1.10,2)",org.osgi.service.component
+ ;version="[1.5,2)",org.weasis.core.api.explorer;version="[4.6,5)",org
+ .weasis.core.api.gui.util;version="[4.6,5)",org.weasis.core.api.servi
+ ce;version="[4.6,5)",org.weasis.core.api.util;version="[4.6,5)",org.w
+ easis.core.util;version="[4.11,5)",org.weasis.dicom.explorer;version=
+ "[4.6,5)",org.xml.sax
+Private-Package: lib,com.github.stephenc.javaisotools.eltorito.impl,co
+ m.github.stephenc.javaisotools.iso9660,com.github.stephenc.javaisotoo
+ ls.iso9660.impl,com.github.stephenc.javaisotools.iso9660.sabre.impl,c
+ om.github.stephenc.javaisotools.iso9660.volumedescriptors,com.github.
+ stephenc.javaisotools.joliet.impl,com.github.stephenc.javaisotools.ro
+ ckridge.impl,com.github.stephenc.javaisotools.sabre,com.github.stephe
+ nc.javaisotools.sabre.impl,com.github.stephenc.javaisotools.sabre.io,
+ com.github.stephenc.javaisotools.sabre.util,com.github.stephenc.javai
+ sotools.udflib,com.github.stephenc.javaisotools.udflib.handler,com.gi
+ thub.stephenc.javaisotools.udflib.structures,com.github.stephenc.java
+ isotools.udflib.tools
+Provide-Capability: osgi.service;objectClass:List<String>="org.weasis.
+ dicom.explorer.DicomExportFactory";uses:="org.weasis.dicom.explorer"
+Require-Capability: osgi.extender;filter:="(&(osgi.extender=osgi.compo
+ nent)(version>=1.5.0)(!(version>=2.0.0)))",osgi.ee;filter:="(&(osgi.e
+ e=JavaSE)(version=23))"
+Service-Component: OSGI-INF/org.weasis.dicom.isowriter.ExportIsoFactor
+ y.xml
+

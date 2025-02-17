@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>SpecialElementRegion.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec</a> &gt; <span class="el_source">SpecialElementRegion.java</span></div><h1>SpecialElementRegion.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2024 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec;
+
+import java.awt.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import org.dcm4che3.data.Tag;
+import org.joml.Vector3d;
+import org.weasis.core.api.media.data.Series;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.ui.model.graphic.imp.seg.SegContour;
+import org.weasis.opencv.seg.RegionAttributes;
+
+public interface SpecialElementRegion {
+  boolean isVisible();
+
+  void setVisible(boolean visible);
+
+  float getOpacity();
+
+  void setOpacity(float opacity);
+
+  Map&lt;String, Map&lt;String, Set&lt;SegContour&gt;&gt;&gt; getRefMap();
+
+  Map&lt;String, Set&lt;SegContour&gt;&gt; getPositionMap();
+
+  Map&lt;Integer, ? extends RegionAttributes&gt; getSegAttributes();
+
+  default boolean containsSopInstanceUIDReference(DicomImageElement img) {
+<span class="nc bnc" id="L41" title="All 2 branches missed.">    if (img != null) {</span>
+<span class="nc" id="L42">      String seriesUID = TagD.getTagValue(img, Tag.SeriesInstanceUID, String.class);</span>
+<span class="nc bnc" id="L43" title="All 2 branches missed.">      if (seriesUID != null) {</span>
+<span class="nc" id="L44">        String sopInstanceUID = TagD.getTagValue(img, Tag.SOPInstanceUID, String.class);</span>
+<span class="nc" id="L45">        Map&lt;String, Set&lt;SegContour&gt;&gt; map = getRefMap().get(seriesUID);</span>
+<span class="nc" id="L46">        Map&lt;String, Set&lt;SegContour&gt;&gt; positionMap = getPositionMap();</span>
+<span class="nc bnc" id="L47" title="All 2 branches missed.">        if (!positionMap.isEmpty()) {</span>
+<span class="nc" id="L48">          Series&lt;?&gt; series = img.getMediaReader().getMediaSeries();</span>
+<span class="nc" id="L49">          String frameOfRef = TagD.getTagValue(series, Tag.FrameOfReferenceUID, String.class);</span>
+<span class="nc bnc" id="L50" title="All 4 branches missed.">          if (frameOfRef != null &amp;&amp; this instanceof DicomElement group) {</span>
+<span class="nc" id="L51">            String frameOfRef2 =</span>
+<span class="nc" id="L52">                TagD.getTagValue(</span>
+<span class="nc" id="L53">                    group.getMediaReader().getMediaSeries(), Tag.FrameOfReferenceUID, String.class);</span>
+<span class="nc" id="L54">            return Objects.equals(frameOfRef, frameOfRef2);</span>
+          }
+<span class="nc bnc" id="L56" title="All 4 branches missed.">        } else if (map != null &amp;&amp; sopInstanceUID != null) {</span>
+<span class="nc" id="L57">          return map.containsKey(sopInstanceUID);</span>
+        }
+      }
+    }
+<span class="nc" id="L61">    return false;</span>
+  }
+
+  default Collection&lt;SegContour&gt; getContours(DicomImageElement img) {
+<span class="nc" id="L65">    String seriesUID = TagD.getTagValue(img, Tag.SeriesInstanceUID, String.class);</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">    if (seriesUID != null) {</span>
+<span class="nc" id="L67">      String sopInstanceUID = TagD.getTagValue(img, Tag.SOPInstanceUID, String.class);</span>
+<span class="nc" id="L68">      Map&lt;String, Set&lt;SegContour&gt;&gt; map = getRefMap().get(seriesUID);</span>
+<span class="nc" id="L69">      Map&lt;String, Set&lt;SegContour&gt;&gt; positionMap = getPositionMap();</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">      if (!positionMap.isEmpty()) {</span>
+<span class="nc" id="L71">        double[] loc = (double[]) img.getTagValue(TagW.SlicePosition);</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">        if (loc != null) {</span>
+<span class="nc" id="L73">          String position =</span>
+<span class="nc" id="L74">              new Vector3d(loc).toString(SegSpecialElement.roundDouble).replace(&quot;-0 &quot;, &quot;0 &quot;);</span>
+<span class="nc" id="L75">          Set&lt;SegContour&gt; list = positionMap.get(position);</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">          if (list != null) {</span>
+<span class="nc" id="L77">            return list;</span>
+          }
+        }
+<span class="nc bnc" id="L80" title="All 4 branches missed.">      } else if (map != null &amp;&amp; sopInstanceUID != null) {</span>
+<span class="nc" id="L81">        Set&lt;SegContour&gt; list = map.get(sopInstanceUID);</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">        if (list != null) {</span>
+<span class="nc" id="L83">          return list;</span>
+        }
+      }
+    }
+<span class="nc" id="L87">    return Collections.emptyList();</span>
+  }
+
+  default void updateOpacityInSegAttributes(float opacity) {
+<span class="nc" id="L91">    int opacityValue = (int) (opacity * 255f);</span>
+<span class="nc" id="L92">    getSegAttributes()</span>
+<span class="nc" id="L93">        .values()</span>
+<span class="nc" id="L94">        .forEach(</span>
+            c -&gt; {
+<span class="nc" id="L96">              Color color = c.getColor();</span>
+<span class="nc" id="L97">              color = new Color(color.getRed(), color.getGreen(), color.getBlue(), opacityValue);</span>
+<span class="nc" id="L98">              c.setColor(color);</span>
+<span class="nc" id="L99">            });</span>
+<span class="nc" id="L100">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

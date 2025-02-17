@@ -1,0 +1,750 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AbstractGraphicModel.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model</a> &gt; <span class="el_source">AbstractGraphicModel.java</span></div><h1>AbstractGraphicModel.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model;
+
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlElementWrapper;
+import jakarta.xml.bind.annotation.XmlElements;
+import jakarta.xml.bind.annotation.XmlType;
+import java.awt.Graphics2D;
+import java.awt.Rectangle;
+import java.awt.Shape;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Area;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.beans.PropertyChangeListener;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import javax.swing.JOptionPane;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.ActionW;
+import org.weasis.core.api.image.util.MeasurableLayer;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.ui.editor.image.Canvas;
+import org.weasis.core.ui.editor.image.MeasureToolBar;
+import org.weasis.core.ui.editor.image.ViewCanvas;
+import org.weasis.core.ui.model.graphic.DragGraphic;
+import org.weasis.core.ui.model.graphic.Graphic;
+import org.weasis.core.ui.model.graphic.GraphicLabel;
+import org.weasis.core.ui.model.graphic.GraphicSelectionListener;
+import org.weasis.core.ui.model.graphic.imp.AnnotationGraphic;
+import org.weasis.core.ui.model.graphic.imp.PixelInfoGraphic;
+import org.weasis.core.ui.model.graphic.imp.PointGraphic;
+import org.weasis.core.ui.model.graphic.imp.angle.AngleToolGraphic;
+import org.weasis.core.ui.model.graphic.imp.angle.CobbAngleToolGraphic;
+import org.weasis.core.ui.model.graphic.imp.angle.FourPointsAngleToolGraphic;
+import org.weasis.core.ui.model.graphic.imp.angle.OpenAngleToolGraphic;
+import org.weasis.core.ui.model.graphic.imp.area.EllipseGraphic;
+import org.weasis.core.ui.model.graphic.imp.area.ObliqueRectangleGraphic;
+import org.weasis.core.ui.model.graphic.imp.area.PolygonGraphic;
+import org.weasis.core.ui.model.graphic.imp.area.SelectGraphic;
+import org.weasis.core.ui.model.graphic.imp.area.ThreePointsCircleGraphic;
+import org.weasis.core.ui.model.graphic.imp.line.LineGraphic;
+import org.weasis.core.ui.model.graphic.imp.line.LineWithGapGraphic;
+import org.weasis.core.ui.model.graphic.imp.line.ParallelLineGraphic;
+import org.weasis.core.ui.model.graphic.imp.line.PerpendicularLineGraphic;
+import org.weasis.core.ui.model.graphic.imp.line.PolylineGraphic;
+import org.weasis.core.ui.model.layer.GraphicLayer;
+import org.weasis.core.ui.model.layer.GraphicModelChangeListener;
+import org.weasis.core.ui.model.layer.LayerType;
+import org.weasis.core.ui.model.layer.imp.DefaultLayer;
+import org.weasis.core.ui.model.utils.imp.DefaultUUID;
+import org.weasis.core.ui.util.MouseEventDouble;
+
+@XmlType(propOrder = {&quot;referencedSeries&quot;, &quot;layers&quot;, &quot;models&quot;})
+@XmlAccessorType(XmlAccessType.NONE)
+public abstract class AbstractGraphicModel extends DefaultUUID implements GraphicModel {
+
+  private List&lt;ReferencedSeries&gt; referencedSeries;
+  private List&lt;GraphicLayer&gt; layers;
+  protected List&lt;Graphic&gt; models;
+
+<span class="nc" id="L78">  private final List&lt;GraphicSelectionListener&gt; selectedGraphicsListeners = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L79">  private final List&lt;GraphicModelChangeListener&gt; modelListeners = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L80">  private final List&lt;PropertyChangeListener&gt; graphicsListeners = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L81">  private Boolean changeFiringSuspended = Boolean.FALSE;</span>
+
+<span class="nc" id="L83">  private final Function&lt;Graphic, GraphicLayer&gt; getLayer = Graphic::getLayer;</span>
+<span class="nc" id="L84">  private final Function&lt;Graphic, DragGraphic&gt; castToDragGraphic = DragGraphic.class::cast;</span>
+
+<span class="nc" id="L86">  private final Predicate&lt;Graphic&gt; isLayerVisible = g -&gt; g.getLayer().getVisible();</span>
+<span class="nc" id="L87">  private final Predicate&lt;Graphic&gt; isGraphicSelected = Graphic::getSelected;</span>
+
+  protected AbstractGraphicModel() {
+<span class="nc" id="L90">    this(null);</span>
+<span class="nc" id="L91">  }</span>
+
+<span class="nc" id="L93">  protected AbstractGraphicModel(List&lt;ReferencedSeries&gt; referencedSeries) {</span>
+<span class="nc" id="L94">    setReferencedSeries(referencedSeries);</span>
+<span class="nc" id="L95">    this.layers = Collections.synchronizedList(new ArrayList&lt;&gt;());</span>
+<span class="nc" id="L96">    this.models = Collections.synchronizedList(new ArrayList&lt;&gt;());</span>
+<span class="nc" id="L97">  }</span>
+
+  @XmlElementWrapper(name = &quot;graphics&quot;)
+  @XmlElements({
+    @XmlElement(name = &quot;point&quot;, type = PointGraphic.class),
+    @XmlElement(name = &quot;angle&quot;, type = AngleToolGraphic.class),
+    @XmlElement(name = &quot;annotation&quot;, type = AnnotationGraphic.class),
+    @XmlElement(name = &quot;pixelInfo&quot;, type = PixelInfoGraphic.class),
+    @XmlElement(name = &quot;openAngle&quot;, type = OpenAngleToolGraphic.class),
+    @XmlElement(name = &quot;cobbAngle&quot;, type = CobbAngleToolGraphic.class),
+    @XmlElement(name = &quot;rectangle&quot;, type = ObliqueRectangleGraphic.class),
+    @XmlElement(name = &quot;ellipse&quot;, type = EllipseGraphic.class),
+    @XmlElement(name = &quot;fourPointsAngle&quot;, type = FourPointsAngleToolGraphic.class),
+    @XmlElement(name = &quot;line&quot;, type = LineGraphic.class),
+    @XmlElement(name = &quot;lineWithGap&quot;, type = LineWithGapGraphic.class),
+    @XmlElement(name = &quot;perpendicularLine&quot;, type = PerpendicularLineGraphic.class),
+    @XmlElement(name = &quot;parallelLine&quot;, type = ParallelLineGraphic.class),
+    @XmlElement(name = &quot;polygon&quot;, type = PolygonGraphic.class),
+    @XmlElement(name = &quot;polyline&quot;, type = PolylineGraphic.class),
+    @XmlElement(name = &quot;threePointsCircle&quot;, type = ThreePointsCircleGraphic.class)
+  })
+  @Override
+  public List&lt;Graphic&gt; getModels() {
+<span class="nc" id="L120">    return models;</span>
+  }
+
+  @XmlElementWrapper(name = &quot;layers&quot;)
+  @XmlElements({@XmlElement(name = &quot;layer&quot;, type = DefaultLayer.class)})
+  @Override
+  public List&lt;GraphicLayer&gt; getLayers() {
+<span class="nc" id="L127">    return layers;</span>
+  }
+
+  @XmlElementWrapper(name = &quot;references&quot;)
+  @XmlElement(name = &quot;series&quot;)
+  @Override
+  public List&lt;ReferencedSeries&gt; getReferencedSeries() {
+<span class="nc" id="L134">    return referencedSeries;</span>
+  }
+
+  @Override
+  public void setReferencedSeries(List&lt;ReferencedSeries&gt; referencedSeries) {
+<span class="nc bnc" id="L139" title="All 2 branches missed.">    if (referencedSeries != null</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">        &amp;&amp; !referencedSeries.getClass().getSimpleName().startsWith(&quot;Synchronized&quot;)) { // NON-NLS</span>
+<span class="nc" id="L141">      this.referencedSeries = Collections.synchronizedList(referencedSeries);</span>
+    }
+<span class="nc" id="L143">    this.referencedSeries =</span>
+<span class="nc" id="L144">        Optional.ofNullable(referencedSeries)</span>
+<span class="nc" id="L145">            .orElseGet(() -&gt; Collections.synchronizedList(new ArrayList&lt;&gt;()));</span>
+<span class="nc" id="L146">  }</span>
+
+  @Override
+  public void setModels(List&lt;Graphic&gt; models) {
+<span class="nc bnc" id="L150" title="All 2 branches missed.">    if (models != null) {</span>
+<span class="nc" id="L151">      this.models = Collections.synchronizedList(models);</span>
+<span class="nc" id="L152">      this.layers = Collections.synchronizedList(getLayerList());</span>
+    }
+<span class="nc" id="L154">  }</span>
+
+  @Override
+  public void addGraphic(Graphic graphic) {
+<span class="nc bnc" id="L158" title="All 2 branches missed.">    if (graphic != null) {</span>
+<span class="nc" id="L159">      GraphicLayer layer = graphic.getLayer();</span>
+<span class="nc bnc" id="L160" title="All 2 branches missed.">      if (layer == null) {</span>
+<span class="nc" id="L161">        layer =</span>
+<span class="nc" id="L162">            findLayerByType(graphic.getLayerType())</span>
+<span class="nc" id="L163">                .orElseGet(() -&gt; new DefaultLayer(graphic.getLayerType()));</span>
+<span class="nc" id="L164">        graphic.setLayer(layer);</span>
+      }
+<span class="nc bnc" id="L166" title="All 2 branches missed.">      if (!layers.contains(layer)) {</span>
+<span class="nc" id="L167">        layers.add(layer);</span>
+      }
+<span class="nc" id="L169">      models.add(graphic);</span>
+    }
+<span class="nc" id="L171">  }</span>
+
+  @Override
+  public void removeGraphic(Graphic graphic) {
+<span class="nc bnc" id="L175" title="All 2 branches missed.">    if (graphic != null) {</span>
+<span class="nc" id="L176">      models.remove(graphic);</span>
+<span class="nc" id="L177">      graphic.removeAllPropertyChangeListener();</span>
+
+<span class="nc" id="L179">      GraphicLayer layer = graphic.getLayer();</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">      if (layer != null) {</span>
+<span class="nc" id="L181">        boolean layerExist = false;</span>
+<span class="nc" id="L182">        synchronized (models) {</span>
+<span class="nc bnc" id="L183" title="All 2 branches missed.">          for (Graphic g : models) {</span>
+<span class="nc bnc" id="L184" title="All 2 branches missed.">            if (g.getLayer().equals(layer)) {</span>
+<span class="nc" id="L185">              layerExist = true;</span>
+<span class="nc" id="L186">              break;</span>
+            }
+<span class="nc" id="L188">          }</span>
+<span class="nc" id="L189">        }</span>
+<span class="nc bnc" id="L190" title="All 2 branches missed.">        if (!layerExist) {</span>
+<span class="nc" id="L191">          layers.remove(layer);</span>
+        }
+      }
+    }
+<span class="nc" id="L195">  }</span>
+
+  private List&lt;GraphicLayer&gt; getLayerList() {
+<span class="nc" id="L198">    return models.parallelStream().map(getLayer).distinct().collect(Collectors.toList());</span>
+  }
+
+  @Override
+  public void addGraphicChangeHandler(PropertyChangeListener graphicsChangeHandler) {
+<span class="nc bnc" id="L203" title="All 2 branches missed.">    if (Objects.nonNull(graphicsChangeHandler)</span>
+<span class="nc bnc" id="L204" title="All 2 branches missed.">        &amp;&amp; !graphicsListeners.contains(graphicsChangeHandler)) {</span>
+<span class="nc" id="L205">      graphicsListeners.add(graphicsChangeHandler);</span>
+<span class="nc" id="L206">      models.forEach(g -&gt; g.addPropertyChangeListener(graphicsChangeHandler));</span>
+    }
+<span class="nc" id="L208">  }</span>
+
+  @Override
+  public void removeGraphicChangeHandler(PropertyChangeListener graphicsChangeHandler) {
+<span class="nc bnc" id="L212" title="All 2 branches missed.">    if (Objects.nonNull(graphicsChangeHandler)</span>
+<span class="nc bnc" id="L213" title="All 2 branches missed.">        &amp;&amp; graphicsListeners.contains(graphicsChangeHandler)) {</span>
+<span class="nc" id="L214">      graphicsListeners.remove(graphicsChangeHandler);</span>
+<span class="nc" id="L215">      models.forEach(g -&gt; g.removePropertyChangeListener(graphicsChangeHandler));</span>
+    }
+<span class="nc" id="L217">  }</span>
+
+  @Override
+  public List&lt;PropertyChangeListener&gt; getGraphicsListeners() {
+<span class="nc" id="L221">    return graphicsListeners;</span>
+  }
+
+  @Override
+  public void updateLabels(Object source, ViewCanvas&lt;? extends ImageElement&gt; view) {
+<span class="nc" id="L226">    models.forEach(g -&gt; g.updateLabel(source, view));</span>
+<span class="nc" id="L227">  }</span>
+
+  @Override
+  public Optional&lt;GraphicLayer&gt; findLayerByType(LayerType type) {
+<span class="nc" id="L231">    Objects.requireNonNull(type);</span>
+<span class="nc" id="L232">    return layers.stream().filter(isLayerTypeEquals(type)).findFirst();</span>
+  }
+
+  @Override
+  public List&lt;GraphicLayer&gt; groupLayerByType() {
+<span class="nc bnc" id="L237" title="All 2 branches missed.">    if (models.isEmpty()) {</span>
+<span class="nc" id="L238">      return Collections.emptyList();</span>
+    }
+
+<span class="nc" id="L241">    ArrayList&lt;GraphicLayer&gt; layerType = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L242">    synchronized (models) {</span>
+<span class="nc bnc" id="L243" title="All 2 branches missed.">      for (Graphic g : models) {</span>
+<span class="nc" id="L244">        LayerType type = g.getLayer().getType();</span>
+
+<span class="nc" id="L246">        boolean notInGroup = true;</span>
+<span class="nc bnc" id="L247" title="All 2 branches missed.">        for (GraphicLayer glayer : layerType) {</span>
+<span class="nc bnc" id="L248" title="All 2 branches missed.">          if (Objects.equals(glayer.getType(), type)) {</span>
+<span class="nc" id="L249">            notInGroup = false;</span>
+<span class="nc" id="L250">            break;</span>
+          }
+<span class="nc" id="L252">        }</span>
+
+<span class="nc bnc" id="L254" title="All 2 branches missed.">        if (notInGroup) {</span>
+<span class="nc" id="L255">          layerType.add(g.getLayer());</span>
+        }
+<span class="nc" id="L257">      }</span>
+<span class="nc" id="L258">    }</span>
+
+<span class="nc" id="L260">    return layerType;</span>
+  }
+
+  @Override
+  public void deleteByLayer(GraphicLayer layer) {
+<span class="nc" id="L265">    Objects.requireNonNull(layer);</span>
+<span class="nc bnc" id="L266" title="All 2 branches missed.">    if (models.isEmpty()) {</span>
+<span class="nc" id="L267">      return;</span>
+    }
+<span class="nc" id="L269">    synchronized (models) {</span>
+<span class="nc" id="L270">      models.removeIf(</span>
+          g -&gt; {
+<span class="nc" id="L272">            boolean delete = layer.equals(g.getLayer());</span>
+<span class="nc bnc" id="L273" title="All 2 branches missed.">            if (delete) {</span>
+<span class="nc" id="L274">              g.removeAllPropertyChangeListener();</span>
+            }
+<span class="nc" id="L276">            return delete;</span>
+          });
+<span class="nc" id="L278">      layers.removeIf(l -&gt; Objects.equals(l, layer));</span>
+<span class="nc" id="L279">    }</span>
+<span class="nc" id="L280">  }</span>
+
+  @Override
+  public void deleteByLayerType(LayerType type) {
+<span class="nc" id="L284">    Objects.requireNonNull(type);</span>
+<span class="nc bnc" id="L285" title="All 2 branches missed.">    if (models.isEmpty()) {</span>
+<span class="nc" id="L286">      return;</span>
+    }
+<span class="nc" id="L288">    synchronized (models) {</span>
+<span class="nc bnc" id="L289" title="All 2 branches missed.">      for (Graphic g : models) {</span>
+<span class="nc bnc" id="L290" title="All 2 branches missed.">        if (g.getLayer().getType().equals(type)) {</span>
+<span class="nc" id="L291">          g.removeAllPropertyChangeListener();</span>
+        }
+<span class="nc" id="L293">      }</span>
+<span class="nc" id="L294">      models.removeIf(g -&gt; Objects.equals(g.getLayer().getType(), type));</span>
+<span class="nc" id="L295">      layers.removeIf(l -&gt; Objects.equals(l.getType(), type));</span>
+<span class="nc" id="L296">    }</span>
+<span class="nc" id="L297">  }</span>
+
+  @Override
+  public void deleteNonSerializableGraphics() {
+<span class="nc bnc" id="L301" title="All 2 branches missed.">    if (models.isEmpty()) {</span>
+<span class="nc" id="L302">      return;</span>
+    }
+<span class="nc" id="L304">    synchronized (models) {</span>
+<span class="nc bnc" id="L305" title="All 2 branches missed.">      for (Graphic g : models) {</span>
+<span class="nc bnc" id="L306" title="All 2 branches missed.">        if (!g.getLayer().getSerializable()) {</span>
+<span class="nc" id="L307">          g.removeAllPropertyChangeListener();</span>
+        }
+<span class="nc" id="L309">      }</span>
+<span class="nc bnc" id="L310" title="All 2 branches missed.">      models.removeIf(g -&gt; !g.getLayer().getSerializable());</span>
+<span class="nc bnc" id="L311" title="All 2 branches missed.">      layers.removeIf(l -&gt; !l.getSerializable());</span>
+<span class="nc" id="L312">    }</span>
+<span class="nc" id="L313">  }</span>
+
+  @Override
+  public boolean hasSerializableGraphics() {
+<span class="nc bnc" id="L317" title="All 2 branches missed.">    if (models.isEmpty()) {</span>
+<span class="nc" id="L318">      return false;</span>
+    }
+<span class="nc" id="L320">    synchronized (models) {</span>
+<span class="nc bnc" id="L321" title="All 2 branches missed.">      for (Graphic g : models) {</span>
+        /*
+         * Exclude non-serializable layer and graphics without points like NonEditableGraphic (not strictly the
+         * jaxb serialization process that use the annotations from getModels())
+         */
+<span class="nc bnc" id="L326" title="All 4 branches missed.">        if (g.getLayer().getSerializable() &amp;&amp; !g.getPts().isEmpty()) {</span>
+<span class="nc" id="L327">          return true;</span>
+        }
+<span class="nc" id="L329">      }</span>
+<span class="nc" id="L330">    }</span>
+<span class="nc" id="L331">    return false;</span>
+  }
+
+  @Override
+  public List&lt;Graphic&gt; getAllGraphics() {
+<span class="nc" id="L336">    return models.stream().filter(isLayerVisible).collect(Collectors.toList());</span>
+  }
+
+  @Override
+  public List&lt;Graphic&gt; getSelectedAllGraphicsIntersecting(
+      Rectangle rectangle, AffineTransform transform) {
+
+<span class="nc" id="L343">    ArrayList&lt;Graphic&gt; selectedGraphicList = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L344" title="All 2 branches missed.">    if (rectangle != null) {</span>
+<span class="nc" id="L345">      synchronized (models) {</span>
+<span class="nc bnc" id="L346" title="All 2 branches missed.">        for (int i = models.size() - 1; i &gt;= 0; i--) {</span>
+<span class="nc" id="L347">          Graphic graphic = models.get(i);</span>
+<span class="nc" id="L348">          GraphicLayer layer = graphic.getLayer();</span>
+<span class="nc bnc" id="L349" title="All 4 branches missed.">          if (layer.getVisible() &amp;&amp; layer.getSelectable()) {</span>
+
+<span class="nc" id="L351">            Rectangle graphBounds = graphic.getBounds(transform);</span>
+
+<span class="nc bnc" id="L353" title="All 4 branches missed.">            if (graphBounds != null &amp;&amp; graphBounds.intersects(rectangle)) {</span>
+<span class="nc" id="L354">              Area selectionArea = graphic.getArea(transform);</span>
+
+<span class="nc bnc" id="L356" title="All 4 branches missed.">              if (selectionArea != null &amp;&amp; selectionArea.intersects(rectangle)) {</span>
+<span class="nc" id="L357">                selectedGraphicList.add(graphic);</span>
+<span class="nc" id="L358">                continue;</span>
+              }
+            }
+
+<span class="nc" id="L362">            GraphicLabel graphicLabel = graphic.getGraphicLabel();</span>
+<span class="nc bnc" id="L363" title="All 4 branches missed.">            if (graphic.getLabelVisible()</span>
+                &amp;&amp; graphicLabel != null
+<span class="nc bnc" id="L365" title="All 2 branches missed.">                &amp;&amp; graphicLabel.getLabels() != null) {</span>
+<span class="nc" id="L366">              Area selectionArea = graphicLabel.getArea(transform);</span>
+
+<span class="nc bnc" id="L368" title="All 4 branches missed.">              if (selectionArea != null &amp;&amp; selectionArea.intersects(rectangle)) {</span>
+<span class="nc" id="L369">                selectedGraphicList.add(graphic);</span>
+              }
+            }
+          }
+        }
+<span class="nc" id="L374">      }</span>
+    }
+<span class="nc" id="L376">    return selectedGraphicList;</span>
+  }
+
+  @Override
+  public List&lt;Graphic&gt; getSelectedAllGraphicsIntersecting(
+      Rectangle rectangle, AffineTransform transform, boolean onlyFrontGraphic) {
+<span class="nc" id="L382">    ArrayList&lt;Graphic&gt; selectedGraphicList = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L383" title="All 2 branches missed.">    if (rectangle != null) {</span>
+<span class="nc" id="L384">      synchronized (models) {</span>
+<span class="nc bnc" id="L385" title="All 2 branches missed.">        for (int i = models.size() - 1; i &gt;= 0; i--) {</span>
+<span class="nc" id="L386">          Graphic graphic = models.get(i);</span>
+<span class="nc" id="L387">          GraphicLayer layer = graphic.getLayer();</span>
+<span class="nc bnc" id="L388" title="All 4 branches missed.">          if (layer.getVisible() &amp;&amp; layer.getSelectable()) {</span>
+
+<span class="nc" id="L390">            List&lt;Area&gt; selectedAreaList = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L392">            Area selectedArea = null;</span>
+
+<span class="nc" id="L394">            Rectangle selectionBounds = graphic.getRepaintBounds(transform);</span>
+<span class="nc bnc" id="L395" title="All 4 branches missed.">            if (selectionBounds != null &amp;&amp; selectionBounds.intersects(rectangle)) {</span>
+<span class="nc" id="L396">              selectedArea = graphic.getArea(transform);</span>
+            }
+
+<span class="nc" id="L399">            GraphicLabel graphicLabel = graphic.getGraphicLabel();</span>
+<span class="nc bnc" id="L400" title="All 4 branches missed.">            if (graphicLabel != null &amp;&amp; graphicLabel.getLabels() != null) {</span>
+<span class="nc" id="L401">              Area labelArea = graphicLabel.getArea(transform);</span>
+<span class="nc bnc" id="L402" title="All 2 branches missed.">              if (labelArea != null) {</span>
+<span class="nc bnc" id="L403" title="All 2 branches missed.">                if (selectedArea != null) {</span>
+<span class="nc" id="L404">                  selectedArea.add(labelArea);</span>
+<span class="nc bnc" id="L405" title="All 2 branches missed.">                } else if (labelArea.intersects(rectangle)) {</span>
+<span class="nc" id="L406">                  selectedArea = graphic.getArea(transform);</span>
+<span class="nc" id="L407">                  selectedArea.add(labelArea);</span>
+                }
+              }
+            }
+
+<span class="nc bnc" id="L412" title="All 2 branches missed.">            if (selectedArea != null) {</span>
+<span class="nc bnc" id="L413" title="All 2 branches missed.">              if (onlyFrontGraphic) {</span>
+<span class="nc bnc" id="L414" title="All 2 branches missed.">                for (Area area : selectedAreaList) {</span>
+<span class="nc" id="L415">                  selectedArea.subtract(area); // subtract any areas from front graphics</span>
+                  // already selected
+<span class="nc" id="L417">                }</span>
+              }
+<span class="nc bnc" id="L419" title="All 2 branches missed.">              if (selectedArea.intersects(rectangle)) {</span>
+<span class="nc" id="L420">                selectedAreaList.add(selectedArea);</span>
+<span class="nc" id="L421">                selectedGraphicList.add(graphic);</span>
+              }
+            }
+          }
+        }
+<span class="nc" id="L426">      }</span>
+    }
+<span class="nc" id="L428">    return selectedGraphicList;</span>
+  }
+
+  /**
+   * @param mouseEvent
+   * @return first selected graphic intersecting if existed, otherwise simply first graphic
+   *     intersecting, or null
+   */
+  @Override
+  public Optional&lt;Graphic&gt; getFirstGraphicIntersecting(MouseEventDouble mouseEvent) {
+<span class="nc" id="L438">    final Point2D mousePt = mouseEvent.getImageCoordinates();</span>
+<span class="nc" id="L439">    Graphic firstSelectedGraph = null;</span>
+<span class="nc" id="L440">    synchronized (models) {</span>
+<span class="nc bnc" id="L441" title="All 2 branches missed.">      for (int i = models.size() - 1; i &gt;= 0; i--) {</span>
+<span class="nc" id="L442">        Graphic g = models.get(i);</span>
+<span class="nc" id="L443">        GraphicLayer l = g.getLayer();</span>
+<span class="nc bnc" id="L444" title="All 4 branches missed.">        if (l.getVisible() &amp;&amp; l.getSelectable()) {</span>
+<span class="nc bnc" id="L445" title="All 2 branches missed.">          if (g.isOnGraphicLabel(mouseEvent)) {</span>
+<span class="nc bnc" id="L446" title="All 2 branches missed.">            if (g.getSelected()) {</span>
+<span class="nc" id="L447">              return Optional.of(g);</span>
+<span class="nc bnc" id="L448" title="All 2 branches missed.">            } else if (firstSelectedGraph == null) {</span>
+<span class="nc" id="L449">              firstSelectedGraph = g;</span>
+            }
+          }
+
+          // Improve speed by checking if mousePoint is inside repaintBound before checking if
+          // inside Area
+<span class="nc" id="L455">          Rectangle2D repaintBound = g.getRepaintBounds(mouseEvent);</span>
+<span class="nc bnc" id="L456" title="All 4 branches missed.">          if (repaintBound != null &amp;&amp; repaintBound.contains(mousePt)) {</span>
+<span class="nc bnc" id="L457" title="All 2 branches missed.">            if ((g.getHandlePointIndex(mouseEvent) &gt;= 0)</span>
+<span class="nc bnc" id="L458" title="All 2 branches missed.">                || (g.getArea(mouseEvent).contains(mousePt))) {</span>
+<span class="nc bnc" id="L459" title="All 2 branches missed.">              if (g.getSelected()) {</span>
+<span class="nc" id="L460">                return Optional.of(g);</span>
+<span class="nc bnc" id="L461" title="All 2 branches missed.">              } else if (firstSelectedGraph == null) {</span>
+<span class="nc" id="L462">                firstSelectedGraph = g;</span>
+              }
+            }
+          }
+        }
+      }
+<span class="nc" id="L468">    }</span>
+<span class="nc" id="L469">    return Optional.ofNullable(firstSelectedGraph);</span>
+  }
+
+  // @Override
+  // public List&lt;Graphic&gt; getGraphicsBoundsInArea(Rectangle rect) {
+  // List&lt;Graphic&gt; arraylist = new ArrayList&lt;&gt;();
+  // if (graphics != null &amp;&amp; rect != null) {
+  // for (int j = graphics.list.size() - 1; j &gt;= 0; j--) {
+  // Graphic graphic = graphics.list.get(j);
+  // Rectangle2D graphicBounds = graphic.getRepaintBounds(getAffineTransform());
+  // if (graphicBounds != null &amp;&amp; graphicBounds.intersects(rect)) {
+  // arraylist.add(graphic);
+  // }
+  // }
+  // }
+  // return arraylist;
+  // }
+
+  // @Override
+  // public AbstractDragGraphic getGraphicContainPoint(MouseEventDouble mouseEvt) {
+  // final Point2D mousePt = mouseEvt.getImageCoordinates();
+  //
+  // if (graphics != null &amp;&amp; mousePt != null) {
+  //
+  // for (int j = graphics.list.size() - 1; j &gt;= 0; j--) {
+  // if (graphics.list.get(j) instanceof AbstractDragGraphic) {
+  //
+  // AbstractDragGraphic dragGraph = (AbstractDragGraphic) graphics.list.get(j);
+  //
+  // if (dragGraph.isOnGraphicLabel(mouseEvt)) {
+  // return dragGraph;
+  // }
+  //
+  // // Improve speed by checking if mousePoint is inside repaintBound before checking if inside
+  // Area
+  // Rectangle2D repaintBound = dragGraph.getRepaintBounds(mouseEvt);
+  // if (repaintBound != null &amp;&amp; repaintBound.contains(mousePt)) {
+  // if ((dragGraph.getHandlePointIndex(mouseEvt) &gt;= 0)
+  // || (dragGraph.getArea(mouseEvt).contains(mousePt))) {
+  // return dragGraph;
+  // }
+  // }
+  // }
+  // }
+  // }
+  // return null;
+  // }
+
+  @Override
+  public List&lt;DragGraphic&gt; getSelectedDraggableGraphics() {
+<span class="nc" id="L519">    return models.stream()</span>
+<span class="nc" id="L520">        .filter(isGraphicSelected)</span>
+<span class="nc" id="L521">        .filter(DragGraphic.class::isInstance)</span>
+<span class="nc" id="L522">        .map(castToDragGraphic)</span>
+<span class="nc" id="L523">        .collect(Collectors.toList());</span>
+  }
+
+  @Override
+  public List&lt;Graphic&gt; getSelectedGraphics() {
+<span class="nc" id="L528">    return models.stream().filter(isGraphicSelected).collect(Collectors.toList());</span>
+  }
+
+  @Override
+  public Optional&lt;SelectGraphic&gt; getSelectGraphic() {
+<span class="nc" id="L533">    return models.stream()</span>
+<span class="nc" id="L534">        .filter(SelectGraphic.class::isInstance)</span>
+<span class="nc" id="L535">        .map(SelectGraphic.class::cast)</span>
+<span class="nc" id="L536">        .findFirst();</span>
+  }
+
+  @Override
+  public void setSelectedGraphic(List&lt;Graphic&gt; graphicList) {
+<span class="nc" id="L541">    synchronized (models) {</span>
+<span class="nc bnc" id="L542" title="All 2 branches missed.">      for (Graphic g : models) {</span>
+<span class="nc" id="L543">        g.setSelected(false);</span>
+<span class="nc" id="L544">      }</span>
+<span class="nc" id="L545">    }</span>
+
+<span class="nc bnc" id="L547" title="All 2 branches missed.">    if (graphicList != null) {</span>
+<span class="nc bnc" id="L548" title="All 2 branches missed.">      for (Graphic g : graphicList) {</span>
+<span class="nc" id="L549">        g.setSelected(true);</span>
+<span class="nc" id="L550">      }</span>
+    }
+<span class="nc" id="L552">  }</span>
+
+  @Override
+  public void setSelectedAllGraphics() {
+<span class="nc" id="L556">    setSelectedGraphic(getAllGraphics());</span>
+<span class="nc" id="L557">  }</span>
+
+  @Override
+  public void deleteSelectedGraphics(Canvas canvas, Boolean warningMessage) {
+<span class="nc" id="L561">    List&lt;Graphic&gt; list = getSelectedGraphics();</span>
+<span class="nc bnc" id="L562" title="All 2 branches missed.">    if (!list.isEmpty()) {</span>
+<span class="nc" id="L563">      int response = 0;</span>
+<span class="nc bnc" id="L564" title="All 2 branches missed.">      if (warningMessage) {</span>
+<span class="nc" id="L565">        response =</span>
+<span class="nc" id="L566">            JOptionPane.showConfirmDialog(</span>
+<span class="nc" id="L567">                canvas.getJComponent(),</span>
+<span class="nc" id="L568">                String.format(Messages.getString(&quot;AbstractLayerModel.del_conf&quot;), list.size()),</span>
+<span class="nc" id="L569">                Messages.getString(&quot;AbstractLayerModel.del_graphs&quot;),</span>
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+      }
+<span class="nc bnc" id="L573" title="All 2 branches missed.">      if (Objects.equals(response, 0)) {</span>
+<span class="nc" id="L574">        list.forEach(Graphic::fireRemoveAction);</span>
+<span class="nc" id="L575">        canvas.getJComponent().repaint();</span>
+      }
+    }
+<span class="nc" id="L578">  }</span>
+
+  @Override
+  public void clear() {
+<span class="nc" id="L582">    models.clear();</span>
+<span class="nc" id="L583">  }</span>
+
+  @Override
+  public void fireGraphicsSelectionChanged(MeasurableLayer layer) {
+<span class="nc" id="L587">    selectedGraphicsListeners.forEach(gl -&gt; gl.handle(getSelectedGraphics(), layer));</span>
+<span class="nc" id="L588">  }</span>
+
+  @Override
+  public void draw(
+      Graphics2D g2d,
+      AffineTransform transform,
+      AffineTransform inverseTransform,
+      Rectangle2D viewClip) {
+    // Get the visible view in real coordinates, note only Sun g2d return consistent clip area with
+    // offset
+<span class="nc" id="L598">    Shape area =</span>
+<span class="nc bnc" id="L599" title="All 2 branches missed.">        inverseTransform.createTransformedShape(viewClip == null ? g2d.getClipBounds() : viewClip);</span>
+<span class="nc bnc" id="L600" title="All 2 branches missed.">    Rectangle2D bound = area == null ? null : area.getBounds2D();</span>
+
+<span class="nc" id="L602">    g2d.translate(0.5, 0.5);</span>
+<span class="nc" id="L603">    models.forEach(g -&gt; applyPaint(g, g2d, transform, bound));</span>
+<span class="nc" id="L604">    g2d.translate(-0.5, -0.5);</span>
+<span class="nc" id="L605">  }</span>
+
+  private static void applyPaint(
+      Graphic graphic, Graphics2D g2d, AffineTransform transform, Rectangle2D bounds) {
+<span class="nc bnc" id="L609" title="All 2 branches missed.">    if (graphic.getLayer().getVisible()) {</span>
+<span class="nc bnc" id="L610" title="All 2 branches missed.">      if (bounds != null) {</span>
+<span class="nc" id="L611">        Rectangle repaintBounds = graphic.getRepaintBounds(transform);</span>
+<span class="nc bnc" id="L612" title="All 4 branches missed.">        if (repaintBounds != null &amp;&amp; repaintBounds.intersects(bounds)) {</span>
+<span class="nc" id="L613">          graphic.paint(g2d, transform);</span>
+        } else {
+<span class="nc" id="L615">          GraphicLabel graphicLabel = graphic.getGraphicLabel();</span>
+<span class="nc bnc" id="L616" title="All 4 branches missed.">          if (graphicLabel != null &amp;&amp; graphicLabel.getLabels() != null) {</span>
+<span class="nc" id="L617">            Rectangle2D labelBounds = graphicLabel.getBounds(transform);</span>
+<span class="nc bnc" id="L618" title="All 2 branches missed.">            if (labelBounds.intersects(bounds)) {</span>
+<span class="nc" id="L619">              graphic.paintLabel(g2d, transform);</span>
+            }
+          }
+        }
+<span class="nc" id="L623">      } else { // convention is when bounds equals null graphic is repainted</span>
+<span class="nc" id="L624">        graphic.paint(g2d, transform);</span>
+<span class="nc" id="L625">        graphic.paintLabel(g2d, transform);</span>
+      }
+    }
+<span class="nc" id="L628">  }</span>
+
+  @Override
+  public void addGraphicSelectionListener(GraphicSelectionListener listener) {
+<span class="nc bnc" id="L632" title="All 4 branches missed.">    if (Objects.nonNull(listener) &amp;&amp; !selectedGraphicsListeners.contains(listener)) {</span>
+<span class="nc" id="L633">      selectedGraphicsListeners.add(listener);</span>
+    }
+<span class="nc" id="L635">  }</span>
+
+  @Override
+  public void removeGraphicSelectionListener(GraphicSelectionListener listener) {
+<span class="nc bnc" id="L639" title="All 2 branches missed.">    if (Objects.nonNull(listener)) {</span>
+<span class="nc" id="L640">      selectedGraphicsListeners.remove(listener);</span>
+    }
+<span class="nc" id="L642">  }</span>
+
+  @Override
+  public List&lt;GraphicModelChangeListener&gt; getChangeListeners() {
+<span class="nc" id="L646">    return modelListeners;</span>
+  }
+
+  @Override
+  public void addChangeListener(GraphicModelChangeListener listener) {
+<span class="nc bnc" id="L651" title="All 4 branches missed.">    if (Objects.nonNull(listener) &amp;&amp; !modelListeners.contains(listener)) {</span>
+<span class="nc" id="L652">      modelListeners.add(listener);</span>
+    }
+<span class="nc" id="L654">  }</span>
+
+  @Override
+  public void removeChangeListener(GraphicModelChangeListener listener) {
+<span class="nc" id="L658">    Optional.ofNullable(listener).ifPresent(modelListeners::remove);</span>
+<span class="nc" id="L659">  }</span>
+
+  @Override
+  public void fireChanged() {
+<span class="nc bnc" id="L663" title="All 2 branches missed.">    if (!changeFiringSuspended) {</span>
+<span class="nc" id="L664">      modelListeners.stream().forEach(l -&gt; l.handleModelChanged(this));</span>
+    }
+<span class="nc" id="L666">  }</span>
+
+  @Override
+  public Boolean isChangeFiringSuspended() {
+<span class="nc" id="L670">    return changeFiringSuspended;</span>
+  }
+
+  @Override
+  public void setChangeFiringSuspended(Boolean change) {
+<span class="nc" id="L675">    this.changeFiringSuspended = Optional.ofNullable(change).orElse(Boolean.FALSE);</span>
+<span class="nc" id="L676">  }</span>
+
+  @Override
+  public void dispose() {
+<span class="nc" id="L680">    modelListeners.clear();</span>
+<span class="nc" id="L681">    graphicsListeners.clear();</span>
+<span class="nc" id="L682">    selectedGraphicsListeners.clear();</span>
+<span class="nc" id="L683">  }</span>
+
+  @Override
+  public int getLayerCount() {
+<span class="nc" id="L687">    return models.stream().collect(Collectors.groupingBy(getLayer)).size();</span>
+  }
+
+  @Override
+  public List&lt;GraphicSelectionListener&gt; getGraphicSelectionListeners() {
+<span class="nc" id="L692">    return selectedGraphicsListeners;</span>
+  }
+
+  public static Graphic drawFromCurrentGraphic(ViewCanvas&lt;?&gt; canvas, Graphic graphicCreator) {
+<span class="nc" id="L696">    Objects.requireNonNull(canvas);</span>
+<span class="nc" id="L697">    Graphic newGraphic =</span>
+<span class="nc" id="L698">        Optional.ofNullable(graphicCreator).orElse(MeasureToolBar.selectionGraphic);</span>
+<span class="nc" id="L699">    GraphicLayer layer = getOrBuildLayer(canvas, newGraphic.getLayerType());</span>
+
+<span class="nc bnc" id="L701" title="All 4 branches missed.">    if (!layer.getVisible() || !(Boolean) canvas.getActionValue(ActionW.DRAWINGS.cmd())) {</span>
+<span class="nc" id="L702">      JOptionPane.showMessageDialog(</span>
+<span class="nc" id="L703">          canvas.getJComponent(),</span>
+<span class="nc" id="L704">          Messages.getString(&quot;AbstractLayerModel.msg_not_vis&quot;),</span>
+<span class="nc" id="L705">          Messages.getString(&quot;AbstractLayerModel.draw&quot;),</span>
+          JOptionPane.ERROR_MESSAGE);
+<span class="nc" id="L707">      return null;</span>
+    } else {
+<span class="nc" id="L709">      Graphic graph = newGraphic.copy();</span>
+<span class="nc bnc" id="L710" title="All 2 branches missed.">      if (graph != null) {</span>
+<span class="nc" id="L711">        graph.updateLabel(Boolean.TRUE, canvas);</span>
+<span class="nc bnc" id="L712" title="All 2 branches missed.">        for (PropertyChangeListener listener : canvas.getGraphicManager().getGraphicsListeners()) {</span>
+<span class="nc" id="L713">          graph.addPropertyChangeListener(listener);</span>
+<span class="nc" id="L714">        }</span>
+<span class="nc" id="L715">        graph.setLayer(layer);</span>
+<span class="nc" id="L716">        canvas.getGraphicManager().addGraphic(graph);</span>
+      }
+<span class="nc" id="L718">      return graph;</span>
+    }
+  }
+
+  public static void addGraphicToModel(ViewCanvas&lt;?&gt; canvas, GraphicLayer layer, Graphic graphic) {
+<span class="nc" id="L723">    GraphicModel gm = canvas.getGraphicManager();</span>
+<span class="nc" id="L724">    graphic.setLayer(</span>
+<span class="nc" id="L725">        Optional.ofNullable(layer)</span>
+<span class="nc" id="L726">            .orElseGet(() -&gt; getOrBuildLayer(canvas, graphic.getLayerType())));</span>
+<span class="nc" id="L727">    graphic.updateLabel(Boolean.TRUE, canvas);</span>
+<span class="nc bnc" id="L728" title="All 2 branches missed.">    for (PropertyChangeListener listener : canvas.getGraphicManager().getGraphicsListeners()) {</span>
+<span class="nc" id="L729">      graphic.addPropertyChangeListener(listener);</span>
+<span class="nc" id="L730">    }</span>
+<span class="nc" id="L731">    gm.addGraphic(graphic);</span>
+<span class="nc" id="L732">  }</span>
+
+  public static void addGraphicToModel(ViewCanvas&lt;?&gt; canvas, Graphic graphic) {
+<span class="nc" id="L735">    AbstractGraphicModel.addGraphicToModel(canvas, null, graphic);</span>
+<span class="nc" id="L736">  }</span>
+
+  public static GraphicLayer getOrBuildLayer(ViewCanvas&lt;?&gt; canvas, LayerType layerType) {
+<span class="nc" id="L739">    return canvas</span>
+<span class="nc" id="L740">        .getGraphicManager()</span>
+<span class="nc" id="L741">        .findLayerByType(layerType)</span>
+<span class="nc" id="L742">        .orElseGet(() -&gt; new DefaultLayer(layerType));</span>
+  }
+
+  private static Predicate&lt;GraphicLayer&gt; isLayerTypeEquals(LayerType type) {
+    // Compare type and if the layer name is null =&gt; default layer
+<span class="nc bnc" id="L747" title="All 4 branches missed.">    return layer -&gt; Objects.equals(layer.getType(), type) &amp;&amp; layer.getName() == null;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

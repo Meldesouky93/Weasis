@@ -1,0 +1,6 @@
+org/weasis/dicom/send/Messages.class
+org/weasis/dicom/send/HttpServerErrorException.class
+org/weasis/dicom/send/StowRS$1.class
+org/weasis/dicom/send/StowRS.class
+org/weasis/dicom/send/SendDicomFactory.class
+org/weasis/dicom/send/SendDicomView.class

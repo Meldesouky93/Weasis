@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ActionW.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.gui.util</a> &gt; <span class="el_source">ActionW.java</span></div><h1>ActionW.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.gui.util;
+
+import java.awt.Cursor;
+import java.awt.event.KeyEvent;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.Feature.BasicActionStateValue;
+import org.weasis.core.api.gui.util.Feature.BooleanValue;
+import org.weasis.core.api.gui.util.Feature.ComboItemListenerValue;
+import org.weasis.core.api.gui.util.Feature.CrosshairListenerValue;
+import org.weasis.core.api.gui.util.Feature.DoubleValue;
+import org.weasis.core.api.gui.util.Feature.PannerListenerValue;
+import org.weasis.core.api.gui.util.Feature.SliderChangeListenerValue;
+import org.weasis.core.api.gui.util.Feature.SliderCineListenerValue;
+import org.weasis.core.api.gui.util.Feature.ToggleButtonListenerValue;
+import org.weasis.core.api.image.GridBagLayoutModel;
+import org.weasis.core.api.image.util.KernelData;
+import org.weasis.core.api.image.util.Unit;
+import org.weasis.core.api.media.data.SeriesComparator;
+import org.weasis.core.ui.editor.image.SynchView;
+import org.weasis.core.ui.model.graphic.Graphic;
+import org.weasis.opencv.op.lut.ByteLut;
+
+<span class="nc" id="L32">public class ActionW {</span>
+  public static final String DRAW_CMD_PREFIX = &quot;draw.sub.&quot;; // NON-NLS
+<span class="nc" id="L34">  public static final BasicActionStateValue NO_ACTION =</span>
+      new BasicActionStateValue(
+<span class="nc" id="L36">          Messages.getString(&quot;ActionW.no&quot;), &quot;none&quot;, KeyEvent.VK_N, 0, null); // NON-NLS</span>
+
+<span class="nc" id="L38">  public static final ComboItemListenerValue&lt;SynchView&gt; SYNCH =</span>
+      new ComboItemListenerValue&lt;&gt;(
+<span class="nc" id="L40">          Messages.getString(&quot;ActionW.synch&quot;), &quot;synch&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L41">  public static final BasicActionStateValue VIEW_MODE =</span>
+<span class="nc" id="L42">      new BasicActionStateValue(Messages.getString(&quot;ActionW.view_mode&quot;), &quot;viewMode&quot;, 0, 0, null);</span>
+<span class="nc" id="L43">  public static final SliderChangeListenerValue ZOOM =</span>
+      new SliderChangeListenerValue(
+<span class="nc" id="L45">          Messages.getString(&quot;ActionW.zoom&quot;),</span>
+          &quot;zoom&quot;, // NON-NLS
+          KeyEvent.VK_Z,
+          0,
+<span class="nc" id="L49">          Feature.getSvgCursor(&quot;zoom.svg&quot;, Messages.getString(&quot;ActionW.zoom&quot;), 0.5f, 0.5f));</span>
+<span class="nc" id="L50">  public static final SliderCineListenerValue SCROLL_SERIES =</span>
+      new SliderCineListenerValue(
+<span class="nc" id="L52">          Messages.getString(&quot;ActionW.scroll&quot;),</span>
+          &quot;sequence&quot;, // NON-NLS
+          KeyEvent.VK_S,
+          0,
+<span class="nc" id="L56">          Feature.getSvgCursor(&quot;sequence.svg&quot;, Messages.getString(&quot;ActionW.scroll&quot;), 0.5f, 0.5f));</span>
+<span class="nc" id="L57">  public static final SliderChangeListenerValue ROTATION =</span>
+      new SliderChangeListenerValue(
+<span class="nc" id="L59">          Messages.getString(&quot;ActionW.rotate&quot;),</span>
+          &quot;rotation&quot;, // NON-NLS
+          KeyEvent.VK_R,
+          0,
+<span class="nc" id="L63">          Feature.getSvgCursor(&quot;rotation.svg&quot;, Messages.getString(&quot;ActionW.rotate&quot;), 0.5f, 0.5f));</span>
+
+<span class="nc" id="L65">  public static final BasicActionStateValue CINESPEED =</span>
+      new BasicActionStateValue(
+<span class="nc" id="L67">          Messages.getString(&quot;ActionW.speed&quot;), &quot;cinespeed&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L68">  public static final BasicActionStateValue CINESTART =</span>
+      new BasicActionStateValue(
+<span class="nc" id="L70">          Messages.getString(&quot;ActionW.start&quot;), &quot;cinestart&quot;, KeyEvent.VK_C, 0, null); // NON-NLS</span>
+<span class="nc" id="L71">  public static final BasicActionStateValue CINESTOP =</span>
+      new BasicActionStateValue(
+<span class="nc" id="L73">          Messages.getString(&quot;ActionW.stop&quot;), &quot;cinestop&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L74">  public static final ToggleButtonListenerValue CINE_SWEEP =</span>
+      new ToggleButtonListenerValue(&quot;Loop Sweep&quot;, &quot;cinesweep&quot;, 0, 0, null); // NON-NLS
+<span class="nc" id="L76">  public static final Feature&lt;SliderChangeListener&gt; WINDOW =</span>
+      new SliderChangeListenerValue(
+<span class="nc" id="L78">          Messages.getString(&quot;ActionW.win&quot;), &quot;window&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L79">  public static final SliderChangeListenerValue LEVEL =</span>
+<span class="nc" id="L80">      new SliderChangeListenerValue(Messages.getString(&quot;ActionW.level&quot;), &quot;level&quot;, 0, 0, null);</span>
+<span class="nc" id="L81">  public static final BasicActionStateValue WINLEVEL =</span>
+      new BasicActionStateValue(
+<span class="nc" id="L83">          Messages.getString(&quot;ActionW.wl&quot;),</span>
+          &quot;winLevel&quot;,
+          KeyEvent.VK_W,
+          0,
+<span class="nc" id="L87">          Feature.getSvgCursor(&quot;winLevel.svg&quot;, Messages.getString(&quot;ActionW.wl&quot;), 0.5f, 0.5f));</span>
+<span class="nc" id="L88">  public static final DoubleValue LEVEL_MIN =</span>
+      new DoubleValue(&quot;&quot;, &quot;level_min&quot;, 0, 0, null); // NON-NLS
+<span class="nc" id="L90">  public static final DoubleValue LEVEL_MAX =</span>
+      new DoubleValue(&quot;&quot;, &quot;level_max&quot;, 0, 0, null); // NON-NLS
+
+<span class="nc" id="L93">  public static final ToggleButtonListenerValue FLIP =</span>
+      new ToggleButtonListenerValue(
+<span class="nc" id="L95">          Messages.getString(&quot;ActionW.flip&quot;), &quot;flip&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L96">  public static final ComboItemListenerValue&lt;Object&gt; PRESET =</span>
+      new ComboItemListenerValue&lt;&gt;(
+<span class="nc" id="L98">          Messages.getString(&quot;ActionW.preset&quot;), &quot;preset&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L99">  public static final ToggleButtonListenerValue DEFAULT_PRESET =</span>
+      new ToggleButtonListenerValue(&quot;&quot;, &quot;default_preset&quot;, 0, 0, null); // NON-NLS
+<span class="nc" id="L101">  public static final ComboItemListenerValue&lt;Object&gt; LUT_SHAPE =</span>
+      new ComboItemListenerValue&lt;&gt;(
+<span class="nc" id="L103">          Messages.getString(&quot;ActionW.lut_shape&quot;), &quot;lut_shape&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L104">  public static final ComboItemListenerValue&lt;ByteLut&gt; LUT =</span>
+<span class="nc" id="L105">      new ComboItemListenerValue&lt;&gt;(Messages.getString(&quot;ActionW.lut&quot;), &quot;lut&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L106">  public static final ToggleButtonListenerValue INVERT_LUT =</span>
+      new ToggleButtonListenerValue(
+<span class="nc" id="L108">          Messages.getString(&quot;ActionW.invert_lut&quot;), &quot;inverseLut&quot;, 0, 0, null);</span>
+<span class="nc" id="L109">  public static final BasicActionStateValue RESET =</span>
+      new BasicActionStateValue(
+<span class="nc" id="L111">          Messages.getString(&quot;ActionW.Reset&quot;), &quot;reset&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L112">  public static final BasicActionStateValue SHOW_HEADER =</span>
+      new BasicActionStateValue(
+<span class="nc" id="L114">          Messages.getString(&quot;ActionW.show_header&quot;), &quot;show_header&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L115">  public static final BasicActionStateValue EXPORT_VIEW =</span>
+<span class="nc" id="L116">      new BasicActionStateValue(Messages.getString(&quot;exporting.view&quot;), &quot;exportImage&quot;, 0, 0, null);</span>
+<span class="nc" id="L117">  public static final PannerListenerValue PAN =</span>
+      new PannerListenerValue(
+<span class="nc" id="L119">          Messages.getString(&quot;ActionW.pan&quot;),</span>
+          &quot;pan&quot;, // NON-NLS
+          KeyEvent.VK_T,
+          0,
+<span class="nc" id="L123">          Feature.getSvgCursor(&quot;pan.svg&quot;, Messages.getString(&quot;ActionW.pan&quot;), 0.5f, 0.5f));</span>
+<span class="nc" id="L124">  public static final BasicActionStateValue DRAWINGS =</span>
+      new BasicActionStateValue(
+<span class="nc" id="L126">          Messages.getString(&quot;ActionW.draw&quot;), &quot;drawings&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L127">  public static final BasicActionStateValue MEASURE =</span>
+      new BasicActionStateValue(
+<span class="nc" id="L129">          Messages.getString(&quot;ActionW.measure&quot;), &quot;measure&quot;, KeyEvent.VK_M, 0, null) { // NON-NLS</span>
+        @Override
+        public boolean isDrawingAction() {
+<span class="nc" id="L132">          return true;</span>
+        }
+      };
+<span class="nc" id="L135">  public static final BasicActionStateValue DRAW =</span>
+      new BasicActionStateValue(
+<span class="nc" id="L137">          Messages.getString(&quot;ActionW.draws&quot;), &quot;draw&quot;, KeyEvent.VK_G, 0, null) { // NON-NLS</span>
+        @Override
+        public boolean isDrawingAction() {
+<span class="nc" id="L140">          return true;</span>
+        }
+      };
+  // Starting cmd by &quot;draw.sub.&quot; defines a derivative action
+<span class="nc" id="L144">  public static final ComboItemListenerValue&lt;Graphic&gt; DRAW_MEASURE =</span>
+      new ComboItemListenerValue&lt;&gt;(
+<span class="nc" id="L146">          Messages.getString(&quot;ActionW.measurement&quot;), DRAW_CMD_PREFIX + MEASURE.cmd(), 0, 0, null);</span>
+<span class="nc" id="L147">  public static final ComboItemListenerValue&lt;Graphic&gt; DRAW_GRAPHICS =</span>
+      new ComboItemListenerValue&lt;&gt;(
+<span class="nc" id="L149">          Messages.getString(&quot;ActionW.draw&quot;), DRAW_CMD_PREFIX + DRAW.cmd(), 0, 0, null);</span>
+<span class="nc" id="L150">  public static final ComboItemListenerValue&lt;Unit&gt; SPATIAL_UNIT =</span>
+      new ComboItemListenerValue&lt;&gt;(
+<span class="nc" id="L152">          Messages.getString(&quot;ActionW.spatial_unit&quot;), &quot;spunit&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L153">  public static final ComboItemListenerValue&lt;SeriesComparator&lt;?&gt;&gt; SORT_STACK =</span>
+      new ComboItemListenerValue&lt;&gt;(&quot;&quot;, &quot;sortStack&quot;, 0, 0, null); // NON-NLS
+<span class="nc" id="L155">  public static final BasicActionStateValue CONTEXTMENU =</span>
+      new BasicActionStateValue(
+<span class="nc" id="L157">          Messages.getString(&quot;ActionW.context_menu&quot;), &quot;contextMenu&quot;, KeyEvent.VK_Q, 0, null);</span>
+<span class="nc" id="L158">  public static final Feature VIEWING_PROTOCOL =</span>
+      new BooleanValue(&quot;&quot;, &quot;viewingProtocol&quot;, 0, 0, null); // NON-NLS
+<span class="nc" id="L160">  public static final ComboItemListenerValue&lt;GridBagLayoutModel&gt; LAYOUT =</span>
+      new ComboItemListenerValue&lt;&gt;(
+<span class="nc" id="L162">          Messages.getString(&quot;ActionW.layout&quot;), &quot;layout&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L163">  public static final Feature MODE =</span>
+<span class="nc" id="L164">      new BooleanValue(Messages.getString(&quot;ActionW.switch_mode&quot;), &quot;mode&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L165">  public static final ToggleButtonListenerValue IMAGE_OVERLAY =</span>
+      new ToggleButtonListenerValue(
+<span class="nc" id="L167">          Messages.getString(&quot;ActionW.overlay&quot;), &quot;overlay&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L168">  public static final ToggleButtonListenerValue PR_STATE =</span>
+      new ToggleButtonListenerValue(
+<span class="nc" id="L170">          Messages.getString(&quot;ActionW.PR&quot;), &quot;pr_state&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L171">  public static final ToggleButtonListenerValue KO_TOGGLE_STATE =</span>
+      new ToggleButtonListenerValue(
+<span class="nc" id="L173">          Messages.getString(&quot;ActionW.toggle_ko&quot;),</span>
+          &quot;ko_toogle_state&quot;, // NON-NLS
+          KeyEvent.VK_K,
+          0,
+          null);
+<span class="nc" id="L178">  public static final ComboItemListenerValue&lt;Object&gt; KO_SELECTION =</span>
+      new ComboItemListenerValue&lt;&gt;(
+<span class="nc" id="L180">          Messages.getString(&quot;ActionW.select_ko&quot;), &quot;ko_selection&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L181">  public static final ToggleButtonListenerValue KO_FILTER =</span>
+      new ToggleButtonListenerValue(
+<span class="nc" id="L183">          Messages.getString(&quot;ActionW.filter_ko&quot;), &quot;ko_filter&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L184">  public static final Feature IMAGE_PIX_PADDING =</span>
+      new BooleanValue(
+<span class="nc" id="L186">          Messages.getString(&quot;ActionW.pixpad&quot;), &quot;pixel_padding&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L187">  public static final Feature IMAGE_SHUTTER =</span>
+<span class="nc" id="L188">      new BooleanValue(Messages.getString(&quot;ActionW.shutter&quot;), &quot;shutter&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L189">  public static final ToggleButtonListenerValue INVERSE_STACK =</span>
+      new ToggleButtonListenerValue(&quot;&quot;, &quot;inverseStack&quot;, 0, 0, null); // NON-NLS
+<span class="nc" id="L191">  public static final Feature STACK_OFFSET =</span>
+      new BooleanValue(&quot;&quot;, &quot;stackOffset&quot;, 0, 0, null); // NON-NLS
+<span class="nc" id="L193">  public static final Feature SYNCH_LINK = new BooleanValue(&quot;&quot;, &quot;synchLink&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L194">  public static final Feature SYNCH_CROSSLINE =</span>
+      new BooleanValue(&quot;&quot;, &quot;synchCrossline&quot;, 0, 0, null); // NON-NLS
+<span class="nc" id="L196">  public static final ToggleButtonListenerValue LENS =</span>
+      new ToggleButtonListenerValue(&quot;&quot;, &quot;showLens&quot;, 0, 0, null); // NON-NLS
+<span class="nc" id="L198">  public static final ComboItemListenerValue&lt;KernelData&gt; FILTER =</span>
+      new ComboItemListenerValue&lt;&gt;(&quot;&quot;, &quot;filter&quot;, 0, 0, null); // NON-NLS
+<span class="nc" id="L200">  public static final Feature CROP = new BooleanValue(&quot;&quot;, &quot;crop&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L201">  public static final Feature PREPROCESSING =</span>
+      new BooleanValue(&quot;&quot;, &quot;preprocessing&quot;, 0, 0, null); // NON-NLS
+<span class="nc" id="L203">  public static final SliderChangeListenerValue LENS_ZOOM =</span>
+      new SliderChangeListenerValue(&quot;&quot;, &quot;lensZoom&quot;, 0, 0, null); // NON-NLS
+<span class="nc" id="L205">  public static final Feature LENS_PAN = new BooleanValue(&quot;&quot;, &quot;lensPan&quot;, 0, 0, null); // NON-NLS</span>
+<span class="nc" id="L206">  public static final ToggleButtonListenerValue DRAW_ONLY_ONCE =</span>
+      new ToggleButtonListenerValue(
+<span class="nc" id="L208">          Messages.getString(&quot;ActionW.draw_once&quot;), &quot;drawOnce&quot;, 0, 0, null);</span>
+<span class="nc" id="L209">  public static final Feature PROGRESSION =</span>
+      new BooleanValue(&quot;&quot;, &quot;img_progress&quot;, 0, 0, null); // NON-NLS
+<span class="nc" id="L211">  public static final Feature FILTERED_SERIES =</span>
+      new BooleanValue(&quot;&quot;, &quot;filter_series&quot;, 0, 0, null); // NON-NLS
+<span class="nc" id="L213">  public static final CrosshairListenerValue CROSSHAIR =</span>
+      new CrosshairListenerValue(
+<span class="nc" id="L215">          Messages.getString(&quot;ActionW.crosshair&quot;),</span>
+          &quot;crosshair&quot;, // NON-NLS
+          KeyEvent.VK_H,
+          0,
+          new Cursor(Cursor.CROSSHAIR_CURSOR));
+<span class="nc" id="L220">  public static final BasicActionStateValue VOLUME =</span>
+      new BasicActionStateValue(
+<span class="nc" id="L222">          Messages.getString(&quot;ActionW.volume&quot;), &quot;volume.enable&quot;, 0, 0, null); // NON-NLS</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

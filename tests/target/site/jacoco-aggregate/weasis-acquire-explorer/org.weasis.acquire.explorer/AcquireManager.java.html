@@ -1,0 +1,763 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AcquireManager.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer</a> &gt; <span class="el_source">AcquireManager.java</span></div><h1>AcquireManager.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer;
+
+import java.awt.Component;
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import org.dcm4che3.data.Attributes;
+import org.dcm4che3.data.ElementDictionary;
+import org.dcm4che3.data.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.weasis.acquire.explorer.core.bean.DefaultTaggable;
+import org.weasis.acquire.explorer.core.bean.Global;
+import org.weasis.acquire.explorer.core.bean.SeriesGroup;
+import org.weasis.core.api.command.Option;
+import org.weasis.core.api.command.Options;
+import org.weasis.core.api.explorer.ObservableEvent;
+import org.weasis.core.api.gui.util.GuiExecutor;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.gui.util.WinUtil;
+import org.weasis.core.api.media.MimeInspector;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.media.data.MediaElement;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.api.media.data.Taggable;
+import org.weasis.core.api.service.WProperties;
+import org.weasis.core.api.util.ClosableURLConnection;
+import org.weasis.core.api.util.GzipManager;
+import org.weasis.core.api.util.NetworkUtil;
+import org.weasis.core.api.util.URLParameters;
+import org.weasis.core.ui.editor.image.ViewCanvas;
+import org.weasis.core.ui.model.GraphicModel;
+import org.weasis.core.ui.model.layer.GraphicLayer;
+import org.weasis.core.util.StringUtil;
+import org.weasis.dicom.codec.TagD;
+import org.weasis.dicom.codec.TagD.Level;
+import org.weasis.dicom.codec.TagSeq;
+import org.weasis.dicom.param.DicomNode;
+import org.xml.sax.SAXException;
+
+/**
+ * @author Yannick LARVOR
+ * @since 2.5.0
+ */
+public class AcquireManager {
+<span class="nc" id="L85">  private static final Logger LOGGER = LoggerFactory.getLogger(AcquireManager.class);</span>
+
+<span class="nc" id="L87">  public static final List&lt;String&gt; functions = Collections.singletonList(&quot;patient&quot;); // NON-NLS</span>
+<span class="nc" id="L88">  public static final Global GLOBAL = new Global();</span>
+
+  private static final int OPT_NONE = 0;
+  private static final int OPT_B64 = 1;
+  private static final int OPT_ZIP = 2;
+  private static final int OPT_URL_SAFE = 4;
+
+  private static final int OPT_B64ZIP = 3;
+  private static final int OPT_B64URL_SAFE = 5;
+  private static final int OPT_B64URL_SAFE_ZIP = 7;
+
+<span class="nc" id="L99">  private static final AcquireManager instance = new AcquireManager();</span>
+<span class="nc" id="L100">  private static final Map&lt;String, AcquireImageInfo&gt; imagesInfoByUID = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L101">  private static final Map&lt;URI, AcquireImageInfo&gt; imagesInfoByURI = new HashMap&lt;&gt;();</span>
+
+<span class="nc" id="L103">  private AcquireImageInfo currentAcquireImageInfo = null;</span>
+<span class="nc" id="L104">  private ViewCanvas&lt;ImageElement&gt; currentView = null;</span>
+
+<span class="nc" id="L106">  private PropertyChangeSupport propertyChange = null;</span>
+<span class="nc" id="L107">  private AcquireExplorer acquireExplorer = null;</span>
+
+<span class="nc" id="L109">  private AcquireManager() {}</span>
+
+  public static AcquireManager getInstance() {
+<span class="nc" id="L112">    return instance;</span>
+  }
+
+  public static AcquireImageInfo getCurrentAcquireImageInfo() {
+<span class="nc" id="L116">    return getInstance().currentAcquireImageInfo;</span>
+  }
+
+  public static void setCurrentAcquireImageInfo(AcquireImageInfo imageInfo) {
+<span class="nc" id="L120">    getInstance().currentAcquireImageInfo = imageInfo;</span>
+<span class="nc" id="L121">  }</span>
+
+  public static ViewCanvas&lt;ImageElement&gt; getCurrentView() {
+<span class="nc" id="L124">    return getInstance().currentView;</span>
+  }
+
+  public static void setCurrentView(ViewCanvas&lt;ImageElement&gt; view) {
+<span class="nc" id="L128">    getInstance().currentView = view;</span>
+<span class="nc bnc" id="L129" title="All 2 branches missed.">    if (view != null) {</span>
+      // Remove capabilities to open a view by dragging a thumbnail from the import panel.
+<span class="nc" id="L131">      view.getJComponent().setTransferHandler(null);</span>
+    }
+<span class="nc" id="L133">  }</span>
+
+  public static Collection&lt;AcquireImageInfo&gt; getAllAcquireImageInfo() {
+<span class="nc" id="L136">    return imagesInfoByURI.values();</span>
+  }
+
+  public static AcquireImageInfo findByUId(String uid) {
+<span class="nc" id="L140">    return imagesInfoByUID.get(uid);</span>
+  }
+
+  public static AcquireImageInfo findByImage(ImageElement image) {
+<span class="nc" id="L144">    return getAcquireImageInfo(image);</span>
+  }
+
+  public static List&lt;AcquireImageInfo&gt; findBySeries(SeriesGroup seriesGroup) {
+<span class="nc" id="L148">    return getAcquireImageInfoList().stream()</span>
+<span class="nc bnc" id="L149" title="All 4 branches missed.">        .filter(i -&gt; i.getSeries() != null &amp;&amp; i.getSeries().equals(seriesGroup))</span>
+<span class="nc" id="L150">        .collect(Collectors.toList());</span>
+  }
+
+  public static List&lt;SeriesGroup&gt; getBySeries() {
+<span class="nc" id="L154">    return imagesInfoByURI.values().stream()</span>
+<span class="nc" id="L155">        .map(AcquireImageInfo::getSeries)</span>
+<span class="nc" id="L156">        .filter(Objects::nonNull)</span>
+<span class="nc" id="L157">        .distinct()</span>
+<span class="nc" id="L158">        .sorted()</span>
+<span class="nc" id="L159">        .collect(Collectors.toList());</span>
+  }
+
+  public static Map&lt;SeriesGroup, List&lt;AcquireImageInfo&gt;&gt; groupBySeries() {
+<span class="nc" id="L163">    return getAcquireImageInfoList().stream()</span>
+<span class="nc bnc" id="L164" title="All 2 branches missed.">        .filter(e -&gt; e.getSeries() != null)</span>
+<span class="nc" id="L165">        .collect(Collectors.groupingBy(AcquireImageInfo::getSeries));</span>
+  }
+
+  public static SeriesGroup getSeries(SeriesGroup searched) {
+<span class="nc" id="L169">    return getBySeries().stream().filter(s -&gt; s.equals(searched)).findFirst().orElse(searched);</span>
+  }
+
+  public static SeriesGroup getDefaultSeries() {
+<span class="nc" id="L173">    return getBySeries().stream()</span>
+<span class="nc" id="L174">        .filter(s -&gt; SeriesGroup.Type.NONE.equals(s.getType()))</span>
+<span class="nc" id="L175">        .findFirst()</span>
+<span class="nc" id="L176">        .orElseGet(SeriesGroup::new);</span>
+  }
+
+  public void removeMedias(List&lt;? extends MediaElement&gt; mediaList) {
+<span class="nc" id="L180">    removeImages(toAcquireImageInfo(mediaList));</span>
+<span class="nc" id="L181">  }</span>
+
+  public void removeAllImages() {
+<span class="nc" id="L184">    imagesInfoByURI.clear();</span>
+<span class="nc" id="L185">    imagesInfoByUID.clear();</span>
+<span class="nc" id="L186">    notifyPatientContextChanged();</span>
+<span class="nc" id="L187">  }</span>
+
+  public void removeImages(Collection&lt;AcquireImageInfo&gt; imageCollection) {
+<span class="nc" id="L190">    imageCollection.stream()</span>
+<span class="nc" id="L191">        .filter(Objects::nonNull)</span>
+<span class="nc" id="L192">        .forEach(AcquireManager::removeImageFromDataMapping);</span>
+<span class="nc" id="L193">    notifyImagesRemoved(imageCollection);</span>
+<span class="nc" id="L194">  }</span>
+
+  public void removeImage(AcquireImageInfo imageElement) {
+<span class="nc" id="L197">    Optional.ofNullable(imageElement).ifPresent(AcquireManager::removeImageFromDataMapping);</span>
+<span class="nc" id="L198">    notifyImageRemoved(imageElement);</span>
+<span class="nc" id="L199">  }</span>
+
+  private static boolean isImageInfoPresent(AcquireImageInfo imageInfo) {
+<span class="nc" id="L202">    return Optional.of(imageInfo)</span>
+<span class="nc" id="L203">        .map(AcquireImageInfo::getImage)</span>
+<span class="nc" id="L204">        .map(ImageElement::getMediaURI)</span>
+<span class="nc" id="L205">        .map(imagesInfoByURI::get)</span>
+<span class="nc" id="L206">        .isPresent();</span>
+  }
+
+  public static void importImages(
+      Collection&lt;AcquireImageInfo&gt; toImport, SeriesGroup searchedSeries, int maxRangeInMinutes) {
+<span class="nc bnc" id="L211" title="All 4 branches missed.">    if (imagesInfoByURI.isEmpty() || GLOBAL.isAllowFullEdition()) {</span>
+<span class="nc" id="L212">      AcquireManager.showWorklist();</span>
+    }
+
+<span class="nc" id="L215">    boolean isSearchSeriesByDate = false;</span>
+<span class="nc" id="L216">    SeriesGroup commonSeries = null;</span>
+<span class="nc bnc" id="L217" title="All 2 branches missed.">    if (searchedSeries != null) {</span>
+<span class="nc" id="L218">      isSearchSeriesByDate = SeriesGroup.Type.DATE.equals(searchedSeries.getType());</span>
+<span class="nc bnc" id="L219" title="All 2 branches missed.">      commonSeries = isSearchSeriesByDate ? null : getSeries(searchedSeries);</span>
+    }
+
+<span class="nc bnc" id="L222" title="All 2 branches missed.">    if (commonSeries == null) {</span>
+<span class="nc" id="L223">      commonSeries = getDefaultSeries();</span>
+    }
+
+<span class="nc" id="L226">    List&lt;AcquireImageInfo&gt; imageImportedList = new ArrayList&lt;&gt;(toImport.size());</span>
+
+<span class="nc bnc" id="L228" title="All 2 branches missed.">    for (AcquireImageInfo newImageInfo : toImport) {</span>
+<span class="nc bnc" id="L229" title="All 2 branches missed.">      if (isImageInfoPresent(newImageInfo)) {</span>
+<span class="nc" id="L230">        getInstance().getAcquireExplorer().getCentralPane().tabbedPane.removeImage(newImageInfo);</span>
+      } else {
+<span class="nc" id="L232">        addImageToDataMapping(newImageInfo);</span>
+      }
+
+      SeriesGroup group =
+<span class="nc bnc" id="L236" title="All 2 branches missed.">          isSearchSeriesByDate</span>
+<span class="nc" id="L237">              ? findSeries(searchedSeries, newImageInfo, maxRangeInMinutes)</span>
+<span class="nc" id="L238">              : commonSeries;</span>
+<span class="nc bnc" id="L239" title="All 2 branches missed.">      if (group.isNeedUpdateFromGlobalTags()) {</span>
+<span class="nc" id="L240">        group.setNeedUpdateFromGlobalTags(false);</span>
+<span class="nc" id="L241">        group.updateDicomTags();</span>
+      }
+<span class="nc" id="L243">      newImageInfo.setSeries(group);</span>
+
+<span class="nc bnc" id="L245" title="All 2 branches missed.">      if (isSearchSeriesByDate) {</span>
+<span class="nc" id="L246">        List&lt;AcquireImageInfo&gt; imageInfoList =</span>
+<span class="nc" id="L247">            AcquireManager.findBySeries(newImageInfo.getSeries());</span>
+<span class="nc bnc" id="L248" title="All 2 branches missed.">        if (imageInfoList.size() &gt; 2) {</span>
+<span class="nc" id="L249">          recalculateCentralTime(imageInfoList);</span>
+        }
+      }
+<span class="nc" id="L252">      imageImportedList.add(newImageInfo);</span>
+<span class="nc" id="L253">    }</span>
+
+<span class="nc" id="L255">    getInstance().notifyImagesAdded(imageImportedList);</span>
+<span class="nc" id="L256">  }</span>
+
+  public static void importImage(AcquireImageInfo newImageInfo, SeriesGroup searchedSeries) {
+<span class="nc" id="L259">    Objects.requireNonNull(newImageInfo);</span>
+<span class="nc bnc" id="L260" title="All 4 branches missed.">    if (imagesInfoByURI.isEmpty() || GLOBAL.isAllowFullEdition()) {</span>
+<span class="nc" id="L261">      AcquireManager.showWorklist();</span>
+    }
+
+<span class="nc bnc" id="L264" title="All 2 branches missed.">    if (isImageInfoPresent(newImageInfo)) {</span>
+<span class="nc" id="L265">      getInstance().getAcquireExplorer().getCentralPane().tabbedPane.removeImage(newImageInfo);</span>
+    } else {
+<span class="nc" id="L267">      addImageToDataMapping(newImageInfo);</span>
+    }
+<span class="nc bnc" id="L269" title="All 2 branches missed.">    SeriesGroup group = searchedSeries == null ? getDefaultSeries() : searchedSeries;</span>
+<span class="nc bnc" id="L270" title="All 2 branches missed.">    if (group.isNeedUpdateFromGlobalTags()) {</span>
+<span class="nc" id="L271">      group.setNeedUpdateFromGlobalTags(false);</span>
+<span class="nc" id="L272">      group.updateDicomTags();</span>
+    }
+<span class="nc" id="L274">    newImageInfo.setSeries(group);</span>
+
+<span class="nc" id="L276">    getInstance().notifyImageAdded(newImageInfo);</span>
+<span class="nc" id="L277">  }</span>
+
+  private static SeriesGroup findSeries(
+      SeriesGroup searchedSeries, AcquireImageInfo imageInfo, int maxRangeInMinutes) {
+
+<span class="nc" id="L282">    Objects.requireNonNull(imageInfo, &quot;findSeries imageInfo should not be null&quot;);</span>
+
+<span class="nc bnc" id="L284" title="All 2 branches missed.">    if (SeriesGroup.Type.DATE.equals(searchedSeries.getType())) {</span>
+<span class="nc" id="L285">      LocalDateTime imageDate =</span>
+<span class="nc" id="L286">          TagD.dateTime(Tag.ContentDate, Tag.ContentTime, imageInfo.getImage());</span>
+
+      Optional&lt;SeriesGroup&gt; series =
+<span class="nc" id="L289">          getBySeries().stream()</span>
+<span class="nc" id="L290">              .filter(s -&gt; SeriesGroup.Type.DATE.equals(s.getType()))</span>
+<span class="nc" id="L291">              .filter(</span>
+                  s -&gt; {
+<span class="nc" id="L293">                    LocalDateTime start = s.getDate();</span>
+<span class="nc" id="L294">                    LocalDateTime end = imageDate;</span>
+<span class="nc bnc" id="L295" title="All 4 branches missed.">                    if (end != null &amp;&amp; end.isBefore(start)) {</span>
+<span class="nc" id="L296">                      start = imageDate;</span>
+<span class="nc" id="L297">                      end = s.getDate();</span>
+                    }
+<span class="nc" id="L299">                    Duration duration = Duration.between(start, end);</span>
+<span class="nc bnc" id="L300" title="All 2 branches missed.">                    return duration.toMinutes() &lt; maxRangeInMinutes;</span>
+                  })
+<span class="nc" id="L302">              .findFirst();</span>
+
+<span class="nc" id="L304">      return series.orElseGet(() -&gt; getSeries(new SeriesGroup(imageDate)));</span>
+
+    } else {
+<span class="nc" id="L307">      return getSeries(searchedSeries);</span>
+    }
+  }
+
+  private static void recalculateCentralTime(List&lt;AcquireImageInfo&gt; imageInfoList) {
+<span class="nc" id="L312">    Objects.requireNonNull(imageInfoList);</span>
+<span class="nc" id="L313">    List&lt;AcquireImageInfo&gt; sortedList =</span>
+<span class="nc" id="L314">        imageInfoList.stream()</span>
+<span class="nc" id="L315">            .sorted(</span>
+<span class="nc" id="L316">                Comparator.comparing(</span>
+                    i -&gt; {
+<span class="nc" id="L318">                      LocalDateTime val =</span>
+<span class="nc" id="L319">                          TagD.dateTime(Tag.ContentDate, Tag.ContentTime, i.getImage());</span>
+<span class="nc bnc" id="L320" title="All 2 branches missed.">                      if (val == null) {</span>
+<span class="nc" id="L321">                        val = LocalDateTime.now();</span>
+                      }
+<span class="nc" id="L323">                      return val;</span>
+                    }))
+<span class="nc" id="L325">            .toList();</span>
+
+<span class="nc" id="L327">    AcquireImageInfo info = sortedList.get(sortedList.size() / 2);</span>
+<span class="nc" id="L328">    info.getSeries().setDate(TagD.dateTime(Tag.ContentDate, Tag.ContentTime, info.getImage()));</span>
+<span class="nc" id="L329">  }</span>
+
+  public static List&lt;ImageElement&gt; toImageElement(List&lt;? extends MediaElement&gt; medias) {
+<span class="nc" id="L332">    return medias.stream()</span>
+<span class="nc" id="L333">        .filter(ImageElement.class::isInstance)</span>
+<span class="nc" id="L334">        .map(ImageElement.class::cast)</span>
+<span class="nc" id="L335">        .collect(Collectors.toList());</span>
+  }
+
+  public static List&lt;AcquireImageInfo&gt; toAcquireImageInfo(List&lt;? extends MediaElement&gt; medias) {
+<span class="nc" id="L339">    return medias.stream()</span>
+<span class="nc" id="L340">        .filter(ImageElement.class::isInstance)</span>
+<span class="nc" id="L341">        .map(ImageElement.class::cast)</span>
+<span class="nc" id="L342">        .map(AcquireManager::findByImage)</span>
+<span class="nc" id="L343">        .collect(Collectors.toList());</span>
+  }
+
+  public static String getPatientContextName() {
+<span class="nc" id="L347">    String patientName =</span>
+<span class="nc" id="L348">        TagD.getDicomPersonName(</span>
+<span class="nc" id="L349">            TagD.getTagValue(AcquireManager.GLOBAL, Tag.PatientName, String.class));</span>
+<span class="nc bnc" id="L350" title="All 2 branches missed.">    if (!org.weasis.core.util.StringUtil.hasLength(patientName)) {</span>
+<span class="nc" id="L351">      patientName = TagW.NO_VALUE;</span>
+    }
+<span class="nc" id="L353">    return patientName;</span>
+  }
+
+  public void registerDataExplorerView(AcquireExplorer explorer) {
+<span class="nc" id="L357">    unRegisterDataExplorerView();</span>
+
+<span class="nc bnc" id="L359" title="All 2 branches missed.">    if (Objects.nonNull(explorer)) {</span>
+<span class="nc" id="L360">      this.acquireExplorer = explorer;</span>
+<span class="nc" id="L361">      this.addPropertyChangeListener(explorer);</span>
+    }
+<span class="nc" id="L363">  }</span>
+
+  public void unRegisterDataExplorerView() {
+<span class="nc bnc" id="L366" title="All 2 branches missed.">    if (Objects.nonNull(this.acquireExplorer)) {</span>
+<span class="nc" id="L367">      this.removePropertyChangeListener(acquireExplorer);</span>
+    }
+<span class="nc" id="L369">  }</span>
+
+  private void addPropertyChangeListener(PropertyChangeListener propertychangelistener) {
+<span class="nc bnc" id="L372" title="All 2 branches missed.">    if (propertyChange == null) {</span>
+<span class="nc" id="L373">      propertyChange = new PropertyChangeSupport(this);</span>
+    }
+<span class="nc" id="L375">    propertyChange.addPropertyChangeListener(propertychangelistener);</span>
+<span class="nc" id="L376">  }</span>
+
+  private void removePropertyChangeListener(PropertyChangeListener propertychangelistener) {
+<span class="nc bnc" id="L379" title="All 2 branches missed.">    if (propertyChange != null) {</span>
+<span class="nc" id="L380">      propertyChange.removePropertyChangeListener(propertychangelistener);</span>
+    }
+<span class="nc" id="L382">  }</span>
+
+  private void firePropertyChange(final ObservableEvent event) {
+<span class="nc bnc" id="L385" title="All 2 branches missed.">    if (propertyChange != null) {</span>
+<span class="nc bnc" id="L386" title="All 2 branches missed.">      if (event == null) {</span>
+<span class="nc" id="L387">        throw new NullPointerException();</span>
+      }
+<span class="nc bnc" id="L389" title="All 2 branches missed.">      if (SwingUtilities.isEventDispatchThread()) {</span>
+<span class="nc" id="L390">        propertyChange.firePropertyChange(event);</span>
+      } else {
+<span class="nc" id="L392">        SwingUtilities.invokeLater(() -&gt; propertyChange.firePropertyChange(event));</span>
+      }
+    }
+<span class="nc" id="L395">  }</span>
+
+  private void notifyImageRemoved(AcquireImageInfo imageElement) {
+<span class="nc" id="L398">    firePropertyChange(</span>
+        new ObservableEvent(
+            ObservableEvent.BasicAction.REMOVE, AcquireManager.this, null, imageElement));
+<span class="nc" id="L401">  }</span>
+
+  private void notifyImagesRemoved(Collection&lt;AcquireImageInfo&gt; imageCollection) {
+<span class="nc" id="L404">    firePropertyChange(</span>
+        new ObservableEvent(
+            ObservableEvent.BasicAction.REMOVE, AcquireManager.this, null, imageCollection));
+<span class="nc" id="L407">  }</span>
+
+  private void notifyImageAdded(AcquireImageInfo imageInfo) {
+<span class="nc" id="L410">    firePropertyChange(</span>
+        new ObservableEvent(ObservableEvent.BasicAction.ADD, AcquireManager.this, null, imageInfo));
+<span class="nc" id="L412">  }</span>
+
+  private void notifyImagesAdded(Collection&lt;AcquireImageInfo&gt; imageInfoCollection) {
+<span class="nc" id="L415">    firePropertyChange(</span>
+        new ObservableEvent(
+            ObservableEvent.BasicAction.ADD, AcquireManager.this, null, imageInfoCollection));
+<span class="nc" id="L418">  }</span>
+
+  private void notifyPatientContextChanged() {
+<span class="nc" id="L421">    firePropertyChange(</span>
+        new ObservableEvent(
+            ObservableEvent.BasicAction.REPLACE,
+            AcquireManager.this,
+            null,
+<span class="nc" id="L426">            getPatientContextName()));</span>
+<span class="nc" id="L427">  }</span>
+
+  private void notifyPatientContextUpdated() {
+<span class="nc" id="L430">    firePropertyChange(</span>
+        new ObservableEvent(ObservableEvent.BasicAction.UPDATE, AcquireManager.this, null, null));
+<span class="nc" id="L432">  }</span>
+
+  private static void showWorklist() {
+<span class="nc" id="L435">    WProperties preferences = GuiUtils.getUICore().getSystemPreferences();</span>
+<span class="nc" id="L436">    String host = preferences.getProperty(&quot;weasis.acquire.wkl.host&quot;);</span>
+<span class="nc" id="L437">    String aet = preferences.getProperty(&quot;weasis.acquire.wkl.aet&quot;);</span>
+<span class="nc" id="L438">    String port = preferences.getProperty(&quot;weasis.acquire.wkl.port&quot;);</span>
+<span class="nc bnc" id="L439" title="All 6 branches missed.">    if (StringUtil.hasText(aet) &amp;&amp; StringUtil.hasText(host) &amp;&amp; StringUtil.hasText(port)) {</span>
+<span class="nc" id="L440">      DicomNode called = new DicomNode(aet, host, Integer.parseInt(port));</span>
+<span class="nc" id="L441">      DicomNode calling =</span>
+<span class="nc" id="L442">          new DicomNode(preferences.getProperty(&quot;weasis.acquire.wkl.station.aet&quot;, &quot;WEASIS-WL&quot;));</span>
+
+      try {
+<span class="nc" id="L445">        WorklistDialog dialog =</span>
+            new WorklistDialog(
+<span class="nc" id="L447">                GuiUtils.getUICore().getApplicationWindow(),</span>
+<span class="nc" id="L448">                Messages.getString(&quot;AcquireManager.dcm_worklist&quot;),</span>
+                calling,
+                called);
+<span class="nc" id="L451">        GuiUtils.showCenterScreen(dialog);</span>
+<span class="nc" id="L452">      } catch (Exception e) {</span>
+<span class="nc" id="L453">        LOGGER.error(&quot;Cannot get items from worklist&quot;, e);</span>
+<span class="nc" id="L454">      }</span>
+    }
+<span class="nc" id="L456">  }</span>
+
+  /**
+   * Set a new Patient Context and in case current state job is not finished ask user if cleaning
+   * unpublished images should be done or canceled.
+   *
+   * @param argv the main arguments
+   */
+  public void patient(String[] argv) {
+<span class="nc" id="L465">    final String[] usage = {</span>
+      &quot;Load Patient Context from the first argument&quot;, // NON-NLS
+      &quot;Usage: acquire:patient (-x | -i | -s | -u) arg&quot;, // NON-NLS
+      &quot;arg is an XML text in UTF8 or an url with the option '--url'&quot;, // NON-NLS
+      &quot;  -x --xml         Open Patient Context from an XML data containing all DICOM Tags &quot;, // NON-NLS
+      &quot;  -i --inbound     Open Patient Context from an XML data containing all DICOM Tags, decoding syntax is [Base64/GZip]&quot;, // NON-NLS
+      &quot;  -s --iurlsafe    Open Patient Context from an XML data containing all DICOM Tags, decoding syntax is [Base64_URL_SAFE/GZip]&quot;, // NON-NLS
+      &quot;  -u --url         Open Patient Context from an URL (XML file containing all DICOM TAGs)&quot;, // NON-NLS
+      &quot;  -? --help        show help&quot; // NON-NLS
+    };
+
+<span class="nc" id="L476">    final Option opt = Options.compile(usage).parse(argv);</span>
+<span class="nc" id="L477">    final List&lt;String&gt; args = opt.args();</span>
+
+<span class="nc bnc" id="L479" title="All 4 branches missed.">    if (opt.isSet(&quot;help&quot;) || args.isEmpty()) { // NON-NLS</span>
+<span class="nc" id="L480">      opt.usage();</span>
+<span class="nc" id="L481">      return;</span>
+    }
+
+<span class="nc" id="L484">    GuiExecutor.execute(() -&gt; patientCommand(opt, args.getFirst()));</span>
+<span class="nc" id="L485">  }</span>
+
+  private void patientCommand(Option opt, String arg) {
+
+    final Document newPatientContext;
+
+<span class="nc bnc" id="L491" title="All 2 branches missed.">    if (opt.isSet(&quot;xml&quot;)) { // NON-NLS</span>
+<span class="nc" id="L492">      newPatientContext = getPatientContext(arg, OPT_NONE);</span>
+<span class="nc bnc" id="L493" title="All 2 branches missed.">    } else if (opt.isSet(&quot;inbound&quot;)) { // NON-NLS</span>
+<span class="nc" id="L494">      newPatientContext = getPatientContext(arg, OPT_B64ZIP);</span>
+<span class="nc bnc" id="L495" title="All 2 branches missed.">    } else if (opt.isSet(&quot;iurlsafe&quot;)) { // NON-NLS</span>
+<span class="nc" id="L496">      newPatientContext = getPatientContext(arg, OPT_B64URL_SAFE_ZIP);</span>
+<span class="nc bnc" id="L497" title="All 2 branches missed.">    } else if (opt.isSet(&quot;url&quot;)) { // NON-NLS</span>
+<span class="nc" id="L498">      newPatientContext = getPatientContextFromUrl(arg);</span>
+    } else {
+<span class="nc" id="L500">      newPatientContext = null;</span>
+    }
+
+<span class="nc bnc" id="L503" title="All 2 branches missed.">    if (newPatientContext != null) {</span>
+<span class="nc" id="L504">      applyToGlobal(convert(newPatientContext));</span>
+    }
+<span class="nc" id="L506">  }</span>
+
+  private DefaultTaggable convert(Document xml) {
+<span class="nc" id="L509">    DefaultTaggable def = new DefaultTaggable();</span>
+<span class="nc" id="L510">    Optional.ofNullable(xml)</span>
+<span class="nc" id="L511">        .map(Document::getDocumentElement)</span>
+<span class="nc" id="L512">        .ifPresent(</span>
+            element -&gt; {
+<span class="nc" id="L514">              NodeList nodeList = element.getChildNodes();</span>
+<span class="nc bnc" id="L515" title="All 2 branches missed.">              for (int i = 0; i &lt; nodeList.getLength(); i++) {</span>
+<span class="nc" id="L516">                Node node = nodeList.item(i);</span>
+<span class="nc bnc" id="L517" title="All 2 branches missed.">                if (node != null) {</span>
+<span class="nc" id="L518">                  Optional.ofNullable(TagD.get(node.getNodeName()))</span>
+<span class="nc" id="L519">                      .ifPresent(t -&gt; readXmlTag(t, node, def));</span>
+                }
+              }
+<span class="nc" id="L522">            });</span>
+<span class="nc" id="L523">    return def;</span>
+  }
+
+  private void readXmlTag(TagW tag, Node node, DefaultTaggable def) {
+    // TODO implement DICOM XML :
+    // http://dicom.nema.org/medical/dicom/current/output/chtml/part19/chapter_A.html
+<span class="nc bnc" id="L529" title="All 4 branches missed.">    if (tag instanceof TagSeq &amp;&amp; node.hasChildNodes()) {</span>
+<span class="nc" id="L530">      NodeList nodeList = node.getChildNodes();</span>
+<span class="nc" id="L531">      Attributes attributes = new Attributes();</span>
+      // FIXME handle only one sequence element
+<span class="nc" id="L533">      Attributes[] list = new Attributes[1];</span>
+<span class="nc bnc" id="L534" title="All 2 branches missed.">      for (int i = 0; i &lt; nodeList.getLength(); i++) {</span>
+<span class="nc" id="L535">        Node n = nodeList.item(i);</span>
+<span class="nc bnc" id="L536" title="All 2 branches missed.">        if (n != null) {</span>
+<span class="nc" id="L537">          Optional.ofNullable(TagD.get(n.getNodeName()))</span>
+<span class="nc" id="L538">              .ifPresent(</span>
+                  t -&gt;
+<span class="nc" id="L540">                      attributes.setValue(</span>
+<span class="nc" id="L541">                          t.getId(), ElementDictionary.vrOf(t.getId(), null), n.getTextContent()));</span>
+        }
+      }
+<span class="nc bnc" id="L544" title="All 2 branches missed.">      list[0] = attributes.getParent() == null ? attributes : new Attributes(attributes);</span>
+<span class="nc" id="L545">      def.setTagNoNull(tag, list);</span>
+
+<span class="nc" id="L547">    } else {</span>
+<span class="nc" id="L548">      tag.readValue(node.getTextContent(), def);</span>
+    }
+<span class="nc" id="L550">  }</span>
+
+  public void applyToGlobal(Taggable taggable) {
+<span class="nc bnc" id="L553" title="All 2 branches missed.">    if (taggable != null) {</span>
+<span class="nc bnc" id="L554" title="All 2 branches missed.">      if (GLOBAL.containsSameTagValues(taggable, Global.PATIENT_DICOM_GROUP_NUMBER)) {</span>
+<span class="nc" id="L555">        GLOBAL.updateAllButPatient(taggable);</span>
+<span class="nc" id="L556">        getBySeries().forEach(SeriesGroup::updateDicomTags);</span>
+<span class="nc" id="L557">        notifyPatientContextUpdated();</span>
+      } else {
+<span class="nc bnc" id="L559" title="All 2 branches missed.">        if (!isAcquireImagesAllPublished()</span>
+<span class="nc bnc" id="L560" title="All 2 branches missed.">            &amp;&amp; JOptionPane.showConfirmDialog(</span>
+<span class="nc" id="L561">                    WinUtil.getValidComponent(getExplorerViewComponent()),</span>
+<span class="nc" id="L562">                    Messages.getString(&quot;AcquireManager.new_patient_load_warn&quot;),</span>
+<span class="nc" id="L563">                    Messages.getString(&quot;AcquireManager.new_patient_load_title&quot;),</span>
+                    JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.QUESTION_MESSAGE)
+                != JOptionPane.OK_OPTION) {
+<span class="nc" id="L567">          return;</span>
+        }
+
+<span class="nc" id="L570">        imagesInfoByURI.clear();</span>
+<span class="nc" id="L571">        imagesInfoByUID.clear();</span>
+<span class="nc" id="L572">        GLOBAL.init(taggable);</span>
+        // Ensure to update all the existing SeriesGroup
+<span class="nc" id="L574">        AcquireManager.getInstance()</span>
+<span class="nc" id="L575">            .getAcquireExplorer()</span>
+<span class="nc" id="L576">            .getCentralPane()</span>
+            .tabbedPane
+<span class="nc" id="L578">            .updateSeriesFromGlobalTags();</span>
+<span class="nc" id="L579">        notifyPatientContextChanged();</span>
+      }
+    }
+<span class="nc" id="L582">  }</span>
+
+  public Component getExplorerViewComponent() {
+<span class="nc" id="L585">    return Optional.ofNullable(acquireExplorer)</span>
+<span class="nc" id="L586">        .map(AcquireExplorer::getCentralPane)</span>
+<span class="nc" id="L587">        .map(Component.class::cast)</span>
+<span class="nc" id="L588">        .orElse(GuiUtils.getUICore().getApplicationWindow());</span>
+  }
+
+  public AcquireExplorer getAcquireExplorer() {
+<span class="nc" id="L592">    return acquireExplorer;</span>
+  }
+
+  /**
+   * Evaluate if all imported acquired images have been published without any work in progress
+   * state.
+   *
+   * @return true when all images have been published
+   */
+  private static boolean isAcquireImagesAllPublished() {
+<span class="nc" id="L602">    return getAllAcquireImageInfo().stream()</span>
+<span class="nc bnc" id="L603" title="All 2 branches missed.">        .allMatch(i -&gt; i.getStatus() == AcquireImageStatus.PUBLISHED);</span>
+  }
+
+  private static Document getPatientContext(String inputString, int codeOption) {
+<span class="nc" id="L607">    return getPatientContext(inputString.getBytes(StandardCharsets.UTF_8), codeOption);</span>
+  }
+
+  private static Document getPatientContext(byte[] byteArray, int codeOption) {
+<span class="nc bnc" id="L611" title="All 4 branches missed.">    if (byteArray == null || byteArray.length == 0) {</span>
+<span class="nc" id="L612">      throw new IllegalArgumentException(&quot;empty byteArray parameter&quot;);</span>
+    }
+
+<span class="nc bnc" id="L615" title="All 2 branches missed.">    if (codeOption != OPT_NONE) {</span>
+      try {
+<span class="nc bnc" id="L617" title="All 2 branches missed.">        if ((codeOption &amp; OPT_B64) == OPT_B64) {</span>
+<span class="nc bnc" id="L618" title="All 2 branches missed.">          if ((codeOption &amp; OPT_URL_SAFE) == OPT_URL_SAFE) {</span>
+<span class="nc" id="L619">            byteArray = Base64.getUrlDecoder().decode(byteArray);</span>
+          } else {
+<span class="nc" id="L621">            byteArray = Base64.getDecoder().decode(byteArray);</span>
+          }
+        }
+
+<span class="nc bnc" id="L625" title="All 2 branches missed.">        if ((codeOption &amp; OPT_ZIP) == OPT_ZIP) {</span>
+<span class="nc" id="L626">          byteArray = GzipManager.gzipUncompressToByte(byteArray);</span>
+        }
+<span class="nc" id="L628">      } catch (Exception e) {</span>
+<span class="nc" id="L629">        LOGGER.error(&quot;Decode Patient Context&quot;, e);</span>
+<span class="nc" id="L630">        return null;</span>
+<span class="nc" id="L631">      }</span>
+    }
+
+<span class="nc" id="L634">    try (InputStream inputStream = new ByteArrayInputStream(byteArray)) {</span>
+<span class="nc" id="L635">      DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();</span>
+<span class="nc" id="L636">      factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);</span>
+<span class="nc" id="L637">      factory.setFeature(&quot;http://apache.org/xml/features/disallow-doctype-decl&quot;, true);</span>
+<span class="nc" id="L638">      factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, &quot;&quot;);</span>
+<span class="nc" id="L639">      factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, &quot;&quot;);</span>
+<span class="nc" id="L640">      return factory.newDocumentBuilder().parse(inputStream);</span>
+<span class="nc" id="L641">    } catch (SAXException | IOException | ParserConfigurationException e) {</span>
+<span class="nc" id="L642">      LOGGER.error(&quot;Parsing Patient Context XML&quot;, e);</span>
+    }
+
+<span class="nc" id="L645">    return null;</span>
+  }
+
+  private static Document getPatientContextFromUri(URI uri) {
+<span class="nc" id="L649">    byte[] byteArray = getURIContent(Objects.requireNonNull(uri));</span>
+<span class="nc" id="L650">    String uriPath = uri.getPath();</span>
+
+<span class="nc bnc" id="L652" title="All 2 branches missed.">    if (uriPath.endsWith(&quot;.gz&quot;)</span>
+<span class="nc bnc" id="L653" title="All 2 branches missed.">        || !(uriPath.endsWith(&quot;.xml&quot;)</span>
+<span class="nc bnc" id="L654" title="All 2 branches missed.">            &amp;&amp; MimeInspector.isMatchingMimeTypeFromMagicNumber(</span>
+                byteArray, &quot;application/x-gzip&quot;))) { // NON-NLS
+<span class="nc" id="L656">      return getPatientContext(byteArray, OPT_ZIP);</span>
+    } else {
+<span class="nc" id="L658">      return getPatientContext(byteArray, OPT_NONE);</span>
+    }
+  }
+
+  private static Document getPatientContextFromUrl(String url) {
+<span class="nc" id="L663">    return getPatientContextFromUri(getURIFromURL(url));</span>
+  }
+
+  private static URI getURIFromURL(String urlStr) {
+<span class="nc bnc" id="L667" title="All 2 branches missed.">    if (!StringUtil.hasText(urlStr)) {</span>
+<span class="nc" id="L668">      throw new IllegalArgumentException(&quot;empty urlString parameter&quot;);</span>
+    }
+
+<span class="nc" id="L671">    URI uri = null;</span>
+
+<span class="nc bnc" id="L673" title="All 2 branches missed.">    if (!urlStr.startsWith(&quot;http&quot;)) { // NON-NLS</span>
+      try {
+<span class="nc" id="L675">        File file = new File(urlStr);</span>
+<span class="nc bnc" id="L676" title="All 2 branches missed.">        if (file.canRead()) {</span>
+<span class="nc" id="L677">          uri = file.toURI();</span>
+        }
+<span class="nc" id="L679">      } catch (Exception e) {</span>
+<span class="nc" id="L680">        LOGGER.error(</span>
+            &quot;{} is supposed to be a file URL but cannot be converted to a valid URI&quot;, urlStr, e);
+<span class="nc" id="L682">      }</span>
+    }
+<span class="nc bnc" id="L684" title="All 2 branches missed.">    if (uri == null) {</span>
+      try {
+<span class="nc" id="L686">        uri = new URL(urlStr).toURI();</span>
+<span class="nc" id="L687">      } catch (MalformedURLException | URISyntaxException e) {</span>
+<span class="nc" id="L688">        LOGGER.error(&quot;getURIFromURL : {}&quot;, urlStr, e);</span>
+<span class="nc" id="L689">      }</span>
+    }
+
+<span class="nc" id="L692">    return uri;</span>
+  }
+
+  private static byte[] getURIContent(URI uri) {
+    try {
+<span class="nc" id="L697">      URL url = Objects.requireNonNull(uri).toURL();</span>
+<span class="nc" id="L698">      LOGGER.debug(&quot;Download from URL: {}&quot;, url);</span>
+<span class="nc" id="L699">      ClosableURLConnection urlConnection = NetworkUtil.getUrlConnection(url, new URLParameters());</span>
+      // note: fastest way to convert inputStream to string according to :
+      // http://stackoverflow.com/questions/309424/read-convert-an-inputstream-to-a-string
+<span class="nc" id="L702">      try (InputStream inputStream = urlConnection.getInputStream()) {</span>
+<span class="nc" id="L703">        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();</span>
+<span class="nc" id="L704">        byte[] buffer = new byte[1024];</span>
+        int length;
+<span class="nc bnc" id="L706" title="All 2 branches missed.">        while ((length = inputStream.read(buffer)) != -1) {</span>
+<span class="nc" id="L707">          outputStream.write(buffer, 0, length);</span>
+        }
+<span class="nc" id="L709">        return outputStream.toByteArray();</span>
+      }
+<span class="nc" id="L711">    } catch (Exception e) {</span>
+<span class="nc" id="L712">      LOGGER.error(&quot;Downloading URI content&quot;, e);</span>
+    }
+
+<span class="nc" id="L715">    return null;</span>
+  }
+
+  private static void addImageToDataMapping(AcquireImageInfo imageInfo) {
+<span class="nc" id="L719">    Objects.requireNonNull(imageInfo);</span>
+<span class="nc" id="L720">    imagesInfoByURI.put(imageInfo.getImage().getMediaURI(), imageInfo);</span>
+<span class="nc" id="L721">    imagesInfoByUID.put(</span>
+<span class="nc" id="L722">        (String) imageInfo.getImage().getTagValue(TagD.getUID(Level.INSTANCE)), imageInfo);</span>
+<span class="nc" id="L723">  }</span>
+
+  private static void removeImageFromDataMapping(AcquireImageInfo imageInfo) {
+<span class="nc" id="L726">    imagesInfoByURI.remove(imageInfo.getImage().getMediaURI());</span>
+<span class="nc" id="L727">    imagesInfoByUID.remove(imageInfo.getImage().getTagValue(TagD.getUID(Level.INSTANCE)));</span>
+<span class="nc" id="L728">    GraphicModel modelList =</span>
+<span class="nc" id="L729">        (GraphicModel) imageInfo.getImage().getTagValue(TagW.PresentationModel);</span>
+<span class="nc bnc" id="L730" title="All 2 branches missed.">    if (modelList != null) {</span>
+<span class="nc bnc" id="L731" title="All 2 branches missed.">      for (GraphicLayer layer : new ArrayList&lt;&gt;(modelList.getLayers())) {</span>
+<span class="nc" id="L732">        modelList.deleteByLayer(layer);</span>
+<span class="nc" id="L733">      }</span>
+    }
+<span class="nc" id="L735">  }</span>
+
+  private static List&lt;AcquireImageInfo&gt; getAcquireImageInfoList() {
+<span class="nc" id="L738">    return new ArrayList&lt;&gt;(imagesInfoByURI.values());</span>
+  }
+
+  /**
+   * Get AcquireImageInfo from the data model and create lazily the JAI.PlanarImage if not yet
+   * available&lt;br&gt;
+   * All the AcquireImageInfo value objects are unique according to the imageElement URI
+   *
+   * @param image the ImageElement
+   * @return the AcquireImageInfo based on the image
+   */
+
+  // TODO be careful not to execute this method on the EDT
+  private static AcquireImageInfo getAcquireImageInfo(ImageElement image) {
+<span class="nc bnc" id="L752" title="All 4 branches missed.">    if (image == null || image.getImage() == null) {</span>
+<span class="nc" id="L753">      return null;</span>
+    }
+
+<span class="nc" id="L756">    AcquireImageInfo imageInfo = imagesInfoByURI.get(image.getMediaURI());</span>
+<span class="nc bnc" id="L757" title="All 2 branches missed.">    if (imageInfo == null) {</span>
+<span class="nc" id="L758">      imageInfo = new AcquireImageInfo(image);</span>
+    }
+<span class="nc" id="L760">    return imageInfo;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

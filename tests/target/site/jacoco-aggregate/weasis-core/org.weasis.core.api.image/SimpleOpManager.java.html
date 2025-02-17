@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>SimpleOpManager.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.image</a> &gt; <span class="el_source">SimpleOpManager.java</span></div><h1>SimpleOpManager.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.image;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.Messages;
+import org.weasis.core.api.image.ImageOpNode.Param;
+import org.weasis.opencv.data.PlanarImage;
+
+public class SimpleOpManager implements OpManager {
+<span class="nc" id="L24">  private static final Logger LOGGER = LoggerFactory.getLogger(SimpleOpManager.class);</span>
+
+<span class="nc" id="L26">  public static final String IMAGE_OP_NAME = Messages.getString(&quot;SimpleOpManager.img_op&quot;);</span>
+
+<span class="nc" id="L28">  public enum Position {</span>
+<span class="nc" id="L29">    BEFORE,</span>
+<span class="nc" id="L30">    AFTER</span>
+  }
+
+  private final HashMap&lt;String, ImageOpNode&gt; nodes;
+  private final List&lt;ImageOpNode&gt; operations;
+  private String name;
+
+  public SimpleOpManager() {
+<span class="nc" id="L38">    this(IMAGE_OP_NAME);</span>
+<span class="nc" id="L39">  }</span>
+
+<span class="nc" id="L41">  public SimpleOpManager(String name) {</span>
+<span class="nc" id="L42">    this.operations = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L43">    this.nodes = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L44">    setName(name);</span>
+<span class="nc" id="L45">  }</span>
+
+<span class="nc" id="L47">  public SimpleOpManager(SimpleOpManager som) {</span>
+<span class="nc" id="L48">    this.operations = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L49">    this.nodes = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L50">    setName(som.name);</span>
+
+<span class="nc" id="L52">    som.nodes.forEach(</span>
+        (key, value) -&gt;
+<span class="nc" id="L54">            Optional.ofNullable(value)</span>
+<span class="nc" id="L55">                .ifPresent(</span>
+                    n -&gt; {
+<span class="nc" id="L57">                      ImageOpNode node = n.copy();</span>
+<span class="nc" id="L58">                      operations.add(node);</span>
+<span class="nc" id="L59">                      nodes.put(key, node);</span>
+<span class="nc" id="L60">                    }));</span>
+<span class="nc" id="L61">  }</span>
+
+  public synchronized String getName() {
+<span class="nc" id="L64">    return name;</span>
+  }
+
+  public synchronized void setName(String name) {
+<span class="nc bnc" id="L68" title="All 2 branches missed.">    this.name = name == null ? IMAGE_OP_NAME : name;</span>
+<span class="nc" id="L69">  }</span>
+
+  @Override
+  public String toString() {
+<span class="nc" id="L73">    return name;</span>
+  }
+
+  @Override
+  public List&lt;ImageOpNode&gt; getOperations() {
+<span class="nc" id="L78">    return operations;</span>
+  }
+
+  public void addImageOperationAction(ImageOpNode action) {
+<span class="nc" id="L82">    addImageOperationAction(action, null, null);</span>
+<span class="nc" id="L83">  }</span>
+
+  public void addImageOperationAction(ImageOpNode action, Position pos, ImageOpNode positionRef) {
+<span class="nc bnc" id="L86" title="All 2 branches missed.">    if (action != null) {</span>
+<span class="nc" id="L87">      String title = action.getName();</span>
+<span class="nc" id="L88">      int k = 2;</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">      while (nodes.get(title) != null) {</span>
+<span class="nc" id="L90">        title += &quot; &quot; + k;</span>
+<span class="nc" id="L91">        k++;</span>
+      }
+<span class="nc bnc" id="L93" title="All 2 branches missed.">      if (k &gt; 2) {</span>
+<span class="nc" id="L94">        action.setName(title);</span>
+<span class="nc" id="L95">        LOGGER.warn(&quot;This name already exists, rename to {}.&quot;, title);</span>
+      }
+<span class="nc" id="L97">      nodes.put(title, action);</span>
+<span class="nc bnc" id="L98" title="All 2 branches missed.">      if (positionRef != null) {</span>
+<span class="nc" id="L99">        int index = operations.indexOf(positionRef);</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">        if (Position.AFTER.equals(pos)) {</span>
+<span class="nc" id="L101">          index++;</span>
+        }
+<span class="nc bnc" id="L103" title="All 2 branches missed.">        if (index &gt;= 0) {</span>
+<span class="nc" id="L104">          operations.add(index, action);</span>
+        } else {
+<span class="nc" id="L106">          operations.add(action);</span>
+        }
+<span class="nc" id="L108">      } else {</span>
+<span class="nc" id="L109">        operations.add(action);</span>
+      }
+    }
+<span class="nc" id="L112">  }</span>
+
+  public void removeImageOperationAction(ImageOpNode action) {
+<span class="nc bnc" id="L115" title="All 2 branches missed.">    if (action != null) {</span>
+<span class="nc" id="L116">      boolean remove = operations.remove(action);</span>
+<span class="nc bnc" id="L117" title="All 4 branches missed.">      if (nodes.remove(action.getName()) == null &amp;&amp; remove) {</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">        for (Entry&lt;String, ImageOpNode&gt; entry : nodes.entrySet()) {</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">          if (entry.getValue() == action) {</span>
+<span class="nc" id="L120">            nodes.remove(entry.getKey());</span>
+<span class="nc" id="L121">            break;</span>
+          }
+<span class="nc" id="L123">        }</span>
+      }
+    }
+<span class="nc" id="L126">  }</span>
+
+  @Override
+  public void removeAllImageOperationAction() {
+<span class="nc" id="L130">    clearNodeParams();</span>
+<span class="nc" id="L131">    operations.clear();</span>
+<span class="nc" id="L132">    nodes.clear();</span>
+<span class="nc" id="L133">  }</span>
+
+  @Override
+  public void clearNodeParams() {
+<span class="nc bnc" id="L137" title="All 2 branches missed.">    for (ImageOpNode node : operations) {</span>
+<span class="nc" id="L138">      node.clearParams();</span>
+<span class="nc" id="L139">    }</span>
+<span class="nc" id="L140">  }</span>
+
+  @Override
+  public void clearNodeIOCache() {
+<span class="nc bnc" id="L144" title="All 2 branches missed.">    for (ImageOpNode node : operations) {</span>
+<span class="nc" id="L145">      node.clearIOCache();</span>
+<span class="nc" id="L146">    }</span>
+<span class="nc" id="L147">  }</span>
+
+  @Override
+  public void setFirstNode(PlanarImage imgSource) {
+<span class="nc" id="L151">    ImageOpNode node = getFirstNode();</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">    if (node != null) {</span>
+<span class="nc" id="L153">      node.setParam(Param.INPUT_IMG, imgSource);</span>
+    }
+<span class="nc" id="L155">  }</span>
+
+  @Override
+  public PlanarImage getFirstNodeInputImage() {
+<span class="nc" id="L159">    ImageOpNode node = getFirstNode();</span>
+<span class="nc bnc" id="L160" title="All 2 branches missed.">    if (node != null) {</span>
+<span class="nc" id="L161">      return (PlanarImage) node.getParam(Param.INPUT_IMG);</span>
+    }
+<span class="nc" id="L163">    return null;</span>
+  }
+
+  @Override
+  public ImageOpNode getFirstNode() {
+<span class="nc bnc" id="L168" title="All 2 branches missed.">    if (!operations.isEmpty()) {</span>
+<span class="nc" id="L169">      return operations.getFirst();</span>
+    }
+<span class="nc" id="L171">    return null;</span>
+  }
+
+  @Override
+  public ImageOpNode getNode(String opName) {
+<span class="nc bnc" id="L176" title="All 2 branches missed.">    if (opName == null) {</span>
+<span class="nc" id="L177">      return null;</span>
+    }
+<span class="nc" id="L179">    return nodes.get(opName);</span>
+  }
+
+  @Override
+  public ImageOpNode getLastNode() {
+<span class="nc" id="L184">    int size = operations.size();</span>
+<span class="nc bnc" id="L185" title="All 2 branches missed.">    if (size &gt; 0) {</span>
+<span class="nc" id="L186">      return operations.get(size - 1);</span>
+    }
+<span class="nc" id="L188">    return null;</span>
+  }
+
+  @Override
+  public PlanarImage getLastNodeOutputImage() {
+<span class="nc" id="L193">    ImageOpNode node = getLastNode();</span>
+<span class="nc bnc" id="L194" title="All 2 branches missed.">    if (node != null) {</span>
+<span class="nc" id="L195">      return (PlanarImage) node.getParam(Param.OUTPUT_IMG);</span>
+    }
+<span class="nc" id="L197">    return null;</span>
+  }
+
+  /** Allow to remove the preprocessing cache */
+  public void resetLastNodeOutputImage() {
+<span class="nc" id="L202">    ImageOpNode node = getLastNode();</span>
+<span class="nc bnc" id="L203" title="All 2 branches missed.">    if (node != null) {</span>
+<span class="nc" id="L204">      node.setParam(Param.OUTPUT_IMG, null);</span>
+    }
+<span class="nc" id="L206">  }</span>
+
+  @Override
+  public PlanarImage process() {
+<span class="nc" id="L210">    PlanarImage source = getFirstNodeInputImage();</span>
+<span class="nc bnc" id="L211" title="All 4 branches missed.">    if (source != null &amp;&amp; source.width() &gt; 0) {</span>
+<span class="nc bnc" id="L212" title="All 2 branches missed.">      for (int i = 0; i &lt; operations.size(); i++) {</span>
+<span class="nc" id="L213">        ImageOpNode op = operations.get(i);</span>
+        try {
+<span class="nc bnc" id="L215" title="All 2 branches missed.">          if (i &gt; 0) {</span>
+<span class="nc" id="L216">            op.setParam(Param.INPUT_IMG, operations.get(i - 1).getParam(Param.OUTPUT_IMG));</span>
+          }
+<span class="nc bnc" id="L218" title="All 2 branches missed.">          if (op.isEnabled()) {</span>
+<span class="nc" id="L219">            op.process();</span>
+          } else {
+            // Skip this operation
+<span class="nc" id="L222">            op.setParam(Param.OUTPUT_IMG, op.getParam(Param.INPUT_IMG));</span>
+          }
+<span class="nc" id="L224">        } catch (Exception e) {</span>
+<span class="nc" id="L225">          LOGGER.error(&quot;Image {} failed&quot;, op.getParam(Param.NAME), e);</span>
+<span class="nc" id="L226">          op.setParam(Param.OUTPUT_IMG, op.getParam(Param.INPUT_IMG));</span>
+<span class="nc" id="L227">        }</span>
+      }
+    } else {
+<span class="nc" id="L230">      clearNodeIOCache();</span>
+    }
+<span class="nc" id="L232">    return getLastNodeOutputImage();</span>
+  }
+
+  @Override
+  public Object getParamValue(String opName, String param) {
+<span class="nc bnc" id="L237" title="All 4 branches missed.">    if (opName != null &amp;&amp; param != null) {</span>
+<span class="nc" id="L238">      ImageOpNode node = getNode(opName);</span>
+<span class="nc bnc" id="L239" title="All 2 branches missed.">      if (node != null) {</span>
+<span class="nc" id="L240">        return node.getParam(param);</span>
+      }
+    }
+<span class="nc" id="L243">    return null;</span>
+  }
+
+  @Override
+  public boolean setParamValue(String opName, String param, Object value) {
+<span class="nc bnc" id="L248" title="All 4 branches missed.">    if (opName != null &amp;&amp; param != null) {</span>
+<span class="nc" id="L249">      ImageOpNode node = getNode(opName);</span>
+<span class="nc bnc" id="L250" title="All 2 branches missed.">      if (node != null) {</span>
+<span class="nc" id="L251">        node.setParam(param, value);</span>
+<span class="nc" id="L252">        return true;</span>
+      }
+    }
+<span class="nc" id="L255">    return false;</span>
+  }
+
+  @Override
+  public void removeParam(String opName, String param) {
+<span class="nc bnc" id="L260" title="All 4 branches missed.">    if (opName != null &amp;&amp; param != null) {</span>
+<span class="nc" id="L261">      ImageOpNode node = getNode(opName);</span>
+<span class="nc bnc" id="L262" title="All 2 branches missed.">      if (node != null) {</span>
+<span class="nc" id="L263">        node.removeParam(param);</span>
+      }
+    }
+<span class="nc" id="L266">  }</span>
+
+  @Override
+  public void handleImageOpEvent(ImageOpEvent event) {
+<span class="nc bnc" id="L270" title="All 2 branches missed.">    for (ImageOpNode node : operations) {</span>
+<span class="nc" id="L271">      node.handleImageOpEvent(event);</span>
+<span class="nc" id="L272">    }</span>
+<span class="nc" id="L273">  }</span>
+
+  @Override
+  public SimpleOpManager copy() {
+<span class="nc" id="L277">    return new SimpleOpManager(this);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AbstractGraphicLabel.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.graphic</a> &gt; <span class="el_source">AbstractGraphicLabel.java</span></div><h1>AbstractGraphicLabel.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.graphic;
+
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlElementWrapper;
+import jakarta.xml.bind.annotation.adapters.XmlAdapter;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.Paint;
+import java.awt.Rectangle;
+import java.awt.font.FontRenderContext;
+import java.awt.font.TextLayout;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Area;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.util.Objects;
+import java.util.Optional;
+import org.weasis.core.api.gui.util.GeomUtil;
+import org.weasis.core.api.util.FontTools;
+import org.weasis.core.ui.editor.image.ViewCanvas;
+import org.weasis.core.ui.editor.image.dockable.MeasureTool;
+import org.weasis.core.ui.model.utils.imp.DefaultGraphicLabel;
+import org.weasis.core.util.StringUtil;
+
+public abstract class AbstractGraphicLabel implements GraphicLabel {
+  protected String[] labels;
+  protected Rectangle2D labelBounds;
+  protected Double labelWidth;
+  protected Double labelHeight;
+  protected Double offsetX;
+  protected Double offsetY;
+
+  protected AbstractGraphicLabel() {
+<span class="nc" id="L44">    this(DEFAULT_OFFSET_X, DEFAULT_OFFSET_Y);</span>
+<span class="nc" id="L45">  }</span>
+
+<span class="nc" id="L47">  protected AbstractGraphicLabel(Double offsetX, Double offsetY) {</span>
+<span class="nc" id="L48">    this.offsetX = Optional.ofNullable(offsetX).orElse(DEFAULT_OFFSET_X);</span>
+<span class="nc" id="L49">    this.offsetY = Optional.ofNullable(offsetY).orElse(DEFAULT_OFFSET_Y);</span>
+<span class="nc" id="L50">    reset();</span>
+<span class="nc" id="L51">  }</span>
+
+<span class="nc" id="L53">  protected AbstractGraphicLabel(AbstractGraphicLabel object) {</span>
+<span class="nc" id="L54">    this.offsetX = object.offsetX;</span>
+<span class="nc" id="L55">    this.offsetY = object.offsetY;</span>
+<span class="nc" id="L56">    this.labels = Optional.ofNullable(object.labels).map(String[]::clone).orElse(null);</span>
+<span class="nc" id="L57">    this.labelBounds =</span>
+<span class="nc" id="L58">        Optional.ofNullable(object.labelBounds).map(Rectangle2D::getBounds2D).orElse(null);</span>
+<span class="nc" id="L59">    this.labelWidth = object.labelWidth;</span>
+<span class="nc" id="L60">    this.labelHeight = object.labelHeight;</span>
+<span class="nc" id="L61">  }</span>
+
+  @Override
+  public void reset() {
+<span class="nc" id="L65">    labels = null;</span>
+<span class="nc" id="L66">    labelBounds = null;</span>
+<span class="nc" id="L67">    labelHeight = 0d;</span>
+<span class="nc" id="L68">    labelWidth = 0d;</span>
+<span class="nc" id="L69">  }</span>
+
+  @XmlElementWrapper(name = &quot;labels&quot;)
+  @XmlElement(name = &quot;label&quot;)
+  @Override
+  public String[] getLabels() {
+<span class="nc" id="L75">    return labels;</span>
+  }
+
+  @XmlElement(name = &quot;offsetX&quot;)
+  @Override
+  public Double getOffsetX() {
+<span class="nc" id="L81">    return offsetX;</span>
+  }
+
+  @XmlElement(name = &quot;offsetY&quot;)
+  @Override
+  public Double getOffsetY() {
+<span class="nc" id="L87">    return offsetY;</span>
+  }
+
+  public void setLabels(String[] labels) {
+<span class="nc" id="L91">    this.labels = labels;</span>
+<span class="nc" id="L92">  }</span>
+
+  public void setOffsetX(Double offsetX) {
+<span class="nc" id="L95">    this.offsetX = offsetX;</span>
+<span class="nc" id="L96">  }</span>
+
+  public void setOffsetY(Double offsetY) {
+<span class="nc" id="L99">    this.offsetY = offsetY;</span>
+<span class="nc" id="L100">  }</span>
+
+  @Override
+  public Rectangle2D getBounds(AffineTransform transform) {
+<span class="nc" id="L104">    return getArea(transform).getBounds2D();</span>
+  }
+
+  @Override
+  public Area getArea(AffineTransform transform) {
+<span class="nc bnc" id="L109" title="All 2 branches missed.">    if (Objects.isNull(labelBounds)) {</span>
+<span class="nc" id="L110">      return new Area();</span>
+    }
+
+<span class="nc bnc" id="L113" title="All 2 branches missed.">    if (Objects.isNull(transform)) {</span>
+<span class="nc" id="L114">      return new Area(labelBounds);</span>
+    }
+
+<span class="nc" id="L117">    AffineTransform invTransform = new AffineTransform(); // Identity transformation.</span>
+<span class="nc" id="L118">    Point2D anchorPt = new Point2D.Double(labelBounds.getX(), labelBounds.getY());</span>
+
+<span class="nc" id="L120">    double scale = GeomUtil.extractScalingFactor(transform);</span>
+<span class="nc" id="L121">    double angleRad = GeomUtil.extractAngleRad(transform);</span>
+
+<span class="nc" id="L123">    invTransform.translate(anchorPt.getX(), anchorPt.getY());</span>
+
+<span class="nc bnc" id="L125" title="All 2 branches missed.">    if (!Objects.equals(scale, 1d)) {</span>
+<span class="nc" id="L126">      invTransform.scale(1 / scale, 1 / scale);</span>
+    }
+<span class="nc bnc" id="L128" title="All 2 branches missed.">    if (!Objects.equals(angleRad, 0d)) {</span>
+<span class="nc" id="L129">      invTransform.rotate(-angleRad);</span>
+    }
+
+<span class="nc" id="L132">    invTransform.translate(-anchorPt.getX(), -anchorPt.getY());</span>
+
+<span class="nc bnc" id="L134" title="All 2 branches missed.">    if ((transform.getType() &amp; AffineTransform.TYPE_FLIP) != 0) {</span>
+<span class="nc" id="L135">      invTransform.translate(0, -labelBounds.getHeight());</span>
+    }
+
+<span class="nc" id="L138">    Area areaBounds = new Area(invTransform.createTransformedShape(labelBounds));</span>
+<span class="nc" id="L139">    areaBounds.transform(AffineTransform.getTranslateInstance(offsetX, offsetY));</span>
+
+<span class="nc" id="L141">    return areaBounds;</span>
+  }
+
+  @Override
+  public Rectangle2D getTransformedBounds(AffineTransform transform) {
+    // Only translates origin because no rotation or scaling is applied
+<span class="nc" id="L147">    Point2D anchorPoint =</span>
+<span class="nc" id="L148">        new Point2D.Double(labelBounds.getX() + offsetX, labelBounds.getY() + offsetY);</span>
+<span class="nc" id="L149">    Optional.ofNullable(transform).ifPresent(t -&gt; transform.transform(anchorPoint, anchorPoint));</span>
+
+<span class="nc" id="L151">    return new Rectangle2D.Double(</span>
+<span class="nc" id="L152">        anchorPoint.getX(), anchorPoint.getY(), labelBounds.getWidth(), labelBounds.getHeight());</span>
+  }
+
+  @Override
+  public void setLabel(ViewCanvas&lt;?&gt; view2d, Double xPos, Double yPos, String... labels) {
+<span class="nc bnc" id="L157" title="All 4 branches missed.">    if (labels == null || labels.length == 0) {</span>
+<span class="nc" id="L158">      reset();</span>
+    } else {
+<span class="nc" id="L160">      this.labels = labels;</span>
+<span class="nc" id="L161">      Font font = MeasureTool.viewSetting.getFont();</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">      Graphics2D g2d = view2d == null ? null : (Graphics2D) view2d.getJComponent().getGraphics();</span>
+      FontRenderContext fontRenderContext =
+<span class="nc bnc" id="L164" title="All 2 branches missed.">          g2d == null ? new FontRenderContext(null, false, false) : g2d.getFontRenderContext();</span>
+<span class="nc" id="L165">      updateBoundsSize(font, fontRenderContext);</span>
+
+<span class="nc" id="L167">      labelBounds = new Rectangle.Double(xPos, yPos, labelWidth, (labelHeight * labels.length));</span>
+<span class="nc" id="L168">      GeomUtil.growRectangle(labelBounds, GROWING_BOUND);</span>
+    }
+<span class="nc" id="L170">  }</span>
+
+  protected void updateBoundsSize(Font defaultFont, FontRenderContext fontRenderContext) {
+<span class="nc" id="L173">    Objects.requireNonNull(defaultFont);</span>
+<span class="nc" id="L174">    Objects.requireNonNull(fontRenderContext);</span>
+
+<span class="nc bnc" id="L176" title="All 4 branches missed.">    if (labels == null || labels.length == 0) {</span>
+<span class="nc" id="L177">      reset();</span>
+    } else {
+<span class="nc" id="L179">      double maxWidth = 0;</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">      for (String label : labels) {</span>
+<span class="nc bnc" id="L181" title="All 2 branches missed.">        if (StringUtil.hasText(label)) {</span>
+<span class="nc" id="L182">          TextLayout layout = new TextLayout(label, defaultFont, fontRenderContext);</span>
+<span class="nc" id="L183">          maxWidth = Math.max(layout.getBounds().getWidth(), maxWidth);</span>
+        }
+      }
+<span class="nc" id="L186">      labelHeight =</span>
+<span class="nc" id="L187">          new TextLayout(&quot;Tg&quot;, defaultFont, fontRenderContext).getBounds().getHeight(); // NON-NLS</span>
+<span class="nc" id="L188">      labelWidth = maxWidth;</span>
+    }
+<span class="nc" id="L190">  }</span>
+
+  @Override
+  public void move(Double deltaX, Double deltaY) {
+<span class="nc" id="L194">    Optional.ofNullable(deltaX).ifPresent(delta -&gt; this.offsetX += delta);</span>
+<span class="nc" id="L195">    Optional.ofNullable(deltaY).ifPresent(delta -&gt; this.offsetY += delta);</span>
+<span class="nc" id="L196">  }</span>
+
+  @Override
+  public void paint(Graphics2D g2d, AffineTransform transform, boolean selected) {
+<span class="nc bnc" id="L200" title="All 4 branches missed.">    if (labels != null &amp;&amp; labelBounds != null) {</span>
+
+<span class="nc" id="L202">      Paint oldPaint = g2d.getPaint();</span>
+<span class="nc" id="L203">      Font oldFont = g2d.getFont();</span>
+<span class="nc" id="L204">      Font font = MeasureTool.viewSetting.getFont();</span>
+<span class="nc" id="L205">      g2d.setFont(font);</span>
+
+<span class="nc" id="L207">      Point2D pt = new Point2D.Double(labelBounds.getX() + offsetX, labelBounds.getY() + offsetY);</span>
+
+<span class="nc bnc" id="L209" title="All 2 branches missed.">      if (transform != null) {</span>
+<span class="nc" id="L210">        transform.transform(pt, pt);</span>
+      }
+
+<span class="nc" id="L213">      float px = (float) pt.getX() + GROWING_BOUND;</span>
+<span class="nc" id="L214">      float py = (float) pt.getY() + GROWING_BOUND - g2d.getFontMetrics().getDescent() + 1;</span>
+<span class="nc" id="L215">      float height = labelHeight.floatValue();</span>
+
+<span class="nc bnc" id="L217" title="All 2 branches missed.">      for (String label : labels) {</span>
+<span class="nc bnc" id="L218" title="All 2 branches missed.">        if (StringUtil.hasText(label)) {</span>
+<span class="nc" id="L219">          py += height;</span>
+<span class="nc" id="L220">          FontTools.paintColorFontOutline(g2d, label, px, py, Color.WHITE);</span>
+        }
+      }
+
+      // Graphics DEBUG
+      // Point2D pt2 = new Point2D.Double(labelBounds.getX(), labelBounds.getY());
+      // if (transform != null) {
+      // transform.transform(pt2, pt2);
+      // }
+      //
+      // g2d.setPaint(Color.RED);
+      // g2d.draw(new Line2D.Double(pt2.getX() - 5, pt2.getY(), pt2.getX() + 5, pt2.getY()));
+      // g2d.draw(new Line2D.Double(pt2.getX(), pt2.getY() - 5, pt2.getX(), pt2.getY() + 5));
+      //
+      // if (transform != null) {
+      // g2d.setPaint(Color.GREEN);
+      // g2d.draw(transform.createTransformedShape(getBounds(transform)));
+      // }
+      // if (transform != null) {
+      // g2d.setPaint(Color.RED);
+      // g2d.draw(transform.createTransformedShape(getArea(transform)));
+      // }
+      // Graphics DEBUG
+
+<span class="nc bnc" id="L244" title="All 2 branches missed.">      if (selected) {</span>
+<span class="nc" id="L245">        paintBoundOutline(g2d, transform);</span>
+      }
+
+<span class="nc" id="L248">      g2d.setPaint(oldPaint);</span>
+<span class="nc" id="L249">      g2d.setFont(oldFont);</span>
+    }
+<span class="nc" id="L251">  }</span>
+
+  protected void paintBoundOutline(Graphics2D g2d, AffineTransform transform) {
+<span class="nc" id="L254">    Rectangle2D boundingRect = getTransformedBounds(transform);</span>
+<span class="nc" id="L255">    Paint oldPaint = g2d.getPaint();</span>
+
+<span class="nc" id="L257">    g2d.setPaint(Color.BLACK);</span>
+<span class="nc" id="L258">    g2d.draw(boundingRect);</span>
+
+<span class="nc" id="L260">    GeomUtil.growRectangle(boundingRect, -1);</span>
+
+<span class="nc" id="L262">    g2d.setPaint(Color.WHITE);</span>
+<span class="nc" id="L263">    g2d.draw(boundingRect);</span>
+
+<span class="nc" id="L265">    g2d.setPaint(oldPaint);</span>
+<span class="nc" id="L266">  }</span>
+
+  @Override
+  public Rectangle2D getLabelBounds() {
+<span class="nc" id="L270">    return labelBounds;</span>
+  }
+
+<span class="nc" id="L273">  public static class Adapter extends XmlAdapter&lt;DefaultGraphicLabel, GraphicLabel&gt; {</span>
+
+    @Override
+    public GraphicLabel unmarshal(DefaultGraphicLabel v) throws Exception {
+<span class="nc" id="L277">      return v;</span>
+    }
+
+    @Override
+    public DefaultGraphicLabel marshal(GraphicLabel v) throws Exception {
+<span class="nc" id="L282">      return (DefaultGraphicLabel) v;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

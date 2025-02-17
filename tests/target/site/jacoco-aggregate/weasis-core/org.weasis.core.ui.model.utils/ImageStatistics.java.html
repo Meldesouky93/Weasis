@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ImageStatistics.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.utils</a> &gt; <span class="el_source">ImageStatistics.java</span></div><h1>ImageStatistics.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.utils;
+
+import org.weasis.core.Messages;
+import org.weasis.core.ui.model.utils.bean.Measurement;
+
+public interface ImageStatistics {
+<span class="nc" id="L16">  Measurement IMAGE_MIN = new Measurement(Messages.getString(&quot;measure.min&quot;), 1, false, true, false);</span>
+<span class="nc" id="L17">  Measurement IMAGE_MAX = new Measurement(Messages.getString(&quot;measure.max&quot;), 2, false, true, false);</span>
+<span class="nc" id="L18">  Measurement IMAGE_MEAN =</span>
+<span class="nc" id="L19">      new Measurement(Messages.getString(&quot;measure.mean&quot;), 3, false, true, true);</span>
+<span class="nc" id="L20">  Measurement IMAGE_STD =</span>
+<span class="nc" id="L21">      new Measurement(Messages.getString(&quot;measure.stdev&quot;), 4, false, true, false);</span>
+<span class="nc" id="L22">  Measurement IMAGE_SKEW =</span>
+<span class="nc" id="L23">      new Measurement(Messages.getString(&quot;measure.skew&quot;), 5, false, true, false);</span>
+<span class="nc" id="L24">  Measurement IMAGE_KURTOSIS =</span>
+<span class="nc" id="L25">      new Measurement(Messages.getString(&quot;measure.kurtosis&quot;), 6, false, true, false);</span>
+<span class="nc" id="L26">  Measurement IMAGE_PIXELS =</span>
+<span class="nc" id="L27">      new Measurement(Messages.getString(&quot;ImageStatistics.pixels&quot;), 7, false, true, false);</span>
+<span class="nc" id="L28">  Measurement IMAGE_MEDIAN =</span>
+<span class="nc" id="L29">      new Measurement(Messages.getString(&quot;ImageStatistics.median&quot;), 8, false, true, false);</span>
+<span class="nc" id="L30">  Measurement IMAGE_ENTROPY =</span>
+<span class="nc" id="L31">      new Measurement(Messages.getString(&quot;ImageStatistics.entropy&quot;), 9, false, true, false);</span>
+
+<span class="nc" id="L33">  Measurement[] ALL_MEASUREMENTS = {</span>
+    IMAGE_PIXELS,
+    IMAGE_MIN,
+    IMAGE_MAX,
+    IMAGE_MEDIAN,
+    IMAGE_MEAN,
+    IMAGE_STD,
+    IMAGE_SKEW,
+    IMAGE_KURTOSIS,
+    IMAGE_ENTROPY
+  };
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

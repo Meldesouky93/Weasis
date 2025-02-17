@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>CvUtil.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.image.cv</a> &gt; <span class="el_source">CvUtil.java</span></div><h1>CvUtil.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.image.cv;
+
+import java.awt.Graphics2D;
+import java.awt.GraphicsConfiguration;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.awt.image.VolatileImage;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.Scalar;
+import org.opencv.imgproc.Imgproc;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.image.util.KernelData;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.opencv.data.ImageCV;
+import org.weasis.opencv.data.PlanarImage;
+
+public class CvUtil {
+<span class="nc" id="L33">  private static final Logger LOGGER = LoggerFactory.getLogger(CvUtil.class);</span>
+
+  private CvUtil() {}
+
+  public static void runGarbageCollectorAndWait(long ms) {
+<span class="nc" id="L38">    System.gc();</span>
+<span class="nc" id="L39">    System.gc();</span>
+    try {
+<span class="nc" id="L41">      TimeUnit.MILLISECONDS.sleep(ms);</span>
+<span class="nc" id="L42">    } catch (InterruptedException et) {</span>
+<span class="nc" id="L43">      Thread.currentThread().interrupt();</span>
+<span class="nc" id="L44">    }</span>
+<span class="nc" id="L45">  }</span>
+
+  public static ImageCV filter(Mat source, KernelData kernel) {
+<span class="nc" id="L48">    Objects.requireNonNull(kernel);</span>
+<span class="nc" id="L49">    Mat srcImg = Objects.requireNonNull(source);</span>
+<span class="nc" id="L50">    Mat k = new Mat(kernel.getHeight(), kernel.getWidth(), CvType.CV_32F);</span>
+<span class="nc" id="L51">    k.put(0, 0, kernel.getData());</span>
+<span class="nc" id="L52">    ImageCV dstImg = new ImageCV();</span>
+<span class="nc" id="L53">    Imgproc.filter2D(srcImg, dstImg, -1, k);</span>
+    // TODO improve speed with dedicated call
+    // Imgproc.blur(srcImg, dstImg, new Size(3,3));
+<span class="nc" id="L56">    return dstImg;</span>
+  }
+
+  public static VolatileImage getVolatileImage(GraphicsConfiguration gc, BufferedImage src) {
+<span class="nc bnc" id="L60" title="All 4 branches missed.">    if (gc == null || src == null) {</span>
+<span class="nc" id="L61">      return null;</span>
+    }
+<span class="nc" id="L63">    VolatileImage dst = null;</span>
+    try {
+<span class="nc" id="L65">      dst = gc.createCompatibleVolatileImage(src.getWidth(), src.getHeight());</span>
+<span class="nc" id="L66">      Graphics2D g = dst.createGraphics();</span>
+<span class="nc" id="L67">      g.setRenderingHint(</span>
+          RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+<span class="nc" id="L69">      g.drawImage(src, 0, 0, null);</span>
+<span class="nc" id="L70">      g.dispose();</span>
+<span class="nc" id="L71">    } catch (Exception e) {</span>
+<span class="nc" id="L72">      LOGGER.error(&quot;Cannot create volatile image&quot;, e);</span>
+<span class="nc" id="L73">    }</span>
+<span class="nc" id="L74">    return dst;</span>
+  }
+
+  public static ImageCV meanStack(List&lt;ImageElement&gt; sources) {
+<span class="nc bnc" id="L78" title="All 2 branches missed.">    if (sources.size() &gt; 1) {</span>
+<span class="nc" id="L79">      ImageElement firstImg = sources.getFirst();</span>
+<span class="nc" id="L80">      PlanarImage img = firstImg.getImage(null, false);</span>
+
+<span class="nc" id="L82">      int type = img.type();</span>
+<span class="nc" id="L83">      Mat mean = new Mat(img.height(), img.width(), CvType.CV_32F);</span>
+<span class="nc" id="L84">      img.toMat().convertTo(mean, CvType.CV_32F);</span>
+<span class="nc" id="L85">      int numbSrc = sources.size();</span>
+<span class="nc bnc" id="L86" title="All 2 branches missed.">      for (int i = 1; i &lt; numbSrc; i++) {</span>
+<span class="nc" id="L87">        ImageElement imgElement = sources.get(i);</span>
+<span class="nc" id="L88">        PlanarImage image = imgElement.getImage(null, false);</span>
+<span class="nc" id="L89">        accumulateFloatStack(image, img, mean);</span>
+      }
+<span class="nc" id="L91">      ImageCV dstImg = new ImageCV();</span>
+<span class="nc" id="L92">      Core.divide(mean, new Scalar(numbSrc), mean);</span>
+<span class="nc" id="L93">      mean.convertTo(dstImg, type);</span>
+<span class="nc" id="L94">      return dstImg;</span>
+    }
+<span class="nc" id="L96">    return null;</span>
+  }
+
+  public static void accumulateFloatStack(PlanarImage image, PlanarImage refImage, Mat floatStack) {
+<span class="nc bnc" id="L100" title="All 4 branches missed.">    if (image instanceof Mat mat &amp;&amp; image.width() == refImage.width()) {</span>
+      // Accumulate not supported 16-bit signed:
+      // https://docs.opencv.org/3.3.0/d7/df3/group__imgproc__motion.html#ga1a567a79901513811ff3b9976923b199
+<span class="nc bnc" id="L103" title="All 2 branches missed.">      if (CvType.depth(image.type()) == CvType.CV_16S) {</span>
+<span class="nc" id="L104">        Mat floatImage = new Mat(refImage.height(), refImage.width(), CvType.CV_32F);</span>
+<span class="nc" id="L105">        image.toMat().convertTo(floatImage, CvType.CV_32F);</span>
+<span class="nc" id="L106">        Imgproc.accumulate(floatImage, floatStack);</span>
+<span class="nc" id="L107">      } else {</span>
+<span class="nc" id="L108">        Imgproc.accumulate(mat, floatStack);</span>
+      }
+    }
+<span class="nc" id="L111">  }</span>
+
+  public static ImageCV minStack(List&lt;ImageElement&gt; sources) {
+<span class="nc bnc" id="L114" title="All 2 branches missed.">    if (sources.size() &gt; 1) {</span>
+<span class="nc" id="L115">      ImageElement firstImg = sources.getFirst();</span>
+<span class="nc" id="L116">      ImageCV dstImg = new ImageCV();</span>
+<span class="nc" id="L117">      PlanarImage img = firstImg.getImage(null, false);</span>
+<span class="nc" id="L118">      img.toMat().copyTo(dstImg);</span>
+
+<span class="nc" id="L120">      int numbSrc = sources.size();</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">      for (int i = 1; i &lt; numbSrc; i++) {</span>
+<span class="nc" id="L122">        ImageElement imgElement = sources.get(i);</span>
+<span class="nc" id="L123">        PlanarImage image = imgElement.getImage(null, false);</span>
+<span class="nc bnc" id="L124" title="All 4 branches missed.">        if (image instanceof Mat mat &amp;&amp; image.width() == dstImg.width()) {</span>
+<span class="nc" id="L125">          Core.min(dstImg, mat, dstImg);</span>
+        }
+      }
+<span class="nc" id="L128">      return dstImg;</span>
+    }
+<span class="nc" id="L130">    return null;</span>
+  }
+
+  public static ImageCV maxStack(List&lt;ImageElement&gt; sources) {
+<span class="nc bnc" id="L134" title="All 2 branches missed.">    if (sources.size() &gt; 1) {</span>
+<span class="nc" id="L135">      ImageElement firstImg = sources.getFirst();</span>
+<span class="nc" id="L136">      ImageCV dstImg = new ImageCV();</span>
+<span class="nc" id="L137">      PlanarImage img = firstImg.getImage(null, false);</span>
+<span class="nc" id="L138">      img.toMat().copyTo(dstImg);</span>
+
+<span class="nc" id="L140">      int numbSrc = sources.size();</span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">      for (int i = 1; i &lt; numbSrc; i++) {</span>
+<span class="nc" id="L142">        ImageElement imgElement = sources.get(i);</span>
+<span class="nc" id="L143">        PlanarImage image = imgElement.getImage(null, false);</span>
+<span class="nc bnc" id="L144" title="All 4 branches missed.">        if (image instanceof Mat mat &amp;&amp; image.width() == dstImg.width()) {</span>
+<span class="nc" id="L145">          Core.max(dstImg, mat, dstImg);</span>
+        }
+      }
+<span class="nc" id="L148">      return dstImg;</span>
+    }
+<span class="nc" id="L150">    return null;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

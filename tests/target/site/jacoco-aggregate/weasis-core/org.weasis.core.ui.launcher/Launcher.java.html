@@ -1,0 +1,695 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>Launcher.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.launcher</a> &gt; <span class="el_source">Launcher.java</span></div><h1>Launcher.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2024 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.launcher;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.formdev.flatlaf.extras.FlatSVGIcon;
+import com.formdev.flatlaf.util.SystemInfo;
+import java.awt.Window;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URI;
+import java.nio.file.Path;
+import java.util.*;
+import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import javax.swing.Action;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JDialog;
+import javax.swing.JOptionPane;
+import javax.swing.ListSelectionModel;
+import javax.swing.SwingUtilities;
+import javax.swing.plaf.basic.BasicComboPopup;
+import org.osgi.framework.BundleContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.Messages;
+import org.weasis.core.api.explorer.ObservableEvent;
+import org.weasis.core.api.gui.util.AppProperties;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.service.BundlePreferences;
+import org.weasis.core.api.service.BundleTools;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.api.util.ResourceUtil.ActionIcon;
+import org.weasis.core.ui.editor.SeriesViewerUI;
+import org.weasis.core.ui.editor.image.ImageViewerEventManager;
+import org.weasis.core.ui.editor.image.ViewerPlugin;
+import org.weasis.core.ui.util.DefaultAction;
+import org.weasis.core.ui.util.UriListFlavor;
+import org.weasis.core.util.StringUtil;
+
+<span class="nc" id="L57">public class Launcher {</span>
+<span class="nc" id="L58">  private static final Logger LOGGER = LoggerFactory.getLogger(Launcher.class);</span>
+
+<span class="nc" id="L60">  public enum Compatibility {</span>
+<span class="nc" id="L61">    LINUX(&quot;Linux&quot;), // NON-NLS</span>
+<span class="nc" id="L62">    MAC(&quot;macOS&quot;), // NON-NLS</span>
+<span class="nc" id="L63">    WINDOWS(&quot;Windows&quot;); // NON-NLS</span>
+
+    final String title;
+
+<span class="nc" id="L67">    Compatibility(String title) {</span>
+<span class="nc" id="L68">      this.title = title;</span>
+<span class="nc" id="L69">    }</span>
+
+    @Override
+    public String toString() {
+<span class="nc" id="L73">      return title;</span>
+    }
+  }
+
+<span class="nc" id="L77">  public enum Type {</span>
+<span class="nc" id="L78">    DICOM(Messages.getString(&quot;dicom.launcher&quot;), &quot;dicomLaunchers.json&quot;),</span>
+<span class="nc" id="L79">    OTHER(Messages.getString(&quot;other.launcher&quot;), &quot;otherLaunchers.json&quot;);</span>
+
+    final String title;
+    final String filename;
+
+<span class="nc" id="L84">    Type(String title, String filename) {</span>
+<span class="nc" id="L85">      this.title = title;</span>
+<span class="nc" id="L86">      this.filename = filename;</span>
+<span class="nc" id="L87">    }</span>
+
+    @Override
+    public String toString() {
+<span class="nc" id="L91">      return title;</span>
+    }
+
+    public String getFilename() {
+<span class="nc" id="L95">      return filename;</span>
+    }
+  }
+
+  private String name;
+  private String iconPath;
+  private boolean enable;
+  private boolean button;
+
+<span class="nc" id="L104">  private boolean local = true;</span>
+
+  @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = &quot;launchType&quot;)
+  @JsonSubTypes({
+    @JsonSubTypes.Type(value = URIConfiguration.class, name = &quot;URI&quot;),
+    @JsonSubTypes.Type(value = ApplicationConfiguration.class, name = &quot;Application&quot;)
+  })
+  private Configuration configuration;
+
+  public String getName() {
+<span class="nc" id="L114">    return name;</span>
+  }
+
+  public void setName(String name) {
+<span class="nc" id="L118">    this.name = name;</span>
+<span class="nc" id="L119">  }</span>
+
+  public String getIconPath() {
+<span class="nc" id="L122">    return iconPath;</span>
+  }
+
+  public void setIconPath(String iconPath) {
+<span class="nc" id="L126">    this.iconPath = iconPath;</span>
+<span class="nc" id="L127">  }</span>
+
+  @JsonIgnore
+  public Icon getIcon() {
+<span class="nc" id="L131">    String path = iconPath;</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">    if (!StringUtil.hasText(path)) {</span>
+<span class="nc" id="L133">      path = ActionIcon.LAUNCH.getPath();</span>
+    }
+
+<span class="nc" id="L136">    Icon icon = null;</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">    if (path.endsWith(&quot;.svg&quot;)) {</span>
+<span class="nc" id="L138">      FlatSVGIcon svgIcon = ResourceUtil.getIcon(path);</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">      if (svgIcon.hasFound()) {</span>
+<span class="nc" id="L140">        icon = svgIcon;</span>
+      }
+<span class="nc" id="L142">    } else {</span>
+<span class="nc" id="L143">      File file = ResourceUtil.getResource(path);</span>
+<span class="nc bnc" id="L144" title="All 2 branches missed.">      if (file.canRead()) {</span>
+<span class="nc" id="L145">        icon = new ImageIcon(file.getAbsolutePath());</span>
+      }
+    }
+
+<span class="nc bnc" id="L149" title="All 2 branches missed.">    if (icon == null) {</span>
+<span class="nc" id="L150">      icon = ResourceUtil.getIcon(ActionIcon.LAUNCH);</span>
+    }
+<span class="nc" id="L152">    return icon;</span>
+  }
+
+  @JsonIgnore
+  public Icon getResizeIcon(int width, int height) {
+<span class="nc" id="L157">    Icon icon = getIcon();</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">    if (icon instanceof FlatSVGIcon) {</span>
+<span class="nc" id="L159">      return ((FlatSVGIcon) icon).derive(width, height);</span>
+<span class="nc bnc" id="L160" title="All 2 branches missed.">    } else if (icon instanceof ImageIcon imageIcon) {</span>
+<span class="nc" id="L161">      return new ImageIcon(</span>
+          imageIcon
+<span class="nc" id="L163">              .getImage()</span>
+<span class="nc" id="L164">              .getScaledInstance(</span>
+<span class="nc" id="L165">                  GuiUtils.getScaleLength(width),</span>
+<span class="nc" id="L166">                  GuiUtils.getScaleLength(height),</span>
+                  java.awt.Image.SCALE_SMOOTH));
+    }
+<span class="nc" id="L169">    return icon;</span>
+  }
+
+  public boolean isEnable() {
+<span class="nc" id="L173">    return enable;</span>
+  }
+
+  public void setEnable(boolean enable) {
+<span class="nc" id="L177">    this.enable = enable;</span>
+<span class="nc" id="L178">  }</span>
+
+  public boolean isButton() {
+<span class="nc" id="L181">    return button;</span>
+  }
+
+  public void setButton(boolean button) {
+<span class="nc" id="L185">    this.button = button;</span>
+<span class="nc" id="L186">  }</span>
+
+  public Configuration getConfiguration() {
+<span class="nc" id="L189">    return configuration;</span>
+  }
+
+  public void setConfiguration(Configuration configuration) {
+<span class="nc" id="L193">    this.configuration = configuration;</span>
+<span class="nc" id="L194">  }</span>
+
+  public boolean isLocal() {
+<span class="nc" id="L197">    return local;</span>
+  }
+
+  public void setLocal(boolean local) {
+<span class="nc" id="L201">    this.local = local;</span>
+<span class="nc" id="L202">  }</span>
+
+  @Override
+  public String toString() {
+<span class="nc" id="L206">    return name;</span>
+  }
+
+  public abstract static class Configuration {
+    protected static final String DICOM_SEL =
+        &quot;{dicom:&quot; + Placeholder.DICOM_COPY_FOLDER + &quot;}&quot;; // NON-NLS
+    private final String launchType;
+
+    private Path source;
+
+<span class="nc" id="L216">    public Configuration(String launchType) {</span>
+<span class="nc" id="L217">      this.launchType = launchType;</span>
+<span class="nc" id="L218">    }</span>
+
+    public String getLaunchType() {
+<span class="nc" id="L221">      return launchType;</span>
+    }
+
+    @JsonIgnore
+    public boolean isDicomSelectionAction() {
+<span class="nc bnc" id="L226" title="All 4 branches missed.">      return source != null &amp;&amp; source.toString().contains(DICOM_SEL);</span>
+    }
+
+    @JsonIgnore
+    public Path getSource() {
+<span class="nc" id="L231">      return source;</span>
+    }
+
+    @JsonIgnore
+    public void setSource(Path source) {
+<span class="nc" id="L236">      this.source = source;</span>
+<span class="nc" id="L237">    }</span>
+
+    @JsonIgnore
+    public abstract void launch(ImageViewerEventManager&lt;?&gt; eventManager);
+
+    @JsonIgnore
+    protected String resolvePlaceholders(String text, ImageViewerEventManager&lt;?&gt; eventManager) {
+<span class="nc" id="L244">      String val = Placeholder.PREFERENCES_PLACEHOLDER.resolvePlaceholders(text, eventManager);</span>
+<span class="nc bnc" id="L245" title="All 4 branches missed.">      if (source != null &amp;&amp; val != null) {</span>
+<span class="nc" id="L246">        val = val.replaceAll(&quot;\\&quot; + DICOM_SEL, source.toAbsolutePath().toString());</span>
+      }
+<span class="nc bnc" id="L248" title="All 2 branches missed.">      if (eventManager != null) {</span>
+<span class="nc" id="L249">        return eventManager.resolvePlaceholders(val);</span>
+      }
+<span class="nc" id="L251">      return val;</span>
+    }
+
+    @JsonIgnore
+    void showInvalidField(Window parent) {
+<span class="nc bnc" id="L256" title="All 2 branches missed.">      if (this instanceof URIConfiguration) {</span>
+<span class="nc" id="L257">        LauncherDialog.ShowRequiredValue(parent, Messages.getString(&quot;uri&quot;));</span>
+      } else {
+<span class="nc" id="L259">        LauncherDialog.ShowRequiredValue(parent, Messages.getString(&quot;application&quot;));</span>
+      }
+<span class="nc" id="L261">    }</span>
+
+    @JsonIgnore
+    public abstract boolean isValid();
+  }
+
+  public static class URIConfiguration extends Configuration {
+    private String uri;
+
+    public URIConfiguration() {
+<span class="nc" id="L271">      super(&quot;URI&quot;);</span>
+<span class="nc" id="L272">    }</span>
+
+    public String getUri() {
+<span class="nc" id="L275">      return uri;</span>
+    }
+
+    public void setUri(String uri) {
+<span class="nc" id="L279">      this.uri = uri;</span>
+<span class="nc" id="L280">    }</span>
+
+    @JsonIgnore
+    public boolean isDicomSelectionAction() {
+<span class="nc" id="L284">      boolean sel = super.isDicomSelectionAction();</span>
+<span class="nc bnc" id="L285" title="All 2 branches missed.">      if (sel) {</span>
+<span class="nc" id="L286">        return true;</span>
+      }
+<span class="nc bnc" id="L288" title="All 4 branches missed.">      return uri != null &amp;&amp; uri.contains(DICOM_SEL);</span>
+    }
+
+    @Override
+    public void launch(ImageViewerEventManager&lt;?&gt; eventManager) {
+      try {
+<span class="nc" id="L294">        String val = resolvePlaceholders(uri, eventManager);</span>
+<span class="nc" id="L295">        URI ref = new URI(val);</span>
+<span class="nc" id="L296">        GuiUtils.openInDefaultBrowser(GuiUtils.getUICore().getBaseArea(), ref);</span>
+<span class="nc" id="L297">      } catch (Exception e1) {</span>
+<span class="nc" id="L298">        LOGGER.error(&quot;Opening launcher&quot;, e1);</span>
+<span class="nc" id="L299">      }</span>
+<span class="nc" id="L300">    }</span>
+
+    @Override
+    public boolean isValid() {
+<span class="nc bnc" id="L304" title="All 2 branches missed.">      if (!StringUtil.hasText(uri)) {</span>
+<span class="nc" id="L305">        return false;</span>
+      }
+<span class="nc" id="L307">      return UriListFlavor.isValidURI(uri.replaceAll(&quot;\\{.*?}&quot;, &quot;&quot;));</span>
+    }
+  }
+
+  public static class ApplicationConfiguration extends Configuration {
+
+    private String binaryPath;
+    private List&lt;String&gt; parameters;
+    private String workingDirectory;
+    private Map&lt;String, String&gt; environmentVariables;
+    private Compatibility compatibility;
+
+    public ApplicationConfiguration() {
+<span class="nc" id="L320">      super(Messages.getString(&quot;application&quot;));</span>
+<span class="nc bnc" id="L321" title="All 2 branches missed.">      if (SystemInfo.isWindows) {</span>
+<span class="nc" id="L322">        compatibility = Compatibility.WINDOWS;</span>
+<span class="nc bnc" id="L323" title="All 2 branches missed.">      } else if (SystemInfo.isMacOS) {</span>
+<span class="nc" id="L324">        compatibility = Compatibility.MAC;</span>
+      } else {
+<span class="nc" id="L326">        compatibility = Compatibility.LINUX;</span>
+      }
+<span class="nc" id="L328">    }</span>
+
+    public String getBinaryPath() {
+<span class="nc" id="L331">      return binaryPath;</span>
+    }
+
+    public void setBinaryPath(String binaryPath) {
+<span class="nc" id="L335">      this.binaryPath = binaryPath;</span>
+<span class="nc" id="L336">    }</span>
+
+    public List&lt;String&gt; getParameters() {
+<span class="nc" id="L339">      return parameters;</span>
+    }
+
+    public void setParameters(List&lt;String&gt; parameters) {
+<span class="nc" id="L343">      this.parameters = parameters;</span>
+<span class="nc" id="L344">    }</span>
+
+    public String getWorkingDirectory() {
+<span class="nc" id="L347">      return workingDirectory;</span>
+    }
+
+    public void setWorkingDirectory(String workingDirectory) {
+<span class="nc" id="L351">      this.workingDirectory = workingDirectory;</span>
+<span class="nc" id="L352">    }</span>
+
+    public Map&lt;String, String&gt; getEnvironmentVariables() {
+<span class="nc" id="L355">      return environmentVariables;</span>
+    }
+
+    public void setEnvironmentVariables(Map&lt;String, String&gt; environmentVariables) {
+<span class="nc" id="L359">      this.environmentVariables = environmentVariables;</span>
+<span class="nc" id="L360">    }</span>
+
+    public Compatibility getCompatibility() {
+<span class="nc" id="L363">      return compatibility;</span>
+    }
+
+    public void setCompatibility(Compatibility compatibility) {
+<span class="nc" id="L367">      this.compatibility = compatibility;</span>
+<span class="nc" id="L368">    }</span>
+
+    @JsonIgnore
+    public boolean isCompatibleWithCurrentSystem() {
+<span class="nc bnc" id="L372" title="All 2 branches missed.">      if (compatibility == null) {</span>
+<span class="nc" id="L373">        return true;</span>
+      }
+<span class="nc bnc" id="L375" title="All 2 branches missed.">      if (SystemInfo.isWindows) {</span>
+<span class="nc bnc" id="L376" title="All 2 branches missed.">        return compatibility == Compatibility.WINDOWS;</span>
+<span class="nc bnc" id="L377" title="All 2 branches missed.">      } else if (SystemInfo.isMacOS) {</span>
+<span class="nc bnc" id="L378" title="All 2 branches missed.">        return compatibility == Compatibility.MAC;</span>
+      } else {
+<span class="nc bnc" id="L380" title="All 2 branches missed.">        return compatibility == Compatibility.LINUX;</span>
+      }
+    }
+
+    @JsonIgnore
+    public boolean isDicomSelectionAction() {
+<span class="nc" id="L386">      boolean sel = super.isDicomSelectionAction();</span>
+<span class="nc bnc" id="L387" title="All 2 branches missed.">      if (sel) {</span>
+<span class="nc" id="L388">        return true;</span>
+      }
+<span class="nc bnc" id="L390" title="All 4 branches missed.">      if (parameters != null &amp;&amp; !parameters.isEmpty()) {</span>
+<span class="nc bnc" id="L391" title="All 2 branches missed.">        for (String param : parameters) {</span>
+<span class="nc bnc" id="L392" title="All 4 branches missed.">          if (StringUtil.hasText(param) &amp;&amp; param.contains(DICOM_SEL)) {</span>
+<span class="nc" id="L393">            return true;</span>
+          }
+<span class="nc" id="L395">        }</span>
+      }
+<span class="nc bnc" id="L397" title="All 4 branches missed.">      if (environmentVariables != null &amp;&amp; !environmentVariables.isEmpty()) {</span>
+<span class="nc bnc" id="L398" title="All 2 branches missed.">        for (String val : environmentVariables.values()) {</span>
+<span class="nc bnc" id="L399" title="All 4 branches missed.">          if (StringUtil.hasText(val) &amp;&amp; val.contains(DICOM_SEL)) {</span>
+<span class="nc" id="L400">            return true;</span>
+          }
+<span class="nc" id="L402">        }</span>
+      }
+<span class="nc" id="L404">      return false;</span>
+    }
+
+    public void launch(ImageViewerEventManager&lt;?&gt; eventManager) {
+<span class="nc bnc" id="L408" title="All 2 branches missed.">      if (!StringUtil.hasText(binaryPath)) {</span>
+<span class="nc" id="L409">        return;</span>
+      }
+<span class="nc bnc" id="L411" title="All 2 branches missed.">      boolean isMac = compatibility == Compatibility.MAC;</span>
+<span class="nc" id="L412">      List&lt;String&gt; command =</span>
+<span class="nc" id="L413">          new ArrayList&lt;&gt;(Arrays.asList(binaryPath.trim().split(&quot;\\s+&quot;))); // NON-NLS</span>
+<span class="nc bnc" id="L414" title="All 6 branches missed.">      if (!isMac &amp;&amp; parameters != null &amp;&amp; !parameters.isEmpty()) {</span>
+<span class="nc bnc" id="L415" title="All 2 branches missed.">        for (String param : parameters) {</span>
+<span class="nc" id="L416">          command.add(resolvePlaceholders(param, eventManager));</span>
+<span class="nc" id="L417">        }</span>
+      }
+
+<span class="nc" id="L420">      ProcessBuilder processBuilder = new ProcessBuilder(command);</span>
+<span class="nc bnc" id="L421" title="All 2 branches missed.">      if (StringUtil.hasText(workingDirectory)) {</span>
+<span class="nc" id="L422">        processBuilder.directory(new File(workingDirectory));</span>
+      }
+<span class="nc bnc" id="L424" title="All 4 branches missed.">      if (environmentVariables != null &amp;&amp; !environmentVariables.isEmpty()) {</span>
+<span class="nc" id="L425">        Map&lt;String, String&gt; environment = processBuilder.environment();</span>
+<span class="nc bnc" id="L426" title="All 2 branches missed.">        for (Entry&lt;String, String&gt; entry : environmentVariables.entrySet()) {</span>
+<span class="nc" id="L427">          environment.put(entry.getKey(), resolvePlaceholders(entry.getValue(), eventManager));</span>
+<span class="nc" id="L428">        }</span>
+      }
+
+      Thread launcherThread =
+<span class="nc" id="L432">          Thread.ofVirtual()</span>
+<span class="nc" id="L433">              .start(</span>
+                  () -&gt; {
+                    try {
+<span class="nc" id="L436">                      Process p = processBuilder.start();</span>
+<span class="nc" id="L437">                      BufferedReader buffer =</span>
+<span class="nc" id="L438">                          new BufferedReader(new InputStreamReader(p.getInputStream()));</span>
+
+                      String data;
+<span class="nc" id="L441">                      int lineCount = 0;</span>
+<span class="nc bnc" id="L442" title="All 4 branches missed.">                      while (lineCount &lt; 5 &amp;&amp; (data = buffer.readLine()) != null) {</span>
+<span class="nc" id="L443">                        System.out.println(data);</span>
+<span class="nc" id="L444">                        lineCount++;</span>
+                      }
+
+<span class="nc" id="L447">                      int val = getExitValue(p);</span>
+
+<span class="nc bnc" id="L449" title="All 6 branches missed.">                      if (isMac &amp;&amp; parameters != null &amp;&amp; !parameters.isEmpty()) {</span>
+<span class="nc bnc" id="L450" title="All 2 branches missed.">                        for (String param : parameters) {</span>
+<span class="nc" id="L451">                          command.add(resolvePlaceholders(param, eventManager));</span>
+<span class="nc" id="L452">                        }</span>
+<span class="nc" id="L453">                        Thread.sleep(500);</span>
+<span class="nc" id="L454">                        p = processBuilder.start();</span>
+<span class="nc" id="L455">                        val = getExitValue(p);</span>
+                      }
+
+<span class="nc bnc" id="L458" title="All 2 branches missed.">                      if (val != 0) {</span>
+<span class="nc" id="L459">                        JOptionPane.showMessageDialog(</span>
+<span class="nc" id="L460">                            GuiUtils.getUICore().getBaseArea(),</span>
+<span class="nc" id="L461">                            String.format(Messages.getString(&quot;error.launching.app&quot;), binaryPath),</span>
+<span class="nc" id="L462">                            Messages.getString(&quot;launcher.error&quot;),</span>
+                            JOptionPane.ERROR_MESSAGE);
+                      }
+<span class="nc" id="L465">                    } catch (IOException e1) {</span>
+<span class="nc" id="L466">                      LOGGER.error(&quot;Running cmd&quot;, e1);</span>
+<span class="nc" id="L467">                    } catch (InterruptedException e2) {</span>
+<span class="nc" id="L468">                      LOGGER.error(&quot;Cannot get the exit status of {}&quot;, binaryPath, e2);</span>
+<span class="nc" id="L469">                      Thread.currentThread().interrupt();</span>
+<span class="nc" id="L470">                    }</span>
+<span class="nc" id="L471">                  });</span>
+<span class="nc" id="L472">      launcherThread.start();</span>
+<span class="nc" id="L473">    }</span>
+
+    private int getExitValue(Process p) throws InterruptedException {
+<span class="nc bnc" id="L476" title="All 2 branches missed.">      if (!p.waitFor(15, TimeUnit.SECONDS)) {</span>
+<span class="nc" id="L477">        LOGGER.warn(&quot;Process did not exit within the timeout, detaching the process.&quot;);</span>
+<span class="nc" id="L478">        return 0;</span>
+      } else {
+<span class="nc" id="L480">        return p.exitValue();</span>
+      }
+    }
+
+    @Override
+    public boolean isValid() {
+<span class="nc bnc" id="L486" title="All 4 branches missed.">      return StringUtil.hasText(binaryPath) &amp;&amp; isCompatibleWithCurrentSystem();</span>
+    }
+  }
+
+  private String getToolTips() {
+<span class="nc" id="L491">    return Messages.getString(&quot;name&quot;)</span>
+        + StringUtil.COLON_AND_SPACE
+        + name
+        + &quot;\n&quot;
+<span class="nc" id="L495">        + Messages.getString(&quot;icon.path&quot;)</span>
+        + StringUtil.COLON_AND_SPACE
+        + iconPath
+        + &quot;\n&quot;
+<span class="nc" id="L499">        + Messages.getString(&quot;enable&quot;)</span>
+        + StringUtil.COLON_AND_SPACE
+        + enable
+        + &quot;\n&quot;
+<span class="nc" id="L503">        + Messages.getString(&quot;button&quot;)</span>
+        + StringUtil.COLON_AND_SPACE
+        + button
+        + &quot;\n&quot;
+<span class="nc" id="L507">        + Messages.getString(&quot;launcher.typ&quot;)</span>
+        + StringUtil.COLON_AND_SPACE
+        + configuration.launchType;
+  }
+
+  public static void addNodeActionPerformed(JComboBox&lt;Launcher&gt; comboBox, Type type) {
+<span class="nc" id="L513">    JDialog dialog =</span>
+<span class="nc" id="L514">        new LauncherDialog(SwingUtilities.getWindowAncestor(comboBox), type, null, comboBox);</span>
+<span class="nc" id="L515">    GuiUtils.showCenterScreen(dialog, comboBox);</span>
+<span class="nc" id="L516">  }</span>
+
+  public static void editNodeActionPerformed(JComboBox&lt;Launcher&gt; comboBox, Type type) {
+<span class="nc" id="L519">    int index = comboBox.getSelectedIndex();</span>
+<span class="nc bnc" id="L520" title="All 2 branches missed.">    if (index &gt;= 0) {</span>
+<span class="nc" id="L521">      Launcher node = comboBox.getItemAt(index);</span>
+<span class="nc bnc" id="L522" title="All 2 branches missed.">      if (node.isLocal()) {</span>
+<span class="nc" id="L523">        JDialog dialog =</span>
+<span class="nc" id="L524">            new LauncherDialog(SwingUtilities.getWindowAncestor(comboBox), type, node, comboBox);</span>
+<span class="nc" id="L525">        GuiUtils.showCenterScreen(dialog, comboBox);</span>
+<span class="nc" id="L526">      } else {</span>
+<span class="nc" id="L527">        JOptionPane.showMessageDialog(</span>
+            comboBox,
+<span class="nc" id="L529">            Messages.getString(&quot;only.user.created.item.modified&quot;),</span>
+<span class="nc" id="L530">            Messages.getString(&quot;error&quot;),</span>
+            JOptionPane.ERROR_MESSAGE);
+      }
+    }
+<span class="nc" id="L534">  }</span>
+
+  public static void deleteNodeActionPerformed(JComboBox&lt;Launcher&gt; comboBox, Type type) {
+<span class="nc" id="L537">    int index = comboBox.getSelectedIndex();</span>
+<span class="nc bnc" id="L538" title="All 2 branches missed.">    if (index &gt;= 0) {</span>
+<span class="nc" id="L539">      Launcher node = comboBox.getItemAt(index);</span>
+<span class="nc bnc" id="L540" title="All 2 branches missed.">      if (node.isLocal()) {</span>
+<span class="nc" id="L541">        int response =</span>
+<span class="nc" id="L542">            JOptionPane.showConfirmDialog(</span>
+                comboBox,
+<span class="nc" id="L544">                String.format(Messages.getString(&quot;really.want.delete&quot;), node),</span>
+<span class="nc" id="L545">                Type.DICOM.toString(),</span>
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+
+<span class="nc bnc" id="L549" title="All 2 branches missed.">        if (response == 0) {</span>
+<span class="nc" id="L550">          comboBox.removeItemAt(index);</span>
+<span class="nc" id="L551">          getLaunchers(type).remove(node);</span>
+<span class="nc" id="L552">          saveLaunchers(type);</span>
+        }
+<span class="nc" id="L554">      } else {</span>
+<span class="nc" id="L555">        JOptionPane.showMessageDialog(</span>
+            comboBox,
+<span class="nc" id="L557">            Messages.getString(&quot;only.user.created.item.modified&quot;),</span>
+<span class="nc" id="L558">            Messages.getString(&quot;error&quot;),</span>
+            JOptionPane.ERROR_MESSAGE);
+      }
+    }
+<span class="nc" id="L562">  }</span>
+
+  static List&lt;Launcher&gt; getLaunchers(Type type) {
+<span class="nc bnc" id="L565" title="All 2 branches missed.">    if (type == Type.OTHER) {</span>
+<span class="nc" id="L566">      return GuiUtils.getUICore().getOtherLaunchers();</span>
+<span class="nc bnc" id="L567" title="All 2 branches missed.">    } else if (type == Type.DICOM) {</span>
+<span class="nc" id="L568">      return GuiUtils.getUICore().getDicomLaunchers();</span>
+    }
+<span class="nc" id="L570">    return Collections.emptyList();</span>
+  }
+
+  static void saveLaunchers(Type type) {
+<span class="nc" id="L574">    List&lt;Launcher&gt; list = getLaunchers(type);</span>
+<span class="nc" id="L575">    final BundleContext context = AppProperties.getBundleContext(Launcher.class);</span>
+<span class="nc" id="L576">    File file = new File(BundlePreferences.getDataFolder(context), type.getFilename());</span>
+    try {
+<span class="nc" id="L578">      ObjectMapper mapper = new ObjectMapper();</span>
+<span class="nc" id="L579">      mapper.writeValue(file, list);</span>
+<span class="nc" id="L580">    } catch (IOException e) {</span>
+<span class="nc" id="L581">      LOGGER.error(&quot;Cannot save the launcher configuration&quot;, e);</span>
+<span class="nc" id="L582">    }</span>
+
+<span class="nc" id="L584">    List&lt;ViewerPlugin&lt;?&gt;&gt; viewerPlugins = GuiUtils.getUICore().getViewerPlugins();</span>
+<span class="nc bnc" id="L585" title="All 4 branches missed.">    if (viewerPlugins != null &amp;&amp; !viewerPlugins.isEmpty()) {</span>
+<span class="nc" id="L586">      Set&lt;SeriesViewerUI&gt; uiSet =</span>
+<span class="nc" id="L587">          viewerPlugins.stream().map(ViewerPlugin::getSeriesViewerUI).collect(Collectors.toSet());</span>
+<span class="nc bnc" id="L588" title="All 2 branches missed.">      for (SeriesViewerUI ui : uiSet) {</span>
+<span class="nc bnc" id="L589" title="All 2 branches missed.">        if (ui.clazz.getPackageName().contains(&quot;dicom&quot;)) { // NON-NLS</span>
+<span class="nc" id="L590">          BundleTools.notifyDicomModel(ObservableEvent.BasicAction.UPDATE_TOOLBARS, ui);</span>
+        } else {
+<span class="nc" id="L592">          BundleTools.notifyDefaultDataModel(ObservableEvent.BasicAction.UPDATE_TOOLBARS, ui);</span>
+        }
+<span class="nc" id="L594">      }</span>
+    }
+<span class="nc" id="L596">  }</span>
+
+  public static void addTooltipToComboList(final JComboBox&lt;? extends Launcher&gt; combo) {
+<span class="nc" id="L599">    Object comp = combo.getUI().getAccessibleChild(combo, 0);</span>
+<span class="nc bnc" id="L600" title="All 2 branches missed.">    if (comp instanceof final BasicComboPopup popup) {</span>
+<span class="nc" id="L601">      popup</span>
+<span class="nc" id="L602">          .getList()</span>
+<span class="nc" id="L603">          .getSelectionModel()</span>
+<span class="nc" id="L604">          .addListSelectionListener(</span>
+              e -&gt; {
+<span class="nc bnc" id="L606" title="All 2 branches missed.">                if (!e.getValueIsAdjusting()) {</span>
+<span class="nc" id="L607">                  ListSelectionModel model = (ListSelectionModel) e.getSource();</span>
+<span class="nc" id="L608">                  int first = model.getMinSelectionIndex();</span>
+<span class="nc bnc" id="L609" title="All 2 branches missed.">                  if (first &gt;= 0) {</span>
+<span class="nc" id="L610">                    Launcher item = combo.getItemAt(first);</span>
+<span class="nc" id="L611">                    ((JComponent) combo.getRenderer()).setToolTipText(item.getToolTips());</span>
+                  }
+                }
+<span class="nc" id="L614">              });</span>
+    }
+<span class="nc" id="L616">  }</span>
+
+  public static List&lt;Action&gt; getLauncherActions(
+      ImageViewerEventManager&lt;?&gt; eventManager, Type type) {
+<span class="nc" id="L620">    ArrayList&lt;Action&gt; actions = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L622">    List&lt;Launcher&gt; launchers = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L623" title="All 2 branches missed.">    if (type == Type.OTHER) {</span>
+<span class="nc" id="L624">      launchers.addAll(GuiUtils.getUICore().getOtherLaunchers());</span>
+<span class="nc bnc" id="L625" title="All 2 branches missed.">    } else if (type == Type.DICOM) {</span>
+<span class="nc" id="L626">      launchers.addAll(GuiUtils.getUICore().getDicomLaunchers());</span>
+    } else {
+<span class="nc" id="L628">      launchers.addAll(GuiUtils.getUICore().getOtherLaunchers());</span>
+<span class="nc" id="L629">      launchers.addAll(GuiUtils.getUICore().getDicomLaunchers());</span>
+    }
+
+<span class="nc bnc" id="L632" title="All 2 branches missed.">    for (Launcher launcher : launchers) {</span>
+<span class="nc bnc" id="L633" title="All 4 branches missed.">      if (launcher.isEnable() &amp;&amp; launcher.getConfiguration().isValid()) {</span>
+<span class="nc" id="L634">        String name = launcher.getName();</span>
+<span class="nc" id="L635">        Icon icon = launcher.getResizeIcon(16, 16);</span>
+<span class="nc" id="L636">        actions.add(new DefaultAction(name, icon, _ -&gt; launcher.execute(eventManager)));</span>
+      }
+<span class="nc" id="L638">    }</span>
+<span class="nc" id="L639">    return actions;</span>
+  }
+
+  public void execute(ImageViewerEventManager&lt;?&gt; eventManager) {
+<span class="nc bnc" id="L643" title="All 6 branches missed.">    if (isEnable() &amp;&amp; configuration != null &amp;&amp; configuration.isValid()) {</span>
+<span class="nc bnc" id="L644" title="All 2 branches missed.">      if (eventManager != null) {</span>
+<span class="nc" id="L645">        eventManager.dicomExportAction(this);</span>
+      }
+<span class="nc" id="L647">      configuration.launch(eventManager);</span>
+<span class="nc" id="L648">      configuration.setSource(null);</span>
+    }
+<span class="nc" id="L650">  }</span>
+
+  public static void loadLaunchers(JComboBox&lt;Launcher&gt; comboBox, Type type) {
+<span class="nc bnc" id="L653" title="All 2 branches missed.">    if (comboBox == null) {</span>
+<span class="nc" id="L654">      return;</span>
+    }
+<span class="nc bnc" id="L656" title="All 2 branches missed.">    if (type == Type.DICOM) {</span>
+<span class="nc bnc" id="L657" title="All 2 branches missed.">      for (Launcher node : GuiUtils.getUICore().getDicomLaunchers()) {</span>
+<span class="nc" id="L658">        comboBox.addItem(node);</span>
+<span class="nc" id="L659">      }</span>
+<span class="nc bnc" id="L660" title="All 2 branches missed.">    } else if (type == Type.OTHER) {</span>
+<span class="nc bnc" id="L661" title="All 2 branches missed.">      for (Launcher node : GuiUtils.getUICore().getOtherLaunchers()) {</span>
+<span class="nc" id="L662">        comboBox.addItem(node);</span>
+<span class="nc" id="L663">      }</span>
+    }
+<span class="nc" id="L665">  }</span>
+
+  public static List&lt;Launcher&gt; loadLaunchers(Type type) {
+<span class="nc" id="L668">    List&lt;Launcher&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L669">    loadLaunchers(list, ResourceUtil.getResource(type.getFilename()), false);</span>
+<span class="nc" id="L670">    AppProperties.getBundleContext(Launcher.class);</span>
+<span class="nc" id="L671">    final BundleContext context = AppProperties.getBundleContext(Launcher.class);</span>
+<span class="nc" id="L672">    loadLaunchers(</span>
+<span class="nc" id="L673">        list, new File(BundlePreferences.getDataFolder(context), type.getFilename()), true);</span>
+<span class="nc" id="L674">    return list;</span>
+  }
+
+  private static void loadLaunchers(List&lt;Launcher&gt; list, File resource, boolean local) {
+<span class="nc bnc" id="L678" title="All 2 branches missed.">    if (resource.canRead()) {</span>
+      try {
+<span class="nc" id="L680">        ObjectMapper mapper = new ObjectMapper();</span>
+<span class="nc" id="L681">        List&lt;Launcher&gt; nodes =</span>
+<span class="nc" id="L682">            mapper.readValue(</span>
+                resource,
+<span class="nc" id="L684">                mapper.getTypeFactory().constructCollectionType(List.class, Launcher.class));</span>
+<span class="nc bnc" id="L685" title="All 2 branches missed.">        for (Launcher node : nodes) {</span>
+<span class="nc" id="L686">          node.setLocal(local);</span>
+<span class="nc" id="L687">          list.add(node);</span>
+<span class="nc" id="L688">        }</span>
+<span class="nc" id="L689">      } catch (IOException e) {</span>
+<span class="nc" id="L690">        LOGGER.error(&quot;Cannot load the launcher configuration&quot;, e);</span>
+<span class="nc" id="L691">      }</span>
+    }
+<span class="nc" id="L693">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

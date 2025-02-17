@@ -1,0 +1,584 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>UICore.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.service</a> &gt; <span class="el_source">UICore.java</span></div><h1>UICore.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.service;
+
+import bibliothek.gui.DockStation;
+import bibliothek.gui.Dockable;
+import bibliothek.gui.dock.DockElement;
+import bibliothek.gui.dock.common.CContentArea;
+import bibliothek.gui.dock.common.CControl;
+import bibliothek.gui.dock.common.CWorkingArea;
+import bibliothek.gui.dock.common.event.CVetoFocusListener;
+import bibliothek.gui.dock.common.intern.CDockable;
+import bibliothek.gui.dock.event.KeyboardListener;
+import java.awt.GraphicsEnvironment;
+import java.awt.Window;
+import java.awt.event.KeyEvent;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.lang.management.ManagementFactory;
+import java.net.HttpURLConnection;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Locale.Category;
+import java.util.Map;
+import java.util.Properties;
+import javax.management.InstanceNotFoundException;
+import javax.management.JMException;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import org.osgi.framework.BundleContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.explorer.DataExplorerView;
+import org.weasis.core.api.gui.util.AppProperties;
+import org.weasis.core.api.gui.util.GuiExecutor;
+import org.weasis.core.api.gui.util.WinUtil;
+import org.weasis.core.api.media.data.Codec;
+import org.weasis.core.api.media.data.MediaElement;
+import org.weasis.core.api.media.data.MediaSeries;
+import org.weasis.core.api.util.ClosableURLConnection;
+import org.weasis.core.api.util.LocalUtil;
+import org.weasis.core.api.util.NetworkUtil;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.api.util.URLParameters;
+import org.weasis.core.ui.editor.SeriesViewer;
+import org.weasis.core.ui.editor.SeriesViewerFactory;
+import org.weasis.core.ui.editor.image.ViewerPlugin;
+import org.weasis.core.ui.launcher.Launcher;
+import org.weasis.core.ui.util.ToolBarContainer;
+import org.weasis.core.ui.util.Toolbar;
+import org.weasis.core.util.FileUtil;
+import org.weasis.core.util.StringUtil;
+import org.weasis.pref.ConfigData;
+
+public final class UICore {
+  public static final String P_FORMAT_CODE = &quot;locale.format.code&quot;;
+
+  public static final String CONFIRM_CLOSE = &quot;weasis.confirm.closing&quot;;
+  public static final String LINUX_WINDOWS_DECORATION = &quot;weasis.linux.windows.decoration&quot;;
+<span class="nc" id="L75">  private static final Logger LOGGER = LoggerFactory.getLogger(UICore.class);</span>
+  private final ToolBarContainer toolbarContainer;
+  private final List&lt;Launcher&gt; dicomLaunchers;
+  private final List&lt;Launcher&gt; otherLaunchers;
+  public final List&lt;ViewerPlugin&lt;?&gt;&gt; viewerPlugins;
+  private final List&lt;DataExplorerView&gt; explorerPlugins;
+  private final List&lt;Toolbar&gt; explorerPluginToolbars;
+  private final List&lt;SeriesViewerFactory&gt; seriesViewerFactories;
+  private final CVetoFocusListener dockingVetoFocus;
+  private final CControl dockingControl;
+  private final CContentArea baseArea;
+  private final CWorkingArea mainArea;
+
+  private final List&lt;Codec&lt;MediaElement&gt;&gt; codecPlugins;
+  private final WProperties systemPreferences;
+  private final WProperties localPersistence;
+  private final WProperties initialSystemPreferences;
+  private final ConfigData configData;
+  private final HashMap&lt;String, WProperties&gt; pluginPersistenceMap;
+  private final File propsFile;
+
+  private static final class Holder {
+<span class="nc" id="L97">    private static final UICore INSTANCE = new UICore();</span>
+  }
+
+  /** Do not instantiate UICore, get OSGI singleton service from GuiUtils.getUICore() */
+<span class="nc" id="L101">  private UICore() {</span>
+<span class="nc" id="L102">    this.dockingControl = new CControl();</span>
+<span class="nc bnc" id="L103" title="All 2 branches missed.">    if (GraphicsEnvironment.isHeadless()) {</span>
+<span class="nc" id="L104">      this.baseArea = null; // For test where no GUI is available</span>
+    } else {
+<span class="nc" id="L106">      this.baseArea = dockingControl.getContentArea();</span>
+    }
+<span class="nc" id="L108">    this.mainArea = dockingControl.createWorkingArea(&quot;mainArea&quot;);</span>
+<span class="nc" id="L109">    this.toolbarContainer = new ToolBarContainer();</span>
+
+<span class="nc" id="L111">    this.configData = retrieveconfigData();</span>
+<span class="nc" id="L112">    this.initialSystemPreferences = new WProperties();</span>
+<span class="nc" id="L113">    this.systemPreferences = new WProperties();</span>
+<span class="nc" id="L114">    this.pluginPersistenceMap = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L115">    this.codecPlugins = Collections.synchronizedList(new ArrayList&lt;&gt;());</span>
+<span class="nc" id="L116">    this.localPersistence = new WProperties();</span>
+<span class="nc" id="L117">    this.viewerPlugins = Collections.synchronizedList(new ArrayList&lt;&gt;());</span>
+<span class="nc" id="L118">    this.explorerPlugins = Collections.synchronizedList(new ArrayList&lt;&gt;());</span>
+<span class="nc" id="L119">    this.explorerPluginToolbars = Collections.synchronizedList(new ArrayList&lt;&gt;());</span>
+<span class="nc" id="L120">    this.seriesViewerFactories = Collections.synchronizedList(new ArrayList&lt;&gt;());</span>
+<span class="nc" id="L121">    this.dockingVetoFocus =</span>
+<span class="nc" id="L122">        new CVetoFocusListener() {</span>
+
+          @Override
+          public boolean willLoseFocus(CDockable dockable) {
+<span class="nc" id="L126">            return false;</span>
+          }
+
+          @Override
+          public boolean willGainFocus(CDockable dockable) {
+<span class="nc" id="L131">            return false;</span>
+          }
+        };
+<span class="nc" id="L134">    dockingControl.getController().getKeyboardController().addListener(new StackTabSwitcher());</span>
+
+<span class="nc" id="L136">    BundleContext context = AppProperties.getBundleContext();</span>
+<span class="nc" id="L137">    readSystemPreferences(context);</span>
+<span class="nc" id="L138">    this.propsFile =</span>
+<span class="nc" id="L139">        new File(systemPreferences.getProperty(&quot;weasis.pref.dir&quot;), &quot;weasis.properties&quot;);</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">    if (!propsFile.canRead()) {</span>
+      try {
+<span class="nc bnc" id="L142" title="All 2 branches missed.">        if (!propsFile.createNewFile()) {</span>
+<span class="nc" id="L143">          LOGGER.warn(&quot;File already exist {}&quot;, propsFile.getPath());</span>
+        }
+<span class="nc" id="L145">      } catch (IOException e) {</span>
+<span class="nc" id="L146">        LOGGER.error(&quot;Cannot write {}&quot;, propsFile.getPath(), e);</span>
+<span class="nc" id="L147">      }</span>
+    }
+<span class="nc" id="L149">    String code = systemPreferences.getProperty(UICore.P_FORMAT_CODE);</span>
+<span class="nc" id="L150">    Locale.setDefault(Category.FORMAT, LocalUtil.textToLocale(code));</span>
+
+<span class="nc" id="L152">    String path = systemPreferences.getProperty(&quot;weasis.resources.path&quot;);</span>
+<span class="nc" id="L153">    ResourceUtil.setResourcePath(path);</span>
+
+<span class="nc" id="L155">    File dataFolder = AppProperties.getBundleDataFolder(context);</span>
+<span class="nc" id="L156">    FileUtil.readProperties(new File(dataFolder, &quot;persistence.properties&quot;), localPersistence);</span>
+
+<span class="nc" id="L158">    this.dicomLaunchers = Launcher.loadLaunchers(Launcher.Type.DICOM);</span>
+<span class="nc" id="L159">    this.otherLaunchers = Launcher.loadLaunchers(Launcher.Type.OTHER);</span>
+<span class="nc" id="L160">  }</span>
+
+  private static ConfigData retrieveconfigData() {
+<span class="nc" id="L163">    MBeanServer server = ManagementFactory.getPlatformMBeanServer();</span>
+    try {
+<span class="nc" id="L165">      ObjectName objectName = ObjectName.getInstance(&quot;weasis:name=MainWindow&quot;); // NON-NLS</span>
+<span class="nc" id="L166">      Object preferences = server.getAttribute(objectName, &quot;ConfigData&quot;);</span>
+<span class="nc bnc" id="L167" title="All 2 branches missed.">      if (preferences instanceof ConfigData configData) {</span>
+<span class="nc" id="L168">        return configData;</span>
+      }
+<span class="nc" id="L170">    } catch (InstanceNotFoundException ignored) {</span>
+<span class="nc" id="L171">    } catch (JMException e) {</span>
+<span class="nc" id="L172">      LOGGER.debug(&quot;Error while receiving main window&quot;, e);</span>
+<span class="nc" id="L173">    }</span>
+<span class="nc" id="L174">    throw new IllegalStateException(&quot;Cannot retrieve ConfigData&quot;);</span>
+  }
+
+  /**
+   * Thread safe singleton instance.
+   *
+   * @return a thread safe singleton instance with a lazy initialization.
+   */
+  public static UICore getInstance() {
+<span class="nc" id="L183">    return Holder.INSTANCE;</span>
+  }
+
+  private void readSystemPreferences(BundleContext context) {
+<span class="nc" id="L187">    systemPreferences.clear();</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">    if (context != null) {</span>
+<span class="nc" id="L189">      String pkeys = context.getProperty(&quot;wp.list&quot;);</span>
+<span class="nc bnc" id="L190" title="All 2 branches missed.">      if (StringUtil.hasText(pkeys)) {</span>
+<span class="nc bnc" id="L191" title="All 2 branches missed.">        for (String key : pkeys.split(&quot;,&quot;)) {</span>
+<span class="nc" id="L192">          systemPreferences.setProperty(key, context.getProperty(key));</span>
+<span class="nc" id="L193">          initialSystemPreferences.setProperty(</span>
+<span class="nc" id="L194">              key, context.getProperty(&quot;wp.init.&quot; + key)); // NON-NLS</span>
+        }
+        // In case the remote file is empty or has fewer properties than the local file, set a pref
+        // to force
+        // rewriting both files
+<span class="nc" id="L199">        String diffRemote = &quot;wp.init.diff.remote.pref&quot;;</span>
+<span class="nc" id="L200">        initialSystemPreferences.setProperty(diffRemote, context.getProperty(diffRemote));</span>
+<span class="nc" id="L201">        saveSystemPreferences();</span>
+      }
+    }
+<span class="nc" id="L204">  }</span>
+
+  private void storeLauncherPref(Properties props, String remotePrefURL) throws IOException {
+<span class="nc bnc" id="L207" title="All 4 branches missed.">    if (!isLocalSession() || isStoreLocalSession()) {</span>
+<span class="nc" id="L208">      String sURL =</span>
+<span class="nc" id="L209">          String.format(</span>
+              &quot;%s?user=%s&amp;profile=%s&quot;, // NON-NLS
+              remotePrefURL,
+<span class="nc" id="L212">              getUrlEncoding(AppProperties.WEASIS_USER),</span>
+<span class="nc" id="L213">              getUrlEncoding(AppProperties.WEASIS_PROFILE));</span>
+<span class="nc" id="L214">      URLParameters urlParameters = getURLParameters(true);</span>
+<span class="nc" id="L215">      ClosableURLConnection http = NetworkUtil.getUrlConnection(sURL, urlParameters);</span>
+<span class="nc" id="L216">      try (OutputStream out = http.getOutputStream()) {</span>
+<span class="nc" id="L217">        props.store(new DataOutputStream(out), null);</span>
+      }
+<span class="nc bnc" id="L219" title="All 2 branches missed.">      if (http.getUrlConnection() instanceof HttpURLConnection httpURLConnection) {</span>
+<span class="nc" id="L220">        NetworkUtil.readResponse(httpURLConnection, urlParameters.getUnmodifiableHeaders());</span>
+      }
+    }
+<span class="nc" id="L223">  }</span>
+
+  public static String getUrlEncoding(String val) {
+<span class="nc" id="L226">    return URLEncoder.encode(val, StandardCharsets.UTF_8);</span>
+  }
+
+  private static URLParameters getURLParameters(boolean post) {
+<span class="nc" id="L230">    Map&lt;String, String&gt; map = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L231" title="All 2 branches missed.">    map.put(post ? &quot;Content-Type&quot; : &quot;Accept&quot;, &quot;text/x-java-properties&quot;); // NON-NLS</span>
+<span class="nc" id="L232">    return new URLParameters(map, post);</span>
+  }
+
+<span class="nc" id="L235">  public static final class StackTabSwitcher implements KeyboardListener {</span>
+    @Override
+    public DockElement getTreeLocation() {
+<span class="nc" id="L238">      return null;</span>
+    }
+
+    @Override
+    public boolean keyPressed(DockElement element, KeyEvent event) {
+<span class="nc bnc" id="L243" title="All 4 branches missed.">      if (event.getKeyCode() == KeyEvent.VK_TAB &amp;&amp; event.isControlDown()) {</span>
+<span class="nc bnc" id="L244" title="All 2 branches missed.">        if (event.isShiftDown()) {</span>
+<span class="nc" id="L245">          return shift(element, -1);</span>
+        }
+<span class="nc" id="L247">        return shift(element, 1);</span>
+      }
+<span class="nc" id="L249">      return false;</span>
+    }
+
+    @Override
+    public boolean keyReleased(DockElement element, KeyEvent event) {
+<span class="nc" id="L254">      return false;</span>
+    }
+
+    @Override
+    public boolean keyTyped(DockElement element, KeyEvent event) {
+<span class="nc" id="L259">      return false;</span>
+    }
+
+    private boolean shift(DockElement element, int delta) {
+      // 'element' is the DockElement that currently has the focus. After the
+      // tab changed this could be the DockStation (the parent) itself.
+
+<span class="nc" id="L266">      DockStation parent = element.asDockStation();</span>
+<span class="nc bnc" id="L267" title="All 2 branches missed.">      if (parent == null) {</span>
+<span class="nc" id="L268">        parent = element.asDockable().getDockParent();</span>
+      }
+
+      // we can make the method more general by not checking explicitly whether
+      // the parent is a StackDockStation or not
+      // if( parent instanceof StackDockStation ){
+<span class="nc bnc" id="L274" title="All 2 branches missed.">      if (parent != null) {</span>
+<span class="nc" id="L275">        Dockable focused = parent.getFrontDockable();</span>
+
+<span class="nc" id="L277">        int index = -1;</span>
+<span class="nc bnc" id="L278" title="All 2 branches missed.">        for (int i = 0, n = parent.getDockableCount(); i &lt; n; i++) {</span>
+<span class="nc bnc" id="L279" title="All 2 branches missed.">          if (parent.getDockable(i) == focused) {</span>
+<span class="nc" id="L280">            index = i;</span>
+<span class="nc" id="L281">            break;</span>
+          }
+        }
+<span class="nc bnc" id="L284" title="All 2 branches missed.">        if (index != -1) {</span>
+<span class="nc" id="L285">          index += delta;</span>
+<span class="nc" id="L286">          index %= parent.getDockableCount();</span>
+<span class="nc bnc" id="L287" title="All 2 branches missed.">          if (index &lt; 0) {</span>
+<span class="nc" id="L288">            index += parent.getDockableCount();</span>
+          }
+<span class="nc" id="L290">          Dockable next = parent.getDockable(index);</span>
+<span class="nc" id="L291">          parent.getController().setFocusedDockable(next, true);</span>
+<span class="nc" id="L292">          return true;</span>
+        }
+      }
+<span class="nc" id="L295">      return false;</span>
+    }
+  }
+
+  public String getPrefServiceUrl() {
+<span class="nc" id="L300">    return systemPreferences.getProperty(&quot;weasis.pref.url&quot;);</span>
+  }
+
+  public String getConfigServiceUrl() {
+<span class="nc" id="L304">    return Holder.INSTANCE.getSystemPreferences().getProperty(&quot;weasis.config.url&quot;);</span>
+  }
+
+  public String getStatisticServiceUrl() {
+<span class="nc" id="L308">    return Holder.INSTANCE.getSystemPreferences().getProperty(&quot;weasis.stat.url&quot;);</span>
+  }
+
+  public boolean isLocalSession() {
+<span class="nc" id="L312">    return Holder.INSTANCE</span>
+<span class="nc" id="L313">        .getSystemPreferences()</span>
+<span class="nc" id="L314">        .getBooleanProperty(&quot;weasis.pref.local.session&quot;, false);</span>
+  }
+
+  public boolean isStoreLocalSession() {
+<span class="nc" id="L318">    return Holder.INSTANCE</span>
+<span class="nc" id="L319">        .getSystemPreferences()</span>
+<span class="nc" id="L320">        .getBooleanProperty(&quot;weasis.pref.store.local.session&quot;, false);</span>
+  }
+
+  public synchronized void saveSystemPreferences() {
+    // Set in a popup message of the launcher
+<span class="nc" id="L325">    String key = &quot;weasis.accept.disclaimer&quot;;</span>
+<span class="nc" id="L326">    systemPreferences.setProperty(key, System.getProperty(key));</span>
+<span class="nc" id="L327">    key = &quot;weasis.version.release&quot;;</span>
+<span class="nc" id="L328">    systemPreferences.setProperty(key, System.getProperty(key));</span>
+
+<span class="nc bnc" id="L330" title="All 2 branches missed.">    if (!systemPreferences.equals(initialSystemPreferences)) {</span>
+<span class="nc" id="L331">      FileUtil.storeProperties(propsFile, systemPreferences, null);</span>
+<span class="nc" id="L332">      String remotePrefURL = getPrefServiceUrl();</span>
+<span class="nc bnc" id="L333" title="All 2 branches missed.">      if (remotePrefURL != null) {</span>
+        try {
+<span class="nc" id="L335">          storeLauncherPref(systemPreferences, remotePrefURL);</span>
+<span class="nc" id="L336">        } catch (Exception e) {</span>
+<span class="nc" id="L337">          LOGGER.error(</span>
+              &quot;Cannot store Launcher preference for user: {}&quot;, AppProperties.WEASIS_USER, e);
+<span class="nc" id="L339">        }</span>
+      }
+<span class="nc" id="L341">      initialSystemPreferences.clear();</span>
+<span class="nc" id="L342">      initialSystemPreferences.putAll(systemPreferences);</span>
+    }
+<span class="nc" id="L344">  }</span>
+
+  public CControl getDockingControl() {
+<span class="nc" id="L347">    return dockingControl;</span>
+  }
+
+  public List&lt;Launcher&gt; getDicomLaunchers() {
+<span class="nc" id="L351">    return dicomLaunchers;</span>
+  }
+
+  public List&lt;Launcher&gt; getOtherLaunchers() {
+<span class="nc" id="L355">    return otherLaunchers;</span>
+  }
+
+  public CWorkingArea getMainArea() {
+<span class="nc" id="L359">    return mainArea;</span>
+  }
+
+  public CContentArea getBaseArea() {
+<span class="nc" id="L363">    return baseArea;</span>
+  }
+
+  public Window getApplicationWindow() {
+<span class="nc" id="L367">    return WinUtil.getParentWindow(baseArea);</span>
+  }
+
+  public List&lt;DataExplorerView&gt; getExplorerPlugins() {
+<span class="nc" id="L371">    return explorerPlugins;</span>
+  }
+
+  public ToolBarContainer getToolbarContainer() {
+<span class="nc" id="L375">    return toolbarContainer;</span>
+  }
+
+  public List&lt;ViewerPlugin&lt;?&gt;&gt; getViewerPlugins() {
+<span class="nc" id="L379">    return viewerPlugins;</span>
+  }
+
+  public List&lt;Toolbar&gt; getExplorerPluginToolbars() {
+<span class="nc" id="L383">    return explorerPluginToolbars;</span>
+  }
+
+  public List&lt;SeriesViewerFactory&gt; getSeriesViewerFactories() {
+<span class="nc" id="L387">    return seriesViewerFactories;</span>
+  }
+
+  public CVetoFocusListener getDockingVetoFocus() {
+<span class="nc" id="L391">    return dockingVetoFocus;</span>
+  }
+
+  public List&lt;Codec&lt;MediaElement&gt;&gt; getCodecPlugins() {
+<span class="nc" id="L395">    return codecPlugins;</span>
+  }
+
+  public ConfigData getConfigData() {
+<span class="nc" id="L399">    return configData;</span>
+  }
+
+  /**
+   * This the persistence used at launch which can be stored remotely. These are the preferences
+   * necessary for launching unlike the preferences associated with the plugins.
+   *
+   * @return the properties
+   */
+  public WProperties getSystemPreferences() {
+<span class="nc" id="L409">    return systemPreferences;</span>
+  }
+
+  /**
+   * This the common local persistence for UI. It should be used only for preferences for which
+   * remote storage makes no sense.
+   *
+   * @return the properties
+   */
+  public WProperties getLocalPersistence() {
+<span class="nc" id="L419">    return localPersistence;</span>
+  }
+
+  public WProperties getPluginPersistence(String key) {
+<span class="nc" id="L423">    return pluginPersistenceMap.computeIfAbsent(key, k -&gt; new WProperties());</span>
+  }
+
+  public File getPropsFile() {
+<span class="nc" id="L427">    return propsFile;</span>
+  }
+
+  public DataExplorerView getExplorerPlugin(String name) {
+<span class="nc bnc" id="L431" title="All 2 branches missed.">    if (name != null) {</span>
+<span class="nc" id="L432">      synchronized (explorerPlugins) {</span>
+<span class="nc bnc" id="L433" title="All 2 branches missed.">        for (DataExplorerView view : explorerPlugins) {</span>
+<span class="nc bnc" id="L434" title="All 2 branches missed.">          if (name.equals(view.getUIName())) {</span>
+<span class="nc" id="L435">            return view;</span>
+          }
+<span class="nc" id="L437">        }</span>
+<span class="nc" id="L438">      }</span>
+    }
+<span class="nc" id="L440">    return null;</span>
+  }
+
+  public SeriesViewerFactory getViewerFactory(Class&lt;? extends SeriesViewerFactory&gt; clazz) {
+<span class="nc bnc" id="L444" title="All 2 branches missed.">    if (clazz != null) {</span>
+<span class="nc" id="L445">      synchronized (seriesViewerFactories) {</span>
+<span class="nc bnc" id="L446" title="All 2 branches missed.">        for (final SeriesViewerFactory factory : seriesViewerFactories) {</span>
+<span class="nc bnc" id="L447" title="All 2 branches missed.">          if (clazz.isInstance(factory)) {</span>
+<span class="nc" id="L448">            return factory;</span>
+          }
+<span class="nc" id="L450">        }</span>
+<span class="nc" id="L451">      }</span>
+    }
+<span class="nc" id="L453">    return null;</span>
+  }
+
+  public SeriesViewerFactory getViewerFactory(SeriesViewer seriesViewer) {
+<span class="nc bnc" id="L457" title="All 2 branches missed.">    if (seriesViewer != null) {</span>
+<span class="nc" id="L458">      synchronized (seriesViewerFactories) {</span>
+<span class="nc bnc" id="L459" title="All 2 branches missed.">        for (final SeriesViewerFactory factory : seriesViewerFactories) {</span>
+<span class="nc bnc" id="L460" title="All 4 branches missed.">          if (factory != null &amp;&amp; factory.isViewerCreatedByThisFactory(seriesViewer)) {</span>
+<span class="nc" id="L461">            return factory;</span>
+          }
+<span class="nc" id="L463">        }</span>
+<span class="nc" id="L464">      }</span>
+    }
+<span class="nc" id="L466">    return null;</span>
+  }
+
+  public SeriesViewerFactory getViewerFactory(String mimeType) {
+<span class="nc bnc" id="L470" title="All 2 branches missed.">    if (mimeType != null) {</span>
+<span class="nc" id="L471">      synchronized (seriesViewerFactories) {</span>
+<span class="nc" id="L472">        int level = Integer.MAX_VALUE;</span>
+<span class="nc" id="L473">        SeriesViewerFactory best = null;</span>
+<span class="nc bnc" id="L474" title="All 2 branches missed.">        for (final SeriesViewerFactory f : seriesViewerFactories) {</span>
+<span class="nc bnc" id="L475" title="All 4 branches missed.">          if (f != null &amp;&amp; f.canReadMimeType(mimeType)) {</span>
+<span class="nc bnc" id="L476" title="All 2 branches missed.">            if (f.getLevel() &lt; level) {</span>
+<span class="nc" id="L477">              level = f.getLevel();</span>
+<span class="nc" id="L478">              best = f;</span>
+            }
+          }
+<span class="nc" id="L481">        }</span>
+<span class="nc" id="L482">        return best;</span>
+      }
+    }
+<span class="nc" id="L485">    return null;</span>
+  }
+
+  public SeriesViewerFactory getViewerFactory(String[] mimeTypeList) {
+<span class="nc bnc" id="L489" title="All 4 branches missed.">    if (mimeTypeList != null &amp;&amp; mimeTypeList.length &gt; 0) {</span>
+<span class="nc" id="L490">      synchronized (seriesViewerFactories) {</span>
+<span class="nc" id="L491">        int level = Integer.MAX_VALUE;</span>
+<span class="nc" id="L492">        SeriesViewerFactory best = null;</span>
+<span class="nc bnc" id="L493" title="All 2 branches missed.">        for (final SeriesViewerFactory f : seriesViewerFactories) {</span>
+<span class="nc bnc" id="L494" title="All 2 branches missed.">          if (f != null) {</span>
+<span class="nc bnc" id="L495" title="All 2 branches missed.">            for (String mime : mimeTypeList) {</span>
+<span class="nc bnc" id="L496" title="All 4 branches missed.">              if (f.canReadMimeType(mime) &amp;&amp; f.getLevel() &lt; level) {</span>
+<span class="nc" id="L497">                best = f;</span>
+              }
+            }
+          }
+<span class="nc" id="L501">        }</span>
+<span class="nc" id="L502">        return best;</span>
+      }
+    }
+<span class="nc" id="L505">    return null;</span>
+  }
+
+  public List&lt;SeriesViewerFactory&gt; getViewerFactoryList(String[] mimeTypeList) {
+<span class="nc bnc" id="L509" title="All 4 branches missed.">    if (mimeTypeList != null &amp;&amp; mimeTypeList.length &gt; 0) {</span>
+<span class="nc" id="L510">      List&lt;SeriesViewerFactory&gt; plugins = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L511">      synchronized (seriesViewerFactories) {</span>
+<span class="nc bnc" id="L512" title="All 2 branches missed.">        for (final SeriesViewerFactory viewerFactory : seriesViewerFactories) {</span>
+<span class="nc bnc" id="L513" title="All 2 branches missed.">          if (viewerFactory != null) {</span>
+<span class="nc bnc" id="L514" title="All 2 branches missed.">            for (String mime : mimeTypeList) {</span>
+<span class="nc bnc" id="L515" title="All 2 branches missed.">              if (viewerFactory.canReadMimeType(mime)) {</span>
+<span class="nc" id="L516">                plugins.add(viewerFactory);</span>
+              }
+            }
+          }
+<span class="nc" id="L520">        }</span>
+<span class="nc" id="L521">      }</span>
+
+<span class="nc" id="L523">      plugins.sort(Comparator.comparingInt(SeriesViewerFactory::getLevel));</span>
+<span class="nc" id="L524">      return plugins;</span>
+    }
+<span class="nc" id="L526">    return null;</span>
+  }
+
+  public boolean isSeriesOpenInViewer(MediaSeries&lt;?&gt; mediaSeries) {
+<span class="nc bnc" id="L530" title="All 2 branches missed.">    if (mediaSeries == null) {</span>
+<span class="nc" id="L531">      return false;</span>
+    }
+<span class="nc" id="L533">    synchronized (viewerPlugins) {</span>
+<span class="nc bnc" id="L534" title="All 2 branches missed.">      for (final ViewerPlugin&lt;?&gt; plugin : viewerPlugins) {</span>
+<span class="nc" id="L535">        List&lt;? extends MediaSeries&lt;?&gt;&gt; openSeries = plugin.getOpenSeries();</span>
+<span class="nc bnc" id="L536" title="All 2 branches missed.">        if (openSeries != null) {</span>
+<span class="nc bnc" id="L537" title="All 2 branches missed.">          for (MediaSeries&lt;?&gt; s : openSeries) {</span>
+<span class="nc bnc" id="L538" title="All 2 branches missed.">            if (mediaSeries == s) {</span>
+              // The sequence is still open in another view or plugin
+<span class="nc" id="L540">              return true;</span>
+            }
+<span class="nc" id="L542">          }</span>
+        }
+<span class="nc" id="L544">      }</span>
+<span class="nc" id="L545">    }</span>
+<span class="nc" id="L546">    return false;</span>
+  }
+
+  public void closeSeries(MediaSeries&lt;?&gt; mediaSeries) {
+<span class="nc bnc" id="L550" title="All 2 branches missed.">    if (mediaSeries == null) {</span>
+<span class="nc" id="L551">      return;</span>
+    }
+<span class="nc" id="L553">    mediaSeries.setOpen(isSeriesOpenInViewer(mediaSeries));</span>
+    // TODO setSelected and setFocused must be global to all view as open
+<span class="nc" id="L555">    mediaSeries.setSelected(false, null);</span>
+<span class="nc" id="L556">    mediaSeries.setFocused(false);</span>
+<span class="nc" id="L557">  }</span>
+
+  public void closeSeriesViewerType(Class&lt;? extends SeriesViewer&lt;?&gt;&gt; clazz) {
+<span class="nc" id="L560">    final List&lt;ViewerPlugin&lt;?&gt;&gt; pluginsToRemove = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L561">    synchronized (viewerPlugins) {</span>
+<span class="nc bnc" id="L562" title="All 2 branches missed.">      for (final ViewerPlugin&lt;?&gt; plugin : viewerPlugins) {</span>
+<span class="nc bnc" id="L563" title="All 2 branches missed.">        if (clazz.isInstance(plugin)) {</span>
+          // Do not close Series directly, it can produce deadlock.
+<span class="nc" id="L565">          pluginsToRemove.add(plugin);</span>
+        }
+<span class="nc" id="L567">      }</span>
+<span class="nc" id="L568">    }</span>
+<span class="nc" id="L569">    closeSeriesViewer(pluginsToRemove);</span>
+<span class="nc" id="L570">  }</span>
+
+  public void closeSeriesViewer(final List&lt;? extends ViewerPlugin&lt;?&gt;&gt; pluginsToRemove) {
+<span class="nc bnc" id="L573" title="All 2 branches missed.">    if (pluginsToRemove != null) {</span>
+<span class="nc" id="L574">      GuiExecutor.execute(</span>
+          () -&gt; {
+<span class="nc bnc" id="L576" title="All 2 branches missed.">            for (final ViewerPlugin&lt;?&gt; viewerPlugin : pluginsToRemove) {</span>
+<span class="nc" id="L577">              viewerPlugin.close();</span>
+<span class="nc" id="L578">              viewerPlugin.handleFocusAfterClosing();</span>
+<span class="nc" id="L579">            }</span>
+<span class="nc" id="L580">          });</span>
+    }
+<span class="nc" id="L582">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

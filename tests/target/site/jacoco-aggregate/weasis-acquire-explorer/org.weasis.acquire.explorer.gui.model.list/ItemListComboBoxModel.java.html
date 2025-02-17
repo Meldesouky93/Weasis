@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ItemListComboBoxModel.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer.gui.model.list</a> &gt; <span class="el_source">ItemListComboBoxModel.java</span></div><h1>ItemListComboBoxModel.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer.gui.model.list;
+
+import java.beans.PropertyChangeListener;
+import javax.swing.ComboBoxModel;
+import org.weasis.acquire.explorer.core.ItemList;
+import org.weasis.acquire.explorer.core.ItemList.Interval;
+
+public class ItemListComboBoxModel&lt;T&gt; extends ItemListModel&lt;T&gt; implements ComboBoxModel&lt;T&gt; {
+
+<span class="nc" id="L19">  private T selectedItem = null;</span>
+<span class="nc" id="L20">  private T lastSelectedItem = null;</span>
+
+  public ItemListComboBoxModel() {
+<span class="nc" id="L23">    super();</span>
+<span class="nc bnc" id="L24" title="All 2 branches missed.">    if (itemList.getSize() &gt; 0) {</span>
+<span class="nc" id="L25">      selectedItem = itemList.getItem(0);</span>
+    }
+<span class="nc" id="L27">  }</span>
+
+  public ItemListComboBoxModel(ItemList&lt;T&gt; itemList) {
+<span class="nc" id="L30">    super(itemList);</span>
+<span class="nc bnc" id="L31" title="All 2 branches missed.">    if (itemList.getSize() &gt; 0) {</span>
+<span class="nc" id="L32">      selectedItem = itemList.getItem(0);</span>
+    }
+<span class="nc" id="L34">  }</span>
+
+  @Override
+  public T getSelectedItem() {
+<span class="nc" id="L38">    return selectedItem;</span>
+  }
+
+  @SuppressWarnings(&quot;unchecked&quot;)
+  @Override
+  public void setSelectedItem(Object anItem) {
+    // Let assume anItem is included in itemList and is an instance of T
+    // Same implementation as done in DefaultComboBoxModel since contentsChanged is
+    // interpreted in a JCombobox as a selectedItemChanged
+
+<span class="nc bnc" id="L48" title="All 8 branches missed.">    if ((selectedItem != null &amp;&amp; !selectedItem.equals(anItem))</span>
+        || selectedItem == null &amp;&amp; anItem != null) {
+
+      // itemList.containsItem((T) anItem)
+
+      // lastSelectedItem = itemList.containsItem((T) selectedItem) ? selectedItem : null;
+<span class="nc" id="L54">      lastSelectedItem = selectedItem;</span>
+<span class="nc bnc" id="L55" title="All 4 branches missed.">      selectedItem = ((anItem == null) || !itemList.containsItem((T) anItem)) ? null : (T) anItem;</span>
+<span class="nc" id="L56">      fireContentsChanged(this, -1, -1);</span>
+    }
+<span class="nc" id="L58">  }</span>
+
+  @Override
+  protected PropertyChangeListener getPropertyChangeListener() {
+<span class="nc" id="L62">    return evt -&gt; {</span>
+<span class="nc bnc" id="L63" title="All 2 branches missed.">      if (evt.getNewValue() instanceof Interval interval) {</span>
+<span class="nc bnc" id="L64" title="All 4 branches missed.">        switch (ItemList.eProperty.valueOf(evt.getPropertyName())) {</span>
+          case INTERVAL_ADDED -&gt; {
+<span class="nc" id="L66">            fireIntervalAdded(ItemListComboBoxModel.this, interval.getMin(), interval.getMax());</span>
+<span class="nc bnc" id="L67" title="All 4 branches missed.">            if (selectedItem == null &amp;&amp; itemList.getSize() &gt; 0) {</span>
+<span class="nc" id="L68">              setSelectedItem(itemList.getLastItem());</span>
+            }
+          }
+          case INTERVAL_REMOVED -&gt; {
+<span class="nc bnc" id="L72" title="All 2 branches missed.">            for (int i = interval.getMin(); i &lt;= interval.getMax(); i++) {</span>
+<span class="nc" id="L73">              T item = itemList.getItem(i);</span>
+<span class="nc bnc" id="L74" title="All 4 branches missed.">              if (item != null &amp;&amp; item.equals(selectedItem)) {</span>
+<span class="nc" id="L75">                int lastSelectionIndex = itemList.getIndex(lastSelectedItem);</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">                if (interval.getMin() &lt;= lastSelectionIndex</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">                    &amp;&amp; interval.getMax() &gt;= lastSelectionIndex) {</span>
+<span class="nc" id="L78">                  setSelectedItem(null);</span>
+                } else {
+<span class="nc" id="L80">                  setSelectedItem(lastSelectedItem);</span>
+                }
+<span class="nc" id="L82">                break;</span>
+              }
+            }
+<span class="nc" id="L85">            fireIntervalRemoved(ItemListComboBoxModel.this, interval.getMin(), interval.getMax());</span>
+<span class="nc" id="L86">          }</span>
+          case CONTENT_CHANGED -&gt;
+<span class="nc" id="L88">              fireContentsChanged(ItemListComboBoxModel.this, interval.getMin(), interval.getMax());</span>
+
+            // note : used by JComboBox only to check if selectedItem has changed but not used by
+            // the renderer
+        }
+      }
+<span class="nc" id="L94">    };</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.3.0" name="org.weasis.dicom.codec.DicomCodec" activate="activate" deactivate="deactivate">
+  <service>
+    <provide interface="org.weasis.core.api.media.data.Codec"/>
+  </service>
+  <reference name="DicomSpecialElementFactory" cardinality="0..n" policy="dynamic" interface="org.weasis.dicom.codec.DicomSpecialElementFactory" bind="addDicomSpecialElementFactory" unbind="removeDicomSpecialElementFactory"/>
+  <implementation class="org.weasis.dicom.codec.DicomCodec"/>
+</scr:component>

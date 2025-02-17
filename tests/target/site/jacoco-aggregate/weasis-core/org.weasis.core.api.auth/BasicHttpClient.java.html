@@ -1,0 +1,434 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>BasicHttpClient.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.auth</a> &gt; <span class="el_source">BasicHttpClient.java</span></div><h1>BasicHttpClient.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2021 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.auth;
+
+import com.github.scribejava.core.exceptions.OAuthException;
+import com.github.scribejava.core.httpclient.HttpClient;
+import com.github.scribejava.core.httpclient.jdk.JDKHttpFuture;
+import com.github.scribejava.core.httpclient.multipart.BodyPartPayload;
+import com.github.scribejava.core.httpclient.multipart.ByteArrayBodyPartPayload;
+import com.github.scribejava.core.httpclient.multipart.MultipartPayload;
+import com.github.scribejava.core.model.OAuthAsyncRequestCallback;
+import com.github.scribejava.core.model.OAuthConstants;
+import com.github.scribejava.core.model.OAuthRequest;
+import com.github.scribejava.core.model.Response;
+import com.github.scribejava.core.model.Verb;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import org.weasis.core.api.util.NetworkUtil;
+import org.weasis.core.util.FileUtil;
+
+<span class="nc" id="L41">public class BasicHttpClient implements HttpClient {</span>
+
+  @Override
+  public void close() {
+    // Do nothing
+<span class="nc" id="L46">  }</span>
+
+  @Override
+  public &lt;T&gt; Future&lt;T&gt; executeAsync(
+      String userAgent,
+      Map&lt;String, String&gt; headers,
+      Verb httpVerb,
+      String completeUrl,
+      byte[] bodyContents,
+      OAuthAsyncRequestCallback&lt;T&gt; callback,
+      OAuthRequest.ResponseConverter&lt;T&gt; converter) {
+
+<span class="nc" id="L58">    return doExecuteAsync(</span>
+        userAgent,
+        headers,
+        httpVerb,
+        completeUrl,
+        BodyType.BYTE_ARRAY,
+        bodyContents,
+        callback,
+        converter);
+  }
+
+  @Override
+  public &lt;T&gt; Future&lt;T&gt; executeAsync(
+      String userAgent,
+      Map&lt;String, String&gt; headers,
+      Verb httpVerb,
+      String completeUrl,
+      MultipartPayload bodyContents,
+      OAuthAsyncRequestCallback&lt;T&gt; callback,
+      OAuthRequest.ResponseConverter&lt;T&gt; converter) {
+
+<span class="nc" id="L79">    return doExecuteAsync(</span>
+        userAgent,
+        headers,
+        httpVerb,
+        completeUrl,
+        BodyType.MULTIPART,
+        bodyContents,
+        callback,
+        converter);
+  }
+
+  @Override
+  public &lt;T&gt; Future&lt;T&gt; executeAsync(
+      String userAgent,
+      Map&lt;String, String&gt; headers,
+      Verb httpVerb,
+      String completeUrl,
+      String bodyContents,
+      OAuthAsyncRequestCallback&lt;T&gt; callback,
+      OAuthRequest.ResponseConverter&lt;T&gt; converter) {
+
+<span class="nc" id="L100">    return doExecuteAsync(</span>
+        userAgent,
+        headers,
+        httpVerb,
+        completeUrl,
+        BodyType.STRING,
+        bodyContents,
+        callback,
+        converter);
+  }
+
+  @Override
+  public &lt;T&gt; Future&lt;T&gt; executeAsync(
+      String userAgent,
+      Map&lt;String, String&gt; headers,
+      Verb httpVerb,
+      String completeUrl,
+      File bodyContents,
+      OAuthAsyncRequestCallback&lt;T&gt; callback,
+      OAuthRequest.ResponseConverter&lt;T&gt; converter) {
+<span class="nc" id="L120">    throw new UnsupportedOperationException(</span>
+        &quot;JDKHttpClient does not support File payload for the moment&quot;);
+  }
+
+  private &lt;T&gt; Future&lt;T&gt; doExecuteAsync(
+      String userAgent,
+      Map&lt;String, String&gt; headers,
+      Verb httpVerb,
+      String completeUrl,
+      BodyType bodyType,
+      Object bodyContents,
+      OAuthAsyncRequestCallback&lt;T&gt; callback,
+      OAuthRequest.ResponseConverter&lt;T&gt; converter) {
+    try {
+<span class="nc" id="L134">      final Response response =</span>
+<span class="nc" id="L135">          doExecute(userAgent, headers, httpVerb, completeUrl, bodyType, bodyContents);</span>
+      @SuppressWarnings(&quot;unchecked&quot;)
+<span class="nc bnc" id="L137" title="All 2 branches missed.">      final T t = converter == null ? (T) response : converter.convert(response);</span>
+<span class="nc bnc" id="L138" title="All 2 branches missed.">      if (callback != null) {</span>
+<span class="nc" id="L139">        callback.onCompleted(t);</span>
+      }
+<span class="nc" id="L141">      return new JDKHttpFuture&lt;&gt;(t);</span>
+<span class="nc" id="L142">    } catch (IOException | RuntimeException e) {</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">      if (callback != null) {</span>
+<span class="nc" id="L144">        callback.onThrowable(e);</span>
+      }
+<span class="nc" id="L146">      return new JDKHttpFuture&lt;&gt;(e);</span>
+    }
+  }
+
+  @Override
+  public Response execute(
+      String userAgent,
+      Map&lt;String, String&gt; headers,
+      Verb httpVerb,
+      String completeUrl,
+      byte[] bodyContents)
+      throws InterruptedException, ExecutionException, IOException {
+<span class="nc" id="L158">    return doExecute(userAgent, headers, httpVerb, completeUrl, BodyType.BYTE_ARRAY, bodyContents);</span>
+  }
+
+  @Override
+  public Response execute(
+      String userAgent,
+      Map&lt;String, String&gt; headers,
+      Verb httpVerb,
+      String completeUrl,
+      MultipartPayload multipartPayloads)
+      throws InterruptedException, ExecutionException, IOException {
+<span class="nc" id="L169">    return doExecute(</span>
+        userAgent, headers, httpVerb, completeUrl, BodyType.MULTIPART, multipartPayloads);
+  }
+
+  @Override
+  public Response execute(
+      String userAgent,
+      Map&lt;String, String&gt; headers,
+      Verb httpVerb,
+      String completeUrl,
+      String bodyContents)
+      throws InterruptedException, ExecutionException, IOException {
+<span class="nc" id="L181">    return doExecute(userAgent, headers, httpVerb, completeUrl, BodyType.STRING, bodyContents);</span>
+  }
+
+  @Override
+  public Response execute(
+      String userAgent,
+      Map&lt;String, String&gt; headers,
+      Verb httpVerb,
+      String completeUrl,
+      File bodyContents)
+      throws InterruptedException, ExecutionException, IOException {
+<span class="nc" id="L192">    throw new UnsupportedOperationException(</span>
+        &quot;JDKHttpClient does not support File payload for the moment&quot;);
+  }
+
+  private Response doExecute(
+      String userAgent,
+      Map&lt;String, String&gt; headers,
+      Verb httpVerb,
+      String completeUrl,
+      BodyType bodyType,
+      Object bodyContents)
+      throws IOException {
+<span class="nc" id="L204">    final URL url = new URL(completeUrl);</span>
+<span class="nc" id="L205">    final HttpURLConnection connection = (HttpURLConnection) url.openConnection();</span>
+
+<span class="nc" id="L207">    connection.setInstanceFollowRedirects(true);</span>
+<span class="nc" id="L208">    connection.setRequestMethod(httpVerb.name());</span>
+<span class="nc" id="L209">    connection.setConnectTimeout(NetworkUtil.getUrlConnectionTimeout());</span>
+<span class="nc" id="L210">    connection.setReadTimeout(NetworkUtil.getUrlReadTimeout());</span>
+<span class="nc" id="L211">    addHeaders(connection, headers, userAgent);</span>
+<span class="nc bnc" id="L212" title="All 2 branches missed.">    if (httpVerb.isPermitBody()) {</span>
+<span class="nc" id="L213">      bodyType.setBody(connection, bodyContents, httpVerb.isRequiresBody());</span>
+    }
+
+    try {
+<span class="nc" id="L217">      connection.connect();</span>
+<span class="nc" id="L218">      final int responseCode = connection.getResponseCode();</span>
+<span class="nc" id="L219">      return new Response(</span>
+          responseCode,
+<span class="nc" id="L221">          connection.getResponseMessage(),</span>
+<span class="nc" id="L222">          parseHeaders(connection),</span>
+<span class="nc bnc" id="L223" title="All 4 branches missed.">          responseCode &gt;= 200 &amp;&amp; responseCode &lt; 400</span>
+<span class="nc" id="L224">              ? connection.getInputStream()</span>
+<span class="nc" id="L225">              : connection.getErrorStream());</span>
+<span class="nc" id="L226">    } catch (UnknownHostException e) {</span>
+<span class="nc" id="L227">      throw new OAuthException(&quot;The IP address of a host could not be determined.&quot;, e);</span>
+    }
+  }
+
+<span class="nc" id="L231">  private enum BodyType {</span>
+<span class="nc" id="L232">    BYTE_ARRAY {</span>
+      @Override
+      void setBody(HttpURLConnection connection, Object bodyContents, boolean requiresBody)
+          throws IOException {
+<span class="nc" id="L236">        addBody(connection, (byte[]) bodyContents, requiresBody);</span>
+<span class="nc" id="L237">      }</span>
+    },
+<span class="nc" id="L239">    MULTIPART {</span>
+      @Override
+      void setBody(HttpURLConnection connection, Object bodyContents, boolean requiresBody)
+          throws IOException {
+<span class="nc" id="L243">        addBody(connection, (MultipartPayload) bodyContents, requiresBody);</span>
+<span class="nc" id="L244">      }</span>
+    },
+<span class="nc" id="L246">    STRING {</span>
+      @Override
+      void setBody(HttpURLConnection connection, Object bodyContents, boolean requiresBody)
+          throws IOException {
+<span class="nc" id="L250">        addBody(connection, ((String) bodyContents).getBytes(StandardCharsets.UTF_8), requiresBody);</span>
+<span class="nc" id="L251">      }</span>
+    };
+
+    abstract void setBody(HttpURLConnection connection, Object bodyContents, boolean requiresBody)
+        throws IOException;
+  }
+
+  private static Map&lt;String, String&gt; parseHeaders(HttpURLConnection conn) {
+<span class="nc" id="L259">    final Map&lt;String, String&gt; headers = new HashMap&lt;&gt;();</span>
+
+<span class="nc bnc" id="L261" title="All 2 branches missed.">    for (Map.Entry&lt;String, List&lt;String&gt;&gt; headerField : conn.getHeaderFields().entrySet()) {</span>
+<span class="nc" id="L262">      final String key = headerField.getKey();</span>
+<span class="nc" id="L263">      final String value = headerField.getValue().get(0);</span>
+<span class="nc bnc" id="L264" title="All 2 branches missed.">      if (&quot;Content-Encoding&quot;.equalsIgnoreCase(key)) { // NON-NLS</span>
+<span class="nc" id="L265">        headers.put(&quot;Content-Encoding&quot;, value); // NON-NLS</span>
+      } else {
+<span class="nc" id="L267">        headers.put(key, value);</span>
+      }
+<span class="nc" id="L269">    }</span>
+<span class="nc" id="L270">    return headers;</span>
+  }
+
+  private static void addHeaders(
+      HttpURLConnection connection, Map&lt;String, String&gt; headers, String userAgent) {
+<span class="nc bnc" id="L275" title="All 2 branches missed.">    for (Map.Entry&lt;String, String&gt; header : headers.entrySet()) {</span>
+<span class="nc" id="L276">      connection.setRequestProperty(header.getKey(), header.getValue());</span>
+<span class="nc" id="L277">    }</span>
+
+<span class="nc bnc" id="L279" title="All 2 branches missed.">    if (userAgent != null) {</span>
+<span class="nc" id="L280">      connection.setRequestProperty(OAuthConstants.USER_AGENT_HEADER_NAME, userAgent);</span>
+    }
+<span class="nc" id="L282">  }</span>
+
+  private static void addBody(HttpURLConnection connection, byte[] content, boolean requiresBody)
+      throws IOException {
+<span class="nc" id="L286">    final int contentLength = content.length;</span>
+<span class="nc bnc" id="L287" title="All 4 branches missed.">    if (requiresBody || contentLength &gt; 0) {</span>
+<span class="nc" id="L288">      final OutputStream outputStream =</span>
+<span class="nc" id="L289">          prepareConnectionForBodyAndGetOutputStream(connection, contentLength);</span>
+<span class="nc bnc" id="L290" title="All 2 branches missed.">      if (contentLength &gt; 0) {</span>
+<span class="nc" id="L291">        outputStream.write(content);</span>
+      }
+    }
+<span class="nc" id="L294">  }</span>
+
+  public static void addBody(
+      HttpURLConnection connection, MultipartPayload multipartPayload, boolean requiresBody)
+      throws IOException {
+
+<span class="nc bnc" id="L300" title="All 2 branches missed.">    for (Map.Entry&lt;String, String&gt; header : multipartPayload.getHeaders().entrySet()) {</span>
+<span class="nc" id="L301">      connection.setRequestProperty(header.getKey(), header.getValue());</span>
+<span class="nc" id="L302">    }</span>
+
+<span class="nc bnc" id="L304" title="All 2 branches missed.">    if (requiresBody) {</span>
+<span class="nc" id="L305">      List&lt;BodySupplier&lt;InputStream&gt;&gt; bodySuppliers = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L306">      prepareMultipartPayload(bodySuppliers, multipartPayload);</span>
+<span class="nc" id="L307">      long contentLength =</span>
+<span class="nc" id="L308">          bodySuppliers.stream().mapToLong(BodySupplier::length).reduce(0L, Long::sum);</span>
+<span class="nc" id="L309">      final OutputStream outputStream =</span>
+<span class="nc" id="L310">          prepareConnectionForBodyAndGetOutputStream(connection, contentLength);</span>
+<span class="nc bnc" id="L311" title="All 2 branches missed.">      if (contentLength &gt; 0) {</span>
+<span class="nc" id="L312">        byte[] buf = new byte[FileUtil.FILE_BUFFER];</span>
+<span class="nc bnc" id="L313" title="All 2 branches missed.">        for (BodySupplier&lt;InputStream&gt; b : bodySuppliers) {</span>
+<span class="nc" id="L314">          try (InputStream inputStream = b.get()) {</span>
+            int offset;
+<span class="nc bnc" id="L316" title="All 2 branches missed.">            while ((offset = inputStream.read(buf)) &gt; 0) {</span>
+<span class="nc" id="L317">              outputStream.write(buf, 0, offset);</span>
+            }
+<span class="nc" id="L319">            outputStream.flush();</span>
+          }
+<span class="nc" id="L321">        }</span>
+      }
+    }
+<span class="nc" id="L324">  }</span>
+
+  private static OutputStream prepareConnectionForBodyAndGetOutputStream(
+      HttpURLConnection connection, long contentLength) throws IOException {
+<span class="nc" id="L328">    connection.setRequestProperty(CONTENT_LENGTH, String.valueOf(contentLength));</span>
+<span class="nc bnc" id="L329" title="All 2 branches missed.">    if (connection.getRequestProperty(CONTENT_TYPE) == null) {</span>
+<span class="nc" id="L330">      connection.setRequestProperty(CONTENT_TYPE, DEFAULT_CONTENT_TYPE);</span>
+    }
+<span class="nc" id="L332">    connection.setDoOutput(true);</span>
+<span class="nc" id="L333">    connection.setFixedLengthStreamingMode(contentLength);</span>
+<span class="nc" id="L334">    return connection.getOutputStream();</span>
+  }
+
+  public static void prepareMultipartPayload(
+      List&lt;BodySupplier&lt;InputStream&gt;&gt; bodySuppliers, MultipartPayload multipartPayload) {
+<span class="nc" id="L339">    StringBuilder buf = new StringBuilder();</span>
+
+<span class="nc" id="L341">    final String preamble = multipartPayload.getPreamble();</span>
+<span class="nc bnc" id="L342" title="All 2 branches missed.">    if (preamble != null) {</span>
+<span class="nc" id="L343">      buf.append(preamble);</span>
+<span class="nc" id="L344">      buf.append(&quot;\r\n&quot;);</span>
+    }
+<span class="nc" id="L346">    final List&lt;BodyPartPayload&gt; bodyParts = multipartPayload.getBodyParts();</span>
+<span class="nc bnc" id="L347" title="All 2 branches missed.">    if (!bodyParts.isEmpty()) {</span>
+<span class="nc" id="L348">      final String boundary = multipartPayload.getBoundary();</span>
+
+<span class="nc bnc" id="L350" title="All 2 branches missed.">      for (BodyPartPayload bodyPart : bodyParts) {</span>
+<span class="nc" id="L351">        buf.append(&quot;--&quot;);</span>
+<span class="nc" id="L352">        buf.append(boundary);</span>
+<span class="nc" id="L353">        buf.append(&quot;\r\n&quot;);</span>
+
+<span class="nc" id="L355">        final Map&lt;String, String&gt; bodyPartHeaders = bodyPart.getHeaders();</span>
+<span class="nc bnc" id="L356" title="All 2 branches missed.">        if (bodyPartHeaders != null) {</span>
+<span class="nc bnc" id="L357" title="All 2 branches missed.">          for (Map.Entry&lt;String, String&gt; header : bodyPartHeaders.entrySet()) {</span>
+<span class="nc" id="L358">            buf.append(header.getKey());</span>
+<span class="nc" id="L359">            buf.append(&quot;: &quot;);</span>
+<span class="nc" id="L360">            buf.append(header.getValue());</span>
+<span class="nc" id="L361">            buf.append(&quot;\r\n&quot;);</span>
+<span class="nc" id="L362">          }</span>
+        }
+
+<span class="nc" id="L365">        buf.append(&quot;\r\n&quot;);</span>
+<span class="nc" id="L366">        bodySuppliers.add(newBodySupplier(buf));</span>
+
+<span class="nc bnc" id="L368" title="All 2 branches missed.">        if (bodyPart instanceof MultipartPayload multi) {</span>
+<span class="nc" id="L369">          prepareMultipartPayload(bodySuppliers, multi);</span>
+<span class="nc bnc" id="L370" title="All 2 branches missed.">        } else if (bodyPart instanceof ByteArrayBodyPartPayload byteArrayBodyPart) {</span>
+<span class="nc" id="L371">          bodySuppliers.add(</span>
+<span class="nc" id="L372">              newBodySupplier(</span>
+<span class="nc" id="L373">                  byteArrayBodyPart.getPayload(),</span>
+<span class="nc" id="L374">                  byteArrayBodyPart.getOff(),</span>
+<span class="nc" id="L375">                  byteArrayBodyPart.getLen()));</span>
+<span class="nc bnc" id="L376" title="All 2 branches missed.">        } else if (bodyPart instanceof FileBodyPartPayload fileBodyPart) {</span>
+<span class="nc" id="L377">          bodySuppliers.add(fileBodyPart.getPayload());</span>
+        } else {
+<span class="nc" id="L379">          throw new AssertionError(bodyPart.getClass());</span>
+        }
+<span class="nc" id="L381">        buf.append(&quot;\r\n&quot;); // CRLF for the next (starting or closing) boundary</span>
+<span class="nc" id="L382">      }</span>
+
+<span class="nc" id="L384">      buf.append(&quot;--&quot;);</span>
+<span class="nc" id="L385">      buf.append(boundary);</span>
+<span class="nc" id="L386">      buf.append(&quot;--&quot;);</span>
+
+<span class="nc" id="L388">      final String epilogue = multipartPayload.getEpilogue();</span>
+<span class="nc bnc" id="L389" title="All 2 branches missed.">      if (epilogue != null) {</span>
+<span class="nc" id="L390">        buf.append(&quot;\r\n&quot;);</span>
+<span class="nc" id="L391">        buf.append(epilogue);</span>
+      }
+    }
+<span class="nc" id="L394">    bodySuppliers.add(newBodySupplier(buf));</span>
+<span class="nc" id="L395">  }</span>
+
+  private static BodySupplier&lt;InputStream&gt; newBodySupplier(StringBuilder buf) {
+<span class="nc" id="L398">    byte[] bytes = buf.toString().getBytes(StandardCharsets.UTF_8);</span>
+<span class="nc" id="L399">    buf.setLength(0);</span>
+<span class="nc" id="L400">    return newBodySupplier(bytes);</span>
+  }
+
+  private static BodySupplier&lt;InputStream&gt; newBodySupplier(byte[] bytes) {
+<span class="nc" id="L404">    return new BodySupplier&lt;&gt;() {</span>
+      @Override
+      public InputStream get() {
+<span class="nc" id="L407">        return new ByteArrayInputStream(bytes);</span>
+      }
+
+      @Override
+      public long length() {
+<span class="nc" id="L412">        return bytes.length;</span>
+      }
+    };
+  }
+
+  private static BodySupplier&lt;InputStream&gt; newBodySupplier(byte[] payload, int off, int len) {
+<span class="nc bnc" id="L418" title="All 4 branches missed.">    if (off == 0 &amp;&amp; len == payload.length) {</span>
+<span class="nc" id="L419">      return newBodySupplier(payload);</span>
+    }
+<span class="nc" id="L421">    return new BodySupplier&lt;&gt;() {</span>
+      @Override
+      public InputStream get() {
+<span class="nc" id="L424">        return new ByteArrayInputStream(payload, off, len);</span>
+      }
+
+      @Override
+      public long length() {
+<span class="nc" id="L429">        return len;</span>
+      }
+    };
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

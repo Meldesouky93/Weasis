@@ -1,0 +1,12 @@
+/workspaces/Weasis/weasis-dicom/weasis-dicom-sr/src/main/java/org/weasis/dicom/sr/EditorPanePrinter.java
+/workspaces/Weasis/weasis-dicom/weasis-dicom-sr/src/main/java/org/weasis/dicom/sr/Messages.java
+/workspaces/Weasis/weasis-dicom/weasis-dicom-sr/src/main/java/org/weasis/dicom/sr/SRContainer.java
+/workspaces/Weasis/weasis-dicom/weasis-dicom-sr/src/main/java/org/weasis/dicom/sr/SRDocumentContent.java
+/workspaces/Weasis/weasis-dicom/weasis-dicom-sr/src/main/java/org/weasis/dicom/sr/SRDocumentContentModule.java
+/workspaces/Weasis/weasis-dicom/weasis-dicom-sr/src/main/java/org/weasis/dicom/sr/SRElementFactory.java
+/workspaces/Weasis/weasis-dicom/weasis-dicom-sr/src/main/java/org/weasis/dicom/sr/SRFactory.java
+/workspaces/Weasis/weasis-dicom/weasis-dicom-sr/src/main/java/org/weasis/dicom/sr/SRImageReference.java
+/workspaces/Weasis/weasis-dicom/weasis-dicom-sr/src/main/java/org/weasis/dicom/sr/SRReader.java
+/workspaces/Weasis/weasis-dicom/weasis-dicom-sr/src/main/java/org/weasis/dicom/sr/SRSpecialElement.java
+/workspaces/Weasis/weasis-dicom/weasis-dicom-sr/src/main/java/org/weasis/dicom/sr/SRView.java
+/workspaces/Weasis/weasis-dicom/weasis-dicom-sr/src/main/java/org/weasis/dicom/sr/SrToolBar.java

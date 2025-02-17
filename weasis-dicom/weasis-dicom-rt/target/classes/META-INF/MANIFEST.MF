@@ -1,0 +1,44 @@
+Manifest-Version: 1.0
+Bundle-License: "EPL-2.0 OR Apache-2.0";link="https://github.com/nrodu
+ it/Weasis/blob/master/LICENSE"
+Bundle-ManifestVersion: 2
+Bundle-Name: DICOM - Viewer for RTs (radiotherapy) [weasis-dicom-rt]
+Bundle-SymbolicName: weasis-dicom-rt
+Bundle-Version: 4.6.0.SNAPSHOT
+Import-Package: org.slf4j,bibliothek.gui.dock.common;version="[1.1,2)"
+ ,com.formdev.flatlaf.extras,eu.essilab.lablib.checkboxtree;version="[
+ 4.6,5)",java.awt,java.awt.event,java.awt.geom,java.beans,java.lang,ja
+ va.lang.invoke,java.text,java.util,java.util.concurrent,java.util.fun
+ ction,java.util.stream,javax.swing,javax.swing.border,javax.swing.eve
+ nt,javax.swing.tree,net.miginfocom.swing;version="[11.4,12)",org.dcm4
+ che3.data;version="[5.33,6)",org.dcm4che3.img.util;version="[4.6,5)",
+ org.joml,org.knowm.xchart;version="[4.6,5)",org.knowm.xchart.internal
+ ;version="[4.6,5)",org.knowm.xchart.internal.chartpart;version="[4.6,
+ 5)",org.knowm.xchart.internal.series;version="[4.6,5)",org.knowm.xcha
+ rt.style;version="[4.6,5)",org.knowm.xchart.style.markers;version="[4
+ .6,5)",org.opencv.core;version="[4.11,5)",org.opencv.imgproc;version=
+ "[4.11,5)",org.weasis.core.api.gui;version="[4.6,5)",org.weasis.core.
+ api.gui.task;version="[4.6,5)",org.weasis.core.api.gui.util;version="
+ [4.6,5)",org.weasis.core.api.image.util;version="[4.6,5)",org.weasis.
+ core.api.media.data;version="[4.6,5)",org.weasis.core.api.util;versio
+ n="[4.6,5)",org.weasis.core.ui.dialog;version="[4.6,5)",org.weasis.co
+ re.ui.docking;version="[4.6,5)",org.weasis.core.ui.editor;version="[4
+ .6,5)",org.weasis.core.ui.editor.image;version="[4.6,5)",org.weasis.c
+ ore.ui.model.graphic.imp.seg;version="[4.6,5)",org.weasis.core.ui.uti
+ l;version="[4.6,5)",org.weasis.core.util;version="[4.11,5)",org.weasi
+ s.dicom.codec;version="[4.6,5)",org.weasis.dicom.codec.geometry;versi
+ on="[4.6,5)",org.weasis.dicom.viewer2d;version="[4.6,5)",org.weasis.d
+ icom.viewer2d.dockable;version="[4.6,5)",org.weasis.opencv.data;versi
+ on="[4.11,5)",org.weasis.opencv.op;version="[4.11,5)",org.weasis.open
+ cv.seg;version="[4.11,5)"
+Private-Package: config,org.weasis.dicom.rt
+Provide-Capability: osgi.service;objectClass:List<String>="org.weasis.
+ core.api.gui.InsertableFactory";uses:="org.weasis.core.api.gui",osgi.
+ service;objectClass:List<String>="org.weasis.dicom.codec.DicomSpecial
+ ElementFactory";uses:="org.weasis.dicom.codec"
+Require-Capability: osgi.extender;filter:="(&(osgi.extender=osgi.compo
+ nent)(version>=1.5.0)(!(version>=2.0.0)))",osgi.ee;filter:="(&(osgi.e
+ e=JavaSE)(version=23))"
+Service-Component: OSGI-INF/org.weasis.dicom.rt.RTElementFactory.xml,O
+ SGI-INF/org.weasis.dicom.rt.RtDisplayToolFactory.xml
+

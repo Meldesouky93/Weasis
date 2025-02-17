@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ZoomOp.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.image</a> &gt; <span class="el_source">ZoomOp.java</span></div><h1>ZoomOp.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.image;
+
+import java.awt.Dimension;
+import org.opencv.imgproc.Imgproc;
+import org.weasis.core.Messages;
+import org.weasis.core.util.MathUtil;
+import org.weasis.opencv.data.PlanarImage;
+import org.weasis.opencv.op.ImageProcessor;
+
+public class ZoomOp extends AbstractOp {
+
+<span class="nc" id="L21">  public static final String OP_NAME = Messages.getString(&quot;ZoomOperation.title&quot;);</span>
+
+<span class="nc" id="L23">  public enum Interpolation {</span>
+<span class="nc" id="L24">    NEAREST_NEIGHBOUR(Messages.getString(&quot;ZoomOperation.nearest&quot;), Imgproc.INTER_NEAREST),</span>
+<span class="nc" id="L25">    BILINEAR(Messages.getString(&quot;ZoomOperation.bilinear&quot;), Imgproc.INTER_LINEAR),</span>
+<span class="nc" id="L26">    BICUBIC(Messages.getString(&quot;ZoomOperation.bicubic&quot;), Imgproc.INTER_CUBIC),</span>
+<span class="nc" id="L27">    LANCZOS(Messages.getString(&quot;ZoomOperation.lanczos&quot;), Imgproc.INTER_LANCZOS4);</span>
+
+    private final String title;
+    private final int opencvValue;
+
+<span class="nc" id="L32">    Interpolation(String title, int opencvValue) {</span>
+<span class="nc" id="L33">      this.title = title;</span>
+<span class="nc" id="L34">      this.opencvValue = opencvValue;</span>
+<span class="nc" id="L35">    }</span>
+
+    public int getOpencvValue() {
+<span class="nc" id="L38">      return opencvValue;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L43">      return title;</span>
+    }
+
+    public String getTitle() {
+<span class="nc" id="L47">      return title;</span>
+    }
+
+    public static Interpolation getInterpolation(int position) {
+<span class="nc bnc" id="L51" title="All 2 branches missed.">      for (Interpolation v : Interpolation.values()) {</span>
+<span class="nc bnc" id="L52" title="All 2 branches missed.">        if (v.ordinal() == position) {</span>
+<span class="nc" id="L53">          return v;</span>
+        }
+      }
+<span class="nc" id="L56">      return BILINEAR;</span>
+    }
+  }
+
+  /**
+   * Set a zoom factor in x-axis (Required parameter).
+   *
+   * &lt;p&gt;Double value.
+   */
+  public static final String P_RATIO_X = &quot;ratio.x&quot;;
+
+  /**
+   * Set a zoom factor in y-axis (Required parameter).
+   *
+   * &lt;p&gt;Double value.
+   */
+  public static final String P_RATIO_Y = &quot;ratio.y&quot;;
+
+  /**
+   * Set the interpolation type (Optional parameter).
+   *
+   * &lt;p&gt;Integer value. Default value is bilinear interpolation. See javax.media.jai.Interpolation.
+   */
+  public static final String P_INTERPOLATION = &quot;interpolation&quot;; // NON-NLS
+
+<span class="nc" id="L81">  public ZoomOp() {</span>
+<span class="nc" id="L82">    setName(OP_NAME);</span>
+<span class="nc" id="L83">  }</span>
+
+  public ZoomOp(ZoomOp op) {
+<span class="nc" id="L86">    super(op);</span>
+<span class="nc" id="L87">  }</span>
+
+  @Override
+  public ZoomOp copy() {
+<span class="nc" id="L91">    return new ZoomOp(this);</span>
+  }
+
+  @Override
+  public void process() throws Exception {
+<span class="nc" id="L96">    PlanarImage source = (PlanarImage) params.get(Param.INPUT_IMG);</span>
+<span class="nc" id="L97">    PlanarImage result = source;</span>
+<span class="nc" id="L98">    Double zoomFactorX = (Double) params.get(P_RATIO_X);</span>
+<span class="nc" id="L99">    Double zoomFactorY = (Double) params.get(P_RATIO_Y);</span>
+
+<span class="nc bnc" id="L101" title="All 4 branches missed.">    if (zoomFactorX != null</span>
+        &amp;&amp; zoomFactorY != null
+<span class="nc bnc" id="L103" title="All 4 branches missed.">        &amp;&amp; (MathUtil.isDifferent(zoomFactorX, 1.0) || MathUtil.isDifferent(zoomFactorY, 1.0))) {</span>
+<span class="nc" id="L104">      Dimension dim =</span>
+          new Dimension(
+<span class="nc" id="L106">              (int) (Math.abs(zoomFactorX) * source.width()),</span>
+<span class="nc" id="L107">              (int) (Math.abs(zoomFactorY) * source.height()));</span>
+<span class="nc" id="L108">      ZoomOp.Interpolation interpolation = (ZoomOp.Interpolation) params.get(P_INTERPOLATION);</span>
+<span class="nc" id="L109">      Integer inter = null;</span>
+<span class="nc bnc" id="L110" title="All 4 branches missed.">      if (Math.abs(zoomFactorX) &lt; 0.1 || Math.abs(zoomFactorY) &lt; 0.1) {</span>
+<span class="nc" id="L111">        inter = Imgproc.INTER_AREA;</span>
+<span class="nc bnc" id="L112" title="All 2 branches missed.">      } else if (interpolation != null) {</span>
+<span class="nc" id="L113">        inter = interpolation.getOpencvValue();</span>
+      }
+<span class="nc" id="L115">      result = ImageProcessor.scale(source.toMat(), dim, inter);</span>
+    }
+
+<span class="nc" id="L118">    params.put(Param.OUTPUT_IMG, result);</span>
+<span class="nc" id="L119">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

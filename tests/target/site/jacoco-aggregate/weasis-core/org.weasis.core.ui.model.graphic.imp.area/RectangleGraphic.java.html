@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>RectangleGraphic.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.graphic.imp.area</a> &gt; <span class="el_source">RectangleGraphic.java</span></div><h1>RectangleGraphic.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.graphic.imp.area;
+
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import javax.swing.Icon;
+import org.weasis.core.Messages;
+import org.weasis.core.api.image.measure.MeasurementsAdapter;
+import org.weasis.core.api.image.util.MeasurableLayer;
+import org.weasis.core.api.image.util.Unit;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.api.util.ResourceUtil.ActionIcon;
+import org.weasis.core.ui.model.graphic.AbstractDragGraphicArea;
+import org.weasis.core.ui.model.utils.bean.MeasureItem;
+import org.weasis.core.ui.model.utils.bean.Measurement;
+import org.weasis.core.ui.model.utils.exceptions.InvalidShapeException;
+import org.weasis.core.ui.util.MouseEventDouble;
+
+public class RectangleGraphic extends AbstractDragGraphicArea {
+
+<span class="nc" id="L36">  public static final Integer POINTS_NUMBER = 8;</span>
+
+<span class="nc" id="L38">  public static final Icon ICON = ResourceUtil.getIcon(ActionIcon.DRAW_RECTANGLE);</span>
+
+<span class="nc" id="L40">  public static final Measurement AREA =</span>
+<span class="nc" id="L41">      new Measurement(Messages.getString(&quot;measure.area&quot;), 1, true, true, true);</span>
+<span class="nc" id="L42">  public static final Measurement PERIMETER =</span>
+<span class="nc" id="L43">      new Measurement(Messages.getString(&quot;measure.perimeter&quot;), 2, true, true, false);</span>
+<span class="nc" id="L44">  public static final Measurement TOP_LEFT_POINT_X =</span>
+<span class="nc" id="L45">      new Measurement(Messages.getString(&quot;measure.topx&quot;), 3, true, true, false);</span>
+<span class="nc" id="L46">  public static final Measurement TOP_LEFT_POINT_Y =</span>
+<span class="nc" id="L47">      new Measurement(Messages.getString(&quot;measure.topy&quot;), 4, true, true, false);</span>
+<span class="nc" id="L48">  public static final Measurement CENTER_X =</span>
+<span class="nc" id="L49">      new Measurement(Messages.getString(&quot;measure.centerx&quot;), 5, true, true, false);</span>
+<span class="nc" id="L50">  public static final Measurement CENTER_Y =</span>
+<span class="nc" id="L51">      new Measurement(Messages.getString(&quot;measure.centery&quot;), 6, true, true, false);</span>
+<span class="nc" id="L52">  public static final Measurement WIDTH =</span>
+<span class="nc" id="L53">      new Measurement(Messages.getString(&quot;measure.width&quot;), 7, true, true, false);</span>
+<span class="nc" id="L54">  public static final Measurement HEIGHT =</span>
+<span class="nc" id="L55">      new Measurement(Messages.getString(&quot;measure.height&quot;), 8, true, true, false);</span>
+
+<span class="nc" id="L57">  protected static final List&lt;Measurement&gt; MEASUREMENT_LIST = new ArrayList&lt;&gt;();</span>
+
+  static {
+<span class="nc" id="L60">    MEASUREMENT_LIST.add(TOP_LEFT_POINT_X);</span>
+<span class="nc" id="L61">    MEASUREMENT_LIST.add(TOP_LEFT_POINT_Y);</span>
+<span class="nc" id="L62">    MEASUREMENT_LIST.add(CENTER_X);</span>
+<span class="nc" id="L63">    MEASUREMENT_LIST.add(CENTER_Y);</span>
+<span class="nc" id="L64">    MEASUREMENT_LIST.add(WIDTH);</span>
+<span class="nc" id="L65">    MEASUREMENT_LIST.add(HEIGHT);</span>
+<span class="nc" id="L66">    MEASUREMENT_LIST.add(AREA);</span>
+<span class="nc" id="L67">    MEASUREMENT_LIST.add(PERIMETER);</span>
+<span class="nc" id="L68">  }</span>
+
+  public RectangleGraphic() {
+<span class="nc" id="L71">    super(POINTS_NUMBER);</span>
+<span class="nc" id="L72">  }</span>
+
+  public RectangleGraphic(RectangleGraphic graphic) {
+<span class="nc" id="L75">    super(graphic);</span>
+<span class="nc" id="L76">  }</span>
+
+  @Override
+  public RectangleGraphic copy() {
+<span class="nc" id="L80">    return new RectangleGraphic(this);</span>
+  }
+
+  @Override
+  public Icon getIcon() {
+<span class="nc" id="L85">    return ICON;</span>
+  }
+
+  @Override
+  public String getUIName() {
+<span class="nc" id="L90">    return Messages.getString(&quot;MeasureToolBar.rect&quot;);</span>
+  }
+
+  public RectangleGraphic buildGraphic(Rectangle2D rectangle) throws InvalidShapeException {
+<span class="nc" id="L94">    Rectangle2D r =</span>
+<span class="nc" id="L95">        Optional.ofNullable(rectangle)</span>
+<span class="nc" id="L96">            .orElseThrow(() -&gt; new InvalidShapeException(&quot;Rectangle2D is null!&quot;));</span>
+<span class="nc" id="L97">    setHandlePointList(r);</span>
+<span class="nc" id="L98">    prepareShape();</span>
+<span class="nc" id="L99">    return this;</span>
+  }
+
+  @Override
+  protected void prepareShape() throws InvalidShapeException {
+<span class="nc bnc" id="L104" title="All 2 branches missed.">    if (!isShapeValid()) {</span>
+<span class="nc" id="L105">      throw new InvalidShapeException(&quot;This shape cannot be drawn&quot;);</span>
+    }
+<span class="nc" id="L107">    buildShape(null);</span>
+<span class="nc" id="L108">  }</span>
+
+  @Override
+  public Integer moveAndResizeOnDrawing(
+      Integer handlePointIndex, Double deltaX, Double deltaY, MouseEventDouble mouseEvent) {
+<span class="nc bnc" id="L113" title="All 2 branches missed.">    if (Objects.equals(handlePointIndex, UNDEFINED)) { // move shape</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">      for (Point2D point : pts) {</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">        if (point != null) {</span>
+<span class="nc" id="L116">          point.setLocation(point.getX() + deltaX, point.getY() + deltaY);</span>
+        }
+<span class="nc" id="L118">      }</span>
+    } else {
+<span class="nc" id="L120">      Rectangle2D rectangle = new Rectangle2D.Double();</span>
+
+<span class="nc" id="L122">      rectangle.setFrameFromDiagonal(</span>
+<span class="nc" id="L123">          getHandlePoint(eHandlePoint.NW.index), getHandlePoint(eHandlePoint.SE.index));</span>
+
+<span class="nc" id="L125">      double x = rectangle.getX();</span>
+<span class="nc" id="L126">      double y = rectangle.getY();</span>
+<span class="nc" id="L127">      double w = rectangle.getWidth();</span>
+<span class="nc" id="L128">      double h = rectangle.getHeight();</span>
+
+<span class="nc" id="L130">      eHandlePoint pt = eHandlePoint.valueFromIndex(handlePointIndex);</span>
+
+<span class="nc bnc" id="L132" title="All 6 branches missed.">      if (pt.equals(eHandlePoint.W) || pt.equals(eHandlePoint.NW) || pt.equals(eHandlePoint.SW)) {</span>
+<span class="nc" id="L133">        x += deltaX;</span>
+<span class="nc" id="L134">        w -= deltaX;</span>
+      }
+
+<span class="nc bnc" id="L137" title="All 6 branches missed.">      if (pt.equals(eHandlePoint.N) || pt.equals(eHandlePoint.NW) || pt.equals(eHandlePoint.NE)) {</span>
+<span class="nc" id="L138">        y += deltaY;</span>
+<span class="nc" id="L139">        h -= deltaY;</span>
+      }
+
+<span class="nc bnc" id="L142" title="All 6 branches missed.">      if (pt.equals(eHandlePoint.E) || pt.equals(eHandlePoint.NE) || pt.equals(eHandlePoint.SE)) {</span>
+<span class="nc" id="L143">        w += deltaX;</span>
+      }
+
+<span class="nc bnc" id="L146" title="All 6 branches missed.">      if (pt.equals(eHandlePoint.S) || pt.equals(eHandlePoint.SW) || pt.equals(eHandlePoint.SE)) {</span>
+<span class="nc" id="L147">        h += deltaY;</span>
+      }
+
+<span class="nc bnc" id="L150" title="All 2 branches missed.">      if (w &lt; 0) {</span>
+<span class="nc" id="L151">        w = -w;</span>
+<span class="nc" id="L152">        x -= w;</span>
+<span class="nc" id="L153">        pt = pt.getVerticalMirror();</span>
+      }
+
+<span class="nc bnc" id="L156" title="All 2 branches missed.">      if (h &lt; 0) {</span>
+<span class="nc" id="L157">        h = -h;</span>
+<span class="nc" id="L158">        y -= h;</span>
+<span class="nc" id="L159">        pt = pt.getHorizontalMirror();</span>
+      }
+
+<span class="nc" id="L162">      handlePointIndex = pt.index;</span>
+<span class="nc" id="L163">      rectangle.setFrame(x, y, w, h);</span>
+
+<span class="nc" id="L165">      setHandlePointList(rectangle);</span>
+    }
+
+<span class="nc" id="L168">    return handlePointIndex;</span>
+  }
+
+  @Override
+  public void buildShape(MouseEventDouble mouseevent) {
+<span class="nc" id="L173">    Rectangle2D rectangle = null;</span>
+
+<span class="nc bnc" id="L175" title="All 2 branches missed.">    if (pts.size() &gt; 1) {</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">      if (!getHandlePoint(eHandlePoint.NW.index).equals(getHandlePoint(eHandlePoint.SE.index))) {</span>
+<span class="nc" id="L177">        rectangle = new Rectangle2D.Double();</span>
+<span class="nc" id="L178">        rectangle.setFrameFromDiagonal(</span>
+<span class="nc" id="L179">            getHandlePoint(eHandlePoint.NW.index), getHandlePoint(eHandlePoint.SE.index));</span>
+      }
+    }
+
+<span class="nc" id="L183">    setShape(rectangle, mouseevent);</span>
+<span class="nc" id="L184">    updateLabel(mouseevent, getDefaultView2d(mouseevent));</span>
+<span class="nc" id="L185">  }</span>
+
+  @Override
+  public List&lt;Measurement&gt; getMeasurementList() {
+<span class="nc" id="L189">    return MEASUREMENT_LIST;</span>
+  }
+
+  @Override
+  public List&lt;MeasureItem&gt; computeMeasurements(
+      MeasurableLayer layer, boolean releaseEvent, Unit displayUnit) {
+
+<span class="nc bnc" id="L196" title="All 6 branches missed.">    if (layer != null &amp;&amp; layer.hasContent() &amp;&amp; isShapeValid()) {</span>
+<span class="nc" id="L197">      MeasurementsAdapter adapter = layer.getMeasurementAdapter(displayUnit);</span>
+
+<span class="nc bnc" id="L199" title="All 2 branches missed.">      if (adapter != null) {</span>
+<span class="nc" id="L200">        ArrayList&lt;MeasureItem&gt; measVal = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L201">        Rectangle2D rect = new Rectangle2D.Double();</span>
+
+<span class="nc" id="L203">        rect.setFrameFromDiagonal(</span>
+<span class="nc" id="L204">            getHandlePoint(eHandlePoint.NW.index), getHandlePoint(eHandlePoint.SE.index));</span>
+
+<span class="nc" id="L206">        double ratio = adapter.getCalibRatio();</span>
+
+<span class="nc bnc" id="L208" title="All 2 branches missed.">        if (TOP_LEFT_POINT_X.getComputed()) {</span>
+<span class="nc" id="L209">          measVal.add(</span>
+              new MeasureItem(
+<span class="nc" id="L211">                  TOP_LEFT_POINT_X, adapter.getXCalibratedValue(rect.getX()), adapter.getUnit()));</span>
+        }
+<span class="nc bnc" id="L213" title="All 2 branches missed.">        if (TOP_LEFT_POINT_Y.getComputed()) {</span>
+<span class="nc" id="L214">          measVal.add(</span>
+              new MeasureItem(
+<span class="nc" id="L216">                  TOP_LEFT_POINT_Y, adapter.getYCalibratedValue(rect.getY()), adapter.getUnit()));</span>
+        }
+<span class="nc bnc" id="L218" title="All 2 branches missed.">        if (CENTER_X.getComputed()) {</span>
+<span class="nc" id="L219">          measVal.add(</span>
+              new MeasureItem(
+<span class="nc" id="L221">                  CENTER_X, adapter.getXCalibratedValue(rect.getCenterX()), adapter.getUnit()));</span>
+        }
+<span class="nc bnc" id="L223" title="All 2 branches missed.">        if (CENTER_Y.getComputed()) {</span>
+<span class="nc" id="L224">          measVal.add(</span>
+              new MeasureItem(
+<span class="nc" id="L226">                  CENTER_Y, adapter.getYCalibratedValue(rect.getCenterY()), adapter.getUnit()));</span>
+        }
+<span class="nc bnc" id="L228" title="All 2 branches missed.">        if (WIDTH.getComputed()) {</span>
+<span class="nc" id="L229">          measVal.add(new MeasureItem(WIDTH, ratio * rect.getWidth(), adapter.getUnit()));</span>
+        }
+<span class="nc bnc" id="L231" title="All 2 branches missed.">        if (HEIGHT.getComputed()) {</span>
+<span class="nc" id="L232">          measVal.add(new MeasureItem(HEIGHT, ratio * rect.getHeight(), adapter.getUnit()));</span>
+        }
+<span class="nc bnc" id="L234" title="All 2 branches missed.">        if (AREA.getComputed()) {</span>
+<span class="nc" id="L235">          Double val = rect.getWidth() * rect.getHeight() * ratio * ratio;</span>
+          String unit =
+<span class="nc bnc" id="L237" title="All 2 branches missed.">              &quot;pix&quot;.equals(adapter.getUnit()) // NON-NLS</span>
+<span class="nc" id="L238">                  ? adapter.getUnit()</span>
+<span class="nc" id="L239">                  : adapter.getUnit() + &quot;2&quot;;</span>
+<span class="nc" id="L240">          measVal.add(new MeasureItem(AREA, val, unit));</span>
+        }
+<span class="nc bnc" id="L242" title="All 2 branches missed.">        if (PERIMETER.getComputed()) {</span>
+<span class="nc" id="L243">          Double val = (rect.getWidth() + rect.getHeight()) * 2 * ratio;</span>
+<span class="nc" id="L244">          measVal.add(new MeasureItem(PERIMETER, val, adapter.getUnit()));</span>
+        }
+
+<span class="nc" id="L247">        List&lt;MeasureItem&gt; stats = getImageStatistics(layer, releaseEvent);</span>
+<span class="nc bnc" id="L248" title="All 2 branches missed.">        if (stats != null) {</span>
+<span class="nc" id="L249">          measVal.addAll(stats);</span>
+        }
+<span class="nc" id="L251">        return measVal;</span>
+      }
+    }
+<span class="nc" id="L254">    return Collections.emptyList();</span>
+  }
+
+  protected void setHandlePointList(Rectangle2D rectangle) {
+
+<span class="nc" id="L259">    double x = rectangle.getX();</span>
+<span class="nc" id="L260">    double y = rectangle.getY();</span>
+<span class="nc" id="L261">    double w = rectangle.getWidth();</span>
+<span class="nc" id="L262">    double h = rectangle.getHeight();</span>
+
+<span class="nc bnc" id="L264" title="All 2 branches missed.">    while (pts.size() &lt; pointNumber) {</span>
+<span class="nc" id="L265">      pts.add(new Point2D.Double());</span>
+    }
+
+<span class="nc" id="L268">    setHandlePoint(eHandlePoint.NW.index, new Point2D.Double(x, y));</span>
+<span class="nc" id="L269">    setHandlePoint(eHandlePoint.N.index, new Point2D.Double(x + w / 2, y));</span>
+<span class="nc" id="L270">    setHandlePoint(eHandlePoint.NE.index, new Point2D.Double(x + w, y));</span>
+<span class="nc" id="L271">    setHandlePoint(eHandlePoint.E.index, new Point2D.Double(x + w, y + h / 2));</span>
+<span class="nc" id="L272">    setHandlePoint(eHandlePoint.SE.index, new Point2D.Double(x + w, y + h));</span>
+<span class="nc" id="L273">    setHandlePoint(eHandlePoint.S.index, new Point2D.Double(x + w / 2, y + h));</span>
+<span class="nc" id="L274">    setHandlePoint(eHandlePoint.SW.index, new Point2D.Double(x, y + h));</span>
+<span class="nc" id="L275">    setHandlePoint(eHandlePoint.W.index, new Point2D.Double(x, y + h / 2));</span>
+<span class="nc" id="L276">  }</span>
+
+<span class="nc" id="L278">  public enum eHandlePoint {</span>
+<span class="nc" id="L279">    NONE(-1),</span>
+<span class="nc" id="L280">    NW(0),</span>
+<span class="nc" id="L281">    SE(1),</span>
+<span class="nc" id="L282">    NE(2),</span>
+<span class="nc" id="L283">    SW(3),</span>
+<span class="nc" id="L284">    N(4),</span>
+<span class="nc" id="L285">    S(5),</span>
+<span class="nc" id="L286">    E(6),</span>
+<span class="nc" id="L287">    W(7);</span>
+    // 0 and 1 must be diagonal point of rectangle
+
+<span class="nc" id="L290">    static final Map&lt;Integer, eHandlePoint&gt; map = new HashMap&lt;&gt;(eHandlePoint.values().length);</span>
+
+    static {
+<span class="nc bnc" id="L293" title="All 2 branches missed.">      for (eHandlePoint corner : eHandlePoint.values()) {</span>
+<span class="nc" id="L294">        map.put(corner.index, corner);</span>
+      }
+<span class="nc" id="L296">    }</span>
+
+    public final int index;
+
+<span class="nc" id="L300">    eHandlePoint(int index) {</span>
+<span class="nc" id="L301">      this.index = index;</span>
+<span class="nc" id="L302">    }</span>
+
+    public int getIndex() {
+<span class="nc" id="L305">      return index;</span>
+    }
+
+    static eHandlePoint valueFromIndex(int index) {
+<span class="nc" id="L309">      return Optional.ofNullable(map.get(index))</span>
+<span class="nc" id="L310">          .orElseThrow(</span>
+              () -&gt;
+<span class="nc" id="L312">                  new RuntimeException(</span>
+                      &quot;Not a valid index for a rectangular DragGraphic : &quot; + index));
+    }
+
+    eHandlePoint getVerticalMirror() {
+<span class="nc bnc" id="L317" title="All 7 branches missed.">      return switch (this) {</span>
+<span class="nc" id="L318">        case NW -&gt; eHandlePoint.NE;</span>
+<span class="nc" id="L319">        case NE -&gt; eHandlePoint.NW;</span>
+<span class="nc" id="L320">        case W -&gt; eHandlePoint.E;</span>
+<span class="nc" id="L321">        case E -&gt; eHandlePoint.W;</span>
+<span class="nc" id="L322">        case SW -&gt; eHandlePoint.SE;</span>
+<span class="nc" id="L323">        case SE -&gt; eHandlePoint.SW;</span>
+<span class="nc" id="L324">        default -&gt; this;</span>
+      };
+    }
+
+    eHandlePoint getHorizontalMirror() {
+<span class="nc bnc" id="L329" title="All 7 branches missed.">      return switch (this) {</span>
+<span class="nc" id="L330">        case NW -&gt; eHandlePoint.SW;</span>
+<span class="nc" id="L331">        case SW -&gt; eHandlePoint.NW;</span>
+<span class="nc" id="L332">        case N -&gt; eHandlePoint.S;</span>
+<span class="nc" id="L333">        case S -&gt; eHandlePoint.N;</span>
+<span class="nc" id="L334">        case NE -&gt; eHandlePoint.SE;</span>
+<span class="nc" id="L335">        case SE -&gt; eHandlePoint.NE;</span>
+<span class="nc" id="L336">        default -&gt; this;</span>
+      };
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

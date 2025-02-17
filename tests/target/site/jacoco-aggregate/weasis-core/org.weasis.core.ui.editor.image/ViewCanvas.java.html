@@ -1,0 +1,524 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ViewCanvas.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image</a> &gt; <span class="el_source">ViewCanvas.java</span></div><h1>ViewCanvas.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image;
+
+import bibliothek.gui.dock.control.focus.DefaultFocusRequest;
+import bibliothek.gui.dock.control.focus.FocusController;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.event.ActionListener;
+import java.awt.event.FocusListener;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+import java.awt.event.MouseWheelListener;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
+import java.beans.PropertyChangeListener;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+import java.util.Timer;
+import java.util.TimerTask;
+import javax.swing.Action;
+import javax.swing.BorderFactory;
+import javax.swing.ButtonGroup;
+import javax.swing.JComponent;
+import javax.swing.JPopupMenu;
+import javax.swing.JProgressBar;
+import javax.swing.JRadioButtonMenuItem;
+import javax.swing.JSeparator;
+import javax.swing.KeyStroke;
+import javax.swing.SwingUtilities;
+import javax.swing.border.Border;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.Image2DViewer;
+import org.weasis.core.api.gui.util.ActionState;
+import org.weasis.core.api.gui.util.ActionW;
+import org.weasis.core.api.gui.util.Feature;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.gui.util.GuiUtils.IconColor;
+import org.weasis.core.api.gui.util.MouseActionAdapter;
+import org.weasis.core.api.gui.util.WinUtil;
+import org.weasis.core.api.image.OpManager;
+import org.weasis.core.api.image.WindowOp;
+import org.weasis.core.api.image.ZoomOp.Interpolation;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.media.data.MediaSeries;
+import org.weasis.core.api.service.UICore;
+import org.weasis.core.ui.editor.SeriesViewerEvent;
+import org.weasis.core.ui.editor.SeriesViewerEvent.EVENT;
+import org.weasis.core.ui.editor.image.dockable.MeasureTool;
+import org.weasis.core.ui.model.graphic.Graphic;
+import org.weasis.core.ui.model.layer.LayerAnnotation;
+import org.weasis.core.ui.model.utils.ImageLayerChangeListener;
+import org.weasis.core.ui.model.utils.bean.PanPoint;
+import org.weasis.core.ui.model.utils.bean.PanPoint.State;
+import org.weasis.core.ui.util.TitleMenuItem;
+import org.weasis.core.util.LangUtil;
+import org.weasis.core.util.StringUtil;
+
+public interface ViewCanvas&lt;E extends ImageElement&gt;
+    extends Canvas,
+        Image2DViewer&lt;E&gt;,
+        PropertyChangeListener,
+        FocusListener,
+        ImageLayerChangeListener&lt;E&gt;,
+        KeyListener {
+
+  String ZOOM_TYPE_CMD = &quot;zoom.type&quot;;
+  int CENTER_POINTER = 1 &lt;&lt; 1;
+  int HIGHLIGHTED_POINTER = 1 &lt;&lt; 2;
+
+  // Border
+<span class="nc" id="L90">  Border focusBorder =</span>
+<span class="nc" id="L91">      BorderFactory.createMatteBorder(1, 1, 1, 1, IconColor.ACTIONS_YELLOW.getColor());</span>
+<span class="nc" id="L92">  Border viewBorder = BorderFactory.createMatteBorder(1, 1, 1, 1, Color.GRAY);</span>
+
+  // Specific points
+<span class="nc" id="L95">  PanPoint highlightedPosition = new PanPoint(State.CENTER);</span>
+<span class="nc" id="L96">  PanPoint startedDragPoint = new PanPoint(State.DRAGSTART);</span>
+
+  // Graphics for building a pointer
+<span class="nc" id="L99">  Color pointerColor1 = Color.black;</span>
+<span class="nc" id="L100">  Color pointerColor2 = Color.white;</span>
+<span class="nc" id="L101">  Ellipse2D pointerCircle = new Ellipse2D.Double(-27.0, -27.0, 54.0, 54.0);</span>
+<span class="nc" id="L102">  Line2D pointerLeft = new Line2D.Double(-40.0, 0.0, -5.0, 0.0);</span>
+<span class="nc" id="L103">  Line2D pointerRight = new Line2D.Double(5.0, 0.0, 40.0, 0.0);</span>
+<span class="nc" id="L104">  Line2D pointerUp = new Line2D.Double(0.0, -40.0, 0.0, -5.0);</span>
+<span class="nc" id="L105">  Line2D pointerDown = new Line2D.Double(0.0, 5.0, 0.0, 40.0);</span>
+
+  default MouseActionAdapter getAction(Feature&lt;?&gt; action) {
+<span class="nc" id="L108">    Optional&lt;?&gt; a = getEventManager().getAction(action);</span>
+<span class="nc bnc" id="L109" title="All 4 branches missed.">    if (a.isPresent() &amp;&amp; a.get() instanceof MouseActionAdapter actionAdapter) {</span>
+<span class="nc" id="L110">      return actionAdapter;</span>
+    }
+<span class="nc" id="L112">    return null;</span>
+  }
+
+  default void addModifierMask(String action, int mask) {
+<span class="nc" id="L116">    MouseActionAdapter adapter = getMouseAdapter(action);</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">    if (adapter != null) {</span>
+<span class="nc" id="L118">      adapter.setButtonMaskEx(adapter.getButtonMaskEx() | mask);</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">      if (ActionW.WINLEVEL.cmd().equals(action)) {</span>
+<span class="nc" id="L120">        MouseActionAdapter win = getMouseAdapter(ActionW.WINDOW.cmd());</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        if (win != null) {</span>
+<span class="nc" id="L122">          win.setButtonMaskEx(win.getButtonMaskEx() | mask);</span>
+        }
+      }
+    }
+<span class="nc" id="L126">  }</span>
+
+  default void resetMouseAdapter() {
+<span class="nc bnc" id="L129" title="All 2 branches missed.">    for (ActionState adapter : getEventManager().getAllActionValues()) {</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">      if (adapter instanceof MouseActionAdapter mouseActionAdapter) {</span>
+<span class="nc" id="L131">        mouseActionAdapter.setButtonMaskEx(0);</span>
+      }
+<span class="nc" id="L133">    }</span>
+<span class="nc" id="L134">  }</span>
+
+  default void addMouseAdapter(String actionName, int buttonMask) {
+<span class="nc" id="L137">    MouseActionAdapter adapter = getMouseAdapter(actionName);</span>
+<span class="nc bnc" id="L138" title="All 2 branches missed.">    if (adapter == null) {</span>
+<span class="nc" id="L139">      return;</span>
+    }
+<span class="nc" id="L141">    JComponent c = getJComponent();</span>
+<span class="nc" id="L142">    adapter.setButtonMaskEx(adapter.getButtonMaskEx() | buttonMask);</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">    if (adapter instanceof GraphicMouseHandler) {</span>
+<span class="nc" id="L144">      c.addKeyListener(getDrawingsKeyListeners());</span>
+<span class="nc bnc" id="L145" title="All 2 branches missed.">    } else if (adapter instanceof PannerListener pannerListener) {</span>
+<span class="nc" id="L146">      pannerListener.reset();</span>
+<span class="nc" id="L147">      c.addKeyListener(pannerListener);</span>
+    }
+
+<span class="nc bnc" id="L150" title="All 2 branches missed.">    if (actionName.equals(ActionW.WINLEVEL.cmd())) {</span>
+      // For window/level action set window action on x-axis
+<span class="nc" id="L152">      MouseActionAdapter win = getAction(ActionW.WINDOW);</span>
+<span class="nc bnc" id="L153" title="All 2 branches missed.">      if (win != null) {</span>
+<span class="nc" id="L154">        win.setButtonMaskEx(win.getButtonMaskEx() | buttonMask);</span>
+<span class="nc" id="L155">        win.setMoveOnX(true);</span>
+<span class="nc" id="L156">        c.addMouseListener(win);</span>
+<span class="nc" id="L157">        c.addMouseMotionListener(win);</span>
+      }
+      // set level action with inverse progression (moving the cursor down will decrease the values)
+<span class="nc" id="L160">      adapter.setInverse(</span>
+<span class="nc" id="L161">          getEventManager().getOptions().getBooleanProperty(WindowOp.P_INVERSE_LEVEL, true));</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">    } else if (actionName.equals(ActionW.WINDOW.cmd())) {</span>
+<span class="nc" id="L163">      adapter.setMoveOnX(false);</span>
+<span class="nc bnc" id="L164" title="All 2 branches missed.">    } else if (actionName.equals(ActionW.LEVEL.cmd())) {</span>
+<span class="nc" id="L165">      adapter.setInverse(</span>
+<span class="nc" id="L166">          getEventManager().getOptions().getBooleanProperty(WindowOp.P_INVERSE_LEVEL, true));</span>
+    }
+<span class="nc" id="L168">    c.addMouseListener(adapter);</span>
+<span class="nc" id="L169">    c.addMouseMotionListener(adapter);</span>
+<span class="nc" id="L170">  }</span>
+
+  default void disableMouseAndKeyListener(Component c) {
+<span class="nc" id="L173">    MouseListener[] listener = c.getMouseListeners();</span>
+
+<span class="nc" id="L175">    MouseMotionListener[] motionListeners = c.getMouseMotionListeners();</span>
+<span class="nc" id="L176">    KeyListener[] keyListeners = c.getKeyListeners();</span>
+<span class="nc" id="L177">    MouseWheelListener[] wheelListeners = c.getMouseWheelListeners();</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">    for (MouseListener mouseListener : listener) {</span>
+<span class="nc" id="L179">      c.removeMouseListener(mouseListener);</span>
+    }
+<span class="nc bnc" id="L181" title="All 2 branches missed.">    for (MouseMotionListener motionListener : motionListeners) {</span>
+<span class="nc" id="L182">      c.removeMouseMotionListener(motionListener);</span>
+    }
+<span class="nc bnc" id="L184" title="All 2 branches missed.">    for (KeyListener keyListener : keyListeners) {</span>
+<span class="nc" id="L185">      c.removeKeyListener(keyListener);</span>
+    }
+<span class="nc bnc" id="L187" title="All 2 branches missed.">    for (MouseWheelListener wheelListener : wheelListeners) {</span>
+<span class="nc" id="L188">      c.removeMouseWheelListener(wheelListener);</span>
+    }
+<span class="nc" id="L190">  }</span>
+
+  default void enableMouseAndKeyListener(MouseActions actions) {
+<span class="nc" id="L193">    disableMouseAndKeyListener();</span>
+<span class="nc" id="L194">    iniDefaultMouseListener();</span>
+<span class="nc" id="L195">    iniDefaultKeyListener();</span>
+    // Set the buttonMask to 0 of all the actions
+<span class="nc" id="L197">    resetMouseAdapter();</span>
+
+<span class="nc" id="L199">    getJComponent().setCursor(DefaultView2d.DEFAULT_CURSOR);</span>
+
+<span class="nc" id="L201">    addMouseAdapter(actions.getLeft(), InputEvent.BUTTON1_DOWN_MASK); // left mouse button</span>
+<span class="nc bnc" id="L202" title="All 2 branches missed.">    if (actions.getMiddle().equals(actions.getLeft())) {</span>
+      // If mouse action is already registered, only add the modifier mask
+<span class="nc" id="L204">      addModifierMask(actions.getMiddle(), InputEvent.BUTTON2_DOWN_MASK);</span>
+    } else {
+<span class="nc" id="L206">      addMouseAdapter(actions.getMiddle(), InputEvent.BUTTON2_DOWN_MASK); // middle mouse button</span>
+    }
+<span class="nc bnc" id="L208" title="All 2 branches missed.">    if (actions.getRight().equals(actions.getLeft())</span>
+<span class="nc bnc" id="L209" title="All 2 branches missed.">        || actions.getRight().equals(actions.getMiddle())) {</span>
+      // If mouse action is already registered, only add the modifier mask
+<span class="nc" id="L211">      addModifierMask(actions.getRight(), InputEvent.BUTTON3_DOWN_MASK);</span>
+    } else {
+<span class="nc" id="L213">      addMouseAdapter(actions.getRight(), InputEvent.BUTTON3_DOWN_MASK); // right mouse button</span>
+    }
+<span class="nc" id="L215">    getJComponent().addMouseWheelListener(getMouseAdapter(actions.getWheel()));</span>
+<span class="nc" id="L216">  }</span>
+
+  MouseActionAdapter getMouseAdapter(String command);
+
+  default boolean isDrawActionActive() {
+<span class="nc" id="L221">    ViewerPlugin&lt;?&gt; container = WinUtil.getParentOfClass(getJComponent(), ViewerPlugin.class);</span>
+<span class="nc bnc" id="L222" title="All 2 branches missed.">    if (container != null) {</span>
+<span class="nc" id="L223">      final ViewerToolBar&lt;?&gt; toolBar = container.getViewerToolBar();</span>
+<span class="nc bnc" id="L224" title="All 2 branches missed.">      if (toolBar != null) {</span>
+<span class="nc bnc" id="L225" title="All 2 branches missed.">        return toolBar.isCommandActive(ActionW.MEASURE.cmd())</span>
+<span class="nc bnc" id="L226" title="All 2 branches missed.">            || toolBar.isCommandActive(ActionW.DRAW.cmd());</span>
+      }
+    }
+<span class="nc" id="L229">    return false;</span>
+  }
+
+  void registerDefaultListeners();
+
+  void copyActionWState(HashMap&lt;String, Object&gt; actionsInView);
+
+  ImageViewerEventManager&lt;E&gt; getEventManager();
+
+  void updateSynchState();
+
+  PixelInfo getPixelInfo(Point p);
+
+  Panner&lt;E&gt; getPanner();
+
+  void setSeries(MediaSeries&lt;E&gt; series);
+
+  void setSeries(MediaSeries&lt;E&gt; newSeries, E selectedMedia);
+
+  default void setFocused(Boolean focused) {
+<span class="nc" id="L249">    boolean isFocused = LangUtil.getNULLtoFalse(focused);</span>
+<span class="nc" id="L250">    MediaSeries&lt;E&gt; series = getSeries();</span>
+<span class="nc bnc" id="L251" title="All 2 branches missed.">    if (series != null) {</span>
+<span class="nc" id="L252">      series.setFocused(isFocused);</span>
+    }
+<span class="nc bnc" id="L254" title="All 4 branches missed.">    if (isFocused &amp;&amp; getBorder() == viewBorder) {</span>
+<span class="nc" id="L255">      setBorder(focusBorder);</span>
+<span class="nc bnc" id="L256" title="All 4 branches missed.">    } else if (!isFocused &amp;&amp; getBorder() == focusBorder) {</span>
+<span class="nc" id="L257">      setBorder(viewBorder);</span>
+    }
+
+<span class="nc bnc" id="L260" title="All 2 branches missed.">    if (isFocused) {</span>
+<span class="nc bnc" id="L261" title="All 2 branches missed.">      if (WinUtil.getParentOfClass(getJComponent(), ViewerPlugin.class)</span>
+<span class="nc" id="L262">          instanceof ViewerPlugin&lt;?&gt; viewerPlugin) {</span>
+        FocusController focusController =
+<span class="nc" id="L264">            UICore.getInstance().getDockingControl().getController().getFocusController();</span>
+<span class="nc" id="L265">        focusController.focus(</span>
+<span class="nc" id="L266">            new DefaultFocusRequest(viewerPlugin.getDockable().intern(), getJComponent(), true));</span>
+<span class="nc" id="L267">      } else {</span>
+        // Delay the request focus
+<span class="nc" id="L269">        Timer timer = new Timer();</span>
+<span class="nc" id="L270">        timer.schedule(</span>
+<span class="nc" id="L271">            new TimerTask() {</span>
+              @Override
+              public void run() {
+<span class="nc" id="L274">                SwingUtilities.invokeLater(() -&gt; getJComponent().requestFocus());</span>
+<span class="nc" id="L275">              }</span>
+            },
+            500);
+      }
+    }
+<span class="nc" id="L280">  }</span>
+
+  void setBorder(Border focusBorder);
+
+  Border getBorder();
+
+  LayerAnnotation getInfoLayer();
+
+  int getTileOffset();
+
+  void setTileOffset(int tileOffset);
+
+  /** Center the image into the view. */
+  void center();
+
+  /**
+   * Set the offset from the center of the view. (0,0) will center the image into the view.
+   *
+   * @param modelOffsetX the X-offset
+   * @param modelOffsetY the Y-offset
+   */
+  void setCenter(Double modelOffsetX, Double modelOffsetY);
+
+  void moveOrigin(PanPoint point);
+
+  Comparator&lt;E&gt; getCurrentSortComparator();
+
+  void setActionsInView(String action, Object value);
+
+  void setActionsInView(String action, Object value, Boolean repaint);
+
+  void setSelected(Boolean selected);
+
+  default Font getFont() {
+    // required when used getGraphics().getFont() in DefaultGraphicLabel
+<span class="nc" id="L315">    return MeasureTool.viewSetting.getFont();</span>
+  }
+
+  Font getLayerFont();
+
+  void setDrawingsVisibility(Boolean visible);
+
+  Object getLensActionValue(String action);
+
+  void changeZoomInterpolation(Interpolation interpolation);
+
+  OpManager getDisplayOpManager();
+
+  void disableMouseAndKeyListener();
+
+  void iniDefaultMouseListener();
+
+  void iniDefaultKeyListener();
+
+  int getPointerType();
+
+  void setPointerType(int pointerType);
+
+  void addPointerType(int i);
+
+  void resetPointerType(int i);
+
+  Point2D getHighlightedPosition();
+
+  default void drawPointer(Graphics2D g, double x, double y, boolean circle) {
+<span class="nc" id="L345">    Object[] oldRenderingHints = GuiUtils.setRenderingHints(g, true, true, false);</span>
+<span class="nc" id="L346">    float[] dash = {5.0f};</span>
+<span class="nc" id="L347">    g.translate(x, y);</span>
+<span class="nc" id="L348">    g.setStroke(new BasicStroke(3.0f));</span>
+<span class="nc" id="L349">    g.setPaint(pointerColor1);</span>
+<span class="nc bnc" id="L350" title="All 2 branches missed.">    if (circle) {</span>
+<span class="nc" id="L351">      g.draw(pointerCircle);</span>
+    }
+<span class="nc" id="L353">    g.draw(pointerLeft);</span>
+<span class="nc" id="L354">    g.draw(pointerRight);</span>
+<span class="nc" id="L355">    g.draw(pointerUp);</span>
+<span class="nc" id="L356">    g.draw(pointerDown);</span>
+
+<span class="nc" id="L358">    g.setStroke(</span>
+        new BasicStroke(1.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 5.0f, dash, 0.0f));
+<span class="nc" id="L360">    g.setPaint(pointerColor2);</span>
+<span class="nc bnc" id="L361" title="All 2 branches missed.">    if (circle) {</span>
+<span class="nc" id="L362">      g.draw(pointerCircle);</span>
+    }
+<span class="nc" id="L364">    g.draw(pointerLeft);</span>
+<span class="nc" id="L365">    g.draw(pointerRight);</span>
+<span class="nc" id="L366">    g.draw(pointerUp);</span>
+<span class="nc" id="L367">    g.draw(pointerDown);</span>
+<span class="nc" id="L368">    g.translate(-x, -y);</span>
+<span class="nc" id="L369">    GuiUtils.resetRenderingHints(g, oldRenderingHints);</span>
+<span class="nc" id="L370">  }</span>
+
+  default void drawProgressBar(Graphics2D g2d, JProgressBar bar) {
+<span class="nc bnc" id="L373" title="All 4 branches missed.">    if (bar != null &amp;&amp; bar.isVisible()) {</span>
+<span class="nc" id="L374">      int centerX = getJComponent().getWidth() / 2;</span>
+<span class="nc" id="L375">      int centerY = getJComponent().getHeight() / 2;</span>
+<span class="nc" id="L376">      int shiftX = centerX - bar.getWidth() / 2;</span>
+<span class="nc" id="L377">      int shiftY = centerY - bar.getHeight() / 2;</span>
+<span class="nc" id="L378">      g2d.translate(shiftX, shiftY);</span>
+<span class="nc" id="L379">      bar.paint(g2d);</span>
+<span class="nc" id="L380">      g2d.translate(-shiftX, -shiftY);</span>
+    }
+<span class="nc" id="L382">  }</span>
+
+  List&lt;Action&gt; getExportActions();
+
+  void resetZoom();
+
+  void resetPan();
+
+  void reset();
+
+  List&lt;ViewButton&gt; getViewButtons();
+
+  void closeLens();
+
+  void updateCanvas(boolean triggerViewModelChangeListeners);
+
+  void updateGraphicSelectionListener(ImageViewerPlugin&lt;E&gt; viewerPlugin);
+
+  boolean requiredTextAntialiasing();
+
+  JPopupMenu buildGraphicContextMenu(MouseEvent evt, List&lt;Graphic&gt; selected);
+
+  JPopupMenu buildContextMenu(MouseEvent evt);
+
+  default JPopupMenu buildLeftMouseActionMenu() {
+<span class="nc" id="L407">    JPopupMenu popupMenu = new JPopupMenu();</span>
+<span class="nc" id="L408">    TitleMenuItem itemTitle =</span>
+<span class="nc" id="L409">        new TitleMenuItem(Messages.getString(&quot;left.mouse.actions&quot;) + StringUtil.COLON);</span>
+<span class="nc" id="L410">    popupMenu.add(itemTitle);</span>
+<span class="nc" id="L411">    popupMenu.setLabel(MouseActions.T_LEFT);</span>
+<span class="nc" id="L412">    ImageViewerEventManager&lt;E&gt; eventManager = getEventManager();</span>
+<span class="nc" id="L413">    String action = eventManager.getMouseActions().getLeft();</span>
+<span class="nc" id="L414">    ButtonGroup groupButtons = new ButtonGroup();</span>
+<span class="nc" id="L415">    int count = popupMenu.getComponentCount();</span>
+<span class="nc" id="L416">    ImageViewerPlugin&lt;E&gt; view = eventManager.getSelectedView2dContainer();</span>
+<span class="nc bnc" id="L417" title="All 2 branches missed.">    if (view != null) {</span>
+<span class="nc" id="L418">      final ViewerToolBar&lt;?&gt; toolBar = view.getViewerToolBar();</span>
+<span class="nc bnc" id="L419" title="All 2 branches missed.">      if (toolBar != null) {</span>
+<span class="nc" id="L420">        ActionListener leftButtonAction =</span>
+            event -&gt; {
+<span class="nc bnc" id="L422" title="All 2 branches missed.">              if (event.getSource() instanceof JRadioButtonMenuItem item) {</span>
+<span class="nc" id="L423">                toolBar.changeButtonState(MouseActions.T_LEFT, item.getActionCommand());</span>
+              }
+<span class="nc" id="L425">            };</span>
+
+<span class="nc" id="L427">        List&lt;Feature&lt;?&gt;&gt; actionsButtons = ViewerToolBar.actionsButtons;</span>
+<span class="nc" id="L428">        synchronized (actionsButtons) {</span>
+<span class="nc bnc" id="L429" title="All 2 branches missed.">          for (Feature&lt;?&gt; b : actionsButtons) {</span>
+<span class="nc bnc" id="L430" title="All 2 branches missed.">            if (eventManager.isActionEnabled(b)) {</span>
+<span class="nc" id="L431">              JRadioButtonMenuItem radio =</span>
+<span class="nc" id="L432">                  new JRadioButtonMenuItem(b.getTitle(), b.getIcon(), b.cmd().equals(action));</span>
+<span class="nc" id="L433">              GuiUtils.applySelectedIconEffect(radio);</span>
+<span class="nc" id="L434">              radio.setActionCommand(b.cmd());</span>
+<span class="nc" id="L435">              radio.setAccelerator(KeyStroke.getKeyStroke(b.getKeyCode(), b.getModifier()));</span>
+              // Trigger the selected mouse action
+<span class="nc" id="L437">              radio.addActionListener(toolBar);</span>
+              // Update the state of the button in the toolbar
+<span class="nc" id="L439">              radio.addActionListener(leftButtonAction);</span>
+<span class="nc" id="L440">              popupMenu.add(radio);</span>
+<span class="nc" id="L441">              groupButtons.add(radio);</span>
+            }
+<span class="nc" id="L443">          }</span>
+<span class="nc" id="L444">        }</span>
+      }
+    }
+
+<span class="nc bnc" id="L448" title="All 2 branches missed.">    if (count &lt; popupMenu.getComponentCount()) {</span>
+<span class="nc" id="L449">      popupMenu.add(new JSeparator());</span>
+    }
+<span class="nc" id="L451">    return popupMenu;</span>
+  }
+
+  default int addSeparatorToPopupMenu(JPopupMenu popupMenu, int count) {
+<span class="nc bnc" id="L455" title="All 2 branches missed.">    if (count &lt; popupMenu.getComponentCount()) {</span>
+<span class="nc" id="L456">      popupMenu.add(new JSeparator());</span>
+<span class="nc" id="L457">      return popupMenu.getComponentCount();</span>
+    }
+<span class="nc" id="L459">    return count;</span>
+  }
+
+  boolean hasValidContent();
+
+  default void drawPointer(Graphics2D g, int pointerType) {
+<span class="nc bnc" id="L465" title="All 2 branches missed.">    if (pointerType &lt; 1) {</span>
+<span class="nc" id="L466">      return;</span>
+    }
+<span class="nc bnc" id="L468" title="All 2 branches missed.">    if ((pointerType &amp; CENTER_POINTER) == CENTER_POINTER) {</span>
+<span class="nc" id="L469">      drawPointer(</span>
+          g,
+<span class="nc" id="L471">          (getJComponent().getWidth() - 1) * 0.5,</span>
+<span class="nc" id="L472">          (getJComponent().getHeight() - 1) * 0.5,</span>
+          false);
+    }
+<span class="nc bnc" id="L475" title="All 2 branches missed.">    if ((pointerType &amp; HIGHLIGHTED_POINTER) == HIGHLIGHTED_POINTER</span>
+<span class="nc bnc" id="L476" title="All 2 branches missed.">        &amp;&amp; highlightedPosition.isHighlightedPosition()) {</span>
+      // Display the position in the center of the pixel (constant position even with a high zoom
+      // factor)
+<span class="nc" id="L479">      double offsetX =</span>
+<span class="nc" id="L480">          modelToViewLength(highlightedPosition.getX() + 0.5 - getViewModel().getModelOffsetX());</span>
+<span class="nc" id="L481">      double offsetY =</span>
+<span class="nc" id="L482">          modelToViewLength(highlightedPosition.getY() + 0.5 - getViewModel().getModelOffsetY());</span>
+<span class="nc" id="L483">      drawPointer(g, offsetX, offsetY, true);</span>
+    }
+<span class="nc" id="L485">  }</span>
+
+  default void defaultKeyPressed(ImageViewerEventManager&lt;?&gt; eventManager, KeyEvent e) {
+<span class="nc bnc" id="L488" title="All 4 branches missed.">    if (e.isControlDown() &amp;&amp; e.getKeyCode() == KeyEvent.VK_SPACE) {</span>
+<span class="nc" id="L489">      eventManager.nextLeftMouseAction();</span>
+<span class="nc bnc" id="L490" title="All 2 branches missed.">    } else if (e.getModifiers() == 0</span>
+<span class="nc bnc" id="L491" title="All 4 branches missed.">        &amp;&amp; (e.getKeyCode() == KeyEvent.VK_SPACE || e.getKeyCode() == KeyEvent.VK_I)) {</span>
+<span class="nc" id="L492">      eventManager.fireSeriesViewerListeners(</span>
+          new SeriesViewerEvent(
+<span class="nc" id="L494">              eventManager.getSelectedView2dContainer(), null, null, EVENT.TOGGLE_INFO));</span>
+<span class="nc bnc" id="L495" title="All 2 branches missed.">    } else if (e.getKeyCode() == KeyEvent.VK_F11) {</span>
+<span class="nc" id="L496">      ImageViewerPlugin&lt;E&gt; c = (ImageViewerPlugin&lt;E&gt;) eventManager.getSelectedView2dContainer();</span>
+<span class="nc bnc" id="L497" title="All 2 branches missed.">      if (c != null) {</span>
+<span class="nc" id="L498">        c.maximizedSelectedImagePane(c.getSelectedImagePane(), null);</span>
+      }
+<span class="nc bnc" id="L500" title="All 4 branches missed.">    } else if (e.isAltDown() &amp;&amp; e.getKeyCode() == KeyEvent.VK_L) {</span>
+      // Counterclockwise
+<span class="nc" id="L502">      eventManager</span>
+<span class="nc" id="L503">          .getAction(ActionW.ROTATION)</span>
+<span class="nc" id="L504">          .ifPresent(a -&gt; a.setSliderValue((a.getSliderValue() + 270) % 360));</span>
+<span class="nc bnc" id="L505" title="All 4 branches missed.">    } else if (e.isAltDown() &amp;&amp; e.getKeyCode() == KeyEvent.VK_R) {</span>
+      // Clockwise
+<span class="nc" id="L507">      eventManager</span>
+<span class="nc" id="L508">          .getAction(ActionW.ROTATION)</span>
+<span class="nc" id="L509">          .ifPresent(a -&gt; a.setSliderValue((a.getSliderValue() + 90) % 360));</span>
+<span class="nc bnc" id="L510" title="All 4 branches missed.">    } else if (e.isAltDown() &amp;&amp; e.getKeyCode() == KeyEvent.VK_F) {</span>
+      // Flip horizontal
+<span class="nc bnc" id="L512" title="All 2 branches missed.">      eventManager.getAction(ActionW.FLIP).ifPresent(f -&gt; f.setSelected(!f.isSelected()));</span>
+    } else {
+<span class="nc" id="L514">      Optional&lt;Feature&lt;? extends ActionState&gt;&gt; feature =</span>
+<span class="nc" id="L515">          eventManager.getLeftMouseActionFromKeyEvent(e.getKeyCode(), e.getModifiers());</span>
+<span class="nc bnc" id="L516" title="All 2 branches missed.">      if (feature.isPresent()) {</span>
+<span class="nc" id="L517">        eventManager.changeLeftMouseAction(feature.get().cmd());</span>
+      } else {
+<span class="nc" id="L519">        eventManager.keyPressed(e);</span>
+      }
+    }
+<span class="nc" id="L522">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

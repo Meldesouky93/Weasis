@@ -1,0 +1,453 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>Series.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.media.data</a> &gt; <span class="el_source">Series.java</span></div><h1>Series.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.media.data;
+
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Random;
+import javax.swing.SwingUtilities;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.Messages;
+import org.weasis.core.api.explorer.ObservableEvent;
+import org.weasis.core.api.gui.util.Filter;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.util.LangUtil;
+import org.weasis.core.util.StringUtil;
+import org.weasis.opencv.data.PlanarImage;
+
+public abstract class Series&lt;E extends MediaElement&gt; extends MediaSeriesGroupNode
+    implements MediaSeries&lt;E&gt; {
+<span class="nc" id="L41">  private static final Logger LOGGER = LoggerFactory.getLogger(Series.class);</span>
+
+<span class="nc" id="L43">  public static final DataFlavor sequenceDataFlavor =</span>
+<span class="nc" id="L44">      createConstant(</span>
+<span class="nc" id="L45">          DataFlavor.javaJVMLocalObjectMimeType + &quot;;class=&quot; + Series.class.getName(), // NON-NLS</span>
+          null);
+
+<span class="nc" id="L48">  private static final Random RANDOM = new SecureRandom();</span>
+<span class="nc" id="L49">  private static final DataFlavor[] flavors = {sequenceDataFlavor};</span>
+
+<span class="nc" id="L51">  private PropertyChangeSupport propertyChange = null;</span>
+  protected final List&lt;E&gt; medias;
+<span class="nc" id="L53">  protected final Map&lt;Comparator&lt;E&gt;, List&lt;E&gt;&gt; sortedMedias = new HashMap&lt;&gt;(6);</span>
+  protected final Comparator&lt;E&gt; mediaOrder;
+  protected SeriesImporter seriesLoader;
+  private long fileSize;
+
+  protected Series(TagW tagID, Object identifier, TagView displayTag) {
+<span class="nc" id="L59">    this(tagID, identifier, displayTag, null);</span>
+<span class="nc" id="L60">  }</span>
+
+  protected Series(TagW tagID, Object identifier, TagView displayTag, int initialCapacity) {
+<span class="nc" id="L63">    this(tagID, identifier, displayTag, new ArrayList&lt;&gt;(initialCapacity));</span>
+<span class="nc" id="L64">  }</span>
+
+  protected Series(TagW tagID, Object identifier, TagView displayTag, List&lt;E&gt; list) {
+<span class="nc" id="L67">    this(tagID, identifier, displayTag, list, null);</span>
+<span class="nc" id="L68">  }</span>
+
+  protected Series(
+      TagW tagID, Object identifier, TagView displayTag, List&lt;E&gt; list, Comparator&lt;E&gt; mediaOrder) {
+<span class="nc" id="L72">    super(tagID, identifier, displayTag);</span>
+<span class="nc" id="L73">    this.mediaOrder = mediaOrder;</span>
+<span class="nc" id="L74">    List&lt;E&gt; ls = list;</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">    if (ls == null) {</span>
+<span class="nc" id="L76">      ls = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L77">      fileSize = 0L;</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">    } else if (mediaOrder != null) {</span>
+<span class="nc" id="L79">      ls.sort(mediaOrder);</span>
+    }
+<span class="nc" id="L81">    medias = Collections.synchronizedList(ls);</span>
+<span class="nc" id="L82">  }</span>
+
+  private static DataFlavor createConstant(String mt, String prn) {
+    try {
+<span class="nc" id="L86">      return new DataFlavor(mt, prn, Series.class.getClassLoader());</span>
+<span class="nc" id="L87">    } catch (Exception e) {</span>
+<span class="nc" id="L88">      LOGGER.error(&quot;Build series flavor&quot;, e);</span>
+<span class="nc" id="L89">      return null;</span>
+    }
+  }
+
+  protected void resetSortedMediasMap() {
+<span class="nc bnc" id="L94" title="All 2 branches missed.">    if (!sortedMedias.isEmpty()) {</span>
+<span class="nc" id="L95">      sortedMedias.clear();</span>
+    }
+<span class="nc" id="L97">  }</span>
+
+  @Override
+  public List&lt;E&gt; getSortedMedias(Comparator&lt;E&gt; comparator) {
+    // Do not sort when it is the default order.
+<span class="nc bnc" id="L102" title="All 4 branches missed.">    if (comparator != null &amp;&amp; !comparator.equals(mediaOrder)) {</span>
+<span class="nc" id="L103">      return sortedMedias.computeIfAbsent(</span>
+          comparator,
+          k -&gt; {
+<span class="nc" id="L106">            List&lt;E&gt; sorted = new ArrayList&lt;&gt;(medias);</span>
+<span class="nc" id="L107">            sorted.sort(comparator);</span>
+<span class="nc" id="L108">            return sorted;</span>
+          });
+    }
+<span class="nc" id="L111">    return medias;</span>
+  }
+
+  @Override
+  public void add(E media) {
+<span class="nc" id="L116">    medias.add(media);</span>
+<span class="nc" id="L117">    resetSortedMediasMap();</span>
+<span class="nc" id="L118">  }</span>
+
+  @Override
+  public void add(int index, E media) {
+<span class="nc" id="L122">    medias.add(index, media);</span>
+<span class="nc" id="L123">    resetSortedMediasMap();</span>
+<span class="nc" id="L124">  }</span>
+
+  @Override
+  public void addAll(Collection&lt;? extends E&gt; c) {
+<span class="nc" id="L128">    medias.addAll(c);</span>
+<span class="nc" id="L129">    resetSortedMediasMap();</span>
+<span class="nc" id="L130">  }</span>
+
+  @Override
+  public void addAll(int index, Collection&lt;? extends E&gt; c) {
+<span class="nc" id="L134">    medias.addAll(index, c);</span>
+<span class="nc" id="L135">    resetSortedMediasMap();</span>
+<span class="nc" id="L136">  }</span>
+
+  @Override
+  public final E getMedia(MEDIA_POSITION position, Filter&lt;E&gt; filter, Comparator&lt;E&gt; sort) {
+<span class="nc" id="L140">    List&lt;E&gt; sortedList = getSortedMedias(sort);</span>
+<span class="nc" id="L141">    synchronized (this) {</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">      if (filter == null) {</span>
+<span class="nc" id="L143">        int size = sortedList.size();</span>
+<span class="nc bnc" id="L144" title="All 2 branches missed.">        if (size == 0) {</span>
+<span class="nc" id="L145">          return null;</span>
+        }
+<span class="nc" id="L147">        int pos = 0;</span>
+<span class="nc bnc" id="L148" title="All 2 branches missed.">        if (MEDIA_POSITION.FIRST.equals(position)) {</span>
+<span class="nc" id="L149">          pos = 0;</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">        } else if (MEDIA_POSITION.MIDDLE.equals(position)) {</span>
+<span class="nc" id="L151">          pos = size / 2;</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">        } else if (MEDIA_POSITION.LAST.equals(position)) {</span>
+<span class="nc" id="L153">          pos = size - 1;</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">        } else if (MEDIA_POSITION.RANDOM.equals(position)) {</span>
+<span class="nc" id="L155">          pos = RANDOM.nextInt(size);</span>
+        }
+<span class="nc" id="L157">        return sortedList.get(pos);</span>
+      } else {
+<span class="nc" id="L159">        Iterable&lt;E&gt; iter = filter.filter(sortedList);</span>
+<span class="nc" id="L160">        Iterator&lt;E&gt; list = iter.iterator();</span>
+<span class="nc bnc" id="L161" title="All 2 branches missed.">        if (list.hasNext()) {</span>
+<span class="nc" id="L162">          E val = list.next();</span>
+<span class="nc bnc" id="L163" title="All 2 branches missed.">          if (MEDIA_POSITION.FIRST.equals(position)) {</span>
+<span class="nc" id="L164">            return val;</span>
+          }
+<span class="nc" id="L166">          int pos = 0;</span>
+<span class="nc" id="L167">          int size = Filter.size(iter);</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">          if (MEDIA_POSITION.MIDDLE.equals(position)) {</span>
+<span class="nc" id="L169">            pos = size / 2;</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">          } else if (MEDIA_POSITION.LAST.equals(position)) {</span>
+<span class="nc" id="L171">            pos = size - 1;</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">          } else if (MEDIA_POSITION.RANDOM.equals(position)) {</span>
+<span class="nc" id="L173">            pos = RANDOM.nextInt(size);</span>
+          }
+<span class="nc" id="L175">          int k = 0;</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">          for (E elem : iter) {</span>
+<span class="nc bnc" id="L177" title="All 2 branches missed.">            if (k == pos) {</span>
+<span class="nc" id="L178">              return elem;</span>
+            }
+<span class="nc" id="L180">          }</span>
+<span class="nc" id="L181">          return val;</span>
+        } else {
+<span class="nc" id="L183">          return null;</span>
+        }
+      }
+    }
+  }
+
+  public final int getImageIndex(E source, Filter&lt;E&gt; filter, Comparator&lt;E&gt; sort) {
+<span class="nc bnc" id="L190" title="All 2 branches missed.">    if (source == null) {</span>
+<span class="nc" id="L191">      return -1;</span>
+    }
+<span class="nc" id="L193">    Iterable&lt;E&gt; list = getMedias(filter, sort);</span>
+<span class="nc" id="L194">    synchronized (medias) {</span>
+<span class="nc" id="L195">      int index = 0;</span>
+<span class="nc bnc" id="L196" title="All 2 branches missed.">      for (E e : list) {</span>
+<span class="nc bnc" id="L197" title="All 2 branches missed.">        if (e == source) {</span>
+<span class="nc" id="L198">          return index;</span>
+        }
+<span class="nc" id="L200">        index++;</span>
+<span class="nc" id="L201">      }</span>
+<span class="nc" id="L202">    }</span>
+<span class="nc" id="L203">    return -1;</span>
+  }
+
+  @Override
+  public final Iterable&lt;E&gt; getMedias(Filter&lt;E&gt; filter, Comparator&lt;E&gt; sort) {
+<span class="nc" id="L208">    List&lt;E&gt; sortedList = getSortedMedias(sort);</span>
+<span class="nc bnc" id="L209" title="All 2 branches missed.">    return filter == null ? sortedList : filter.filter(sortedList);</span>
+  }
+
+  @Override
+  public final List&lt;E&gt; copyOfMedias(Filter&lt;E&gt; filter, Comparator&lt;E&gt; sort) {
+<span class="nc" id="L214">    List&lt;E&gt; sortedList = getSortedMedias(sort);</span>
+<span class="nc bnc" id="L215" title="All 2 branches missed.">    return filter == null</span>
+<span class="nc" id="L216">        ? new ArrayList&lt;&gt;(sortedList)</span>
+<span class="nc" id="L217">        : Filter.makeList(filter.filter(sortedList));</span>
+  }
+
+  @Override
+  public final E getMedia(int index, Filter&lt;E&gt; filter, Comparator&lt;E&gt; sort) {
+<span class="nc" id="L222">    List&lt;E&gt; sortedList = getSortedMedias(sort);</span>
+<span class="nc" id="L223">    synchronized (this) {</span>
+<span class="nc bnc" id="L224" title="All 2 branches missed.">      if (filter == null) {</span>
+<span class="nc bnc" id="L225" title="All 4 branches missed.">        if (index &gt;= 0 &amp;&amp; index &lt; sortedList.size()) {</span>
+<span class="nc" id="L226">          return sortedList.get(index);</span>
+        }
+      } else {
+<span class="nc bnc" id="L229" title="All 2 branches missed.">        if (index &gt;= 0) {</span>
+<span class="nc" id="L230">          Iterable&lt;E&gt; iter = filter.filter(sortedList);</span>
+<span class="nc" id="L231">          int k = 0;</span>
+<span class="nc bnc" id="L232" title="All 2 branches missed.">          for (E elem : iter) {</span>
+<span class="nc bnc" id="L233" title="All 2 branches missed.">            if (k == index) {</span>
+<span class="nc" id="L234">              return elem;</span>
+            }
+<span class="nc" id="L236">            k++;</span>
+<span class="nc" id="L237">          }</span>
+        }
+      }
+<span class="nc" id="L240">    }</span>
+<span class="nc" id="L241">    return null;</span>
+  }
+
+  @Override
+  public synchronized void dispose() {
+<span class="nc" id="L246">    medias.forEach(</span>
+        m -&gt; {
+<span class="nc bnc" id="L248" title="All 2 branches missed.">          if (m instanceof ImageElement imageElement) {</span>
+            // Removing from cache will close the image stream
+<span class="nc" id="L250">            imageElement.removeImageFromCache();</span>
+          }
+<span class="nc" id="L252">          m.dispose();</span>
+<span class="nc" id="L253">        });</span>
+
+<span class="nc" id="L255">    medias.clear();</span>
+<span class="nc" id="L256">    resetSortedMediasMap();</span>
+
+<span class="nc" id="L258">    Optional.ofNullable((Thumbnail) getTagValue(TagW.Thumbnail)).ifPresent(Thumbnail::dispose);</span>
+<span class="nc bnc" id="L259" title="All 2 branches missed.">    if (propertyChange != null) {</span>
+<span class="nc" id="L260">      Arrays.asList(propertyChange.getPropertyChangeListeners())</span>
+<span class="nc" id="L261">          .forEach(propertyChange::removePropertyChangeListener);</span>
+    }
+<span class="nc" id="L263">    seriesLoader = null;</span>
+<span class="nc" id="L264">  }</span>
+
+  @Override
+  public SeriesImporter getSeriesLoader() {
+<span class="nc" id="L268">    return seriesLoader;</span>
+  }
+
+  @Override
+  public void setSeriesLoader(SeriesImporter seriesLoader) {
+<span class="nc" id="L273">    this.seriesLoader = seriesLoader;</span>
+<span class="nc" id="L274">  }</span>
+
+  @Override
+  public DataFlavor[] getTransferDataFlavors() {
+<span class="nc" id="L278">    return flavors;</span>
+  }
+
+  @Override
+  public boolean isDataFlavorSupported(DataFlavor flavor) {
+<span class="nc" id="L283">    return sequenceDataFlavor.equals(flavor);</span>
+  }
+
+  @Override
+  public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException {
+<span class="nc bnc" id="L288" title="All 2 branches missed.">    if (sequenceDataFlavor.equals(flavor)) {</span>
+<span class="nc" id="L289">      return this;</span>
+    }
+<span class="nc" id="L291">    throw new UnsupportedFlavorException(flavor);</span>
+  }
+
+  public void addPropertyChangeListener(PropertyChangeListener propertychangelistener) {
+<span class="nc bnc" id="L295" title="All 2 branches missed.">    if (propertyChange == null) {</span>
+<span class="nc" id="L296">      propertyChange = new PropertyChangeSupport(this);</span>
+    }
+<span class="nc" id="L298">    propertyChange.addPropertyChangeListener(propertychangelistener);</span>
+<span class="nc" id="L299">  }</span>
+
+  public void removePropertyChangeListener(PropertyChangeListener propertychangelistener) {
+<span class="nc bnc" id="L302" title="All 2 branches missed.">    if (propertyChange != null) {</span>
+<span class="nc" id="L303">      propertyChange.removePropertyChangeListener(propertychangelistener);</span>
+    }
+<span class="nc" id="L305">  }</span>
+
+  public void firePropertyChange(final ObservableEvent event) {
+<span class="nc bnc" id="L308" title="All 2 branches missed.">    if (propertyChange != null) {</span>
+<span class="nc bnc" id="L309" title="All 2 branches missed.">      if (event == null) {</span>
+<span class="nc" id="L310">        throw new NullPointerException();</span>
+      }
+<span class="nc bnc" id="L312" title="All 2 branches missed.">      if (SwingUtilities.isEventDispatchThread()) {</span>
+<span class="nc" id="L313">        propertyChange.firePropertyChange(event);</span>
+      } else {
+<span class="nc" id="L315">        SwingUtilities.invokeLater(() -&gt; propertyChange.firePropertyChange(event));</span>
+      }
+    }
+<span class="nc" id="L318">  }</span>
+
+  @Override
+  public synchronized int size(Filter&lt;E&gt; filter) {
+<span class="nc bnc" id="L322" title="All 2 branches missed.">    return filter == null ? medias.size() : Filter.size(filter.filter(medias));</span>
+  }
+
+  @Override
+  public boolean isOpen() {
+<span class="nc" id="L327">    Boolean open = (Boolean) getTagValue(TagW.SeriesOpen);</span>
+<span class="nc bnc" id="L328" title="All 4 branches missed.">    return open != null &amp;&amp; open;</span>
+  }
+
+  @Override
+  public String getToolTips() {
+<span class="nc" id="L333">    E media = this.getMedia(MEDIA_POSITION.MIDDLE, null, null);</span>
+<span class="nc bnc" id="L334" title="All 2 branches missed.">    if (media instanceof ImageElement image) {</span>
+<span class="nc" id="L335">      PlanarImage img = image.getImage();</span>
+<span class="nc bnc" id="L336" title="All 2 branches missed.">      if (img != null) {</span>
+<span class="nc" id="L337">        return &quot;&quot;&quot;</span>
+          &lt;html&gt;%s: %sx%s&lt;/html&gt;
+          &quot;&quot;&quot;
+<span class="nc" id="L340">            .formatted(Messages.getString(&quot;Series.img_size&quot;), img.width(), img.height());</span>
+      }
+    }
+<span class="nc" id="L343">    return StringUtil.EMPTY_STRING;</span>
+  }
+
+  public void addToolTipsElement(StringBuilder toolTips, String title, TagW tag) {
+<span class="nc" id="L347">    toolTips.append(title);</span>
+<span class="nc" id="L348">    toolTips.append(StringUtil.COLON_AND_SPACE);</span>
+<span class="nc bnc" id="L349" title="All 2 branches missed.">    if (tag != null) {</span>
+<span class="nc" id="L350">      toolTips.append(tag.getFormattedTagValue(getTagValue(tag), null));</span>
+    }
+<span class="nc" id="L352">    toolTips.append(GuiUtils.HTML_BR);</span>
+<span class="nc" id="L353">  }</span>
+
+  public void addToolTipsElement(StringBuilder toolTips, String title, TagW tag1, TagW tag2) {
+<span class="nc" id="L356">    toolTips.append(title);</span>
+<span class="nc" id="L357">    toolTips.append(StringUtil.COLON_AND_SPACE);</span>
+<span class="nc bnc" id="L358" title="All 2 branches missed.">    if (tag1 != null) {</span>
+<span class="nc" id="L359">      toolTips.append(tag1.getFormattedTagValue(getTagValue(tag1), null));</span>
+<span class="nc" id="L360">      toolTips.append(&quot; - &quot;);</span>
+    }
+<span class="nc bnc" id="L362" title="All 2 branches missed.">    if (tag2 != null) {</span>
+<span class="nc" id="L363">      toolTips.append(tag2.getFormattedTagValue(getTagValue(tag2), null));</span>
+    }
+<span class="nc" id="L365">    toolTips.append(GuiUtils.HTML_BR);</span>
+<span class="nc" id="L366">  }</span>
+
+  @Override
+  public void setOpen(boolean open) {
+<span class="nc bnc" id="L370" title="All 2 branches missed.">    if (this.isOpen() != open) {</span>
+<span class="nc" id="L371">      setTag(TagW.SeriesOpen, open);</span>
+<span class="nc" id="L372">      Thumbnail thumb = (Thumbnail) getTagValue(TagW.Thumbnail);</span>
+<span class="nc bnc" id="L373" title="All 2 branches missed.">      if (thumb != null) {</span>
+<span class="nc" id="L374">        thumb.repaint();</span>
+      }
+<span class="nc bnc" id="L376" title="All 2 branches missed.">      if (!open) {</span>
+<span class="nc" id="L377">        resetSortedMediasMap();</span>
+      }
+    }
+<span class="nc" id="L380">  }</span>
+
+  @Override
+  public boolean isSelected() {
+<span class="nc" id="L384">    return LangUtil.getNULLtoFalse((Boolean) getTagValue(TagW.SeriesSelected));</span>
+  }
+
+  @Override
+  public void setSelected(boolean selected, E selectedImage) {
+<span class="nc bnc" id="L389" title="All 2 branches missed.">    if (this.isSelected() != selected) {</span>
+<span class="nc" id="L390">      setTag(TagW.SeriesSelected, selected);</span>
+<span class="nc" id="L391">      Thumbnail thumb = (Thumbnail) getTagValue(TagW.Thumbnail);</span>
+<span class="nc bnc" id="L392" title="All 2 branches missed.">      if (thumb != null) {</span>
+<span class="nc" id="L393">        thumb.repaint();</span>
+      }
+    }
+<span class="nc" id="L396">  }</span>
+
+  @Override
+  public boolean isFocused() {
+<span class="nc" id="L400">    return LangUtil.getNULLtoFalse((Boolean) getTagValue(TagW.SeriesFocused));</span>
+  }
+
+  @Override
+  public void setFocused(boolean focused) {
+<span class="nc bnc" id="L405" title="All 2 branches missed.">    if (this.isFocused() != focused) {</span>
+<span class="nc" id="L406">      setTag(TagW.SeriesFocused, focused);</span>
+<span class="nc" id="L407">      Thumbnail thumb = (Thumbnail) getTagValue(TagW.Thumbnail);</span>
+<span class="nc bnc" id="L408" title="All 2 branches missed.">      if (thumb != null) {</span>
+<span class="nc" id="L409">        thumb.repaint();</span>
+      }
+    }
+<span class="nc" id="L412">  }</span>
+
+  public boolean hasMediaContains(TagW tag, Object val) {
+<span class="nc bnc" id="L415" title="All 2 branches missed.">    if (val != null) {</span>
+<span class="nc" id="L416">      synchronized (medias) {</span>
+<span class="nc bnc" id="L417" title="All 2 branches missed.">        for (E media : medias) {</span>
+<span class="nc bnc" id="L418" title="All 2 branches missed.">          if (val.equals(media.getTagValue(tag))) {</span>
+<span class="nc" id="L419">            return true;</span>
+          }
+<span class="nc" id="L421">        }</span>
+<span class="nc" id="L422">      }</span>
+    }
+<span class="nc" id="L424">    return false;</span>
+  }
+
+  @Override
+  public E getNearestImage(double location, int offset, Filter&lt;E&gt; filter, Comparator&lt;E&gt; sort) {
+<span class="nc" id="L429">    return null;</span>
+  }
+
+  @Override
+  public int getNearestImageIndex(
+      double location, int offset, Filter&lt;E&gt; filter, Comparator&lt;E&gt; sort) {
+<span class="nc" id="L435">    return -1;</span>
+  }
+
+  public synchronized void setFileSize(long size) {
+<span class="nc" id="L439">    fileSize = size;</span>
+<span class="nc" id="L440">  }</span>
+
+  @Override
+  public synchronized long getFileSize() {
+<span class="nc" id="L444">    return fileSize;</span>
+  }
+
+  @Override
+  public String getSeriesNumber() {
+<span class="nc" id="L449">    Integer val = (Integer) getTagValue(TagW.get(&quot;SeriesNumber&quot;));</span>
+<span class="nc" id="L450">    return Optional.ofNullable(val).map(String::valueOf).orElse(&quot;&quot;);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,9 @@
+/workspaces/Weasis/weasis-dicom/weasis-dicom-qr/src/main/java/org/weasis/dicom/qr/DicomQrFactory.java
+/workspaces/Weasis/weasis-dicom/weasis-dicom-qr/src/main/java/org/weasis/dicom/qr/DicomQrView.java
+/workspaces/Weasis/weasis-dicom/weasis-dicom-qr/src/main/java/org/weasis/dicom/qr/Messages.java
+/workspaces/Weasis/weasis-dicom/weasis-dicom-qr/src/main/java/org/weasis/dicom/qr/RetrieveTask.java
+/workspaces/Weasis/weasis-dicom/weasis-dicom-qr/src/main/java/org/weasis/dicom/qr/RetrieveTree.java
+/workspaces/Weasis/weasis-dicom/weasis-dicom-qr/src/main/java/org/weasis/dicom/qr/RetrieveTreeModel.java
+/workspaces/Weasis/weasis-dicom/weasis-dicom-qr/src/main/java/org/weasis/dicom/qr/RsQuery.java
+/workspaces/Weasis/weasis-dicom/weasis-dicom-qr/src/main/java/org/weasis/dicom/qr/SearchParameters.java
+/workspaces/Weasis/weasis-dicom/weasis-dicom-qr/src/main/java/org/weasis/dicom/qr/manisfest/CFindQueryResult.java

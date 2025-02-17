@@ -1,0 +1,23 @@
+Manifest-Version: 1.0
+Bundle-License: "EPL-2.0 OR Apache-2.0";link="https://github.com/nrodu
+ it/Weasis/blob/master/LICENSE"
+Bundle-ManifestVersion: 2
+Bundle-Name: JOGL - Windows x86-64 [jogamp-windows-x86-64]
+Bundle-NativeCode: natives/windows-amd64/gluegen_rt.dll; natives/windo
+ ws-amd64/jogl_desktop.dll; natives/windows-amd64/jogl_mobile.dll; nat
+ ives/windows-amd64/nativewindow_awt.dll; natives/windows-amd64/native
+ window_win32.dll; natives/windows-amd64/newt_head.dll; natives/window
+ s-amd64/jocl.dll;processor=x86-64;osname=win32
+Bundle-SymbolicName: jogamp-windows-x86-64
+Bundle-Version: 2.5.0
+Fragment-Host: jogamp;bundle-version="2.5.0"
+Implementation-Title: Java Bindings for OpenGL Runtime Environment
+Implementation-Version: 2.5.0
+Private-Package: jogamp.nativetag.common.windows.amd64,jogamp.nativeta
+ g.opencl.windows.amd64,jogamp.nativetag.opengl.windows.amd64,natives.
+ windows-amd64
+Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"
+Specification-Title: Java Bindings for OpenGL API Specification
+Specification-Vendor: JogAmp Community
+Specification-Version: 2.5.0
+

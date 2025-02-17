@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>DefaultMimeIO.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor</a> &gt; <span class="el_source">DefaultMimeIO.java</span></div><h1>DefaultMimeIO.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor;
+
+import java.io.File;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import org.weasis.core.api.explorer.ObservableEvent;
+import org.weasis.core.api.explorer.model.DataExplorerModel;
+import org.weasis.core.api.media.MimeInspector;
+import org.weasis.core.api.media.data.Codec;
+import org.weasis.core.api.media.data.FileCache;
+import org.weasis.core.api.media.data.MediaElement;
+import org.weasis.core.api.media.data.MediaReader;
+import org.weasis.core.api.media.data.MediaSeries;
+import org.weasis.core.api.media.data.Series;
+import org.weasis.core.api.media.data.SeriesEvent;
+import org.weasis.core.api.media.data.TagView;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.opencv.data.PlanarImage;
+
+public class DefaultMimeIO implements MediaReader&lt;MediaElement&gt; {
+
+<span class="nc" id="L35">  private static final TagView defaultTagView = new TagView(TagW.FileName);</span>
+
+  protected URI uri;
+  protected final String mimeType;
+<span class="nc" id="L39">  private MediaElement mediaElement = null;</span>
+  private final FileCache fileCache;
+
+<span class="nc" id="L42">  public DefaultMimeIO(URI media, String mimeType) {</span>
+<span class="nc" id="L43">    this.uri = Objects.requireNonNull(media);</span>
+<span class="nc" id="L44">    this.fileCache = new FileCache(this);</span>
+<span class="nc bnc" id="L45" title="All 2 branches missed.">    this.mimeType = mimeType == null ? MimeInspector.UNKNOWN_MIME_TYPE : mimeType;</span>
+<span class="nc" id="L46">  }</span>
+
+  @Override
+  public PlanarImage getImageFragment(MediaElement media) throws Exception {
+<span class="nc" id="L50">    return null;</span>
+  }
+
+  @Override
+  public URI getUri() {
+<span class="nc" id="L55">    return uri;</span>
+  }
+
+  @Override
+  public MediaElement getPreview() {
+<span class="nc" id="L60">    return getSingleImage();</span>
+  }
+
+  @Override
+  public boolean delegate(DataExplorerModel explorerModel) {
+<span class="nc" id="L65">    return false;</span>
+  }
+
+  @Override
+  public MediaElement[] getMediaElement() {
+<span class="nc" id="L70">    return new MediaElement[] {getSingleImage()};</span>
+  }
+
+  @Override
+  public MediaSeries&lt;MediaElement&gt; getMediaSeries() {
+
+<span class="nc" id="L76">    MediaSeries&lt;MediaElement&gt; mediaSeries =</span>
+<span class="nc" id="L77">        new Series&lt;&gt;(TagW.FilePath, this.toString(), defaultTagView, 1) {</span>
+
+          @Override
+          public String getMimeType() {
+<span class="nc bnc" id="L81" title="All 2 branches missed.">            if (!medias.isEmpty()) {</span>
+<span class="nc" id="L82">              synchronized (this) {</span>
+<span class="nc" id="L83">                MediaElement img = medias.getFirst();</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">                if (img != null) {</span>
+<span class="nc" id="L85">                  return img.getMimeType();</span>
+                }
+<span class="nc" id="L87">              }</span>
+            }
+<span class="nc" id="L89">            return null;</span>
+          }
+
+          @Override
+          public void addMedia(MediaElement media) {
+<span class="nc bnc" id="L94" title="All 2 branches missed.">            if (media != null) {</span>
+<span class="nc" id="L95">              this.add(media);</span>
+<span class="nc" id="L96">              DataExplorerModel model = (DataExplorerModel) this.getTagValue(TagW.ExplorerModel);</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">              if (model != null) {</span>
+<span class="nc" id="L98">                model.firePropertyChange(</span>
+                    new ObservableEvent(
+                        ObservableEvent.BasicAction.ADD,
+                        model,
+                        null,
+                        new SeriesEvent(SeriesEvent.Action.ADD_IMAGE, this, media)));
+              }
+            }
+<span class="nc" id="L106">          }</span>
+
+          @Override
+          public MediaElement getFirstSpecialElement() {
+<span class="nc" id="L110">            return null;</span>
+          }
+        };
+<span class="nc" id="L113">    mediaSeries.add(getSingleImage());</span>
+<span class="nc" id="L114">    mediaSeries.setTag(TagW.FileName, mediaElement.getName());</span>
+<span class="nc" id="L115">    return mediaSeries;</span>
+  }
+
+  @Override
+  public int getMediaElementNumber() {
+<span class="nc" id="L120">    return 1;</span>
+  }
+
+  private MediaElement getSingleImage() {
+<span class="nc bnc" id="L124" title="All 2 branches missed.">    if (mediaElement == null) {</span>
+<span class="nc" id="L125">      mediaElement = new MediaElement(this, null);</span>
+    }
+<span class="nc" id="L127">    return mediaElement;</span>
+  }
+
+  @Override
+  public String getMediaFragmentMimeType() {
+<span class="nc" id="L132">    return mimeType;</span>
+  }
+
+  @Override
+  public Map&lt;TagW, Object&gt; getMediaFragmentTags(Object key) {
+<span class="nc" id="L137">    return new HashMap&lt;&gt;();</span>
+  }
+
+  @Override
+  public void close() {
+    // Do nothing
+<span class="nc" id="L143">  }</span>
+
+  @Override
+  public Codec getCodec() {
+<span class="nc" id="L147">    return null;</span>
+  }
+
+  @Override
+  public String[] getReaderDescription() {
+<span class="nc" id="L152">    return new String[] {&quot;Default mime type reader &quot;}; // NON-NLS</span>
+  }
+
+  @Override
+  public Object getTagValue(TagW tag) {
+<span class="nc" id="L157">    throw new UnsupportedOperationException();</span>
+  }
+
+  @Override
+  public void replaceURI(URI uri) {
+<span class="nc" id="L162">    throw new UnsupportedOperationException();</span>
+  }
+
+  @Override
+  public void setTag(TagW tag, Object value) {
+<span class="nc" id="L167">    throw new UnsupportedOperationException();</span>
+  }
+
+  @Override
+  public boolean containTagKey(TagW tag) {
+<span class="nc" id="L172">    return false;</span>
+  }
+
+  @Override
+  public void setTagNoNull(TagW tag, Object value) {
+<span class="nc" id="L177">    throw new UnsupportedOperationException();</span>
+  }
+
+  @Override
+  public Iterator&lt;Entry&lt;TagW, Object&gt;&gt; getTagEntrySetIterator() {
+<span class="nc" id="L182">    throw new UnsupportedOperationException();</span>
+  }
+
+  @Override
+  public FileCache getFileCache() {
+<span class="nc" id="L187">    return fileCache;</span>
+  }
+
+  @Override
+  public boolean buildFile(File output) {
+<span class="nc" id="L192">    return false;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

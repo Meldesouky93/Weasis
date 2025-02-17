@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>LineGraphic.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.graphic.imp.line</a> &gt; <span class="el_source">LineGraphic.java</span></div><h1>LineGraphic.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.graphic.imp.line;
+
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlType;
+import java.awt.Shape;
+import java.awt.event.KeyEvent;
+import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import javax.swing.Icon;
+import org.weasis.core.Messages;
+import org.weasis.core.api.image.measure.MeasurementsAdapter;
+import org.weasis.core.api.image.util.MeasurableLayer;
+import org.weasis.core.api.image.util.Unit;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.api.util.ResourceUtil.ActionIcon;
+import org.weasis.core.ui.model.graphic.AbstractDragGraphic;
+import org.weasis.core.ui.model.utils.bean.MeasureItem;
+import org.weasis.core.ui.model.utils.bean.Measurement;
+import org.weasis.core.ui.model.utils.exceptions.InvalidShapeException;
+import org.weasis.core.ui.util.MouseEventDouble;
+import org.weasis.core.util.MathUtil;
+
+@XmlType(name = &quot;line&quot;)
+@XmlRootElement(name = &quot;line&quot;)
+@XmlAccessorType(XmlAccessType.NONE)
+public class LineGraphic extends AbstractDragGraphic {
+
+<span class="nc" id="L42">  public static final Integer POINTS_NUMBER = 2;</span>
+
+<span class="nc" id="L44">  public static final Icon ICON = ResourceUtil.getIcon(ActionIcon.DRAW_LINE);</span>
+
+<span class="nc" id="L46">  public static final Measurement FIRST_POINT_X =</span>
+<span class="nc" id="L47">      new Measurement(Messages.getString(&quot;measure.firstx&quot;), 1, true, true, false);</span>
+<span class="nc" id="L48">  public static final Measurement FIRST_POINT_Y =</span>
+<span class="nc" id="L49">      new Measurement(Messages.getString(&quot;measure.firsty&quot;), 2, true, true, false);</span>
+<span class="nc" id="L50">  public static final Measurement LAST_POINT_X =</span>
+<span class="nc" id="L51">      new Measurement(Messages.getString(&quot;measure.lastx&quot;), 3, true, true, false);</span>
+<span class="nc" id="L52">  public static final Measurement LAST_POINT_Y =</span>
+<span class="nc" id="L53">      new Measurement(Messages.getString(&quot;measure.lasty&quot;), 4, true, true, false);</span>
+<span class="nc" id="L54">  public static final Measurement LINE_LENGTH =</span>
+<span class="nc" id="L55">      new Measurement(Messages.getString(&quot;measure.length&quot;), 5, true, true, true);</span>
+<span class="nc" id="L56">  public static final Measurement ORIENTATION =</span>
+<span class="nc" id="L57">      new Measurement(Messages.getString(&quot;measure.orientation&quot;), 6, true, true, false);</span>
+<span class="nc" id="L58">  public static final Measurement AZIMUTH =</span>
+<span class="nc" id="L59">      new Measurement(Messages.getString(&quot;measure.azimuth&quot;), 7, true, true, false);</span>
+
+<span class="nc" id="L61">  protected static final List&lt;Measurement&gt; measurementList = new ArrayList&lt;&gt;();</span>
+
+  static {
+<span class="nc" id="L64">    measurementList.add(FIRST_POINT_X);</span>
+<span class="nc" id="L65">    measurementList.add(FIRST_POINT_Y);</span>
+<span class="nc" id="L66">    measurementList.add(LAST_POINT_X);</span>
+<span class="nc" id="L67">    measurementList.add(LAST_POINT_Y);</span>
+<span class="nc" id="L68">    measurementList.add(LINE_LENGTH);</span>
+<span class="nc" id="L69">    measurementList.add(ORIENTATION);</span>
+<span class="nc" id="L70">    measurementList.add(AZIMUTH);</span>
+<span class="nc" id="L71">  }</span>
+
+  // Let AB be a simple a line segment
+  protected Point2D ptA;
+  protected Point2D ptB;
+
+  // estimate if line segment is valid or not
+  protected Boolean lineABvalid;
+
+  public LineGraphic() {
+<span class="nc" id="L81">    super(POINTS_NUMBER);</span>
+<span class="nc" id="L82">  }</span>
+
+  public LineGraphic(LineGraphic graphic) {
+<span class="nc" id="L85">    super(graphic);</span>
+<span class="nc" id="L86">  }</span>
+
+  @Override
+  public LineGraphic copy() {
+<span class="nc" id="L90">    return new LineGraphic(this);</span>
+  }
+
+  @Override
+  protected void prepareShape() throws InvalidShapeException {
+<span class="nc bnc" id="L95" title="All 2 branches missed.">    if (!isShapeValid()) {</span>
+<span class="nc" id="L96">      throw new InvalidShapeException(&quot;This shape cannot be drawn&quot;);</span>
+    }
+<span class="nc" id="L98">    buildShape(null);</span>
+<span class="nc" id="L99">  }</span>
+
+  @Override
+  public boolean isShapeValid() {
+<span class="nc" id="L103">    updateTool();</span>
+<span class="nc" id="L104">    return super.isShapeValid();</span>
+  }
+
+  public Point2D getPtA() {
+<span class="nc" id="L108">    return ptA;</span>
+  }
+
+  public Point2D getPtB() {
+<span class="nc" id="L112">    return ptB;</span>
+  }
+
+  protected Boolean getLineABvalid() {
+<span class="nc" id="L116">    return lineABvalid;</span>
+  }
+
+  public void setHandlePointList(Point2D ptStart, Point2D ptEnd) {
+<span class="nc bnc" id="L120" title="All 2 branches missed.">    setHandlePoint(0, ptStart == null ? null : (Point2D) ptStart.clone());</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">    setHandlePoint(1, ptEnd == null ? null : (Point2D) ptEnd.clone());</span>
+<span class="nc" id="L122">    buildShape(null);</span>
+<span class="nc" id="L123">  }</span>
+
+  @Override
+  public Icon getIcon() {
+<span class="nc" id="L127">    return ICON;</span>
+  }
+
+  @Override
+  public String getUIName() {
+<span class="nc" id="L132">    return Messages.getString(&quot;MeasureToolBar.line&quot;);</span>
+  }
+
+  @Override
+  public int getKeyCode() {
+<span class="nc" id="L137">    return KeyEvent.VK_D;</span>
+  }
+
+  @Override
+  public int getModifier() {
+<span class="nc" id="L142">    return 0;</span>
+  }
+
+  @Override
+  public void buildShape(MouseEventDouble mouseEvent) {
+<span class="nc" id="L147">    updateTool();</span>
+<span class="nc" id="L148">    Shape newShape = null;</span>
+
+<span class="nc bnc" id="L150" title="All 2 branches missed.">    if (lineABvalid) {</span>
+<span class="nc" id="L151">      newShape = new Line2D.Double(ptA, ptB);</span>
+    }
+
+<span class="nc" id="L154">    setShape(newShape, mouseEvent);</span>
+<span class="nc" id="L155">    updateLabel(mouseEvent, getDefaultView2d(mouseEvent));</span>
+<span class="nc" id="L156">  }</span>
+
+  @Override
+  public List&lt;MeasureItem&gt; computeMeasurements(
+      MeasurableLayer layer, boolean releaseEvent, Unit displayUnit) {
+<span class="nc bnc" id="L161" title="All 6 branches missed.">    if (layer != null &amp;&amp; layer.hasContent() &amp;&amp; isShapeValid()) {</span>
+<span class="nc" id="L162">      MeasurementsAdapter adapter = layer.getMeasurementAdapter(displayUnit);</span>
+
+<span class="nc bnc" id="L164" title="All 2 branches missed.">      if (adapter != null) {</span>
+<span class="nc" id="L165">        ArrayList&lt;MeasureItem&gt; measVal = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L167" title="All 2 branches missed.">        if (FIRST_POINT_X.getComputed()) {</span>
+<span class="nc" id="L168">          measVal.add(</span>
+              new MeasureItem(
+<span class="nc" id="L170">                  FIRST_POINT_X, adapter.getXCalibratedValue(ptA.getX()), adapter.getUnit()));</span>
+        }
+<span class="nc bnc" id="L172" title="All 2 branches missed.">        if (FIRST_POINT_Y.getComputed()) {</span>
+<span class="nc" id="L173">          measVal.add(</span>
+              new MeasureItem(
+<span class="nc" id="L175">                  FIRST_POINT_Y, adapter.getYCalibratedValue(ptA.getY()), adapter.getUnit()));</span>
+        }
+<span class="nc bnc" id="L177" title="All 2 branches missed.">        if (LAST_POINT_X.getComputed()) {</span>
+<span class="nc" id="L178">          measVal.add(</span>
+              new MeasureItem(
+<span class="nc" id="L180">                  LAST_POINT_X, adapter.getXCalibratedValue(ptB.getX()), adapter.getUnit()));</span>
+        }
+<span class="nc bnc" id="L182" title="All 2 branches missed.">        if (LAST_POINT_Y.getComputed()) {</span>
+<span class="nc" id="L183">          measVal.add(</span>
+              new MeasureItem(
+<span class="nc" id="L185">                  LAST_POINT_Y, adapter.getYCalibratedValue(ptB.getY()), adapter.getUnit()));</span>
+        }
+<span class="nc bnc" id="L187" title="All 2 branches missed.">        if (LINE_LENGTH.getComputed()) {</span>
+<span class="nc" id="L188">          measVal.add(</span>
+              new MeasureItem(
+<span class="nc" id="L190">                  LINE_LENGTH, ptA.distance(ptB) * adapter.getCalibRatio(), adapter.getUnit()));</span>
+        }
+<span class="nc bnc" id="L192" title="All 2 branches missed.">        if (ORIENTATION.getComputed()) {</span>
+<span class="nc" id="L193">          measVal.add(</span>
+              new MeasureItem(
+                  ORIENTATION,
+<span class="nc" id="L196">                  MathUtil.getOrientation(ptA, ptB),</span>
+<span class="nc" id="L197">                  Messages.getString(&quot;measure.deg&quot;)));</span>
+        }
+<span class="nc bnc" id="L199" title="All 2 branches missed.">        if (AZIMUTH.getComputed()) {</span>
+<span class="nc" id="L200">          measVal.add(</span>
+              new MeasureItem(
+<span class="nc" id="L202">                  AZIMUTH, MathUtil.getAzimuth(ptA, ptB), Messages.getString(&quot;measure.deg&quot;)));</span>
+        }
+<span class="nc" id="L204">        return measVal;</span>
+      }
+    }
+<span class="nc" id="L207">    return Collections.emptyList();</span>
+  }
+
+  protected void updateTool() {
+<span class="nc" id="L211">    ptA = getHandlePoint(0);</span>
+<span class="nc" id="L212">    ptB = getHandlePoint(1);</span>
+
+<span class="nc bnc" id="L214" title="All 6 branches missed.">    lineABvalid = ptA != null &amp;&amp; ptB != null &amp;&amp; !ptB.equals(ptA);</span>
+<span class="nc" id="L215">  }</span>
+
+  public Point2D getStartPoint() {
+<span class="nc" id="L218">    updateTool();</span>
+<span class="nc bnc" id="L219" title="All 2 branches missed.">    return ptA == null ? null : (Point2D) ptA.clone();</span>
+  }
+
+  public Point2D getEndPoint() {
+<span class="nc" id="L223">    updateTool();</span>
+<span class="nc bnc" id="L224" title="All 2 branches missed.">    return ptB == null ? null : (Point2D) ptB.clone();</span>
+  }
+
+  @Override
+  public List&lt;Measurement&gt; getMeasurementList() {
+<span class="nc" id="L229">    return measurementList;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

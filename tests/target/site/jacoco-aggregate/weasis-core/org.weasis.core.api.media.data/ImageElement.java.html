@@ -1,0 +1,479 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ImageElement.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.media.data</a> &gt; <span class="el_source">ImageElement.java</span></div><h1>ImageElement.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.media.data;
+
+import java.awt.Point;
+import java.awt.image.DataBuffer;
+import java.awt.image.IndexColorModel;
+import java.awt.image.RenderedImage;
+import java.net.URI;
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import org.opencv.core.Core.MinMaxLocResult;
+import org.opencv.core.CvType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.gui.util.ActionW;
+import org.weasis.core.api.image.OpManager;
+import org.weasis.core.api.image.SimpleOpManager;
+import org.weasis.core.api.image.WindowOp;
+import org.weasis.core.api.image.ZoomOp;
+import org.weasis.core.api.image.cv.CvUtil;
+import org.weasis.core.api.image.measure.MeasurementsAdapter;
+import org.weasis.core.api.image.util.Unit;
+import org.weasis.core.api.util.ThreadUtil;
+import org.weasis.core.util.MathUtil;
+import org.weasis.opencv.data.ImageCV;
+import org.weasis.opencv.data.LookupTableCV;
+import org.weasis.opencv.data.PlanarImage;
+import org.weasis.opencv.op.ImageConversion;
+import org.weasis.opencv.op.ImageProcessor;
+import org.weasis.opencv.op.lut.DefaultWlPresentation;
+import org.weasis.opencv.op.lut.LutShape;
+import org.weasis.opencv.op.lut.WlParams;
+import org.weasis.opencv.op.lut.WlPresentation;
+
+public class ImageElement extends MediaElement {
+<span class="nc" id="L49">  private static final Logger LOGGER = LoggerFactory.getLogger(ImageElement.class);</span>
+
+<span class="nc" id="L51">  public static final ExecutorService IMAGE_LOADER =</span>
+<span class="nc" id="L52">      ThreadUtil.buildNewSingleThreadExecutor(&quot;Image Loader&quot;); // NON-NLS</span>
+
+<span class="nc" id="L54">  private static final NativeCache&lt;ImageElement, PlanarImage&gt; mCache =</span>
+<span class="nc" id="L55">      new NativeCache&lt;&gt;(Runtime.getRuntime().maxMemory() / 2) {</span>
+
+        @Override
+        protected void afterEntryRemove(ImageElement key, PlanarImage img) {
+<span class="nc bnc" id="L59" title="All 2 branches missed.">          if (key != null) {</span>
+<span class="nc" id="L60">            key.setTag(TagW.ImageCache, false);</span>
+<span class="nc" id="L61">            MediaReader reader = key.getMediaReader();</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">            if (reader != null) {</span>
+              // Close the image stream
+<span class="nc" id="L64">              reader.close();</span>
+            }
+          }
+<span class="nc bnc" id="L67" title="All 2 branches missed.">          if (img != null) {</span>
+<span class="nc" id="L68">            img.release();</span>
+          }
+<span class="nc" id="L70">        }</span>
+      };
+
+<span class="nc" id="L73">  protected boolean readable = true;</span>
+
+<span class="nc" id="L75">  protected double pixelSizeX = 1.0;</span>
+<span class="nc" id="L76">  protected double pixelSizeY = 1.0;</span>
+<span class="nc" id="L77">  protected Unit pixelSpacingUnit = Unit.PIXEL;</span>
+<span class="nc" id="L78">  protected String pixelSizeCalibrationDescription = null;</span>
+<span class="nc" id="L79">  protected String pixelValueUnit = null;</span>
+
+  protected Double minPixelValue;
+  protected Double maxPixelValue;
+
+  public ImageElement(MediaReader mediaIO, Object key) {
+<span class="nc" id="L85">    super(mediaIO, key);</span>
+<span class="nc" id="L86">  }</span>
+
+  public static int getNumberOfImagesInCache() {
+<span class="nc" id="L89">    return mCache.size();</span>
+  }
+
+  protected void findMinMaxValues(PlanarImage img, boolean exclude8bitImage)
+      throws OutOfMemoryError {
+    // This function can be called several times from the inner class Load.
+    // Do not compute min and max it has already been done
+
+<span class="nc bnc" id="L97" title="All 4 branches missed.">    if (img != null &amp;&amp; !isImageAvailable()) {</span>
+<span class="nc" id="L98">      MinMaxLocResult res = ImageProcessor.findRawMinMaxValues(img, exclude8bitImage);</span>
+<span class="nc" id="L99">      this.minPixelValue = res.minVal;</span>
+<span class="nc" id="L100">      this.maxPixelValue = res.maxVal;</span>
+    }
+<span class="nc" id="L102">  }</span>
+
+  public boolean isImageAvailable() {
+<span class="nc bnc" id="L105" title="All 4 branches missed.">    return maxPixelValue != null &amp;&amp; minPixelValue != null;</span>
+  }
+
+  public void resetImageAvailable() {
+<span class="nc" id="L109">    this.maxPixelValue = null;</span>
+<span class="nc" id="L110">    this.minPixelValue = null;</span>
+<span class="nc" id="L111">  }</span>
+
+  protected boolean isGrayImage(RenderedImage source) {
+    // Binary images have indexColorModel
+<span class="nc bnc" id="L115" title="All 2 branches missed.">    return source.getSampleModel().getNumBands() &lt;= 1</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">        &amp;&amp; !(source.getColorModel() instanceof IndexColorModel);</span>
+  }
+
+  public LutShape getDefaultShape(WlPresentation wlp) {
+<span class="nc" id="L120">    return LutShape.LINEAR;</span>
+  }
+
+  public double getDefaultWindow(WlPresentation wlp) {
+<span class="nc" id="L124">    return getMaxValue(wlp) - getMinValue(wlp);</span>
+  }
+
+  public double getDefaultLevel(WlPresentation wlp) {
+<span class="nc bnc" id="L128" title="All 2 branches missed.">    if (isImageAvailable()) {</span>
+<span class="nc" id="L129">      double min = getMinValue(wlp);</span>
+<span class="nc" id="L130">      return min + (getMaxValue(wlp) - min) / 2.0;</span>
+    }
+<span class="nc" id="L132">    return 0.0f;</span>
+  }
+
+  public double getMaxValue(WlPresentation wlp) {
+<span class="nc" id="L136">    return getPixelMax();</span>
+  }
+
+  public double getMinValue(WlPresentation wlp) {
+<span class="nc" id="L140">    return getPixelMin();</span>
+  }
+
+  public double getPixelMax() {
+<span class="nc bnc" id="L144" title="All 2 branches missed.">    return maxPixelValue == null ? 0.0 : maxPixelValue;</span>
+  }
+
+  public double getPixelMin() {
+<span class="nc bnc" id="L148" title="All 2 branches missed.">    return minPixelValue == null ? 0.0 : minPixelValue;</span>
+  }
+
+  public int getRescaleWidth(int width) {
+<span class="nc" id="L152">    return (int) Math.ceil(width * getRescaleX() - 0.5);</span>
+  }
+
+  public int getRescaleHeight(int height) {
+<span class="nc" id="L156">    return (int) Math.ceil(height * getRescaleY() - 0.5);</span>
+  }
+
+  public double getRescaleX() {
+<span class="nc bnc" id="L160" title="All 2 branches missed.">    return pixelSizeX &lt;= pixelSizeY ? 1.0 : pixelSizeX / pixelSizeY;</span>
+  }
+
+  public double getRescaleY() {
+<span class="nc bnc" id="L164" title="All 2 branches missed.">    return pixelSizeY &lt;= pixelSizeX ? 1.0 : pixelSizeY / pixelSizeX;</span>
+  }
+
+  public double getPixelSize() {
+<span class="nc" id="L168">    return Math.min(pixelSizeX, pixelSizeY);</span>
+  }
+
+  public void setPixelSize(double pixelSize) {
+<span class="nc bnc" id="L172" title="All 2 branches missed.">    if (MathUtil.isEqual(pixelSizeX, pixelSizeY)) {</span>
+<span class="nc" id="L173">      setPixelSize(pixelSize, pixelSize);</span>
+<span class="nc bnc" id="L174" title="All 2 branches missed.">    } else if (pixelSizeX &lt; pixelSizeY) {</span>
+<span class="nc" id="L175">      setPixelSize(pixelSize, (pixelSizeY / pixelSizeX) * pixelSize);</span>
+    } else {
+<span class="nc" id="L177">      setPixelSize((pixelSizeX / pixelSizeY) * pixelSize, pixelSize);</span>
+    }
+<span class="nc" id="L179">  }</span>
+
+  public void setPixelSize(double pixelSizeX, double pixelSizeY) {
+    /*
+     * Image is always displayed with a 1/1 aspect ratio, otherwise it becomes very difficult
+     * (even impossible) to handle measurement tools. When the ratio is not 1/1, the image is
+     * stretched. The smallest ratio keeps the pixel size and the largest one is downscaled.
+     */
+<span class="nc bnc" id="L187" title="All 2 branches missed.">    this.pixelSizeX = pixelSizeX &lt;= 0.0 ? 1.0 : pixelSizeX;</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">    this.pixelSizeY = pixelSizeY &lt;= 0.0 ? 1.0 : pixelSizeY;</span>
+<span class="nc" id="L189">  }</span>
+
+  public ZoomOp getRectifyAspectRatioZoomOp() {
+    // Rectify non-square pixel image in the first operation
+<span class="nc bnc" id="L193" title="All 2 branches missed.">    if (MathUtil.isDifferent(pixelSizeX, pixelSizeY)) {</span>
+<span class="nc" id="L194">      ZoomOp node = new ZoomOp();</span>
+<span class="nc" id="L195">      node.setName(&quot;rectifyAspectRatio&quot;);</span>
+<span class="nc" id="L196">      node.setParam(ZoomOp.P_RATIO_X, getRescaleX());</span>
+<span class="nc" id="L197">      node.setParam(ZoomOp.P_RATIO_Y, getRescaleY());</span>
+<span class="nc" id="L198">      return node;</span>
+    }
+<span class="nc" id="L200">    return null;</span>
+  }
+
+  public void setPixelValueUnit(String pixelValueUnit) {
+<span class="nc" id="L204">    this.pixelValueUnit = pixelValueUnit;</span>
+<span class="nc" id="L205">  }</span>
+
+  public Unit getPixelSpacingUnit() {
+<span class="nc" id="L208">    return pixelSpacingUnit;</span>
+  }
+
+  public void setPixelSpacingUnit(Unit pixelSpacingUnit) {
+<span class="nc" id="L212">    this.pixelSpacingUnit = pixelSpacingUnit;</span>
+<span class="nc" id="L213">  }</span>
+
+  public String getPixelValueUnit() {
+<span class="nc" id="L216">    return pixelValueUnit;</span>
+  }
+
+  public String getPixelSizeCalibrationDescription() {
+<span class="nc" id="L220">    return pixelSizeCalibrationDescription;</span>
+  }
+
+  public Number pixelToRealValue(Number pixelValue, WlPresentation wlp) {
+<span class="nc" id="L224">    return pixelValue;</span>
+  }
+
+  public LookupTableCV getVOILookup(WlParams wl) {
+<span class="nc" id="L228">    return null;</span>
+  }
+
+  public MeasurementsAdapter getMeasurementAdapter(Unit displayUnit, Point offset) {
+<span class="nc" id="L232">    Unit unit = displayUnit;</span>
+<span class="nc bnc" id="L233" title="All 6 branches missed.">    if (unit == null || pixelSpacingUnit == null || pixelSpacingUnit.equals(Unit.PIXEL)) {</span>
+<span class="nc" id="L234">      unit = Unit.PIXEL;</span>
+    }
+
+    double unitRatio;
+<span class="nc bnc" id="L238" title="All 2 branches missed.">    if (unit.equals(Unit.PIXEL)) {</span>
+<span class="nc" id="L239">      unitRatio = 1.0;</span>
+    } else {
+<span class="nc" id="L241">      unitRatio = getPixelSize() * unit.getConversionRatio(pixelSpacingUnit.getConvFactor());</span>
+    }
+<span class="nc bnc" id="L243" title="All 2 branches missed.">    int offsetx = offset == null ? 0 : -offset.x;</span>
+<span class="nc bnc" id="L244" title="All 2 branches missed.">    int offsety = offset == null ? 0 : -offset.y;</span>
+<span class="nc" id="L245">    return new MeasurementsAdapter(unitRatio, offsetx, offsety, false, 0, unit.getAbbreviation());</span>
+  }
+
+  public boolean isImageInCache() {
+<span class="nc bnc" id="L249" title="All 2 branches missed.">    return mCache.get(this) != null;</span>
+  }
+
+  public void removeImageFromCache() {
+<span class="nc" id="L253">    mCache.remove(this);</span>
+<span class="nc" id="L254">  }</span>
+
+  public boolean hasSameSize(ImageElement image) {
+<span class="nc bnc" id="L257" title="All 2 branches missed.">    if (image != null) {</span>
+<span class="nc" id="L258">      PlanarImage img = getImage();</span>
+<span class="nc" id="L259">      PlanarImage img2 = image.getImage();</span>
+<span class="nc bnc" id="L260" title="All 4 branches missed.">      return img != null</span>
+          &amp;&amp; img2 != null
+<span class="nc bnc" id="L262" title="All 2 branches missed.">          &amp;&amp; getRescaleWidth(img.width()) == image.getRescaleWidth(img2.width())</span>
+<span class="nc bnc" id="L263" title="All 2 branches missed.">          &amp;&amp; getRescaleHeight(img.height()) == image.getRescaleHeight(img2.height());</span>
+    }
+<span class="nc" id="L265">    return false;</span>
+  }
+
+  /** Loads the original image. Must load and return the original image. */
+  protected PlanarImage loadImage() throws Exception {
+<span class="nc" id="L270">    return mediaIO.getImageFragment(this);</span>
+  }
+
+  public PlanarImage getRenderedImage(final PlanarImage imageSource) {
+<span class="nc" id="L274">    return getRenderedImage(imageSource, null);</span>
+  }
+
+  /**
+   * @param imageSource is the RenderedImage upon which transformation is done
+   * @param params rendering parameters
+   * @return PlanarImage
+   */
+  public PlanarImage getRenderedImage(final PlanarImage imageSource, Map&lt;String, Object&gt; params) {
+<span class="nc bnc" id="L283" title="All 2 branches missed.">    if (imageSource == null) {</span>
+<span class="nc" id="L284">      return null;</span>
+    }
+
+<span class="nc bnc" id="L287" title="All 2 branches missed.">    Double window = (params == null) ? null : (Double) params.get(ActionW.WINDOW.cmd());</span>
+<span class="nc bnc" id="L288" title="All 2 branches missed.">    Double level = (params == null) ? null : (Double) params.get(ActionW.LEVEL.cmd());</span>
+    Boolean pixelPadding =
+<span class="nc bnc" id="L290" title="All 2 branches missed.">        (params == null) ? null : (Boolean) params.get(ActionW.IMAGE_PIX_PADDING.cmd());</span>
+
+<span class="nc bnc" id="L292" title="All 2 branches missed.">    pixelPadding = (pixelPadding == null) ? Boolean.TRUE : pixelPadding;</span>
+<span class="nc" id="L293">    DefaultWlPresentation pr = new DefaultWlPresentation(null, pixelPadding);</span>
+<span class="nc bnc" id="L294" title="All 2 branches missed.">    window = (window == null) ? getDefaultWindow(pr) : window;</span>
+<span class="nc bnc" id="L295" title="All 2 branches missed.">    level = (level == null) ? getDefaultLevel(pr) : level;</span>
+
+<span class="nc" id="L297">    return getDefaultRenderedImage(this, imageSource, window, level, pixelPadding);</span>
+  }
+
+  /**
+   * Apply window/level to the image source. Note: this method cannot be used with a
+   * DicomImageElement as image parameter.
+   */
+  public static PlanarImage getDefaultRenderedImage(
+      ImageElement image, PlanarImage source, double window, double level, boolean pixelPadding) {
+<span class="nc bnc" id="L306" title="All 4 branches missed.">    if (image == null || source == null) {</span>
+<span class="nc" id="L307">      return null;</span>
+    }
+
+<span class="nc bnc" id="L310" title="All 2 branches missed.">    if (ImageConversion.convertToDataType(source.type()) == DataBuffer.TYPE_BYTE</span>
+<span class="nc bnc" id="L311" title="All 2 branches missed.">        &amp;&amp; MathUtil.isEqual(window, 255.0)</span>
+<span class="nc bnc" id="L312" title="All 4 branches missed.">        &amp;&amp; (MathUtil.isEqual(level, 127.5) || MathUtil.isEqual(level, 127.0))) {</span>
+<span class="nc" id="L313">      return source;</span>
+    }
+
+<span class="nc" id="L316">    double low = level - window / 2.0;</span>
+<span class="nc" id="L317">    double high = level + window / 2.0;</span>
+    // use a lookup table for rescaling
+<span class="nc" id="L319">    double range = high - low;</span>
+<span class="nc bnc" id="L320" title="All 2 branches missed.">    if (range &lt; 1.0) {</span>
+<span class="nc" id="L321">      range = 1.0;</span>
+    }
+
+<span class="nc" id="L324">    double slope = 255.0 / range;</span>
+<span class="nc" id="L325">    double yInt = 255.0 - slope * high;</span>
+
+<span class="nc" id="L327">    return ImageProcessor.rescaleToByte(source.toMat(), slope, yInt);</span>
+  }
+
+  public SimpleOpManager buildSimpleOpManager(
+      boolean img16, boolean padding, boolean shutter, boolean overlay, double ratio) {
+<span class="nc" id="L332">    return buildSimpleOpManager(img16, padding, ratio);</span>
+  }
+
+  public SimpleOpManager buildSimpleOpManager(boolean img16, boolean padding, double ratio) {
+<span class="nc" id="L336">    SimpleOpManager manager = new SimpleOpManager();</span>
+<span class="nc" id="L337">    PlanarImage image = getImage(null);</span>
+<span class="nc bnc" id="L338" title="All 2 branches missed.">    if (image != null) {</span>
+<span class="nc bnc" id="L339" title="All 2 branches missed.">      if (img16) {</span>
+<span class="nc bnc" id="L340" title="All 2 branches missed.">        if (CvType.depth(image.type()) == CvType.CV_16S) {</span>
+<span class="nc" id="L341">          ImageCV dstImg = new ImageCV();</span>
+<span class="nc" id="L342">          image.toImageCV().convertTo(dstImg, CvType.CV_16UC(image.channels()), 1.0, 32768);</span>
+<span class="nc" id="L343">          image = dstImg;</span>
+<span class="nc" id="L344">        }</span>
+      } else {
+<span class="nc" id="L346">        manager.addImageOperationAction(new WindowOp());</span>
+<span class="nc" id="L347">        manager.setParamValue(WindowOp.OP_NAME, WindowOp.P_IMAGE_ELEMENT, this);</span>
+<span class="nc" id="L348">        manager.setParamValue(WindowOp.OP_NAME, ActionW.IMAGE_PIX_PADDING.cmd(), padding);</span>
+      }
+<span class="nc" id="L350">      manager.addImageOperationAction(buildZoomOp(ratio));</span>
+<span class="nc" id="L351">      manager.setFirstNode(image);</span>
+    }
+<span class="nc" id="L353">    return manager;</span>
+  }
+
+  protected ZoomOp buildZoomOp(double ratio) {
+<span class="nc" id="L357">    ZoomOp node = new ZoomOp();</span>
+<span class="nc" id="L358">    node.setParam(ZoomOp.P_RATIO_X, getRescaleX() * ratio);</span>
+<span class="nc" id="L359">    node.setParam(ZoomOp.P_RATIO_Y, getRescaleY() * ratio);</span>
+<span class="nc" id="L360">    node.setParam(ZoomOp.P_INTERPOLATION, ZoomOp.Interpolation.BICUBIC);</span>
+<span class="nc" id="L361">    return node;</span>
+  }
+
+  public static PlanarImage getDefaultRenderedImage(
+      ImageElement image, PlanarImage source, WlParams wl) {
+<span class="nc" id="L366">    return getDefaultRenderedImage(</span>
+<span class="nc" id="L367">        image, source, image.getDefaultWindow(wl), image.getDefaultLevel(wl), true);</span>
+  }
+
+  /** Returns the full size, original image. Returns null if the image is not loaded. */
+  public PlanarImage getImage(OpManager manager) {
+<span class="nc" id="L372">    return getImage(manager, true);</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L377">    URI uri = getMediaURI();</span>
+<span class="nc bnc" id="L378" title="All 2 branches missed.">    if (uri == null) {</span>
+<span class="nc" id="L379">      return &quot;Memory image&quot;; // NON-NLS</span>
+    }
+<span class="nc" id="L381">    return uri.toString();</span>
+  }
+
+  public synchronized PlanarImage getImage(OpManager manager, boolean findMinMax) {
+    try {
+<span class="nc" id="L386">      return getCacheImage(startImageLoading(), manager, findMinMax);</span>
+<span class="nc" id="L387">    } catch (OutOfMemoryError e1) {</span>
+<span class="nc" id="L388">      mCache.expungeStaleEntries();</span>
+<span class="nc" id="L389">      CvUtil.runGarbageCollectorAndWait(100);</span>
+
+      try {
+<span class="nc" id="L392">        return getCacheImage(startImageLoading(), manager, findMinMax);</span>
+<span class="nc" id="L393">      } catch (OutOfMemoryError e) {</span>
+<span class="nc" id="L394">        LOGGER.warn(&quot;Reading image data: {}&quot;, this, e1);</span>
+      }
+<span class="nc" id="L396">      return null;</span>
+    }
+  }
+
+  private PlanarImage getCacheImage(PlanarImage cacheImage, OpManager manager, boolean findMinMax) {
+<span class="nc bnc" id="L401" title="All 2 branches missed.">    if (findMinMax) {</span>
+      try {
+<span class="nc" id="L403">        findMinMaxValues(cacheImage, true);</span>
+<span class="nc" id="L404">      } catch (Exception e) {</span>
+<span class="nc" id="L405">        mCache.remove(this);</span>
+<span class="nc" id="L406">        readable = false;</span>
+<span class="nc" id="L407">        LOGGER.error(&quot;Cannot read image: {}&quot;, this, e);</span>
+<span class="nc" id="L408">      }</span>
+    }
+<span class="nc bnc" id="L410" title="All 4 branches missed.">    if (manager != null &amp;&amp; cacheImage != null) {</span>
+<span class="nc" id="L411">      PlanarImage img = manager.getLastNodeOutputImage();</span>
+<span class="nc bnc" id="L412" title="All 4 branches missed.">      if (manager.getFirstNodeInputImage() != cacheImage || manager.needProcessing()) {</span>
+<span class="nc" id="L413">        manager.setFirstNode(cacheImage);</span>
+<span class="nc" id="L414">        img = manager.process();</span>
+        // Compute again the min/max with the manager (preprocessing)
+<span class="nc" id="L416">        resetImageAvailable();</span>
+<span class="nc" id="L417">        findMinMaxValues(img, true);</span>
+      }
+
+<span class="nc bnc" id="L420" title="All 2 branches missed.">      if (img != null) {</span>
+<span class="nc" id="L421">        return img;</span>
+      }
+    }
+<span class="nc" id="L424">    return cacheImage;</span>
+  }
+
+  public PlanarImage getImage() {
+<span class="nc" id="L428">    return getImage(null);</span>
+  }
+
+  private PlanarImage startImageLoading() throws OutOfMemoryError {
+    PlanarImage cacheImage;
+<span class="nc bnc" id="L433" title="All 6 branches missed.">    if ((cacheImage = mCache.get(this)) == null &amp;&amp; readable &amp;&amp; setAsLoading()) {</span>
+<span class="nc" id="L434">      LOGGER.debug(&quot;Asking for reading image: {}&quot;, this);</span>
+<span class="nc" id="L435">      Load ref = new Load();</span>
+<span class="nc" id="L436">      Future&lt;PlanarImage&gt; future = IMAGE_LOADER.submit(ref);</span>
+<span class="nc" id="L437">      PlanarImage img = null;</span>
+      try {
+<span class="nc" id="L439">        img = future.get(45, TimeUnit.SECONDS);</span>
+<span class="nc" id="L440">      } catch (InterruptedException | TimeoutException e) {</span>
+        // Re-assert the thread's interrupted status
+<span class="nc" id="L442">        Thread.currentThread().interrupt();</span>
+        // We don't need the result, so cancel the task too
+<span class="nc" id="L444">        future.cancel(true);</span>
+<span class="nc" id="L445">      } catch (ExecutionException e) {</span>
+<span class="nc bnc" id="L446" title="All 2 branches missed.">        if (e.getCause() instanceof OutOfMemoryError memoryError) {</span>
+<span class="nc" id="L447">          setAsLoaded();</span>
+<span class="nc" id="L448">          throw memoryError;</span>
+        } else {
+<span class="nc" id="L450">          readable = false;</span>
+<span class="nc" id="L451">          LOGGER.error(&quot;Cannot read pixel data!: {}&quot;, this, e);</span>
+        }
+<span class="nc" id="L453">      }</span>
+<span class="nc bnc" id="L454" title="All 2 branches missed.">      if (img != null) {</span>
+<span class="nc bnc" id="L455" title="All 2 branches missed.">        readable = img.width() &gt; 0;</span>
+<span class="nc bnc" id="L456" title="All 2 branches missed.">        if (readable) {</span>
+<span class="nc" id="L457">          mCache.put(this, img);</span>
+<span class="nc" id="L458">          cacheImage = img;</span>
+<span class="nc" id="L459">          this.setTag(TagW.ImageCache, true);</span>
+        }
+      }
+<span class="nc" id="L462">      setAsLoaded();</span>
+    }
+<span class="nc" id="L464">    return cacheImage;</span>
+  }
+
+  public boolean isReadable() {
+<span class="nc" id="L468">    return readable;</span>
+  }
+
+<span class="nc" id="L471">  class Load implements Callable&lt;PlanarImage&gt; {</span>
+
+    @Override
+    public PlanarImage call() throws Exception {
+<span class="nc" id="L475">      return loadImage();</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ThemeSetting.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.pref</a> &gt; <span class="el_source">ThemeSetting.java</span></div><h1>ThemeSetting.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.pref;
+
+import com.formdev.flatlaf.FlatLaf;
+import com.formdev.flatlaf.FlatSystemProperties;
+import com.formdev.flatlaf.util.SystemInfo;
+import java.awt.Window;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Objects;
+import javax.swing.ButtonGroup;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JSpinner;
+import javax.swing.LookAndFeel;
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+import javax.swing.UIManager.LookAndFeelInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.AbstractItemDialogPage;
+import org.weasis.core.api.gui.util.GuiExecutor;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.gui.util.GuiUtils.IconColor;
+import org.weasis.core.api.service.UICore;
+import org.weasis.core.api.service.WProperties;
+import org.weasis.core.util.StringUtil;
+
+public class ThemeSetting extends AbstractItemDialogPage {
+<span class="nc" id="L43">  private static final Logger LOGGER = LoggerFactory.getLogger(ThemeSetting.class);</span>
+
+<span class="nc" id="L45">  public static final String PAGE_NAME = Messages.getString(&quot;appearance&quot;);</span>
+
+<span class="nc" id="L47">  private final JLabel jLabelMLook = new JLabel();</span>
+<span class="nc" id="L48">  private final JComboBox&lt;LookInfo&gt; comboBoxTheme = new JComboBox&lt;&gt;();</span>
+<span class="nc" id="L49">  private final JButton button = new JButton(Messages.getString(&quot;GeneralSetting.show&quot;));</span>
+
+<span class="nc" id="L51">  private final JRadioButton systemScaleRadio =</span>
+<span class="nc" id="L52">      new JRadioButton(Messages.getString(&quot;use.the.system.scale.factor&quot;));</span>
+<span class="nc" id="L53">  private final JRadioButton userScaleRadio =</span>
+<span class="nc" id="L54">      new JRadioButton(Messages.getString(&quot;use.a.custom.scale.factor&quot;));</span>
+<span class="nc" id="L55">  private final ButtonGroup buttonGroup = new ButtonGroup();</span>
+<span class="nc" id="L56">  private final JSpinner spinner1 = new JSpinner();</span>
+
+<span class="nc" id="L58">  private final JCheckBox checkboxDecoration =</span>
+<span class="nc" id="L59">      new JCheckBox(Messages.getString(&quot;menu.integrated.into.title.bar&quot;));</span>
+
+<span class="nc" id="L61">  record LookInfo(String name, String className) {</span>
+    @Override
+    public String toString() {
+<span class="nc" id="L64">      return name;</span>
+    }
+  }
+
+  public ThemeSetting() {
+<span class="nc" id="L69">    super(PAGE_NAME, 102);</span>
+<span class="nc" id="L70">    setList(comboBoxTheme, UIManager.getInstalledLookAndFeels());</span>
+    try {
+<span class="nc" id="L72">      GuiUtils.setNumberModel(spinner1, 100, 20, 400, 5);</span>
+<span class="nc" id="L73">      jbInit();</span>
+<span class="nc" id="L74">      initialize(true);</span>
+<span class="nc" id="L75">    } catch (Exception e) {</span>
+<span class="nc" id="L76">      LOGGER.error(&quot;Cannot initialize GeneralSetting&quot;, e);</span>
+<span class="nc" id="L77">    }</span>
+<span class="nc" id="L78">  }</span>
+
+  private void jbInit() {
+<span class="nc" id="L81">    jLabelMLook.setText(Messages.getString(&quot;theme&quot;) + StringUtil.COLON);</span>
+
+<span class="nc" id="L83">    add(</span>
+<span class="nc" id="L84">        GuiUtils.getFlowLayoutPanel(</span>
+            ITEM_SEPARATOR_SMALL,
+            ITEM_SEPARATOR_LARGE,
+            jLabelMLook,
+            comboBoxTheme,
+<span class="nc" id="L89">            GuiUtils.boxHorizontalStrut(ITEM_SEPARATOR),</span>
+            button));
+<span class="nc" id="L91">    add(GuiUtils.boxVerticalStrut(BLOCK_SEPARATOR));</span>
+
+<span class="nc" id="L93">    JPanel panel = GuiUtils.getVerticalBoxLayoutPanel();</span>
+<span class="nc" id="L94">    panel.setBorder(GuiUtils.getTitledBorder(Messages.getString(&quot;display.scale.factor&quot;)));</span>
+<span class="nc" id="L95">    panel.add(GuiUtils.getFlowLayoutPanel(ITEM_SEPARATOR_SMALL, 0, systemScaleRadio));</span>
+<span class="nc" id="L96">    panel.add(GuiUtils.getFlowLayoutPanel(ITEM_SEPARATOR_SMALL, 0, userScaleRadio, spinner1));</span>
+<span class="nc" id="L97">    add(panel);</span>
+
+<span class="nc" id="L99">    this.buttonGroup.add(systemScaleRadio);</span>
+<span class="nc" id="L100">    this.buttonGroup.add(userScaleRadio);</span>
+<span class="nc" id="L101">    systemScaleRadio.addActionListener(e -&gt; spinner1.setEnabled(false));</span>
+<span class="nc" id="L102">    userScaleRadio.addActionListener(e -&gt; spinner1.setEnabled(true));</span>
+
+<span class="nc" id="L104">    button.addActionListener(</span>
+        e -&gt; {
+<span class="nc" id="L106">          LookInfo item = (LookInfo) comboBoxTheme.getSelectedItem();</span>
+<span class="nc" id="L107">          final String finalLafClassName = Objects.requireNonNull(item).className();</span>
+<span class="nc" id="L108">          Runnable runnable =</span>
+              () -&gt; {
+                try {
+<span class="nc" id="L111">                  UIManager.setLookAndFeel(finalLafClassName);</span>
+<span class="nc bnc" id="L112" title="All 2 branches missed.">                  for (final Window w : Window.getWindows()) {</span>
+<span class="nc" id="L113">                    SwingUtilities.updateComponentTreeUI(w);</span>
+                  }
+<span class="nc" id="L115">                } catch (Exception e1) {</span>
+<span class="nc" id="L116">                  LOGGER.error(&quot;Can't change look and feel&quot;, e1);</span>
+<span class="nc" id="L117">                }</span>
+<span class="nc" id="L118">              };</span>
+<span class="nc" id="L119">          GuiExecutor.execute(runnable);</span>
+<span class="nc" id="L120">        });</span>
+
+<span class="nc bnc" id="L122" title="All 2 branches missed.">    if (SystemInfo.isLinux) {</span>
+<span class="nc" id="L123">      add(</span>
+<span class="nc" id="L124">          GuiUtils.getFlowLayoutPanel(</span>
+              ITEM_SEPARATOR_SMALL, ITEM_SEPARATOR_LARGE, checkboxDecoration));
+    }
+
+<span class="nc" id="L128">    add(GuiUtils.boxVerticalStrut(ITEM_SEPARATOR_LARGE));</span>
+<span class="nc" id="L129">    String alert =</span>
+        &quot;&quot;&quot;
+        &lt;html&gt;&lt;p&gt;&lt;font color=&quot;%s&quot;&gt;%s&lt;/font&gt;&lt;/p&gt;&lt;/html&gt;
+        &quot;&quot;&quot;
+<span class="nc" id="L133">            .formatted(</span>
+<span class="nc" id="L134">                IconColor.ACTIONS_RED.getHtmlCode(),</span>
+<span class="nc" id="L135">                Messages.getString(&quot;GeneralSetting.alertNote&quot;));</span>
+<span class="nc" id="L136">    add(GuiUtils.getFlowLayoutPanel(new JLabel(alert)));</span>
+<span class="nc" id="L137">    add(GuiUtils.boxYLastElement(LAST_FILLER_HEIGHT));</span>
+<span class="nc" id="L138">    getProperties().setProperty(PreferenceDialog.KEY_SHOW_RESTORE, Boolean.TRUE.toString());</span>
+<span class="nc" id="L139">    getProperties().setProperty(PreferenceDialog.KEY_HELP, &quot;theme&quot;); // NON-NLS</span>
+<span class="nc" id="L140">  }</span>
+
+  protected void initialize(boolean firstTime) {
+<span class="nc" id="L143">    WProperties preferences = GuiUtils.getUICore().getSystemPreferences();</span>
+
+<span class="nc" id="L145">    String className = preferences.getProperty(&quot;weasis.theme&quot;);</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">    if (className == null) {</span>
+<span class="nc" id="L147">      LookAndFeel currentLAF = UIManager.getLookAndFeel();</span>
+<span class="nc bnc" id="L148" title="All 2 branches missed.">      if (currentLAF != null) {</span>
+<span class="nc" id="L149">        className = currentLAF.getClass().getName();</span>
+      }
+    }
+<span class="nc" id="L152">    LookInfo oldLaf = null;</span>
+<span class="nc bnc" id="L153" title="All 2 branches missed.">    if (className != null) {</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">      for (int i = 0; i &lt; comboBoxTheme.getItemCount(); i++) {</span>
+<span class="nc" id="L155">        LookInfo look = comboBoxTheme.getItemAt(i);</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">        if (className.equals(look.className())) {</span>
+<span class="nc" id="L157">          oldLaf = look;</span>
+<span class="nc" id="L158">          break;</span>
+        }
+      }
+    }
+<span class="nc bnc" id="L162" title="All 2 branches missed.">    if (oldLaf == null) {</span>
+<span class="nc" id="L163">      comboBoxTheme.setSelectedIndex(0);</span>
+<span class="nc" id="L164">      oldLaf = (LookInfo) comboBoxTheme.getSelectedItem();</span>
+    } else {
+<span class="nc" id="L166">      comboBoxTheme.setSelectedItem(oldLaf);</span>
+    }
+
+<span class="nc" id="L169">    float scale = parseScaleFactor(preferences.getProperty(FlatSystemProperties.UI_SCALE));</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">    if (scale &lt;= 0F) {</span>
+<span class="nc" id="L171">      scale = 1.0F;</span>
+<span class="nc" id="L172">      systemScaleRadio.doClick();</span>
+    } else {
+<span class="nc" id="L174">      userScaleRadio.doClick();</span>
+    }
+<span class="nc" id="L176">    spinner1.setValue(Math.round(scale * 100));</span>
+
+<span class="nc bnc" id="L178" title="All 2 branches missed.">    if (SystemInfo.isLinux) {</span>
+<span class="nc" id="L179">      checkboxDecoration.setSelected(</span>
+<span class="nc" id="L180">          preferences.getBooleanProperty(UICore.LINUX_WINDOWS_DECORATION, false));</span>
+    }
+<span class="nc" id="L182">  }</span>
+
+  public void setList(JComboBox&lt;LookInfo&gt; jComboBox, LookAndFeelInfo[] look) {
+<span class="nc" id="L185">    jComboBox.removeAllItems();</span>
+    for (LookAndFeelInfo lookAndFeelInfo :
+<span class="nc bnc" id="L187" title="All 2 branches missed.">        Arrays.stream(look).sorted(Comparator.comparing(LookAndFeelInfo::getName)).toList()) {</span>
+<span class="nc" id="L188">      jComboBox.addItem(new LookInfo(lookAndFeelInfo.getName(), lookAndFeelInfo.getClassName()));</span>
+<span class="nc" id="L189">    }</span>
+<span class="nc" id="L190">  }</span>
+
+  private static float parseScaleFactor(String s) {
+<span class="nc bnc" id="L193" title="All 2 branches missed.">    if (s == null) return -1;</span>
+
+<span class="nc" id="L195">    float units = 1;</span>
+<span class="nc bnc" id="L196" title="All 2 branches missed.">    if (s.endsWith(&quot;x&quot;)) s = s.substring(0, s.length() - 1); // NON-NLS</span>
+<span class="nc bnc" id="L197" title="All 2 branches missed.">    else if (s.endsWith(&quot;dpi&quot;)) { // NON-NLS</span>
+<span class="nc" id="L198">      units = 96;</span>
+<span class="nc" id="L199">      s = s.substring(0, s.length() - 3);</span>
+<span class="nc bnc" id="L200" title="All 2 branches missed.">    } else if (s.endsWith(&quot;%&quot;)) {</span>
+<span class="nc" id="L201">      units = 100;</span>
+<span class="nc" id="L202">      s = s.substring(0, s.length() - 1);</span>
+    }
+
+    try {
+<span class="nc" id="L206">      float scale = Float.parseFloat(s);</span>
+<span class="nc bnc" id="L207" title="All 2 branches missed.">      return scale &gt; 0 ? scale / units : -1;</span>
+<span class="nc" id="L208">    } catch (NumberFormatException ex) {</span>
+<span class="nc" id="L209">      return -1;</span>
+    }
+  }
+
+  @Override
+  public void closeAdditionalWindow() {
+<span class="nc" id="L215">    WProperties preferences = GuiUtils.getUICore().getSystemPreferences();</span>
+<span class="nc" id="L216">    LookInfo look = (LookInfo) comboBoxTheme.getSelectedItem();</span>
+<span class="nc bnc" id="L217" title="All 2 branches missed.">    if (look != null) {</span>
+<span class="nc" id="L218">      preferences.setProperty(&quot;weasis.theme&quot;, look.className());</span>
+    }
+    // save preferences
+<span class="nc" id="L221">    GuiUtils.getUICore().saveSystemPreferences();</span>
+
+<span class="nc" id="L223">    LookAndFeel currentLAF = UIManager.getLookAndFeel();</span>
+<span class="nc bnc" id="L224" title="All 4 branches missed.">    if (currentLAF != null</span>
+        &amp;&amp; look != null
+<span class="nc bnc" id="L226" title="All 2 branches missed.">        &amp;&amp; !look.className().equals(currentLAF.getClass().getName())) {</span>
+<span class="nc" id="L227">      Runnable runnable =</span>
+          () -&gt; {
+            try {
+<span class="nc" id="L230">              UIManager.setLookAndFeel(look.className());</span>
+<span class="nc" id="L231">              FlatLaf.updateUI();</span>
+<span class="nc" id="L232">            } catch (Exception e) {</span>
+<span class="nc" id="L233">              LOGGER.error(&quot;Can't change look and feel&quot;, e);</span>
+<span class="nc" id="L234">            }</span>
+<span class="nc" id="L235">          };</span>
+<span class="nc" id="L236">      GuiExecutor.execute(runnable);</span>
+    }
+
+<span class="nc" id="L239">    String scale = &quot;-1&quot;;</span>
+<span class="nc bnc" id="L240" title="All 4 branches missed.">    if (userScaleRadio.isSelected() &amp;&amp; spinner1.getValue() instanceof Integer val) {</span>
+<span class="nc" id="L241">      scale = String.valueOf(val / 100.f);</span>
+    }
+<span class="nc" id="L243">    preferences.setProperty(FlatSystemProperties.UI_SCALE, scale);</span>
+
+<span class="nc bnc" id="L245" title="All 2 branches missed.">    if (SystemInfo.isLinux) {</span>
+<span class="nc" id="L246">      preferences.putBooleanProperty(</span>
+<span class="nc" id="L247">          UICore.LINUX_WINDOWS_DECORATION, checkboxDecoration.isSelected());</span>
+    }
+<span class="nc" id="L249">  }</span>
+
+  @Override
+  public void resetToDefaultValues() {
+<span class="nc" id="L253">    WProperties preferences = GuiUtils.getUICore().getSystemPreferences();</span>
+<span class="nc" id="L254">    preferences.setProperty(&quot;weasis.theme&quot;, &quot;org.weasis.launcher.FlatWeasisTheme&quot;);</span>
+<span class="nc" id="L255">    preferences.setProperty(FlatSystemProperties.UI_SCALE, &quot;-1&quot;);</span>
+<span class="nc bnc" id="L256" title="All 2 branches missed.">    if (SystemInfo.isLinux) {</span>
+<span class="nc" id="L257">      preferences.setProperty(UICore.LINUX_WINDOWS_DECORATION, Boolean.FALSE.toString());</span>
+    }
+<span class="nc" id="L259">    initialize(false);</span>
+<span class="nc" id="L260">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

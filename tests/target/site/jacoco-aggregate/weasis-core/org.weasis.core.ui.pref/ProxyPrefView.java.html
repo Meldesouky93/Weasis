@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ProxyPrefView.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.pref</a> &gt; <span class="el_source">ProxyPrefView.java</span></div><h1>ProxyPrefView.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.pref;
+
+import java.awt.FlowLayout;
+import java.text.NumberFormat;
+import javax.swing.ButtonGroup;
+import javax.swing.JFormattedTextField;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JRadioButton;
+import javax.swing.JTextField;
+import javax.swing.text.DefaultFormatterFactory;
+import javax.swing.text.NumberFormatter;
+import net.miginfocom.swing.MigLayout;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.AbstractItemDialogPage;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.service.WProperties;
+import org.weasis.core.util.StringUtil;
+
+public class ProxyPrefView extends AbstractItemDialogPage {
+
+  private static final String PROXY_MANUAL = &quot;proxy.manual&quot;;
+  private static final String PROXY_EXCEPTIONS = &quot;proxy.exceptions&quot;;
+  private static final String PROXY_HTTP_HOST = &quot;proxy.http.host&quot;;
+  private static final String PROXY_HTTP_PORT = &quot;proxy.http.port&quot;;
+  private static final String PROXY_HTTPS_HOST = &quot;proxy.https.host&quot;;
+  private static final String PROXY_HTTPS_PORT = &quot;proxy.https.port&quot;;
+  private static final String PROXY_FTP_HOST = &quot;proxy.ftp.host&quot;;
+  private static final String PROXY_FTP_PORT = &quot;proxy.ftp.port&quot;;
+  private static final String PROXY_SOCKS_HOST = &quot;proxy.socks.host&quot;;
+  private static final String PROXY_SOCKS_PORT = &quot;proxy.socks.port&quot;;
+
+<span class="nc" id="L42">  private final JRadioButton directConnectionRadio =</span>
+<span class="nc" id="L43">      new JRadioButton(Messages.getString(&quot;ProxyPrefView.direct&quot;));</span>
+<span class="nc" id="L44">  private final JRadioButton proxyConnectionRadio =</span>
+<span class="nc" id="L45">      new JRadioButton(Messages.getString(&quot;ProxyPrefView.manual&quot;));</span>
+<span class="nc" id="L46">  private final ButtonGroup buttonGroup = new ButtonGroup();</span>
+
+<span class="nc" id="L48">  private final JLabel lblAddress = new JLabel(Messages.getString(&quot;ProxyPrefView.host&quot;));</span>
+<span class="nc" id="L49">  private final JLabel lblPort = new JLabel(Messages.getString(&quot;ProxyPrefView.port&quot;));</span>
+
+<span class="nc" id="L51">  private final JTextField proxyHostHttp = new JTextField(20);</span>
+<span class="nc" id="L52">  private final JFormattedTextField proxyPortHttp = new JFormattedTextField();</span>
+<span class="nc" id="L53">  private final JTextField proxyHostSecure = new JTextField(20);</span>
+<span class="nc" id="L54">  private final JFormattedTextField proxyPortSecure = new JFormattedTextField();</span>
+<span class="nc" id="L55">  private final JTextField proxyHostFtp = new JTextField(20);</span>
+<span class="nc" id="L56">  private final JFormattedTextField proxyPortFtp = new JFormattedTextField();</span>
+<span class="nc" id="L57">  private final JTextField proxyHostSocks = new JTextField(20);</span>
+<span class="nc" id="L58">  private final JFormattedTextField proxyPortSocks = new JFormattedTextField();</span>
+<span class="nc" id="L59">  private final JTextField proxyExceptions = new JTextField(27);</span>
+
+<span class="nc" id="L61">  private final JLabel proxyLabelHttp = new JLabel(&quot;HTTP&quot; + StringUtil.COLON);</span>
+<span class="nc" id="L62">  private final JLabel proxyLabelSecure =</span>
+<span class="nc" id="L63">      new JLabel(Messages.getString(&quot;ProxyPrefView.secure&quot;) + StringUtil.COLON);</span>
+<span class="nc" id="L64">  private final JLabel proxyLabelFtp = new JLabel(&quot;FTP&quot; + StringUtil.COLON);</span>
+<span class="nc" id="L65">  private final JLabel proxyLabelSocks = new JLabel(&quot;SOCKS&quot; + StringUtil.COLON);</span>
+<span class="nc" id="L66">  private final JLabel proxyLabelExceptions =</span>
+<span class="nc" id="L67">      new JLabel(Messages.getString(&quot;ProxyPrefView.exceptions&quot;) + StringUtil.COLON);</span>
+
+  public ProxyPrefView() {
+<span class="nc" id="L70">    super(Messages.getString(&quot;ProxyPrefView.proxy&quot;), 110);</span>
+<span class="nc" id="L71">    initialize();</span>
+<span class="nc" id="L72">  }</span>
+
+  private void initialize() {
+<span class="nc" id="L75">    formatPortTextField(proxyPortHttp);</span>
+<span class="nc" id="L76">    formatPortTextField(proxyPortSecure);</span>
+<span class="nc" id="L77">    formatPortTextField(proxyPortFtp);</span>
+<span class="nc" id="L78">    formatPortTextField(proxyPortSocks);</span>
+
+<span class="nc" id="L80">    add(GuiUtils.getFlowLayoutPanel(FlowLayout.LEADING, 0, BLOCK_SEPARATOR, directConnectionRadio));</span>
+<span class="nc" id="L81">    add(</span>
+<span class="nc" id="L82">        GuiUtils.getFlowLayoutPanel(</span>
+            FlowLayout.LEADING, 0, ITEM_SEPARATOR_SMALL, proxyConnectionRadio));
+<span class="nc" id="L84">    add(GuiUtils.getHorizontalBoxLayoutPanel(buildProxyPanel()));</span>
+
+<span class="nc" id="L86">    this.buttonGroup.add(directConnectionRadio);</span>
+<span class="nc" id="L87">    this.buttonGroup.add(proxyConnectionRadio);</span>
+<span class="nc" id="L88">    directConnectionRadio.addActionListener(e -&gt; proxyConnectionAction(false));</span>
+<span class="nc" id="L89">    proxyConnectionRadio.addActionListener(e -&gt; proxyConnectionAction(true));</span>
+<span class="nc" id="L90">    initState();</span>
+
+<span class="nc" id="L92">    add(GuiUtils.boxYLastElement(5));</span>
+
+<span class="nc" id="L94">    getProperties().setProperty(PreferenceDialog.KEY_SHOW_RESTORE, Boolean.TRUE.toString());</span>
+<span class="nc" id="L95">    getProperties().setProperty(PreferenceDialog.KEY_HELP, &quot;proxy&quot;); // NON-NLS</span>
+<span class="nc" id="L96">  }</span>
+
+  private void initState() {
+<span class="nc" id="L99">    WProperties p = GuiUtils.getUICore().getLocalPersistence();</span>
+
+<span class="nc" id="L101">    proxyExceptions.setText(p.getProperty(PROXY_EXCEPTIONS));</span>
+
+<span class="nc" id="L103">    proxyHostHttp.setText(p.getProperty(PROXY_HTTP_HOST));</span>
+<span class="nc" id="L104">    proxyPortHttp.setValue(p.getIntProperty(PROXY_HTTP_PORT, 80));</span>
+<span class="nc" id="L105">    proxyHostSecure.setText(p.getProperty(PROXY_HTTPS_HOST));</span>
+<span class="nc" id="L106">    proxyPortSecure.setValue(p.getIntProperty(PROXY_HTTPS_PORT, 443));</span>
+<span class="nc" id="L107">    proxyHostFtp.setText(p.getProperty(PROXY_FTP_HOST));</span>
+<span class="nc" id="L108">    proxyPortFtp.setValue(p.getIntProperty(PROXY_FTP_PORT, 80));</span>
+<span class="nc" id="L109">    proxyHostSocks.setText(p.getProperty(PROXY_SOCKS_HOST));</span>
+<span class="nc" id="L110">    proxyPortSocks.setValue(p.getIntProperty(PROXY_SOCKS_PORT, 1080));</span>
+
+    // To remove in version 5
+<span class="nc bnc" id="L113" title="All 2 branches missed.">    if (StringUtil.hasText(p.getProperty(&quot;proxy.auth.pwd&quot;))) {</span>
+<span class="nc" id="L114">      p.setProperty(&quot;proxy.auth.pwd&quot;, &quot;&quot;);</span>
+    }
+
+<span class="nc bnc" id="L117" title="All 2 branches missed.">    if (p.getBooleanProperty(PROXY_MANUAL, false)) proxyConnectionRadio.doClick();</span>
+<span class="nc" id="L118">    else directConnectionRadio.doClick();</span>
+<span class="nc" id="L119">  }</span>
+
+  private static void formatPortTextField(JFormattedTextField port) {
+<span class="nc" id="L122">    NumberFormat portFormat = NumberFormat.getNumberInstance();</span>
+<span class="nc" id="L123">    portFormat.setMinimumIntegerDigits(0);</span>
+<span class="nc" id="L124">    portFormat.setMaximumIntegerDigits(65535);</span>
+<span class="nc" id="L125">    portFormat.setMaximumFractionDigits(0);</span>
+<span class="nc" id="L126">    port.setFormatterFactory(new DefaultFormatterFactory(new NumberFormatter(portFormat)));</span>
+<span class="nc" id="L127">    port.setColumns(5);</span>
+<span class="nc" id="L128">    GuiUtils.addCheckAction(port);</span>
+<span class="nc" id="L129">  }</span>
+
+  private JPanel buildProxyPanel() {
+<span class="nc" id="L132">    JPanel dataPanel = new JPanel();</span>
+<span class="nc" id="L133">    dataPanel.setLayout(</span>
+        new MigLayout(&quot;insets 5lp 15lp 5lp 0, fillx&quot;, &quot;[right]rel[grow,fill][grow 0]&quot;)); // NON-NLS
+
+<span class="nc" id="L136">    dataPanel.add(lblAddress, &quot;newline, cell 1 0, growx 0, alignx center&quot;); // NON-NLS</span>
+<span class="nc" id="L137">    dataPanel.add(lblPort, &quot;growx 0, alignx center&quot;); // NON-NLS</span>
+<span class="nc" id="L138">    dataPanel.add(proxyLabelHttp, GuiUtils.NEWLINE);</span>
+<span class="nc" id="L139">    dataPanel.add(proxyHostHttp);</span>
+<span class="nc" id="L140">    dataPanel.add(proxyPortHttp);</span>
+<span class="nc" id="L141">    dataPanel.add(proxyLabelSecure, GuiUtils.NEWLINE);</span>
+<span class="nc" id="L142">    dataPanel.add(proxyHostSecure);</span>
+<span class="nc" id="L143">    dataPanel.add(proxyPortSecure);</span>
+<span class="nc" id="L144">    dataPanel.add(proxyLabelFtp, GuiUtils.NEWLINE);</span>
+<span class="nc" id="L145">    dataPanel.add(proxyHostFtp);</span>
+<span class="nc" id="L146">    dataPanel.add(proxyPortFtp);</span>
+<span class="nc" id="L147">    dataPanel.add(proxyLabelSocks, GuiUtils.NEWLINE);</span>
+<span class="nc" id="L148">    dataPanel.add(proxyHostSocks);</span>
+<span class="nc" id="L149">    dataPanel.add(proxyPortSocks);</span>
+
+<span class="nc" id="L151">    dataPanel.add(proxyLabelExceptions, GuiUtils.NEWLINE);</span>
+<span class="nc" id="L152">    dataPanel.add(proxyExceptions, &quot;spanx 2&quot;); // NON-NLS</span>
+<span class="nc" id="L153">    return dataPanel;</span>
+  }
+
+  public void proxyConnectionAction(boolean enable) {
+<span class="nc" id="L157">    lblAddress.setEnabled(enable);</span>
+<span class="nc" id="L158">    lblPort.setEnabled(enable);</span>
+<span class="nc" id="L159">    proxyLabelHttp.setEnabled(enable);</span>
+<span class="nc" id="L160">    proxyHostHttp.setEnabled(enable);</span>
+<span class="nc" id="L161">    proxyPortHttp.setEnabled(enable);</span>
+<span class="nc" id="L162">    proxyLabelSecure.setEnabled(enable);</span>
+<span class="nc" id="L163">    proxyHostSecure.setEnabled(enable);</span>
+<span class="nc" id="L164">    proxyPortSecure.setEnabled(enable);</span>
+<span class="nc" id="L165">    proxyLabelFtp.setEnabled(enable);</span>
+<span class="nc" id="L166">    proxyHostFtp.setEnabled(enable);</span>
+<span class="nc" id="L167">    proxyPortFtp.setEnabled(enable);</span>
+<span class="nc" id="L168">    proxyLabelSocks.setEnabled(enable);</span>
+<span class="nc" id="L169">    proxyHostSocks.setEnabled(enable);</span>
+<span class="nc" id="L170">    proxyPortSocks.setEnabled(enable);</span>
+<span class="nc" id="L171">    proxyLabelExceptions.setEnabled(enable);</span>
+<span class="nc" id="L172">    proxyExceptions.setEnabled(enable);</span>
+<span class="nc" id="L173">  }</span>
+
+  @Override
+  public void resetToDefaultValues() {
+<span class="nc" id="L177">    directConnectionRadio.doClick();</span>
+<span class="nc" id="L178">  }</span>
+
+  @Override
+  public void closeAdditionalWindow() {
+<span class="nc" id="L182">    WProperties p = GuiUtils.getUICore().getLocalPersistence();</span>
+<span class="nc" id="L183">    boolean mproxy = proxyConnectionRadio.isSelected();</span>
+<span class="nc" id="L184">    p.putBooleanProperty(PROXY_MANUAL, mproxy);</span>
+<span class="nc" id="L185">    String exceptions = proxyExceptions.getText();</span>
+<span class="nc" id="L186">    p.setProperty(PROXY_EXCEPTIONS, exceptions);</span>
+
+<span class="nc" id="L188">    String val = proxyHostHttp.getText();</span>
+<span class="nc" id="L189">    p.setProperty(PROXY_HTTP_HOST, val);</span>
+<span class="nc" id="L190">    applyProxyProperty(&quot;http.proxyHost&quot;, val, mproxy);</span>
+<span class="nc" id="L191">    Number port = GuiUtils.getFormattedValue(proxyPortHttp);</span>
+<span class="nc bnc" id="L192" title="All 2 branches missed.">    if (port != null) {</span>
+<span class="nc" id="L193">      p.putIntProperty(PROXY_HTTP_PORT, port.intValue());</span>
+<span class="nc" id="L194">      applyProxyPortProperty(&quot;http.proxyPort&quot;, port.intValue(), val, mproxy);</span>
+    }
+<span class="nc bnc" id="L196" title="All 4 branches missed.">    if (mproxy &amp;&amp; StringUtil.hasText(val)) {</span>
+<span class="nc" id="L197">      applyProxyProperty(&quot;http.nonProxyHosts&quot;, exceptions, mproxy);</span>
+    }
+
+<span class="nc" id="L200">    val = proxyHostSecure.getText();</span>
+<span class="nc" id="L201">    p.setProperty(PROXY_HTTPS_HOST, val);</span>
+<span class="nc" id="L202">    port = GuiUtils.getFormattedValue(proxyPortSecure);</span>
+<span class="nc" id="L203">    applyProxyProperty(&quot;https.proxyHost&quot;, val, mproxy);</span>
+<span class="nc bnc" id="L204" title="All 2 branches missed.">    if (port != null) {</span>
+<span class="nc" id="L205">      p.putIntProperty(PROXY_HTTPS_PORT, port.intValue());</span>
+<span class="nc" id="L206">      applyProxyPortProperty(&quot;https.proxyPort&quot;, port.intValue(), val, mproxy);</span>
+    }
+<span class="nc bnc" id="L208" title="All 4 branches missed.">    if (mproxy &amp;&amp; StringUtil.hasText(val)) {</span>
+<span class="nc" id="L209">      applyProxyProperty(&quot;http.nonProxyHosts&quot;, exceptions, mproxy);</span>
+    }
+
+<span class="nc" id="L212">    val = proxyHostFtp.getText();</span>
+<span class="nc" id="L213">    p.setProperty(PROXY_FTP_HOST, val);</span>
+<span class="nc" id="L214">    applyProxyProperty(&quot;ftp.proxyHost&quot;, val, mproxy);</span>
+<span class="nc" id="L215">    port = GuiUtils.getFormattedValue(proxyPortFtp);</span>
+<span class="nc bnc" id="L216" title="All 2 branches missed.">    if (port != null) {</span>
+<span class="nc" id="L217">      p.putIntProperty(PROXY_FTP_PORT, port.intValue());</span>
+<span class="nc" id="L218">      applyProxyPortProperty(&quot;ftp.proxyPort&quot;, port.intValue(), val, mproxy);</span>
+    }
+<span class="nc bnc" id="L220" title="All 4 branches missed.">    if (mproxy &amp;&amp; StringUtil.hasText(val)) {</span>
+<span class="nc" id="L221">      applyProxyProperty(&quot;ftp.nonProxyHosts&quot;, exceptions, mproxy);</span>
+    }
+
+<span class="nc" id="L224">    val = proxyHostSocks.getText();</span>
+<span class="nc" id="L225">    p.setProperty(PROXY_SOCKS_HOST, val);</span>
+<span class="nc" id="L226">    applyProxyProperty(&quot;socksProxyHost&quot;, val, mproxy);</span>
+<span class="nc" id="L227">    port = GuiUtils.getFormattedValue(proxyPortSocks);</span>
+<span class="nc bnc" id="L228" title="All 2 branches missed.">    if (port != null) {</span>
+<span class="nc" id="L229">      p.putIntProperty(PROXY_SOCKS_PORT, port.intValue());</span>
+<span class="nc" id="L230">      applyProxyPortProperty(&quot;socksProxyPort&quot;, port.intValue(), val, mproxy);</span>
+    }
+<span class="nc" id="L232">  }</span>
+
+  private static void applyProxyProperty(String key, String value, boolean manual) {
+<span class="nc bnc" id="L235" title="All 4 branches missed.">    if (manual &amp;&amp; StringUtil.hasText(value)) {</span>
+<span class="nc" id="L236">      System.setProperty(key, value);</span>
+    }
+<span class="nc" id="L238">  }</span>
+
+  private static void applyProxyPortProperty(String key, int port, String prop, boolean manual) {
+<span class="nc bnc" id="L241" title="All 4 branches missed.">    if (manual &amp;&amp; StringUtil.hasText(prop)) {</span>
+<span class="nc" id="L242">      System.setProperty(key, String.valueOf(port));</span>
+    }
+<span class="nc" id="L244">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,981 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AbstractGraphic.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.graphic</a> &gt; <span class="el_source">AbstractGraphic.java</span></div><h1>AbstractGraphic.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.graphic;
+
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlAttribute;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlElementWrapper;
+import jakarta.xml.bind.annotation.XmlIDREF;
+import jakarta.xml.bind.annotation.adapters.XmlAdapter;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.Paint;
+import java.awt.Rectangle;
+import java.awt.Shape;
+import java.awt.Stroke;
+import java.awt.event.MouseEvent;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Area;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.TreeMap;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.gui.Image2DViewer;
+import org.weasis.core.api.gui.util.ActionW;
+import org.weasis.core.api.gui.util.DecFormatter;
+import org.weasis.core.api.gui.util.GeomUtil;
+import org.weasis.core.api.image.util.Unit;
+import org.weasis.core.ui.editor.image.ViewCanvas;
+import org.weasis.core.ui.model.layer.GraphicLayer;
+import org.weasis.core.ui.model.layer.LayerType;
+import org.weasis.core.ui.model.utils.bean.AdvancedShape;
+import org.weasis.core.ui.model.utils.bean.MeasureItem;
+import org.weasis.core.ui.model.utils.bean.Measurement;
+import org.weasis.core.ui.model.utils.exceptions.InvalidShapeException;
+import org.weasis.core.ui.model.utils.imp.DefaultGraphicLabel;
+import org.weasis.core.ui.model.utils.imp.DefaultUUID;
+import org.weasis.core.ui.serialize.ColorModelAdapter;
+import org.weasis.core.ui.serialize.PointAdapter;
+import org.weasis.core.ui.util.MouseEventDouble;
+import org.weasis.core.util.MathUtil;
+
+@XmlAccessorType(XmlAccessType.NONE)
+public abstract class AbstractGraphic extends DefaultUUID implements Graphic {
+<span class="nc" id="L69">  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractGraphic.class);</span>
+
+  protected static final String NULL_MSG = &quot;Null is not allowed&quot;; // NON-NLS
+
+  protected Integer pointNumber;
+  protected List&lt;Point2D&gt; pts;
+<span class="nc" id="L75">  protected Paint colorPaint = DEFAULT_COLOR;</span>
+<span class="nc" id="L76">  protected Float lineThickness = DEFAULT_LINE_THICKNESS;</span>
+<span class="nc" id="L77">  protected Float fillOpacity = DEFAULT_FILL_OPACITY;</span>
+<span class="nc" id="L78">  protected Boolean labelVisible = DEFAULT_LABEL_VISIBLE;</span>
+<span class="nc" id="L79">  protected Boolean filled = DEFAULT_FILLED;</span>
+  protected Integer classID;
+  protected GraphicLabel graphicLabel;
+<span class="nc" id="L82">  protected LayerType layerType = LayerType.DRAW;</span>
+
+  protected Shape shape;
+<span class="nc" id="L85">  protected Boolean selected = DEFAULT_SELECTED;</span>
+  protected Boolean variablePointsNumber;
+<span class="nc" id="L87">  protected PropertyChangeSupport pcs = new PropertyChangeSupport(this);</span>
+
+  private GraphicLayer layer;
+
+<span class="nc" id="L91">  protected AbstractGraphic(Integer pointNumber) {</span>
+<span class="nc" id="L92">    setPointNumber(pointNumber);</span>
+<span class="nc bnc" id="L93" title="All 4 branches missed.">    this.variablePointsNumber = Objects.isNull(pointNumber) || pointNumber &lt; 0;</span>
+<span class="nc" id="L94">    setPts(null);</span>
+<span class="nc" id="L95">  }</span>
+
+<span class="nc" id="L97">  protected AbstractGraphic(AbstractGraphic graphic) {</span>
+<span class="nc" id="L98">    this.layerType = graphic.layerType;</span>
+<span class="nc" id="L99">    setPointNumber(graphic.pointNumber);</span>
+<span class="nc" id="L100">    setColorPaint(graphic.colorPaint);</span>
+<span class="nc" id="L101">    setLineThickness(graphic.lineThickness);</span>
+<span class="nc" id="L102">    setFillOpacity(graphic.fillOpacity);</span>
+<span class="nc" id="L103">    setLabelVisible(graphic.labelVisible);</span>
+<span class="nc" id="L104">    setFilled(graphic.filled);</span>
+<span class="nc" id="L105">    setClassID(graphic.classID);</span>
+<span class="nc bnc" id="L106" title="All 2 branches missed.">    this.graphicLabel = graphic.graphicLabel == null ? null : graphic.graphicLabel.copy();</span>
+
+<span class="nc bnc" id="L108" title="All 4 branches missed.">    this.variablePointsNumber = Objects.isNull(graphic.pointNumber) || graphic.pointNumber &lt; 0;</span>
+<span class="nc" id="L109">    List&lt;Point2D&gt; ptsList =</span>
+<span class="nc" id="L110">        graphic.pts.stream()</span>
+<span class="nc" id="L111">            .filter(Objects::nonNull)</span>
+<span class="nc" id="L112">            .map(g -&gt; (Point2D) g.clone())</span>
+<span class="nc" id="L113">            .collect(Collectors.toList());</span>
+    try {
+<span class="nc" id="L115">      initCopy(graphic);</span>
+<span class="nc" id="L116">      buildGraphic(ptsList);</span>
+<span class="nc" id="L117">    } catch (InvalidShapeException e) {</span>
+<span class="nc" id="L118">      LOGGER.error(&quot;Building graphic&quot;, e);</span>
+<span class="nc" id="L119">    }</span>
+<span class="nc" id="L120">  }</span>
+
+  @Override
+  public String toString() {
+<span class="nc" id="L124">    return getUIName();</span>
+  }
+
+  /**
+   * Returns the total number of points. If the value is null or negative then return 10 as the
+   * default value
+   *
+   * @return total number of points
+   */
+  @Override
+  public Integer getPtsNumber() {
+<span class="nc" id="L135">    return pointNumber;</span>
+  }
+
+  @Override
+  public void setPointNumber(Integer pointNumber) {
+<span class="nc" id="L140">    Objects.requireNonNull(pointNumber, NULL_MSG);</span>
+<span class="nc" id="L141">    this.pointNumber = pointNumber;</span>
+<span class="nc" id="L142">  }</span>
+
+  @XmlElementWrapper(name = &quot;pts&quot;)
+  @XmlElement(name = &quot;pt&quot;)
+  @XmlJavaTypeAdapter(PointAdapter.Point2DAdapter.class)
+  @Override
+  public List&lt;Point2D&gt; getPts() {
+<span class="nc" id="L149">    return pts;</span>
+  }
+
+  @Override
+  public void setPts(List&lt;Point2D&gt; pts) {
+<span class="nc" id="L154">    this.pts =</span>
+<span class="nc" id="L155">        Optional.ofNullable(pts)</span>
+<span class="nc" id="L156">            .orElseGet(</span>
+                () -&gt;
+<span class="nc" id="L158">                    new ArrayList&lt;&gt;(</span>
+<span class="nc" id="L159">                        Optional.ofNullable(getPtsNumber())</span>
+<span class="nc bnc" id="L160" title="All 2 branches missed.">                            .filter(v -&gt; v &gt;= 0)</span>
+<span class="nc" id="L161">                            .orElse(DEFAULT_PTS_SIZE)));</span>
+<span class="nc" id="L162">  }</span>
+
+  @Override
+  public Graphic buildGraphic(List&lt;Point2D&gt; pts) throws InvalidShapeException {
+<span class="nc" id="L166">    setPts(pts);</span>
+<span class="nc bnc" id="L167" title="All 2 branches missed.">    if (!pts.isEmpty()) {</span>
+<span class="nc" id="L168">      prepareShape();</span>
+    }
+<span class="nc" id="L170">    return this;</span>
+  }
+
+  protected abstract void prepareShape() throws InvalidShapeException;
+
+  protected void initCopy(Graphic graphic) {
+    // Do nothing at this level. Final graphics with new serializable fields must implement this
+    // method
+<span class="nc" id="L178">  }</span>
+
+  @Override
+  public Boolean getVariablePointsNumber() {
+<span class="nc" id="L182">    return variablePointsNumber;</span>
+  }
+
+  @Override
+  public void setVariablePointsNumber(Boolean variablePointsNumber) {
+<span class="nc" id="L187">    Objects.requireNonNull(variablePointsNumber, NULL_MSG);</span>
+<span class="nc" id="L188">    this.variablePointsNumber = variablePointsNumber;</span>
+<span class="nc" id="L189">  }</span>
+
+  @XmlElement(name = &quot;paint&quot;)
+  @XmlJavaTypeAdapter(ColorModelAdapter.PaintAdapter.class)
+  @Override
+  public Paint getColorPaint() {
+<span class="nc" id="L195">    return colorPaint;</span>
+  }
+
+  public void setColorPaint(Paint colorPaint) {
+<span class="nc" id="L199">    this.colorPaint = Optional.ofNullable(colorPaint).orElse(DEFAULT_COLOR);</span>
+<span class="nc" id="L200">  }</span>
+
+  @XmlAttribute(name = &quot;thickness&quot;)
+  @Override
+  public Float getLineThickness() {
+<span class="nc" id="L205">    return lineThickness;</span>
+  }
+
+  @Override
+  public void setLineThickness(Float lineThickness) {
+<span class="nc bnc" id="L210" title="All 2 branches missed.">    if (!Objects.equals(this.lineThickness, lineThickness)) {</span>
+<span class="nc" id="L211">      this.lineThickness = Optional.ofNullable(lineThickness).orElse(DEFAULT_LINE_THICKNESS);</span>
+<span class="nc bnc" id="L212" title="All 2 branches missed.">      if (shape instanceof AdvancedShape advancedShape) {</span>
+<span class="nc" id="L213">        advancedShape.getShapeList().stream()</span>
+<span class="nc" id="L214">            .forEachOrdered(bs -&gt; bs.changeLineThickness(lineThickness));</span>
+      }
+<span class="nc" id="L216">      fireDrawingChanged();</span>
+    }
+<span class="nc" id="L218">  }</span>
+
+  @XmlAttribute(name = &quot;fillOpacity&quot;)
+  @Override
+  public Float getFillOpacity() {
+<span class="nc" id="L223">    return fillOpacity;</span>
+  }
+
+  @Override
+  public void setFillOpacity(Float fillOpacity) {
+<span class="nc bnc" id="L228" title="All 2 branches missed.">    if (!Objects.equals(this.fillOpacity, fillOpacity)) {</span>
+<span class="nc" id="L229">      this.fillOpacity = Optional.ofNullable(fillOpacity).orElse(DEFAULT_FILL_OPACITY);</span>
+<span class="nc" id="L230">      fireDrawingChanged();</span>
+    }
+<span class="nc" id="L232">  }</span>
+
+  @XmlAttribute(name = &quot;showLabel&quot;)
+  @Override
+  public Boolean getLabelVisible() {
+<span class="nc" id="L237">    return labelVisible;</span>
+  }
+
+  @Override
+  public void setLabelVisible(Boolean labelVisible) {
+<span class="nc bnc" id="L242" title="All 2 branches missed.">    if (!Objects.equals(this.labelVisible, labelVisible)) {</span>
+<span class="nc" id="L243">      this.labelVisible = Optional.ofNullable(labelVisible).orElse(DEFAULT_LABEL_VISIBLE);</span>
+<span class="nc" id="L244">      fireLabelChanged();</span>
+    }
+<span class="nc" id="L246">  }</span>
+
+  @XmlAttribute(name = &quot;fill&quot;)
+  @Override
+  public Boolean getFilled() {
+<span class="nc" id="L251">    return filled;</span>
+  }
+
+  @Override
+  public void setFilled(Boolean filled) {
+<span class="nc bnc" id="L256" title="All 4 branches missed.">    if (!Objects.equals(this.filled, filled) &amp;&amp; this instanceof GraphicArea) {</span>
+<span class="nc" id="L257">      this.filled = Optional.ofNullable(filled).orElse(DEFAULT_FILLED);</span>
+<span class="nc" id="L258">      fireDrawingChanged();</span>
+    }
+<span class="nc" id="L260">  }</span>
+
+  @XmlAttribute(name = &quot;classId&quot;)
+  @Override
+  public Integer getClassID() {
+<span class="nc" id="L265">    return classID;</span>
+  }
+
+  @Override
+  public void setClassID(Integer classID) {
+<span class="nc" id="L270">    this.classID = classID;</span>
+<span class="nc" id="L271">  }</span>
+
+  @Override
+  public Shape getShape() {
+<span class="nc" id="L275">    return shape;</span>
+  }
+
+  @Override
+  public Boolean getSelected() {
+<span class="nc" id="L280">    return selected;</span>
+  }
+
+  @Override
+  public void setSelected(Boolean selected) {
+<span class="nc bnc" id="L285" title="All 2 branches missed.">    if (!Objects.equals(this.selected, selected)) {</span>
+<span class="nc" id="L286">      this.selected = Optional.ofNullable(selected).orElse(DEFAULT_SELECTED);</span>
+<span class="nc" id="L287">      fireDrawingChanged();</span>
+<span class="nc" id="L288">      fireLabelChanged();</span>
+    }
+<span class="nc" id="L290">  }</span>
+
+  @XmlElement(name = &quot;graphicLabel&quot;)
+  @Override
+  public GraphicLabel getGraphicLabel() {
+<span class="nc" id="L295">    return graphicLabel;</span>
+  }
+
+  public void setGraphicLabel(GraphicLabel graphicLabel) {
+<span class="nc" id="L299">    this.graphicLabel = graphicLabel;</span>
+<span class="nc" id="L300">  }</span>
+
+  @Override
+  public void setLayer(GraphicLayer layer) {
+<span class="nc" id="L304">    Objects.requireNonNull(layer, NULL_MSG);</span>
+<span class="nc" id="L305">    this.layer = layer;</span>
+    // Adapt the default layerType
+<span class="nc" id="L307">    setLayerType(layer.getType());</span>
+<span class="nc" id="L308">  }</span>
+
+  @XmlIDREF
+  @XmlElement(name = &quot;layer&quot;)
+  @Override
+  public GraphicLayer getLayer() {
+<span class="nc" id="L314">    return layer;</span>
+  }
+
+  @Override
+  public String getDescription() {
+<span class="nc" id="L319">    return &quot;&quot;;</span>
+  }
+
+  @Override
+  public Area getArea(AffineTransform transform) {
+<span class="nc bnc" id="L324" title="All 2 branches missed.">    if (Objects.isNull(shape)) {</span>
+<span class="nc" id="L325">      return new Area();</span>
+    }
+
+<span class="nc bnc" id="L328" title="All 2 branches missed.">    if (shape instanceof AdvancedShape advancedShape) {</span>
+<span class="nc" id="L329">      return advancedShape.getArea(transform);</span>
+    } else {
+<span class="nc" id="L331">      double growingSize = Math.max(SELECTION_SIZE, HANDLE_SIZE);</span>
+<span class="nc" id="L332">      growingSize = Math.max(growingSize, lineThickness);</span>
+<span class="nc" id="L333">      growingSize /= GeomUtil.extractScalingFactor(transform);</span>
+
+<span class="nc" id="L335">      Stroke boundingStroke =</span>
+          new BasicStroke((float) growingSize, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
+
+<span class="nc" id="L338">      return new Area(boundingStroke.createStrokedShape(shape));</span>
+    }
+  }
+
+  @Override
+  public Boolean intersects(Rectangle rectangle, AffineTransform transform) {
+<span class="nc" id="L344">    return Optional.ofNullable(rectangle).map(getArea(transform)::intersects).orElse(false);</span>
+  }
+
+  @Override
+  public Rectangle getBounds(AffineTransform transform) {
+<span class="nc bnc" id="L349" title="All 2 branches missed.">    if (Objects.isNull(shape)) {</span>
+<span class="nc" id="L350">      return null;</span>
+    }
+
+<span class="nc bnc" id="L353" title="All 2 branches missed.">    if (shape instanceof AdvancedShape advancedShape) {</span>
+<span class="nc" id="L354">      advancedShape.setAffineTransform(transform);</span>
+    }
+
+<span class="nc" id="L357">    Rectangle2D bounds = shape.getBounds2D();</span>
+
+<span class="nc" id="L359">    double growingSize = lineThickness / 2.0;</span>
+<span class="nc" id="L360">    growingSize /= GeomUtil.extractScalingFactor(transform);</span>
+<span class="nc" id="L361">    GeomUtil.growRectangle(bounds, growingSize);</span>
+
+<span class="nc" id="L363">    return Optional.ofNullable(bounds).map(Rectangle2D::getBounds).orElse(null);</span>
+  }
+
+  @Override
+  public Rectangle getRepaintBounds(AffineTransform transform) {
+<span class="nc" id="L368">    return getRepaintBounds(shape, transform);</span>
+  }
+
+  @Override
+  public Rectangle getTransformedBounds(Shape shape, AffineTransform transform) {
+<span class="nc" id="L373">    Rectangle rectangle = getRepaintBounds(shape, transform);</span>
+
+<span class="nc bnc" id="L375" title="All 4 branches missed.">    if (Objects.nonNull(transform) &amp;&amp; Objects.nonNull(rectangle)) {</span>
+<span class="nc" id="L376">      rectangle = transform.createTransformedShape(rectangle).getBounds();</span>
+    }
+
+<span class="nc" id="L379">    return rectangle;</span>
+  }
+
+  @Override
+  public Rectangle getTransformedBounds(GraphicLabel label, AffineTransform transform) {
+<span class="nc" id="L384">    return Optional.ofNullable(label)</span>
+<span class="nc" id="L385">        .map(l -&gt; l.getTransformedBounds(transform).getBounds())</span>
+<span class="nc" id="L386">        .orElse(null);</span>
+  }
+
+  @Override
+  public void setLabel(String[] labels, ViewCanvas&lt;?&gt; view2d) {
+<span class="nc" id="L391">    Consumer&lt;Shape&gt; applyShape =</span>
+        s -&gt; {
+          Rectangle2D rect;
+
+<span class="nc bnc" id="L395" title="All 4 branches missed.">          if (s instanceof AdvancedShape advancedShape &amp;&amp; !advancedShape.shapeList.isEmpty()) {</span>
+            // Assuming first shape is the user drawing path, else stands for decoration
+<span class="nc" id="L397">            Shape generalPath = advancedShape.shapeList.get(0).getShape();</span>
+<span class="nc" id="L398">            rect = generalPath.getBounds2D();</span>
+<span class="nc" id="L399">          } else {</span>
+<span class="nc" id="L400">            rect = s.getBounds2D();</span>
+          }
+
+<span class="nc" id="L403">          double xPos = rect.getX() + rect.getWidth() + 3;</span>
+<span class="nc" id="L404">          double yPos = rect.getY() + rect.getHeight() * 0.5;</span>
+
+<span class="nc" id="L406">          this.setLabel(labels, view2d, new Point2D.Double(xPos, yPos));</span>
+<span class="nc" id="L407">        };</span>
+
+<span class="nc" id="L409">    Optional.ofNullable(shape).ifPresent(applyShape);</span>
+<span class="nc" id="L410">  }</span>
+
+  @Override
+  public void updateLabel(Object source, ViewCanvas&lt;?&gt; view2d) {
+<span class="nc" id="L414">    boolean releasedEvent = false;</span>
+
+<span class="nc bnc" id="L416" title="All 2 branches missed.">    if (source instanceof MouseEvent mouseEvent) {</span>
+<span class="nc bnc" id="L417" title="All 2 branches missed.">      releasedEvent = mouseEvent.getID() == MouseEvent.MOUSE_RELEASED;</span>
+<span class="nc bnc" id="L418" title="All 2 branches missed.">    } else if (source instanceof Boolean boolVal) {</span>
+<span class="nc" id="L419">      releasedEvent = boolVal;</span>
+    }
+<span class="nc" id="L421">    this.updateLabel(view2d, null, releasedEvent);</span>
+<span class="nc" id="L422">  }</span>
+
+  @Override
+  public void paint(Graphics2D g2d, AffineTransform transform) {
+
+<span class="nc" id="L427">    Paint oldPaint = g2d.getPaint();</span>
+<span class="nc" id="L428">    Stroke oldStroke = g2d.getStroke();</span>
+
+<span class="nc bnc" id="L430" title="All 2 branches missed.">    if (shape instanceof AdvancedShape advancedShape) {</span>
+<span class="nc" id="L431">      advancedShape.paint(g2d, transform);</span>
+<span class="nc bnc" id="L432" title="All 2 branches missed.">    } else if (shape != null) {</span>
+<span class="nc bnc" id="L433" title="All 2 branches missed.">      Shape drawingShape = (transform == null) ? shape : transform.createTransformedShape(shape);</span>
+
+<span class="nc" id="L435">      g2d.setPaint(colorPaint);</span>
+<span class="nc" id="L436">      g2d.setStroke(getStroke(lineThickness));</span>
+<span class="nc" id="L437">      g2d.draw(drawingShape);</span>
+
+<span class="nc bnc" id="L439" title="All 2 branches missed.">      if (getFilled()) {</span>
+<span class="nc bnc" id="L440" title="All 4 branches missed.">        if (fillOpacity &lt; 1.0f &amp;&amp; colorPaint instanceof Color color) {</span>
+<span class="nc" id="L441">          int alpha = (int) (fillOpacity * color.getAlpha());</span>
+<span class="nc" id="L442">          g2d.setPaint(new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha));</span>
+        }
+<span class="nc" id="L444">        g2d.fill(drawingShape);</span>
+      }
+    }
+
+    // // Graphics DEBUG
+    // if (transform != null) {
+    // g2d.setPaint(Color.CYAN);
+    // g2d.draw(transform.createTransformedShape(getBounds(transform)));
+    // }
+    // if (transform != null) {
+    // g2d.setPaint(Color.RED);
+    // g2d.draw(transform.createTransformedShape(getArea(transform)));
+    // }
+    // if (transform != null) {
+    // g2d.setPaint(Color.BLUE);
+    // g2d.draw(transform.createTransformedShape(getRepaintBounds(transform)));
+    // }
+    // // Graphics DEBUG
+
+<span class="nc" id="L463">    g2d.setStroke(oldStroke);</span>
+<span class="nc" id="L464">    g2d.setPaint(oldPaint);</span>
+
+<span class="nc bnc" id="L466" title="All 2 branches missed.">    if (getSelected()) {</span>
+<span class="nc" id="L467">      paintHandles(g2d, transform);</span>
+    }
+
+<span class="nc" id="L470">    paintLabel(g2d, transform);</span>
+<span class="nc" id="L471">  }</span>
+
+  @Override
+  public void paintLabel(Graphics2D g2d, AffineTransform transform) {
+<span class="nc bnc" id="L475" title="All 2 branches missed.">    if (isLabelDisplayable()) {</span>
+<span class="nc" id="L476">      graphicLabel.paint(g2d, transform, selected);</span>
+    }
+<span class="nc" id="L478">  }</span>
+
+  @Override
+  public void addPropertyChangeListener(PropertyChangeListener propertychangelistener) {
+<span class="nc bnc" id="L482" title="All 2 branches missed.">    for (PropertyChangeListener listener : pcs.getPropertyChangeListeners()) {</span>
+<span class="nc bnc" id="L483" title="All 2 branches missed.">      if (listener == propertychangelistener) {</span>
+<span class="nc" id="L484">        return;</span>
+      }
+    }
+
+<span class="nc" id="L488">    pcs.addPropertyChangeListener(propertychangelistener);</span>
+<span class="nc" id="L489">  }</span>
+
+  @Override
+  public void removePropertyChangeListener(PropertyChangeListener propertychangelistener) {
+<span class="nc" id="L493">    pcs.removePropertyChangeListener(propertychangelistener);</span>
+<span class="nc" id="L494">  }</span>
+
+  @Override
+  public void removeAllPropertyChangeListener() {
+<span class="nc bnc" id="L498" title="All 2 branches missed.">    for (PropertyChangeListener listener : pcs.getPropertyChangeListeners()) {</span>
+<span class="nc" id="L499">      pcs.removePropertyChangeListener(listener);</span>
+    }
+<span class="nc" id="L501">  }</span>
+
+  @Override
+  public void toFront() {
+<span class="nc bnc" id="L505" title="All 2 branches missed.">    if (isGraphicComplete()) {</span>
+<span class="nc" id="L506">      firePropertyChange(ACTION_TO_FRONT, null, this);</span>
+    }
+<span class="nc" id="L508">  }</span>
+
+  @Override
+  public void toBack() {
+<span class="nc bnc" id="L512" title="All 2 branches missed.">    if (isGraphicComplete()) {</span>
+<span class="nc" id="L513">      firePropertyChange(ACTION_TO_BACK, null, this);</span>
+    }
+<span class="nc" id="L515">  }</span>
+
+  @Override
+  public void fireRemoveAction() {
+<span class="nc bnc" id="L519" title="All 2 branches missed.">    if (isGraphicComplete()) {</span>
+<span class="nc" id="L520">      firePropertyChange(ACTION_REMOVE, null, this);</span>
+    }
+<span class="nc" id="L522">  }</span>
+
+  @Override
+  public int getKeyCode() {
+<span class="nc" id="L526">    return 0;</span>
+  }
+
+  @Override
+  public int getModifier() {
+<span class="nc" id="L531">    return 0;</span>
+  }
+
+  @Override
+  public Graphic deepCopy() {
+<span class="nc" id="L536">    Graphic newGraphic = this.copy();</span>
+<span class="nc bnc" id="L537" title="All 2 branches missed.">    if (newGraphic == null) {</span>
+<span class="nc" id="L538">      return null;</span>
+    }
+<span class="nc bnc" id="L540" title="All 2 branches missed.">    for (Point2D p : pts) {</span>
+<span class="nc bnc" id="L541" title="All 2 branches missed.">      newGraphic.getPts().add(p != null ? (Point2D) p.clone() : null);</span>
+<span class="nc" id="L542">    }</span>
+<span class="nc" id="L543">    newGraphic.buildShape();</span>
+<span class="nc" id="L544">    return newGraphic;</span>
+  }
+
+  @Override
+  public void fireRemoveAndRepaintAction() {
+<span class="nc bnc" id="L549" title="All 2 branches missed.">    if (isGraphicComplete()) {</span>
+<span class="nc" id="L550">      firePropertyChange(ACTION_REMOVE_REPAINT, null, this);</span>
+    }
+<span class="nc" id="L552">  }</span>
+
+  @Override
+  public Stroke getStroke(Float lineThickness) {
+<span class="nc" id="L556">    return new BasicStroke(</span>
+<span class="nc" id="L557">        Optional.ofNullable(lineThickness).orElse(DEFAULT_LINE_THICKNESS),</span>
+        BasicStroke.CAP_BUTT,
+        BasicStroke.JOIN_ROUND);
+  }
+
+  public Stroke getDashStroke(Float lineThickness) {
+<span class="nc" id="L563">    return new BasicStroke(</span>
+<span class="nc" id="L564">        Optional.ofNullable(lineThickness).orElse(DEFAULT_LINE_THICKNESS),</span>
+        BasicStroke.CAP_BUTT,
+        BasicStroke.JOIN_MITER,
+        10f,
+        new float[] {5.0f, 5.0f},
+        0f);
+  }
+
+  protected Boolean isLabelDisplayable() {
+<span class="nc bnc" id="L573" title="All 6 branches missed.">    return labelVisible &amp;&amp; graphicLabel != null &amp;&amp; graphicLabel.getLabelBounds() != null;</span>
+  }
+
+  @Override
+  public Boolean isGraphicComplete() {
+<span class="nc" id="L578">    return Objects.equals(pts.size(), pointNumber);</span>
+  }
+
+  public Point2D getHandlePoint(int index) {
+<span class="nc bnc" id="L582" title="All 2 branches missed.">    Predicate&lt;List&lt;Point2D&gt;&gt; validateIndex = list -&gt; list.size() &gt; index;</span>
+<span class="nc" id="L583">    Function&lt;List&lt;Point2D&gt;, Point2D&gt; getPoint = list -&gt; list.get(index);</span>
+<span class="nc" id="L584">    Function&lt;Point2D, Point2D&gt; cloneValue = point -&gt; (Point2D) point.clone();</span>
+
+<span class="nc" id="L586">    return Optional.of(pts).filter(validateIndex).map(getPoint).map(cloneValue).orElse(null);</span>
+  }
+
+  public List&lt;Point2D&gt; getHandlePointList() {
+<span class="nc" id="L590">    return pts.stream().map(p -&gt; (Point2D) p.clone()).collect(Collectors.toList());</span>
+  }
+
+  public void setHandlePoint(int index, Point2D newPoint) {
+<span class="nc" id="L594">    Optional.ofNullable(pts)</span>
+<span class="nc" id="L595">        .ifPresent(</span>
+            list -&gt; {
+<span class="nc bnc" id="L597" title="All 4 branches missed.">              if (index &gt;= 0 &amp;&amp; index &lt;= list.size()) {</span>
+<span class="nc bnc" id="L598" title="All 2 branches missed.">                if (index == list.size()) {</span>
+<span class="nc" id="L599">                  list.add(newPoint);</span>
+                } else {
+<span class="nc" id="L601">                  list.set(index, newPoint);</span>
+                }
+              }
+<span class="nc" id="L604">            });</span>
+<span class="nc" id="L605">  }</span>
+
+  public Integer getHandlePointListSize() {
+<span class="nc" id="L608">    return pts.size();</span>
+  }
+
+  @Override
+  public Integer getHandleSize() {
+<span class="nc" id="L613">    return HANDLE_SIZE;</span>
+  }
+
+  @Override
+  public Area getArea(MouseEvent mouseEvent) {
+<span class="nc" id="L618">    AffineTransform transform = getAffineTransform(mouseEvent);</span>
+<span class="nc" id="L619">    return getArea(transform);</span>
+  }
+
+  protected AffineTransform getAffineTransform(MouseEvent mouseevent) {
+<span class="nc bnc" id="L623" title="All 4 branches missed.">    if (mouseevent != null &amp;&amp; mouseevent.getSource() instanceof Image2DViewer) {</span>
+<span class="nc" id="L624">      return ((Image2DViewer&lt;?&gt;) mouseevent.getSource()).getAffineTransform();</span>
+    }
+<span class="nc" id="L626">    return null;</span>
+  }
+
+  public Rectangle getBounds(MouseEvent mouseEvent) {
+<span class="nc" id="L630">    AffineTransform transform = getAffineTransform(mouseEvent);</span>
+<span class="nc" id="L631">    return getBounds(transform);</span>
+  }
+
+  /**
+   * @return Bounding rectangle which size has to be modified according to the given transform with
+   *     handle drawings and lineThikness taken in consideration&lt;br&gt;
+   *     This assumes that handle drawing size do not change with different scaling of views. Hence,
+   *     real coordinates of bounding rectangle are modified consequently&lt;br&gt;
+   * @since v1.1.0 - new in Graphic interface
+   */
+  public Rectangle getRepaintBounds(Shape shape, AffineTransform transform) {
+<span class="nc bnc" id="L642" title="All 2 branches missed.">    if (Objects.isNull(shape)) {</span>
+<span class="nc" id="L643">      return null;</span>
+    }
+
+<span class="nc bnc" id="L646" title="All 2 branches missed.">    if (shape instanceof AdvancedShape advancedShape) {</span>
+<span class="nc" id="L647">      advancedShape.setAffineTransform(transform);</span>
+    }
+
+<span class="nc" id="L650">    Rectangle2D bounds = shape.getBounds2D();</span>
+
+    // Add pixel tolerance to ensure that the graphic is correctly repainted
+<span class="nc" id="L653">    double growingSize = Math.max(HANDLE_SIZE * 1.5 / 2.0, lineThickness / 2.0) + 2;</span>
+<span class="nc" id="L654">    growingSize /= GeomUtil.extractScalingFactor(transform);</span>
+<span class="nc" id="L655">    GeomUtil.growRectangle(bounds, growingSize);</span>
+
+<span class="nc bnc" id="L657" title="All 2 branches missed.">    return (bounds != null) ? bounds.getBounds() : null;</span>
+  }
+
+  @Override
+  public Rectangle getRepaintBounds(MouseEvent mouseEvent) {
+<span class="nc" id="L662">    AffineTransform transform = getAffineTransform(mouseEvent);</span>
+<span class="nc" id="L663">    return getRepaintBounds(shape, transform);</span>
+  }
+
+  /**
+   * @return selected handle point index if existed, otherwise -1
+   */
+  @Override
+  public int getHandlePointIndex(MouseEventDouble mouseEvent) {
+<span class="nc" id="L671">    int nearestHandlePtIndex = -1;</span>
+<span class="nc" id="L672">    final Point2D mousePoint =</span>
+<span class="nc" id="L673">        Optional.ofNullable(mouseEvent).map(MouseEventDouble::getImageCoordinates).orElse(null);</span>
+
+<span class="nc bnc" id="L675" title="All 6 branches missed.">    if (mousePoint != null &amp;&amp; !pts.isEmpty() &amp;&amp; !layer.getLocked()) {</span>
+<span class="nc" id="L676">      double minHandleDistance = Double.MAX_VALUE;</span>
+<span class="nc" id="L677">      double maxHandleDistance =</span>
+<span class="nc" id="L678">          HANDLE_SIZE * 1.5 / GeomUtil.extractScalingFactor(getAffineTransform(mouseEvent));</span>
+
+<span class="nc bnc" id="L680" title="All 2 branches missed.">      for (int index = 0; index &lt; pts.size(); index++) {</span>
+<span class="nc" id="L681">        Point2D handlePoint = pts.get(index);</span>
+<span class="nc" id="L682">        double handleDistance =</span>
+<span class="nc" id="L683">            Optional.ofNullable(handlePoint).map(mousePoint::distance).orElse(Double.MAX_VALUE);</span>
+
+<span class="nc bnc" id="L685" title="All 4 branches missed.">        if (handleDistance &lt;= maxHandleDistance &amp;&amp; handleDistance &lt; minHandleDistance) {</span>
+<span class="nc" id="L686">          minHandleDistance = handleDistance;</span>
+<span class="nc" id="L687">          nearestHandlePtIndex = index;</span>
+        }
+      }
+    }
+<span class="nc" id="L691">    return nearestHandlePtIndex;</span>
+  }
+
+  public List&lt;Integer&gt; getHandlePointIndexList(MouseEventDouble mouseEvent) {
+<span class="nc" id="L695">    Map&lt;Double, Integer&gt; indexByDistanceMap = new TreeMap&lt;&gt;();</span>
+<span class="nc" id="L696">    final Point2D mousePoint =</span>
+<span class="nc" id="L697">        Optional.ofNullable(mouseEvent).map(MouseEventDouble::getImageCoordinates).orElse(null);</span>
+
+<span class="nc bnc" id="L699" title="All 6 branches missed.">    if (mousePoint != null &amp;&amp; !pts.isEmpty() &amp;&amp; !layer.getLocked()) {</span>
+<span class="nc" id="L700">      double maxHandleDistance =</span>
+<span class="nc" id="L701">          HANDLE_SIZE * 1.5 / GeomUtil.extractScalingFactor(getAffineTransform(mouseEvent));</span>
+
+<span class="nc bnc" id="L703" title="All 2 branches missed.">      for (int index = 0; index &lt; pts.size(); index++) {</span>
+<span class="nc" id="L704">        Point2D handlePoint = pts.get(index);</span>
+        double handleDistance =
+<span class="nc bnc" id="L706" title="All 2 branches missed.">            (handlePoint != null) ? mousePoint.distance(handlePoint) : Double.MAX_VALUE;</span>
+
+<span class="nc bnc" id="L708" title="All 2 branches missed.">        if (handleDistance &lt;= maxHandleDistance) {</span>
+<span class="nc" id="L709">          indexByDistanceMap.put(handleDistance, index);</span>
+        }
+      }
+    }
+
+<span class="nc bnc" id="L714" title="All 2 branches missed.">    return (!indexByDistanceMap.isEmpty()) ? new ArrayList&lt;&gt;(indexByDistanceMap.values()) : null;</span>
+  }
+
+  @Override
+  public boolean isOnGraphicLabel(MouseEventDouble mouseevent) {
+<span class="nc bnc" id="L719" title="All 2 branches missed.">    if (Objects.isNull(mouseevent)) {</span>
+<span class="nc" id="L720">      return false;</span>
+    }
+
+<span class="nc" id="L723">    AffineTransform transform = getAffineTransform(mouseevent);</span>
+<span class="nc bnc" id="L724" title="All 4 branches missed.">    if (transform != null &amp;&amp; isLabelDisplayable()) {</span>
+<span class="nc" id="L725">      Area labelArea = graphicLabel.getArea(transform);</span>
+<span class="nc bnc" id="L726" title="All 4 branches missed.">      return labelArea != null &amp;&amp; labelArea.contains(mouseevent.getImageCoordinates());</span>
+    }
+<span class="nc" id="L728">    return false;</span>
+  }
+
+  @Override
+  @SuppressWarnings(&quot;rawtypes&quot;)
+  public ViewCanvas getDefaultView2d(MouseEvent mouseevent) {
+<span class="nc bnc" id="L734" title="All 4 branches missed.">    if (mouseevent != null &amp;&amp; mouseevent.getSource() instanceof ViewCanvas viewCanvas) {</span>
+<span class="nc" id="L735">      return viewCanvas;</span>
+    }
+<span class="nc" id="L737">    return null;</span>
+  }
+
+  @Override
+  public void setShape(Shape newShape, MouseEvent mouseevent) {
+<span class="nc" id="L742">    Shape oldShape = this.shape;</span>
+<span class="nc" id="L743">    this.shape = newShape;</span>
+<span class="nc" id="L744">    fireDrawingChanged(oldShape);</span>
+<span class="nc" id="L745">  }</span>
+
+  @Override
+  public void setPaint(Color newPaintColor) {
+<span class="nc bnc" id="L749" title="All 4 branches missed.">    if (this.colorPaint == null || !this.colorPaint.equals(newPaintColor)) {</span>
+<span class="nc" id="L750">      this.colorPaint = newPaintColor;</span>
+<span class="nc" id="L751">      fireDrawingChanged();</span>
+    }
+<span class="nc" id="L753">  }</span>
+
+  protected void fireDrawingChanged() {
+<span class="nc" id="L756">    fireDrawingChanged(null);</span>
+<span class="nc" id="L757">  }</span>
+
+  protected void fireDrawingChanged(Shape oldShape) {
+<span class="nc" id="L760">    firePropertyChange(&quot;bounds&quot;, oldShape, shape); // NON-NLS</span>
+<span class="nc" id="L761">  }</span>
+
+  protected void firePropertyChange(String s, Object obj, Object obj1) {
+<span class="nc" id="L764">    pcs.firePropertyChange(s, obj, obj1);</span>
+<span class="nc" id="L765">  }</span>
+
+  protected void firePropertyChange(String s, int i, int j) {
+<span class="nc" id="L768">    pcs.firePropertyChange(s, i, j);</span>
+<span class="nc" id="L769">  }</span>
+
+  protected void firePropertyChange(String s, boolean flag, boolean flag1) {
+<span class="nc" id="L772">    pcs.firePropertyChange(s, flag, flag1);</span>
+<span class="nc" id="L773">  }</span>
+
+  protected void fireLabelChanged() {
+<span class="nc" id="L776">    fireLabelChanged(null);</span>
+<span class="nc" id="L777">  }</span>
+
+  protected void fireLabelChanged(GraphicLabel oldLabel) {
+<span class="nc" id="L780">    firePropertyChange(&quot;graphicLabel&quot;, oldLabel, graphicLabel);</span>
+<span class="nc" id="L781">  }</span>
+
+  @Override
+  public void setLabel(GraphicLabel label) {
+<span class="nc" id="L785">    GraphicLabel oldLabel = Optional.ofNullable(graphicLabel).map(GraphicLabel::copy).orElse(null);</span>
+<span class="nc" id="L786">    graphicLabel = label;</span>
+<span class="nc" id="L787">    fireLabelChanged(oldLabel);</span>
+<span class="nc" id="L788">  }</span>
+
+  public void setLabel(String[] labels, ViewCanvas&lt;?&gt; view2d, Point2D pos) {
+<span class="nc" id="L791">    GraphicLabel oldLabel = Optional.ofNullable(graphicLabel).map(GraphicLabel::copy).orElse(null);</span>
+
+<span class="nc bnc" id="L793" title="All 4 branches missed.">    if (labels == null || labels.length == 0) {</span>
+<span class="nc" id="L794">      graphicLabel = null;</span>
+<span class="nc" id="L795">      fireLabelChanged(oldLabel);</span>
+<span class="nc bnc" id="L796" title="All 2 branches missed.">    } else if (pos == null) {</span>
+<span class="nc" id="L797">      setLabel(labels, view2d);</span>
+    } else {
+<span class="nc bnc" id="L799" title="All 2 branches missed.">      if (graphicLabel == null) {</span>
+<span class="nc" id="L800">        graphicLabel = new DefaultGraphicLabel();</span>
+      }
+<span class="nc" id="L802">      graphicLabel.setLabel(view2d, pos.getX(), pos.getY(), labels);</span>
+<span class="nc" id="L803">      fireLabelChanged(oldLabel);</span>
+    }
+<span class="nc" id="L805">  }</span>
+
+  @Override
+  public void moveLabel(Double deltaX, Double deltaY) {
+<span class="nc bnc" id="L809" title="All 2 branches missed.">    if (isLabelDisplayable()</span>
+<span class="nc bnc" id="L810" title="All 4 branches missed.">        &amp;&amp; (MathUtil.isDifferentFromZero(deltaX) || MathUtil.isDifferentFromZero(deltaY))) {</span>
+<span class="nc" id="L811">      GraphicLabel oldLabel = graphicLabel.copy();</span>
+<span class="nc" id="L812">      graphicLabel.move(deltaX, deltaY);</span>
+<span class="nc" id="L813">      fireLabelChanged(oldLabel);</span>
+    }
+<span class="nc" id="L815">  }</span>
+
+  public void updateLabel(ViewCanvas&lt;?&gt; view2d, Point2D pos, boolean releasedEvent) {
+    List&lt;Graphic&gt; selectedGraphics =
+<span class="nc bnc" id="L819" title="All 2 branches missed.">        view2d == null ? Collections.emptyList() : view2d.getGraphicManager().getSelectedGraphics();</span>
+<span class="nc bnc" id="L820" title="All 2 branches missed.">    boolean isMultiSelection = selectedGraphics.size() &gt; 1;</span>
+
+<span class="nc" id="L822">    List&lt;MeasureItem&gt; measList = null;</span>
+<span class="nc" id="L823">    String[] labels = null;</span>
+
+    // If isMultiSelection is false, it should return all enable computed measurements when
+    // quickComputing is enabled or when releasedEvent is true
+<span class="nc bnc" id="L827" title="All 6 branches missed.">    if ((labelVisible || !isMultiSelection) &amp;&amp; getLayerType() == LayerType.MEASURE) {</span>
+      Unit displayUnit =
+<span class="nc bnc" id="L829" title="All 2 branches missed.">          view2d == null ? null : (Unit) view2d.getActionValue(ActionW.SPATIAL_UNIT.cmd());</span>
+<span class="nc" id="L830">      measList =</span>
+<span class="nc" id="L831">          computeMeasurements(</span>
+<span class="nc bnc" id="L832" title="All 2 branches missed.">              view2d == null ? null : view2d.getMeasurableLayer(), releasedEvent, displayUnit);</span>
+    }
+
+<span class="nc bnc" id="L835" title="All 6 branches missed.">    if (labelVisible &amp;&amp; measList != null &amp;&amp; !measList.isEmpty()) {</span>
+<span class="nc" id="L836">      List&lt;String&gt; labelList = new ArrayList&lt;&gt;(measList.size());</span>
+
+<span class="nc bnc" id="L838" title="All 2 branches missed.">      for (MeasureItem item : measList) {</span>
+<span class="nc bnc" id="L839" title="All 2 branches missed.">        if (item != null) {</span>
+<span class="nc" id="L840">          Measurement measurement = item.getMeasurement();</span>
+
+<span class="nc bnc" id="L842" title="All 4 branches missed.">          if (measurement != null &amp;&amp; measurement.getGraphicLabel()) {</span>
+<span class="nc" id="L843">            StringBuilder sb = new StringBuilder();</span>
+
+<span class="nc" id="L845">            String name = measurement.getName();</span>
+<span class="nc" id="L846">            Object value = item.getValue();</span>
+<span class="nc" id="L847">            String unit = item.getUnit();</span>
+
+<span class="nc bnc" id="L849" title="All 2 branches missed.">            if (name != null) {</span>
+<span class="nc" id="L850">              sb.append(name);</span>
+<span class="nc bnc" id="L851" title="All 2 branches missed.">              if (item.getLabelExtension() != null) {</span>
+<span class="nc" id="L852">                sb.append(item.getLabelExtension());</span>
+              }
+<span class="nc" id="L854">              sb.append(&quot; : &quot;);</span>
+<span class="nc bnc" id="L855" title="All 2 branches missed.">              if (value instanceof Number number) {</span>
+<span class="nc" id="L856">                sb.append(DecFormatter.allNumber(number));</span>
+<span class="nc bnc" id="L857" title="All 2 branches missed.">                if (unit != null) {</span>
+<span class="nc" id="L858">                  sb.append(&quot; &quot;).append(unit);</span>
+                }
+<span class="nc bnc" id="L860" title="All 2 branches missed.">              } else if (value != null) {</span>
+<span class="nc" id="L861">                sb.append(value);</span>
+              }
+            }
+<span class="nc" id="L864">            labelList.add(sb.toString());</span>
+          }
+        }
+<span class="nc" id="L867">      }</span>
+<span class="nc bnc" id="L868" title="All 2 branches missed.">      if (!labelList.isEmpty()) {</span>
+<span class="nc" id="L869">        labels = labelList.toArray(new String[0]);</span>
+      }
+    }
+
+<span class="nc bnc" id="L873" title="All 6 branches missed.">    if (labels == null &amp;&amp; view2d == null &amp;&amp; graphicLabel != null) {</span>
+<span class="nc" id="L874">      labels = graphicLabel.getLabels();</span>
+    }
+
+<span class="nc" id="L877">    setLabel(labels, view2d, pos);</span>
+
+    // update MeasureTool on the fly without calling again getMeasurements
+<span class="nc bnc" id="L880" title="All 6 branches missed.">    if (selectedGraphics.size() == 1 &amp;&amp; this.equals(selectedGraphics.get(0)) &amp;&amp; view2d != null) {</span>
+      for (GraphicSelectionListener gfxListener :
+<span class="nc bnc" id="L882" title="All 2 branches missed.">          view2d.getGraphicManager().getGraphicSelectionListeners()) {</span>
+<span class="nc" id="L883">        gfxListener.updateMeasuredItems(measList);</span>
+<span class="nc" id="L884">      }</span>
+    }
+<span class="nc" id="L886">  }</span>
+
+  protected void paintHandles(Graphics2D g2d, AffineTransform transform) {
+<span class="nc bnc" id="L889" title="All 2 branches missed.">    if (!pts.isEmpty()) {</span>
+<span class="nc" id="L890">      double size = HANDLE_SIZE;</span>
+<span class="nc" id="L891">      double halfSize = size / 2;</span>
+
+<span class="nc" id="L893">      ArrayList&lt;Point2D&gt; handlePts = new ArrayList&lt;&gt;(pts.size());</span>
+<span class="nc bnc" id="L894" title="All 2 branches missed.">      for (Point2D pt : pts) {</span>
+<span class="nc bnc" id="L895" title="All 2 branches missed.">        if (pt != null) {</span>
+<span class="nc" id="L896">          handlePts.add(new Point2D.Double(pt.getX(), pt.getY()));</span>
+        }
+<span class="nc" id="L898">      }</span>
+
+<span class="nc" id="L900">      Point2D[] handlePtArray = handlePts.toArray(new Point2D[0]);</span>
+<span class="nc" id="L901">      transform.transform(handlePtArray, 0, handlePtArray, 0, handlePtArray.length);</span>
+
+<span class="nc" id="L903">      Paint oldPaint = g2d.getPaint();</span>
+<span class="nc" id="L904">      Stroke oldStroke = g2d.getStroke();</span>
+
+<span class="nc" id="L906">      g2d.setPaint(Color.black);</span>
+<span class="nc bnc" id="L907" title="All 2 branches missed.">      for (Point2D point : handlePtArray) {</span>
+<span class="nc" id="L908">        g2d.fill(</span>
+<span class="nc" id="L909">            new Rectangle2D.Double(point.getX() - halfSize, point.getY() - halfSize, size, size));</span>
+      }
+
+<span class="nc" id="L912">      g2d.setPaint(Color.white);</span>
+<span class="nc" id="L913">      g2d.setStroke(new BasicStroke(1.0f));</span>
+<span class="nc bnc" id="L914" title="All 2 branches missed.">      for (Point2D point : handlePtArray) {</span>
+<span class="nc" id="L915">        g2d.draw(</span>
+<span class="nc" id="L916">            new Rectangle2D.Double(point.getX() - halfSize, point.getY() - halfSize, size, size));</span>
+      }
+
+<span class="nc" id="L919">      g2d.setPaint(oldPaint);</span>
+<span class="nc" id="L920">      g2d.setStroke(oldStroke);</span>
+    }
+<span class="nc" id="L922">  }</span>
+
+  /**
+   * Can be overridden to estimate what is a valid shape that can be fully computed and drawn
+   *
+   * @return True when not handle points equals each another. &lt;br&gt;
+   */
+  @Override
+  public boolean isShapeValid() {
+<span class="nc bnc" id="L931" title="All 2 branches missed.">    if (!isGraphicComplete()) {</span>
+<span class="nc" id="L932">      return false;</span>
+    }
+
+<span class="nc" id="L935">    int lastPointIndex = pts.size() - 1;</span>
+
+<span class="nc bnc" id="L937" title="All 2 branches missed.">    while (lastPointIndex &gt; 0) {</span>
+<span class="nc" id="L938">      Point2D checkPoint = pts.get(lastPointIndex);</span>
+
+<span class="nc" id="L940">      ListIterator&lt;Point2D&gt; listIt = pts.listIterator(lastPointIndex--);</span>
+
+<span class="nc bnc" id="L942" title="All 2 branches missed.">      while (listIt.hasPrevious()) {</span>
+<span class="nc bnc" id="L943" title="All 4 branches missed.">        if (checkPoint != null &amp;&amp; checkPoint.equals(listIt.previous())) {</span>
+<span class="nc" id="L944">          return false;</span>
+        }
+      }
+<span class="nc" id="L947">    }</span>
+<span class="nc" id="L948">    return true;</span>
+  }
+
+  protected void fireMoveAction() {
+<span class="nc bnc" id="L952" title="All 2 branches missed.">    if (isGraphicComplete()) {</span>
+<span class="nc" id="L953">      firePropertyChange(&quot;move&quot;, null, this); // NON-NLS</span>
+    }
+<span class="nc" id="L955">  }</span>
+
+  @Override
+  public LayerType getLayerType() {
+<span class="nc" id="L959">    return layerType;</span>
+  }
+
+  @Override
+  public void setLayerType(LayerType layerType) {
+<span class="nc" id="L964">    this.layerType = Objects.requireNonNull(layerType, NULL_MSG);</span>
+<span class="nc" id="L965">  }</span>
+
+<span class="nc" id="L967">  static class Adapter extends XmlAdapter&lt;AbstractGraphic, Graphic&gt; {</span>
+
+    @Override
+    public Graphic unmarshal(AbstractGraphic v) throws Exception {
+<span class="nc" id="L971">      v.buildGraphic(v.getPts());</span>
+<span class="nc" id="L972">      return v;</span>
+    }
+
+    @Override
+    public AbstractGraphic marshal(Graphic v) throws Exception {
+<span class="nc" id="L977">      return (AbstractGraphic) v;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>DefaultViewModel.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.utils.imp</a> &gt; <span class="el_source">DefaultViewModel.java</span></div><h1>DefaultViewModel.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.utils.imp;
+
+import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
+import java.util.List;
+import org.weasis.core.api.gui.model.ViewModel;
+import org.weasis.core.api.gui.model.ViewModelChangeListener;
+import org.weasis.core.util.MathUtil;
+
+/**
+ * The Class DefaultViewModel.
+ *
+ * @author Nicolas Roduit
+ */
+public class DefaultViewModel implements ViewModel {
+
+  public static final double SCALE_MAX = 12.0;
+  public static final double SCALE_MIN = 1.0 / SCALE_MAX;
+
+  /** The X-offset in model coordinates of the center view pixel */
+  private double modelOffsetX;
+
+  /** The Y-offset in model coordinates of the center view pixel */
+  private double modelOffsetY;
+
+  /** The current view scale */
+  private double viewScale;
+
+  /** The maximum view scale. The max value is given by SCALE_MAX. */
+  private double viewScaleMax;
+
+  /** The minimum view scale. The min value is given as 1.0 / SCALE_MAX. */
+  private double viewScaleMin;
+
+  /** This model's area of the image in pixel. */
+  private Rectangle2D modelArea;
+
+  private final List&lt;ViewModelChangeListener&gt; viewModelChangeListenerList;
+  private boolean enableViewModelChangeListeners;
+
+<span class="nc" id="L50">  public DefaultViewModel(double viewScaleMin, double viewScaleMax) {</span>
+<span class="nc" id="L51">    this.modelOffsetX = 0.0;</span>
+<span class="nc" id="L52">    this.modelOffsetY = 0.0;</span>
+<span class="nc" id="L53">    this.viewScale = 1.0;</span>
+<span class="nc" id="L54">    this.viewScaleMin = viewScaleMin;</span>
+<span class="nc" id="L55">    this.viewScaleMax = viewScaleMax;</span>
+<span class="nc" id="L56">    this.modelArea = new Rectangle2D.Double();</span>
+<span class="nc" id="L57">    this.viewModelChangeListenerList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L58">    this.enableViewModelChangeListeners = true;</span>
+<span class="nc" id="L59">  }</span>
+
+  public DefaultViewModel() {
+<span class="nc" id="L62">    this(SCALE_MIN, SCALE_MAX);</span>
+<span class="nc" id="L63">  }</span>
+
+  public boolean isEnableViewModelChangeListeners() {
+<span class="nc" id="L66">    return enableViewModelChangeListeners;</span>
+  }
+
+  public void setEnableViewModelChangeListeners(boolean enableViewModelChangeListeners) {
+<span class="nc" id="L70">    this.enableViewModelChangeListeners = enableViewModelChangeListeners;</span>
+<span class="nc" id="L71">  }</span>
+
+  @Override
+  public double getModelOffsetX() {
+<span class="nc" id="L75">    return modelOffsetX;</span>
+  }
+
+  @Override
+  public double getModelOffsetY() {
+<span class="nc" id="L80">    return modelOffsetY;</span>
+  }
+
+  @Override
+  public void setModelOffset(double modelOffsetX, double modelOffsetY) {
+<span class="nc bnc" id="L85" title="All 2 branches missed.">    if (MathUtil.isDifferent(this.modelOffsetX, modelOffsetX)</span>
+<span class="nc bnc" id="L86" title="All 2 branches missed.">        || MathUtil.isDifferent(this.modelOffsetY, modelOffsetY)) {</span>
+<span class="nc" id="L87">      this.modelOffsetX = modelOffsetX;</span>
+<span class="nc" id="L88">      this.modelOffsetY = modelOffsetY;</span>
+<span class="nc" id="L89">      fireViewModelChanged();</span>
+    }
+<span class="nc" id="L91">  }</span>
+
+  @Override
+  public void setModelOffset(double modelOffsetX, double modelOffsetY, double viewScale) {
+<span class="nc" id="L95">    double scale = maybeCropViewScale(viewScale);</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">    if (MathUtil.isDifferent(this.modelOffsetX, modelOffsetX)</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">        || MathUtil.isDifferent(this.modelOffsetY, modelOffsetY)</span>
+<span class="nc bnc" id="L98" title="All 2 branches missed.">        || MathUtil.isDifferent(this.viewScale, scale)) {</span>
+<span class="nc" id="L99">      this.modelOffsetX = modelOffsetX;</span>
+<span class="nc" id="L100">      this.modelOffsetY = modelOffsetY;</span>
+<span class="nc" id="L101">      this.viewScale = scale;</span>
+<span class="nc" id="L102">      fireViewModelChanged();</span>
+    }
+<span class="nc" id="L104">  }</span>
+
+  @Override
+  public double getViewScale() {
+<span class="nc" id="L108">    return viewScale;</span>
+  }
+
+  @Override
+  public void setViewScale(double viewScale) {
+<span class="nc" id="L113">    double scale = maybeCropViewScale(viewScale);</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">    if (MathUtil.isDifferent(this.viewScale, scale)) {</span>
+<span class="nc" id="L115">      this.viewScale = scale;</span>
+<span class="nc" id="L116">      fireViewModelChanged();</span>
+    }
+<span class="nc" id="L118">  }</span>
+
+  @Override
+  public double getViewScaleMax() {
+<span class="nc" id="L122">    return viewScaleMax;</span>
+  }
+
+  @Override
+  public void setViewScaleMax(double viewScaleMax) {
+<span class="nc" id="L127">    this.viewScaleMax = viewScaleMax;</span>
+<span class="nc" id="L128">  }</span>
+
+  @Override
+  public Rectangle2D getModelArea() {
+<span class="nc" id="L132">    return new Rectangle2D.Double(</span>
+<span class="nc" id="L133">        modelArea.getX(), modelArea.getY(), modelArea.getWidth(), modelArea.getHeight());</span>
+  }
+
+  @Override
+  public double getViewScaleMin() {
+<span class="nc" id="L138">    return viewScaleMin;</span>
+  }
+
+  @Override
+  public void setModelArea(Rectangle2D modelArea) {
+<span class="nc bnc" id="L143" title="All 2 branches missed.">    if (!this.modelArea.equals(modelArea)) {</span>
+<span class="nc" id="L144">      this.modelArea =</span>
+          new Rectangle2D.Double(
+<span class="nc" id="L146">              modelArea.getX(), modelArea.getY(), modelArea.getWidth(), modelArea.getHeight());</span>
+<span class="nc" id="L147">      fireViewModelChanged();</span>
+    }
+<span class="nc" id="L149">  }</span>
+
+  @Override
+  public void setViewScaleMin(double viewScaleMin) {
+<span class="nc" id="L153">    this.viewScaleMin = viewScaleMin;</span>
+<span class="nc" id="L154">  }</span>
+
+  @Override
+  public ViewModelChangeListener[] getViewModelChangeListeners() {
+<span class="nc" id="L158">    final ViewModelChangeListener[] viewModelChangeListeners =</span>
+<span class="nc" id="L159">        new ViewModelChangeListener[viewModelChangeListenerList.size()];</span>
+<span class="nc" id="L160">    return viewModelChangeListenerList.toArray(viewModelChangeListeners);</span>
+  }
+
+  @Override
+  public void addViewModelChangeListener(ViewModelChangeListener l) {
+<span class="nc bnc" id="L165" title="All 4 branches missed.">    if (l != null &amp;&amp; !viewModelChangeListenerList.contains(l)) {</span>
+<span class="nc" id="L166">      viewModelChangeListenerList.add(l);</span>
+    }
+<span class="nc" id="L168">  }</span>
+
+  @Override
+  public void removeViewModelChangeListener(ViewModelChangeListener l) {
+<span class="nc bnc" id="L172" title="All 2 branches missed.">    if (l != null) {</span>
+<span class="nc" id="L173">      viewModelChangeListenerList.remove(l);</span>
+    }
+<span class="nc" id="L175">  }</span>
+
+  protected void fireViewModelChanged() {
+<span class="nc bnc" id="L178" title="All 2 branches missed.">    if (enableViewModelChangeListeners) {</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">      for (ViewModelChangeListener l : viewModelChangeListenerList) {</span>
+<span class="nc" id="L180">        l.handleViewModelChanged(this);</span>
+<span class="nc" id="L181">      }</span>
+    }
+<span class="nc" id="L183">  }</span>
+
+  public static double cropViewScale(
+      double viewScale, final double viewScaleMin, final double viewScaleMax) {
+<span class="nc bnc" id="L187" title="All 2 branches missed.">    if (viewScaleMax &gt; 1.0) {</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">      if (viewScale &lt; viewScaleMin) {</span>
+<span class="nc" id="L189">        return viewScaleMin;</span>
+<span class="nc bnc" id="L190" title="All 2 branches missed.">      } else if (viewScale &gt; viewScaleMax) {</span>
+<span class="nc" id="L191">        return viewScaleMax;</span>
+      }
+    }
+<span class="nc" id="L194">    return viewScale;</span>
+  }
+
+  private double maybeCropViewScale(double viewScale) {
+<span class="nc" id="L198">    return cropViewScale(viewScale, getViewScaleMin(), getViewScaleMax());</span>
+  }
+
+  public void adjustMinViewScaleFromImage(int width, int height) {
+<span class="nc" id="L202">    double ratio = 250.0 / (Math.max(width, height));</span>
+<span class="nc bnc" id="L203" title="All 2 branches missed.">    if (ratio &lt; viewScaleMin) {</span>
+<span class="nc" id="L204">      this.viewScaleMin = ratio;</span>
+    }
+<span class="nc" id="L206">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

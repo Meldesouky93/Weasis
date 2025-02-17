@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>WorklistDialog.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer</a> &gt; <span class="el_source">WorklistDialog.java</span></div><h1>WorklistDialog.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer;
+
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.Window;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
+import javax.swing.WindowConstants;
+import javax.swing.event.ListSelectionListener;
+import org.dcm4che3.data.Attributes;
+import org.dcm4che3.data.Tag;
+import org.dcm4che3.net.Status;
+import org.weasis.acquire.explorer.core.bean.DefaultTaggable;
+import org.weasis.core.api.gui.util.GuiExecutor;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.gui.util.WinUtil;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.api.util.FontItem;
+import org.weasis.core.ui.util.SimpleTableModel;
+import org.weasis.core.ui.util.TableColumnAdjuster;
+import org.weasis.dicom.codec.TagD;
+import org.weasis.dicom.op.CFind;
+import org.weasis.dicom.param.AdvancedParams;
+import org.weasis.dicom.param.ConnectOptions;
+import org.weasis.dicom.param.DicomNode;
+import org.weasis.dicom.param.DicomParam;
+import org.weasis.dicom.param.DicomState;
+import org.weasis.dicom.tool.ModalityWorklist;
+
+public class WorklistDialog extends JDialog {
+
+  private JLabel selection;
+
+  private final DicomNode calling;
+  private final DicomNode called;
+
+  private JScrollPane tableContainer;
+
+  private JTable jtable;
+  private ListSelectionListener selectionListener;
+  private Attributes selectedItem;
+
+  public WorklistDialog(Window parent, String title, DicomNode calling, DicomNode called) {
+<span class="nc" id="L62">    super(parent, title, ModalityType.APPLICATION_MODAL);</span>
+<span class="nc" id="L63">    initComponents();</span>
+<span class="nc" id="L64">    this.calling = Objects.requireNonNull(calling);</span>
+<span class="nc" id="L65">    this.called = Objects.requireNonNull(called);</span>
+<span class="nc" id="L66">    fillTable();</span>
+<span class="nc" id="L67">    pack();</span>
+<span class="nc" id="L68">  }</span>
+
+  private void initComponents() {
+<span class="nc" id="L71">    final JPanel rootPane = new JPanel();</span>
+<span class="nc" id="L72">    rootPane.setBorder(GuiUtils.getEmptyBorder(10, 15, 10, 15));</span>
+<span class="nc" id="L73">    this.setContentPane(rootPane);</span>
+
+<span class="nc" id="L75">    setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);</span>
+<span class="nc" id="L76">    rootPane.setLayout(new BorderLayout(0, 0));</span>
+
+<span class="nc" id="L78">    jtable = new JTable();</span>
+<span class="nc" id="L79">    jtable.setFont(FontItem.SMALL.getFont());</span>
+<span class="nc" id="L80">    jtable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);</span>
+<span class="nc" id="L81">    jtable.setRowSelectionAllowed(true);</span>
+<span class="nc" id="L82">    jtable.setShowHorizontalLines(true);</span>
+<span class="nc" id="L83">    jtable.setShowVerticalLines(true);</span>
+<span class="nc" id="L84">    jtable.getTableHeader().setReorderingAllowed(false);</span>
+
+<span class="nc" id="L86">    tableContainer = new JScrollPane();</span>
+<span class="nc" id="L87">    tableContainer.setPreferredSize(GuiUtils.getDimension(920, 400));</span>
+
+<span class="nc" id="L89">    this.getContentPane().add(tableContainer, BorderLayout.CENTER);</span>
+
+<span class="nc" id="L91">    JPanel footPanel = new JPanel();</span>
+<span class="nc" id="L92">    FlowLayout flowLayout = (FlowLayout) footPanel.getLayout();</span>
+<span class="nc" id="L93">    flowLayout.setVgap(15);</span>
+<span class="nc" id="L94">    flowLayout.setAlignment(FlowLayout.RIGHT);</span>
+<span class="nc" id="L95">    flowLayout.setHgap(20);</span>
+<span class="nc" id="L96">    getContentPane().add(footPanel, BorderLayout.SOUTH);</span>
+<span class="nc" id="L97">    selection = new JLabel();</span>
+<span class="nc" id="L98">    footPanel.add(selection);</span>
+<span class="nc" id="L99">    JButton okButton = new JButton();</span>
+<span class="nc" id="L100">    footPanel.add(okButton);</span>
+
+<span class="nc" id="L102">    okButton.setText(Messages.getString(&quot;WorklistDialog.apply&quot;));</span>
+<span class="nc" id="L103">    okButton.addActionListener(e -&gt; okButtonActionPerformed());</span>
+<span class="nc" id="L104">    JButton cancelButton = new JButton();</span>
+<span class="nc" id="L105">    footPanel.add(cancelButton);</span>
+
+<span class="nc" id="L107">    cancelButton.setText(Messages.getString(&quot;WorklistDialog.cancel&quot;));</span>
+<span class="nc" id="L108">    cancelButton.addActionListener(e -&gt; dispose());</span>
+<span class="nc" id="L109">  }</span>
+
+  public void fillTable() {
+<span class="nc" id="L112">    DicomState state = queryWorklist(calling, called);</span>
+<span class="nc" id="L113">    jtable.getSelectionModel().removeListSelectionListener(selectionListener);</span>
+<span class="nc" id="L114">    List&lt;Attributes&gt; items = state.getDicomRSP();</span>
+<span class="nc bnc" id="L115" title="All 4 branches missed.">    if (items != null &amp;&amp; !items.isEmpty()) {</span>
+<span class="nc" id="L116">      DicomParam[] cols = {</span>
+        CFind.PatientName,
+        CFind.PatientID,
+        CFind.PatientBirthDate,
+        CFind.PatientSex,
+        CFind.AccessionNumber,
+        ModalityWorklist.ScheduledProcedureStepDescription,
+        ModalityWorklist.Modality,
+        ModalityWorklist.ScheduledStationName
+      };
+
+<span class="nc" id="L127">      TagW[] tags = TagD.getTagFromIDs(Arrays.stream(cols).mapToInt(DicomParam::getTag).toArray());</span>
+
+<span class="nc" id="L129">      Object[][] labels = new Object[items.size()][];</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">      for (int i = 0; i &lt; labels.length; i++) {</span>
+<span class="nc" id="L131">        Attributes m = items.get(i);</span>
+<span class="nc" id="L132">        Object[] row = new Object[tags.length];</span>
+
+<span class="nc bnc" id="L134" title="All 2 branches missed.">        for (int j = 0; j &lt; tags.length; j++) {</span>
+<span class="nc" id="L135">          int[] pSeq = cols[j].getParentSeqTags();</span>
+<span class="nc bnc" id="L136" title="All 4 branches missed.">          if (pSeq == null || pSeq.length == 0) {</span>
+<span class="nc" id="L137">            row[j] = tags[j].getFormattedTagValue(tags[j].getValue(m), null);</span>
+          } else {
+<span class="nc" id="L139">            Attributes parent = m;</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">            for (int value : pSeq) {</span>
+<span class="nc" id="L141">              Attributes p = parent.getNestedDataset(value);</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">              if (p == null) {</span>
+<span class="nc" id="L143">                break;</span>
+              }
+<span class="nc" id="L145">              parent = p;</span>
+            }
+<span class="nc" id="L147">            row[j] = tags[j].getFormattedTagValue(tags[j].getValue(parent), null);</span>
+          }
+        }
+<span class="nc" id="L150">        labels[i] = row;</span>
+      }
+<span class="nc" id="L152">      jtable.setModel(</span>
+          new SimpleTableModel(
+<span class="nc" id="L154">              Arrays.stream(tags).map(TagW::getDisplayedName).toArray(String[]::new), labels));</span>
+<span class="nc" id="L155">      TableColumnAdjuster.pack(jtable);</span>
+<span class="nc" id="L156">      selectionListener =</span>
+          event -&gt; {
+<span class="nc" id="L158">            int row = jtable.getSelectedRow();</span>
+<span class="nc bnc" id="L159" title="All 2 branches missed.">            if (row &lt; 0) {</span>
+<span class="nc" id="L160">              selectedItem = null;</span>
+<span class="nc" id="L161">              selection.setText(&quot;&quot;);</span>
+            } else {
+<span class="nc" id="L163">              selectedItem = items.get(row);</span>
+<span class="nc" id="L164">              TagW name = TagD.get(Tag.PatientName);</span>
+<span class="nc" id="L165">              StringBuilder buf =</span>
+<span class="nc" id="L166">                  new StringBuilder(name.getFormattedTagValue(name.getValue(selectedItem), null));</span>
+<span class="nc" id="L167">              buf.append(&quot; &quot;);</span>
+<span class="nc" id="L168">              TagW date = TagD.get(Tag.PatientBirthDate);</span>
+<span class="nc" id="L169">              buf.append(date.getFormattedTagValue(date.getValue(selectedItem), null));</span>
+<span class="nc" id="L170">              selection.setText(buf.toString());</span>
+            }
+<span class="nc" id="L172">          };</span>
+<span class="nc" id="L173">      jtable.getSelectionModel().addListSelectionListener(selectionListener);</span>
+<span class="nc" id="L174">    } else {</span>
+<span class="nc bnc" id="L175" title="All 2 branches missed.">      if (state.getStatus() != Status.Success) {</span>
+<span class="nc" id="L176">        GuiExecutor.execute(</span>
+            () -&gt;
+<span class="nc" id="L178">                JOptionPane.showMessageDialog(</span>
+<span class="nc" id="L179">                    WinUtil.getValidComponent(this),</span>
+<span class="nc" id="L180">                    state.getMessage(),</span>
+                    null,
+                    JOptionPane.ERROR_MESSAGE));
+<span class="nc" id="L183">        dispose();</span>
+<span class="nc" id="L184">        throw new IllegalStateException(state.getMessage());</span>
+      }
+<span class="nc" id="L186">      jtable.setModel(new SimpleTableModel(new String[] {}, new Object[][] {}));</span>
+<span class="nc" id="L187">      tableContainer.setPreferredSize(GuiUtils.getDimension(450, 50));</span>
+    }
+<span class="nc" id="L189">    tableContainer.setViewportView(jtable);</span>
+<span class="nc" id="L190">  }</span>
+
+  private boolean applySelection() {
+<span class="nc bnc" id="L193" title="All 2 branches missed.">    if (selectedItem != null) {</span>
+<span class="nc" id="L194">      DefaultTaggable taggable = new DefaultTaggable();</span>
+
+<span class="nc" id="L196">      TagW[] addTags =</span>
+<span class="nc" id="L197">          TagD.getTagFromIDs(</span>
+              Tag.AccessionNumber,
+              Tag.IssuerOfAccessionNumberSequence,
+              Tag.ReferringPhysicianName,
+              Tag.PatientName,
+              Tag.PatientID,
+              Tag.IssuerOfPatientID,
+              Tag.PatientBirthDate,
+              Tag.PatientSex,
+              Tag.PatientWeight,
+              Tag.MedicalAlerts,
+              Tag.Allergies,
+              Tag.PregnancyStatus,
+              Tag.StudyInstanceUID,
+              Tag.RequestingPhysician,
+              Tag.RequestingService,
+              Tag.RequestedProcedureDescription,
+              Tag.RequestedProcedureCodeSequence,
+              Tag.AdmissionID,
+              Tag.IssuerOfAdmissionIDSequence,
+              Tag.SpecialNeeds,
+              Tag.CurrentPatientLocation,
+              Tag.PatientState);
+<span class="nc bnc" id="L220" title="All 2 branches missed.">      for (TagW t : addTags) {</span>
+<span class="nc" id="L221">        t.readValue(selectedItem, taggable);</span>
+      }
+
+<span class="nc" id="L224">      Attributes seq = selectedItem.getNestedDataset(Tag.ScheduledProcedureStepSequence);</span>
+<span class="nc" id="L225">      taggable.setTagNoNull(</span>
+<span class="nc" id="L226">          TagD.get(Tag.StudyDescription),</span>
+<span class="nc" id="L227">          TagD.get(Tag.ScheduledProcedureStepDescription).getValue(seq));</span>
+<span class="nc" id="L228">      TagW tModality = TagD.get(Tag.Modality);</span>
+<span class="nc" id="L229">      taggable.setTagNoNull(tModality, tModality.getValue(seq));</span>
+<span class="nc" id="L230">      taggable.setTagNoNull(</span>
+<span class="nc" id="L231">          TagD.get(Tag.StationName), TagD.get(Tag.ScheduledStationName).getValue(seq));</span>
+
+<span class="nc" id="L233">      AcquireManager.getInstance().applyToGlobal(taggable);</span>
+<span class="nc" id="L234">      selectedItem = null;</span>
+<span class="nc" id="L235">      selection.setText(&quot;&quot;);</span>
+<span class="nc" id="L236">      jtable.getSelectionModel().clearSelection();</span>
+<span class="nc" id="L237">      return true;</span>
+    }
+<span class="nc" id="L239">    return false;</span>
+  }
+
+  private void okButtonActionPerformed() {
+<span class="nc bnc" id="L243" title="All 2 branches missed.">    if (applySelection()) {</span>
+<span class="nc" id="L244">      dispose();</span>
+    }
+<span class="nc" id="L246">  }</span>
+
+  private static DicomState queryWorklist(DicomNode calling, DicomNode called) {
+<span class="nc" id="L249">    DicomParam stationAet = new DicomParam(Tag.ScheduledStationAETitle, calling.getAet());</span>
+
+<span class="nc" id="L251">    DicomParam[] keys = {</span>
+      CFind.AccessionNumber,
+      CFind.IssuerOfAccessionNumberSequence,
+      CFind.ReferringPhysicianName,
+      CFind.PatientName,
+      CFind.PatientID,
+      CFind.IssuerOfPatientID,
+      CFind.PatientBirthDate,
+      CFind.PatientSex,
+      ModalityWorklist.PatientWeight,
+      ModalityWorklist.MedicalAlerts,
+      ModalityWorklist.Allergies,
+      ModalityWorklist.PregnancyStatus,
+      CFind.StudyInstanceUID,
+      ModalityWorklist.RequestingPhysician,
+      ModalityWorklist.RequestingService,
+      ModalityWorklist.RequestedProcedureDescription,
+      ModalityWorklist.RequestedProcedureCodeSequence,
+      ModalityWorklist.AdmissionID,
+      ModalityWorklist.IssuerOfAdmissionIDSequence,
+      ModalityWorklist.SpecialNeeds,
+      ModalityWorklist.CurrentPatientLocation,
+      ModalityWorklist.PatientState,
+      ModalityWorklist.RequestedProcedureID,
+      ModalityWorklist.RequestedProcedurePriority,
+      ModalityWorklist.PatientTransportArrangements,
+      ModalityWorklist.PlacerOrderNumberImagingServiceRequest,
+      ModalityWorklist.FillerOrderNumberImagingServiceRequest,
+      ModalityWorklist.ConfidentialityConstraintOnPatientDataDescription,
+      // Scheduled Procedure Step Sequence
+      ModalityWorklist.Modality,
+      ModalityWorklist.RequestedContrastAgent,
+      stationAet,
+      ModalityWorklist.ScheduledProcedureStepStartDate,
+      ModalityWorklist.ScheduledProcedureStepStartTime,
+      ModalityWorklist.ScheduledPerformingPhysicianName,
+      ModalityWorklist.ScheduledProcedureStepDescription,
+      ModalityWorklist.ScheduledProcedureStepID,
+      ModalityWorklist.ScheduledStationName,
+      ModalityWorklist.ScheduledProcedureStepLocation,
+      ModalityWorklist.PreMedication,
+      ModalityWorklist.ScheduledProcedureStepStatus,
+      ModalityWorklist.ScheduledProtocolCodeSequence
+    };
+
+<span class="nc" id="L296">    AdvancedParams params = new AdvancedParams();</span>
+<span class="nc" id="L297">    ConnectOptions connectOptions = new ConnectOptions();</span>
+<span class="nc" id="L298">    connectOptions.setConnectTimeout(3000);</span>
+<span class="nc" id="L299">    connectOptions.setAcceptTimeout(5000);</span>
+<span class="nc" id="L300">    params.setConnectOptions(connectOptions);</span>
+
+<span class="nc" id="L302">    return ModalityWorklist.process(params, calling, called, 0, keys);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

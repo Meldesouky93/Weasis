@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>OverlayOp.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec.display</a> &gt; <span class="el_source">OverlayOp.java</span></div><h1>OverlayOp.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec.display;
+
+import java.awt.Color;
+import java.util.Map;
+import java.util.Optional;
+import org.dcm4che3.img.DicomImageReadParam;
+import org.dcm4che3.img.DicomMetaData;
+import org.dcm4che3.img.data.OverlayData;
+import org.dcm4che3.img.data.PrDicomObject;
+import org.dcm4che3.img.stream.ImageDescriptor;
+import org.weasis.core.api.gui.util.ActionW;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.image.AbstractOp;
+import org.weasis.core.api.image.ImageOpEvent;
+import org.weasis.core.api.image.ImageOpEvent.OpEvent;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.dicom.codec.DicomMediaIO;
+import org.weasis.dicom.codec.PRSpecialElement;
+import org.weasis.opencv.data.PlanarImage;
+
+public class OverlayOp extends AbstractOp {
+<span class="nc" id="L31">  public static final String OP_NAME = ActionW.IMAGE_OVERLAY.getTitle();</span>
+
+  public static final String P_SHOW = &quot;overlay&quot;; // NON-NLS
+  public static final String P_IMAGE_ELEMENT = &quot;img.element&quot;;
+  public static final String OVERLAY_COLOR_KEY = &quot;overlay.color&quot;;
+
+<span class="nc" id="L37">  public OverlayOp() {</span>
+<span class="nc" id="L38">    setName(OP_NAME);</span>
+<span class="nc" id="L39">  }</span>
+
+  public OverlayOp(OverlayOp op) {
+<span class="nc" id="L42">    super(op);</span>
+<span class="nc" id="L43">  }</span>
+
+  @Override
+  public OverlayOp copy() {
+<span class="nc" id="L47">    return new OverlayOp(this);</span>
+  }
+
+  @Override
+  public void handleImageOpEvent(ImageOpEvent event) {
+<span class="nc" id="L52">    OpEvent type = event.getEventType();</span>
+<span class="nc bnc" id="L53" title="All 4 branches missed.">    if (OpEvent.IMAGE_CHANGE.equals(type) || OpEvent.RESET_DISPLAY.equals(type)) {</span>
+<span class="nc" id="L54">      setParam(WindowAndPresetsOp.P_PR_ELEMENT, null);</span>
+<span class="nc" id="L55">      setParam(P_IMAGE_ELEMENT, event.getImage());</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">    } else if (OpEvent.APPLY_PR.equals(type)) {</span>
+<span class="nc" id="L57">      Map&lt;String, Object&gt; p = event.getParams();</span>
+<span class="nc bnc" id="L58" title="All 2 branches missed.">      if (p != null) {</span>
+<span class="nc" id="L59">        PRSpecialElement pr =</span>
+<span class="nc" id="L60">            Optional.ofNullable(p.get(ActionW.PR_STATE.cmd()))</span>
+<span class="nc" id="L61">                .filter(PRSpecialElement.class::isInstance)</span>
+<span class="nc" id="L62">                .map(PRSpecialElement.class::cast)</span>
+<span class="nc" id="L63">                .orElse(null);</span>
+<span class="nc bnc" id="L64" title="All 2 branches missed.">        setParam(WindowAndPresetsOp.P_PR_ELEMENT, pr == null ? null : pr.getPrDicomObject());</span>
+<span class="nc" id="L65">        setParam(P_IMAGE_ELEMENT, event.getImage());</span>
+      }
+    }
+<span class="nc" id="L68">  }</span>
+
+  @Override
+  public void process() throws Exception {
+<span class="nc" id="L72">    PlanarImage source = (PlanarImage) params.get(Param.INPUT_IMG);</span>
+<span class="nc" id="L73">    PlanarImage result = source;</span>
+<span class="nc" id="L74">    Boolean overlay = (Boolean) params.get(P_SHOW);</span>
+
+<span class="nc bnc" id="L76" title="All 4 branches missed.">    if (overlay != null &amp;&amp; overlay) {</span>
+<span class="nc" id="L77">      ImageElement image = (ImageElement) params.get(P_IMAGE_ELEMENT);</span>
+<span class="nc bnc" id="L78" title="All 4 branches missed.">      if (image != null &amp;&amp; image.getMediaReader() instanceof DicomMediaIO reader) {</span>
+<span class="nc" id="L79">        DicomMetaData md = reader.getDicomMetaData();</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">        if (md != null) {</span>
+<span class="nc" id="L81">          ImageDescriptor desc = md.getImageDescriptor();</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">          if (image.getKey() instanceof Integer frame) {</span>
+<span class="nc" id="L83">            DicomImageReadParam p = new DicomImageReadParam();</span>
+<span class="nc" id="L84">            p.setPresentationState((PrDicomObject) params.get(WindowAndPresetsOp.P_PR_ELEMENT));</span>
+<span class="nc" id="L85">            PlanarImage original = source;</span>
+<span class="nc bnc" id="L86" title="All 2 branches missed.">            if (!desc.getEmbeddedOverlay().isEmpty()) {</span>
+<span class="nc" id="L87">              original = reader.getImageFragment(image, (Integer) image.getKey(), false);</span>
+            }
+<span class="nc" id="L89">            p.setOverlayColor(</span>
+<span class="nc" id="L90">                GuiUtils.getUICore()</span>
+<span class="nc" id="L91">                    .getSystemPreferences()</span>
+<span class="nc" id="L92">                    .getColorProperty(OVERLAY_COLOR_KEY, Color.WHITE));</span>
+<span class="nc" id="L93">            result = OverlayData.getOverlayImage(original, source, desc, p, frame);</span>
+          }
+        }
+      }
+    }
+<span class="nc" id="L98">    params.put(Param.OUTPUT_IMG, result);</span>
+<span class="nc" id="L99">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

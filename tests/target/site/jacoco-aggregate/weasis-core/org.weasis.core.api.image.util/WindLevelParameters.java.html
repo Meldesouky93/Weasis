@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>WindLevelParameters.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.image.util</a> &gt; <span class="el_source">WindLevelParameters.java</span></div><h1>WindLevelParameters.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.image.util;
+
+import java.util.Map;
+import java.util.Objects;
+import org.weasis.core.api.gui.util.ActionW;
+import org.weasis.core.api.image.PseudoColorOp;
+import org.weasis.core.api.image.WindowOp;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.util.LangUtil;
+import org.weasis.opencv.op.lut.DefaultWlPresentation;
+import org.weasis.opencv.op.lut.LutShape;
+import org.weasis.opencv.op.lut.PresentationStateLut;
+import org.weasis.opencv.op.lut.WlParams;
+
+public class WindLevelParameters implements WlParams {
+  private final double window;
+  private final double level;
+  private final double levelMin;
+  private final double levelMax;
+  private final boolean pixelPadding;
+  private final boolean inverseLut;
+  private final boolean fillOutsideLutRange;
+  private final boolean allowWinLevelOnColorImage;
+  private final LutShape lutShape;
+  private final PresentationStateLut presentationStateLut;
+
+<span class="nc" id="L36">  public WindLevelParameters(ImageElement img, Map&lt;String, Object&gt; params) {</span>
+<span class="nc" id="L37">    Objects.requireNonNull(img);</span>
+
+<span class="nc" id="L39">    Double win = null;</span>
+<span class="nc" id="L40">    Double lev = null;</span>
+<span class="nc" id="L41">    Double levMin = null;</span>
+<span class="nc" id="L42">    Double levMax = null;</span>
+<span class="nc" id="L43">    LutShape shape = null;</span>
+<span class="nc" id="L44">    Boolean padding = null;</span>
+<span class="nc" id="L45">    Boolean invLUT = null;</span>
+<span class="nc" id="L46">    Boolean fillLutOut = null;</span>
+<span class="nc" id="L47">    Boolean wlOnColor = null;</span>
+<span class="nc" id="L48">    PresentationStateLut pr = null;</span>
+
+<span class="nc bnc" id="L50" title="All 2 branches missed.">    if (params != null) {</span>
+<span class="nc" id="L51">      win = (Double) params.get(ActionW.WINDOW.cmd());</span>
+<span class="nc" id="L52">      lev = (Double) params.get(ActionW.LEVEL.cmd());</span>
+<span class="nc" id="L53">      levMin = (Double) params.get(ActionW.LEVEL_MIN.cmd());</span>
+<span class="nc" id="L54">      levMax = (Double) params.get(ActionW.LEVEL_MAX.cmd());</span>
+<span class="nc" id="L55">      shape = (LutShape) params.get(ActionW.LUT_SHAPE.cmd());</span>
+<span class="nc" id="L56">      padding = (Boolean) params.get(ActionW.IMAGE_PIX_PADDING.cmd());</span>
+<span class="nc" id="L57">      invLUT = (Boolean) params.get(PseudoColorOp.P_LUT_INVERSE);</span>
+<span class="nc" id="L58">      fillLutOut = (Boolean) params.get(WindowOp.P_FILL_OUTSIDE_LUT);</span>
+<span class="nc" id="L59">      wlOnColor = (Boolean) params.get(WindowOp.P_APPLY_WL_COLOR);</span>
+<span class="nc" id="L60">      pr = (PresentationStateLut) params.get(&quot;pr.element&quot;);</span>
+    }
+
+<span class="nc" id="L63">    this.presentationStateLut = pr;</span>
+<span class="nc" id="L64">    this.fillOutsideLutRange = LangUtil.getNULLtoFalse(fillLutOut);</span>
+<span class="nc" id="L65">    this.allowWinLevelOnColorImage = LangUtil.getNULLtoFalse(wlOnColor);</span>
+<span class="nc" id="L66">    this.pixelPadding = LangUtil.getNULLtoTrue(padding);</span>
+<span class="nc" id="L67">    this.inverseLut = LangUtil.getNULLtoFalse(invLUT);</span>
+<span class="nc" id="L68">    DefaultWlPresentation wlp = new DefaultWlPresentation(pr, pixelPadding);</span>
+<span class="nc bnc" id="L69" title="All 2 branches missed.">    this.window = (win == null) ? img.getDefaultWindow(wlp) : win;</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">    this.level = (lev == null) ? img.getDefaultLevel(wlp) : lev;</span>
+<span class="nc bnc" id="L71" title="All 2 branches missed.">    this.lutShape = (shape == null) ? img.getDefaultShape(wlp) : shape;</span>
+<span class="nc bnc" id="L72" title="All 4 branches missed.">    if (levMin == null || levMax == null) {</span>
+<span class="nc" id="L73">      this.levelMin = Math.min(level - window / 2.0, img.getMinValue(wlp));</span>
+<span class="nc" id="L74">      this.levelMax = Math.max(level + window / 2.0, img.getMaxValue(wlp));</span>
+    } else {
+<span class="nc" id="L76">      this.levelMin = Math.min(levMin, img.getMinValue(wlp));</span>
+<span class="nc" id="L77">      this.levelMax = Math.max(levMax, img.getMaxValue(wlp));</span>
+    }
+<span class="nc" id="L79">  }</span>
+
+  @Override
+  public double getWindow() {
+<span class="nc" id="L83">    return window;</span>
+  }
+
+  @Override
+  public double getLevel() {
+<span class="nc" id="L88">    return level;</span>
+  }
+
+  @Override
+  public double getLevelMin() {
+<span class="nc" id="L93">    return levelMin;</span>
+  }
+
+  @Override
+  public double getLevelMax() {
+<span class="nc" id="L98">    return levelMax;</span>
+  }
+
+  @Override
+  public boolean isPixelPadding() {
+<span class="nc" id="L103">    return pixelPadding;</span>
+  }
+
+  @Override
+  public boolean isInverseLut() {
+<span class="nc" id="L108">    return inverseLut;</span>
+  }
+
+  @Override
+  public boolean isFillOutsideLutRange() {
+<span class="nc" id="L113">    return fillOutsideLutRange;</span>
+  }
+
+  @Override
+  public boolean isAllowWinLevelOnColorImage() {
+<span class="nc" id="L118">    return allowWinLevelOnColorImage;</span>
+  }
+
+  @Override
+  public LutShape getLutShape() {
+<span class="nc" id="L123">    return lutShape;</span>
+  }
+
+  @Override
+  public PresentationStateLut getPresentationState() {
+<span class="nc" id="L128">    return presentationStateLut;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,45 @@
+Manifest-Version: 1.0
+Bundle-License: "EPL-2.0 OR Apache-2.0";link="https://github.com/nrodu
+ it/Weasis/blob/master/LICENSE"
+Bundle-ManifestVersion: 2
+Bundle-Name: DICOM - Query/Retrieve [weasis-dicom-qr]
+Bundle-SymbolicName: weasis-dicom-qr
+Bundle-Version: 4.6.0.SNAPSHOT
+Import-Package: org.slf4j,com.formdev.flatlaf.extras,com.github.lgoodd
+ atepicker.components;version="[4.6,5)",com.github.lgooddatepicker.opt
+ ionalusertools;version="[4.6,5)",com.github.lgooddatepicker.zinternal
+ tools;version="[4.6,5)",com.github.scribejava.core.model;version="[8.
+ 3,9)",eu.essilab.lablib.checkboxtree;version="[4.6,5)",java.awt,java.
+ awt.event,java.io,java.lang,java.lang.invoke,java.net,java.nio.charse
+ t,java.time,java.time.format,java.time.temporal,java.util,java.util.c
+ oncurrent,java.util.concurrent.atomic,java.util.function,java.util.st
+ ream,javax.swing,javax.swing.border,javax.swing.event,javax.swing.tre
+ e,javax.xml.namespace,javax.xml.stream,org.dcm4che3.data;version="[5.
+ 33,6)",org.dcm4che3.img.util;version="[4.6,5)",org.dcm4che3.net.servi
+ ce;version="[5.33,6)",org.dcm4che3.tool.storescp;version="[4.6,5)",or
+ g.dcm4che3.util;version="[5.33,6)",org.osgi.framework;version="[1.10,
+ 2)",org.osgi.service.component;version="[1.5,2)",org.weasis.core.api.
+ auth;version="[4.6,5)",org.weasis.core.api.explorer;version="[4.6,5)"
+ ,org.weasis.core.api.explorer.model;version="[4.6,5)",org.weasis.core
+ .api.gui.task;version="[4.6,5)",org.weasis.core.api.gui.util;version=
+ "[4.6,5)",org.weasis.core.api.media.data;version="[4.6,5)",org.weasis
+ .core.api.service;version="[4.6,5)",org.weasis.core.api.util;version=
+ "[4.6,5)",org.weasis.core.ui.pref;version="[4.6,5)",org.weasis.core.u
+ i.util;version="[4.6,5)",org.weasis.core.util;version="[4.11,5)",org.
+ weasis.dicom.codec;version="[4.6,5)",org.weasis.dicom.codec.display;v
+ ersion="[4.6,5)",org.weasis.dicom.codec.utils;version="[4.6,5)",org.w
+ easis.dicom.explorer;version="[4.6,5)",org.weasis.dicom.explorer.mf;v
+ ersion="[4.6,5)",org.weasis.dicom.explorer.pref.node;version="[4.6,5)
+ ",org.weasis.dicom.explorer.rs;version="[4.6,5)",org.weasis.dicom.exp
+ lorer.wado;version="[4.6,5)",org.weasis.dicom.mf;version="[4.6,5)",or
+ g.weasis.dicom.op;version="[4.6,5)",org.weasis.dicom.param;version="[
+ 4.6,5)",org.weasis.dicom.tool;version="[4.6,5)",org.weasis.dicom.util
+ ;version="[4.6,5)",org.weasis.dicom.web;version="[4.6,5)"
+Private-Package: org.weasis.dicom.qr,org.weasis.dicom.qr.manisfest
+Provide-Capability: osgi.service;objectClass:List<String>="org.weasis.
+ dicom.explorer.DicomImportFactory";uses:="org.weasis.dicom.explorer"
+Require-Capability: osgi.extender;filter:="(&(osgi.extender=osgi.compo
+ nent)(version>=1.5.0)(!(version>=2.0.0)))",osgi.ee;filter:="(&(osgi.e
+ e=JavaSE)(version=23))"
+Service-Component: OSGI-INF/org.weasis.dicom.qr.DicomQrFactory.xml
+

@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ResourceUtil.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.util</a> &gt; <span class="el_source">ResourceUtil.java</span></div><h1>ResourceUtil.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.util;
+
+import com.formdev.flatlaf.extras.FlatSVGIcon;
+import java.io.File;
+import java.net.URL;
+import java.nio.file.Path;
+import java.util.concurrent.atomic.AtomicReference;
+import org.weasis.core.util.StringUtil;
+
+public class ResourceUtil {
+
+  public static final int TOOLBAR_ICON_SIZE = 30;
+
+  public interface ResourcePath {
+    String getPath();
+  }
+
+  public interface ResourceIconPath extends ResourcePath {}
+
+<span class="nc" id="L29">  public enum LogoIcon implements ResourceIconPath {</span>
+<span class="nc" id="L30">    LARGE(&quot;svg/logo/WeasisAbout.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L31">    SMALL(&quot;svg/logo/Weasis.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L32">    SMALL_DICOMIZER(&quot;svg/logo/Dicomizer.svg&quot;); // NON-NLS</span>
+
+    private final String path;
+
+<span class="nc" id="L36">    LogoIcon(String path) {</span>
+<span class="nc" id="L37">      this.path = path;</span>
+<span class="nc" id="L38">    }</span>
+
+    public String getPath() {
+<span class="nc" id="L41">      return path;</span>
+    }
+  }
+
+<span class="nc" id="L45">  public enum FileIcon implements ResourceIconPath {</span>
+<span class="nc" id="L46">    AUDIO(&quot;svg/file/audio.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L47">    DICOM(&quot;svg/file/dicom.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L48">    ECG(&quot;svg/file/ecg.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L49">    IMAGE(&quot;svg/file/image.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L50">    PDF(&quot;svg/file/pdf.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L51">    TEXT(&quot;svg/file/text.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L52">    UNKNOWN(&quot;svg/file/unknown.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L53">    VIDEO(&quot;svg/file/video.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L54">    XML(&quot;svg/file/xml.svg&quot;); // NON-NLS</span>
+
+    private final String path;
+
+<span class="nc" id="L58">    FileIcon(String path) {</span>
+<span class="nc" id="L59">      this.path = path;</span>
+<span class="nc" id="L60">    }</span>
+
+    public String getPath() {
+<span class="nc" id="L63">      return path;</span>
+    }
+  }
+
+<span class="nc" id="L67">  public enum ActionIcon implements ResourceIconPath {</span>
+<span class="nc" id="L68">    CONTEXT_MENU(&quot;svg/action/contextMenu.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L69">    CROSSHAIR(&quot;svg/action/crosshair.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L70">    DRAW(&quot;svg/action/draw.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L71">    DRAW_4POINTS_ANGLE(&quot;svg/action/draw4PointsAngle.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L72">    DRAW_ANGLE(&quot;svg/action/drawAngle.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L73">    DRAW_CIRCLE(&quot;svg/action/drawCircle.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L74">    DRAW_COBB(&quot;svg/action/drawCobb.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L75">    DRAW_ELLIPSE(&quot;svg/action/drawEllipse.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L76">    DRAW_LINE(&quot;svg/action/drawLine.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L77">    DRAW_OPEN_ANGLE(&quot;svg/action/drawOpenAngle.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L78">    DRAW_PARALLEL(&quot;svg/action/drawParallel.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L79">    DRAW_PERPENDICULAR(&quot;svg/action/drawPerpendicular.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L80">    DRAW_PIXEL_INFO(&quot;svg/action/drawPixelInfo.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L81">    DRAW_POLYGON(&quot;svg/action/drawPolygon.svg&quot;), // NON-NLS //NON-NLS</span>
+<span class="nc" id="L82">    DRAW_POLYLINE(&quot;svg/action/drawPolyline.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L83">    DRAW_RECTANGLE(&quot;svg/action/drawRectangle.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L84">    DRAW_SELECTION(&quot;svg/action/drawSelection.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L85">    DRAW_TEXT(&quot;svg/action/drawText.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L86">    DRAW_TOP_LEFT(&quot;svg/action/drawTopLeft.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L87">    EDIT_KEY_IMAGE(&quot;svg/action/editKeyImage.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L88">    EXECUTE(&quot;svg/action/execute.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L89">    EXPORT_CLIPBOARD(&quot;svg/action/exportClipboard.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L90">    EXPORT_DICOM(&quot;svg/action/exportDicom.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L91">    EXPORT_IMAGE(&quot;svg/action/exportImage.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L92">    FILTER(&quot;svg/action/filter.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L93">    FLIP(&quot;svg/action/flip.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L94">    HELP(&quot;svg/action/help.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L95">    IMPORT_CD(&quot;svg/action/importCd.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L96">    IMPORT_DICOM(&quot;svg/action/importDicom.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L97">    IMPORT_IMAGE(&quot;svg/action/importImage.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L98">    LAUNCH(&quot;svg/action/launch.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L99">    INVERSE_LUT(&quot;svg/action/inverseLut.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L100">    LAYOUT(&quot;svg/action/layout.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L101">    LOAD_VOLUME(&quot;svg/action/loadVolume.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L102">    LOOP(&quot;svg/action/loop.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L103">    LUT(&quot;svg/action/lut.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L104">    MEASURE(&quot;svg/action/measure.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L105">    MEASURE_TOP_LEFT(&quot;svg/action/measureTopLeft.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L106">    METADATA(&quot;svg/action/metadata.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L107">    MINUS(&quot;svg/action/minus.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L108">    MORE_H(&quot;svg/action/moreHorizontal.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L109">    MORE_V(&quot;svg/action/moreVertical.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L110">    MOUSE_LEFT(&quot;svg/action/mouseLeft.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L111">    MOUSE_MIDDLE(&quot;svg/action/mouseMiddle.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L112">    MOUSE_RIGHT(&quot;svg/action/mouseRight.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L113">    MOUSE_WHEEL(&quot;svg/action/mouseWheel.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L114">    NEXT(&quot;svg/action/next.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L115">    NONE(&quot;svg/action/none.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L116">    OPEN_EXTERNAL(&quot;svg/action/openExternal.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L117">    OPEN_NEW_TAB(&quot;svg/action/openNewTab.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L118">    ORTHOGRAPHIC(&quot;svg/action/orthographic.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L119">    PAN(&quot;svg/action/pan.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L120">    PIPETTE(&quot;svg/action/pipette.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L121">    PLUS(&quot;svg/action/plus.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L122">    PRINT(&quot;svg/action/print.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L123">    PREVIOUS(&quot;svg/action/previous.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L124">    RESET(&quot;svg/action/reset.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L125">    ROTATE_CLOCKWISE(&quot;svg/action/rotateClockwise.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L126">    ROTATE_COUNTERCLOCKWISE(&quot;svg/action/rotateCounterclockwise.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L127">    ROTATION(&quot;svg/action/rotation.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L128">    SELECTION(&quot;svg/action/selection.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L129">    SELECTION_DELETE(&quot;svg/action/selectionDelete.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L130">    SEQUENCE(&quot;svg/action/sequence.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L131">    SETTINGS(&quot;svg/action/settings.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L132">    STAR(&quot;svg/action/star.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L133">    SKIP_END(&quot;svg/action/skipEnd.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L134">    SKIP_START(&quot;svg/action/skipStart.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L135">    STAR_ALL(&quot;svg/action/starAll.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L136">    SUSPEND(&quot;svg/action/suspend.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L137">    SYNCH(&quot;svg/action/synch.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L138">    SYNCH_LARGE(&quot;svg/action/synchLarge.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L139">    SYNCH_STAR(&quot;svg/action/synchStar.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L140">    TILE(&quot;svg/action/tile.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L141">    VOLUME(&quot;svg/action/volume.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L142">    VOLUME_SETTINGS(&quot;svg/action/volumeSettings.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L143">    VOLUME_SLICING(&quot;svg/action/volumeSlicing.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L144">    WINDOW_LEVEL(&quot;svg/action/winLevel.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L145">    ZOOM(&quot;svg/action/zoom.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L146">    ZOOM_AREA(&quot;svg/action/zoomArea.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L147">    ZOOM_BEST_FIT(&quot;svg/action/zoomBestFit.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L148">    ZOOM_ORIGINAL(&quot;svg/action/zoomOriginal.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L149">    ZOOM_PAN(&quot;svg/action/zoomPan.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L150">    ZOOM_REAL_WORLD(&quot;svg/action/zoomRealWorld.svg&quot;); // NON-NLS</span>
+
+    private final String path;
+
+<span class="nc" id="L154">    ActionIcon(String path) {</span>
+<span class="nc" id="L155">      this.path = path;</span>
+<span class="nc" id="L156">    }</span>
+
+    public String getPath() {
+<span class="nc" id="L159">      return path;</span>
+    }
+  }
+
+<span class="nc" id="L163">  public enum OtherIcon implements ResourceIconPath {</span>
+<span class="nc" id="L164">    AUDIO(&quot;svg/other/audio.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L165">    CALENDAR(&quot;svg/other/calendar.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L166">    CDROM(&quot;svg/other/cdrom.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L167">    ECG(&quot;svg/other/ecg.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L168">    HISTOGRAM(&quot;svg/other/histogram.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L169">    IMAGE_EDIT(&quot;svg/other/imageEdit.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L170">    IMAGE_PRESENTATION(&quot;svg/other/imagePresentation.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L171">    KEY_IMAGE(&quot;svg/other/keyImage.svg&quot;), // NON-NLS</span>
+
+<span class="nc" id="L173">    PATIENT(&quot;svg/other/patient.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L174">    PRESENTATION(&quot;svg/other/presentation.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L175">    KEY(&quot;svg/other/key.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L176">    SEGMENTATION(&quot;svg/other/segmentation.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L177">    RADIOACTIVE(&quot;svg/other/radioactive.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L178">    RASTER_IMAGE(&quot;svg/other/rasterImage.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L179">    TICK_OFF(&quot;svg/other/tickOff.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L180">    TICK_ON(&quot;svg/other/tickOn.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L181">    VIEW_MIP(&quot;svg/other/veins.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L182">    VIEW_3D(&quot;svg/other/view3D.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L183">    VIEW_SETTING(&quot;svg/other/viewSettings.svg&quot;), // NON-NLS</span>
+<span class="nc" id="L184">    XRAY(&quot;svg/other/xray.svg&quot;); // NON-NLS</span>
+
+    private final String path;
+
+<span class="nc" id="L188">    OtherIcon(String path) {</span>
+<span class="nc" id="L189">      this.path = path;</span>
+<span class="nc" id="L190">    }</span>
+
+    public String getPath() {
+<span class="nc" id="L193">      return path;</span>
+    }
+  }
+
+<span class="nc" id="L197">  private static final AtomicReference&lt;Path&gt; path = new AtomicReference&lt;&gt;(Path.of(&quot;&quot;));</span>
+
+  private ResourceUtil() {}
+
+  public static URL getResourceURL(String resource, Class&lt;?&gt; c) {
+<span class="nc" id="L202">    URL url = null;</span>
+<span class="nc bnc" id="L203" title="All 2 branches missed.">    if (c != null) {</span>
+<span class="nc" id="L204">      ClassLoader classLoader = c.getClassLoader();</span>
+<span class="nc bnc" id="L205" title="All 2 branches missed.">      if (classLoader != null) {</span>
+<span class="nc" id="L206">        url = classLoader.getResource(resource);</span>
+      }
+    }
+<span class="nc bnc" id="L209" title="All 2 branches missed.">    if (url == null) {</span>
+<span class="nc" id="L210">      ClassLoader classLoader = Thread.currentThread().getContextClassLoader();</span>
+<span class="nc bnc" id="L211" title="All 2 branches missed.">      if (classLoader != null) {</span>
+<span class="nc" id="L212">        url = classLoader.getResource(resource);</span>
+      }
+    }
+<span class="nc bnc" id="L215" title="All 2 branches missed.">    if (url == null) {</span>
+<span class="nc" id="L216">      url = ClassLoader.getSystemResource(resource);</span>
+    }
+<span class="nc" id="L218">    return url;</span>
+  }
+
+  public static void setResourcePath(String path) {
+<span class="nc bnc" id="L222" title="All 2 branches missed.">    if (!StringUtil.hasText(path)) {</span>
+<span class="nc" id="L223">      throw new IllegalArgumentException(&quot;No value for property: weasis.resources.path&quot;);</span>
+    }
+<span class="nc" id="L225">    ResourceUtil.path.set(Path.of(path));</span>
+<span class="nc" id="L226">  }</span>
+
+  private static Path getResourcePath() {
+<span class="nc" id="L229">    return path.get();</span>
+  }
+
+  public static FlatSVGIcon getIcon(String path) {
+<span class="nc" id="L233">    return new FlatSVGIcon(getResourcePath().resolve(path).toUri());</span>
+  }
+
+  public static FlatSVGIcon getIcon(ResourceIconPath path) {
+<span class="nc" id="L237">    return new FlatSVGIcon(getResourcePath().resolve(path.getPath()).toUri());</span>
+  }
+
+  public static FlatSVGIcon getToolBarIcon(ResourceIconPath path) {
+<span class="nc" id="L241">    return getIcon(path, TOOLBAR_ICON_SIZE, TOOLBAR_ICON_SIZE);</span>
+  }
+
+  public static FlatSVGIcon getIcon(ResourceIconPath path, int width, int height) {
+<span class="nc" id="L245">    return new FlatSVGIcon(getResourcePath().resolve(path.getPath()).toUri()).derive(width, height);</span>
+  }
+
+  public static File getResource(String filename) {
+<span class="nc bnc" id="L249" title="All 2 branches missed.">    if (!StringUtil.hasText(filename)) {</span>
+<span class="nc" id="L250">      throw new IllegalArgumentException(&quot;Empty filename&quot;);</span>
+    }
+<span class="nc" id="L252">    return getResourcePath().resolve(filename).toFile();</span>
+  }
+
+  public static Path getResource(Path endOfPath) {
+<span class="nc" id="L256">    return getResourcePath().resolve(endOfPath);</span>
+  }
+
+  public static File getResource(ResourcePath path) {
+<span class="nc" id="L260">    return getResourcePath().resolve(path.getPath()).toFile();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>EllipseGraphic.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.graphic.imp.area</a> &gt; <span class="el_source">EllipseGraphic.java</span></div><h1>EllipseGraphic.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.graphic.imp.area;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlType;
+import java.awt.Shape;
+import java.awt.geom.Line2D;
+import java.awt.geom.Path2D;
+import java.awt.geom.Point2D;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import javax.swing.Icon;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.GeomUtil;
+import org.weasis.core.api.image.measure.MeasurementsAdapter;
+import org.weasis.core.api.image.util.MeasurableLayer;
+import org.weasis.core.api.image.util.Unit;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.api.util.ResourceUtil.ActionIcon;
+import org.weasis.core.ui.model.utils.bean.AdvancedShape;
+import org.weasis.core.ui.model.utils.bean.MeasureItem;
+import org.weasis.core.ui.model.utils.bean.Measurement;
+import org.weasis.core.ui.util.MouseEventDouble;
+import org.weasis.core.util.MathUtil;
+
+@XmlType(name = &quot;ellipse&quot;)
+@XmlRootElement(name = &quot;ellipse&quot;)
+public class EllipseGraphic extends ObliqueRectangleGraphic {
+
+<span class="nc" id="L39">  public static final Icon ICON = ResourceUtil.getIcon(ActionIcon.DRAW_ELLIPSE);</span>
+
+<span class="nc" id="L41">  public static final Measurement AREA =</span>
+<span class="nc" id="L42">      new Measurement(Messages.getString(&quot;measure.area&quot;), 1, true, true, true);</span>
+<span class="nc" id="L43">  public static final Measurement PERIMETER =</span>
+<span class="nc" id="L44">      new Measurement(Messages.getString(&quot;measure.perimeter&quot;), 2, true, true, false);</span>
+<span class="nc" id="L45">  public static final Measurement CENTER_X =</span>
+<span class="nc" id="L46">      new Measurement(Messages.getString(&quot;measure.centerx&quot;), 3, true, true, false);</span>
+<span class="nc" id="L47">  public static final Measurement CENTER_Y =</span>
+<span class="nc" id="L48">      new Measurement(Messages.getString(&quot;measure.centery&quot;), 4, true, true, false);</span>
+<span class="nc" id="L49">  public static final Measurement WIDTH =</span>
+<span class="nc" id="L50">      new Measurement(Messages.getString(&quot;measure.width&quot;), 5, true, true, false);</span>
+<span class="nc" id="L51">  public static final Measurement HEIGHT =</span>
+<span class="nc" id="L52">      new Measurement(Messages.getString(&quot;measure.height&quot;), 6, true, true, false);</span>
+<span class="nc" id="L53">  public static final Measurement ORIENTATION =</span>
+<span class="nc" id="L54">      new Measurement(Messages.getString(&quot;measure.orientation&quot;), 7, true, true, false);</span>
+
+<span class="nc" id="L56">  protected static final List&lt;Measurement&gt; MEASUREMENT_LIST = new ArrayList&lt;&gt;();</span>
+
+  static {
+<span class="nc" id="L59">    MEASUREMENT_LIST.add(CENTER_X);</span>
+<span class="nc" id="L60">    MEASUREMENT_LIST.add(CENTER_Y);</span>
+<span class="nc" id="L61">    MEASUREMENT_LIST.add(AREA);</span>
+<span class="nc" id="L62">    MEASUREMENT_LIST.add(PERIMETER);</span>
+<span class="nc" id="L63">    MEASUREMENT_LIST.add(ORIENTATION);</span>
+<span class="nc" id="L64">    MEASUREMENT_LIST.add(WIDTH);</span>
+<span class="nc" id="L65">    MEASUREMENT_LIST.add(HEIGHT);</span>
+<span class="nc" id="L66">  }</span>
+
+  public EllipseGraphic() {
+<span class="nc" id="L69">    super();</span>
+<span class="nc" id="L70">  }</span>
+
+  public EllipseGraphic(EllipseGraphic graphic) {
+<span class="nc" id="L73">    super(graphic);</span>
+<span class="nc" id="L74">  }</span>
+
+  @Override
+  public EllipseGraphic copy() {
+<span class="nc" id="L78">    return new EllipseGraphic(this);</span>
+  }
+
+  @Override
+  public Icon getIcon() {
+<span class="nc" id="L83">    return ICON;</span>
+  }
+
+  @Override
+  public String getUIName() {
+<span class="nc" id="L88">    return Messages.getString(&quot;MeasureToolBar.ellipse&quot;);</span>
+  }
+
+  @Override
+  public void buildShape(MouseEventDouble mouseEvent) {
+<span class="nc" id="L93">    updateTool();</span>
+
+<span class="nc" id="L95">    Shape newShape = null;</span>
+<span class="nc" id="L96">    Path2D polygonPath = new Path2D.Double(Path2D.WIND_NON_ZERO, pts.size());</span>
+
+<span class="nc bnc" id="L98" title="All 2 branches missed.">    if (lineABvalid) {</span>
+<span class="nc" id="L99">      newShape = new AdvancedShape(this, 2);</span>
+<span class="nc" id="L100">      AdvancedShape aShape = (AdvancedShape) newShape;</span>
+<span class="nc" id="L101">      aShape.addShape(polygonPath);</span>
+<span class="nc" id="L102">      aShape.addShape(new Line2D.Double(ptA, ptB), getDashStroke(1.0f), true);</span>
+
+<span class="nc" id="L104">      polygonPath.moveTo(ptA.getX(), ptA.getY());</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">      if (lineCDvalid) {</span>
+<span class="nc" id="L106">        double dist = ptC.distance(ptD);</span>
+<span class="nc" id="L107">        double a = ptA.distance(ptB) / 2.0;</span>
+<span class="nc" id="L108">        double b = dist / 2.0;</span>
+
+<span class="nc" id="L110">        Point2D ptx = GeomUtil.getPerpendicularPointFromLine(ptA, ptB, ptC, b);</span>
+<span class="nc" id="L111">        double widthTwoThirds = a * 4 / 3;</span>
+<span class="nc" id="L112">        double rotationAngle = Math.atan2(ptA.getY() - ptB.getY(), ptA.getX() - ptB.getX());</span>
+<span class="nc" id="L113">        double dx1 = Math.sin(rotationAngle) * b;</span>
+<span class="nc" id="L114">        double dy1 = Math.cos(rotationAngle) * b;</span>
+<span class="nc" id="L115">        double dx2 = Math.cos(rotationAngle) * widthTwoThirds;</span>
+<span class="nc" id="L116">        double dy2 = Math.sin(rotationAngle) * widthTwoThirds;</span>
+
+<span class="nc" id="L118">        double topCenterX = ptx.getX() - dx1;</span>
+<span class="nc" id="L119">        double topCenterY = ptx.getY() + dy1;</span>
+<span class="nc" id="L120">        double topRightX = topCenterX + dx2;</span>
+<span class="nc" id="L121">        double topRightY = topCenterY + dy2;</span>
+<span class="nc" id="L122">        double topLeftX = topCenterX - dx2;</span>
+<span class="nc" id="L123">        double topLeftY = topCenterY - dy2;</span>
+
+<span class="nc" id="L125">        double bottomCenterX = ptx.getX() + dx1;</span>
+<span class="nc" id="L126">        double bottomCenterY = ptx.getY() - dy1;</span>
+<span class="nc" id="L127">        double bottomRightX = bottomCenterX + dx2;</span>
+<span class="nc" id="L128">        double bottomRightY = bottomCenterY + dy2;</span>
+<span class="nc" id="L129">        double bottomLeftX = bottomCenterX - dx2;</span>
+<span class="nc" id="L130">        double bottomLeftY = bottomCenterY - dy2;</span>
+
+<span class="nc" id="L132">        polygonPath.moveTo(bottomCenterX, bottomCenterY);</span>
+<span class="nc" id="L133">        polygonPath.curveTo(</span>
+            bottomRightX, bottomRightY, topRightX, topRightY, topCenterX, topCenterY);
+<span class="nc" id="L135">        polygonPath.curveTo(</span>
+            topLeftX, topLeftY, bottomLeftX, bottomLeftY, bottomCenterX, bottomCenterY);
+<span class="nc" id="L137">      } else {</span>
+<span class="nc" id="L138">        polygonPath.lineTo(ptB.getX(), ptB.getY());</span>
+      }
+<span class="nc" id="L140">      polygonPath.closePath();</span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">    } else if (polygonPath.getCurrentPoint() != null) {</span>
+<span class="nc" id="L142">      newShape = polygonPath;</span>
+    }
+<span class="nc" id="L144">    setShape(newShape, mouseEvent);</span>
+<span class="nc" id="L145">    updateLabel(mouseEvent, getDefaultView2d(mouseEvent));</span>
+<span class="nc" id="L146">  }</span>
+
+  @Override
+  public List&lt;MeasureItem&gt; computeMeasurements(
+      MeasurableLayer layer, boolean releaseEvent, Unit displayUnit) {
+
+<span class="nc bnc" id="L152" title="All 6 branches missed.">    if (layer != null &amp;&amp; layer.hasContent() &amp;&amp; isShapeValid()) {</span>
+<span class="nc" id="L153">      MeasurementsAdapter adapter = layer.getMeasurementAdapter(displayUnit);</span>
+
+<span class="nc bnc" id="L155" title="All 2 branches missed.">      if (adapter != null) {</span>
+<span class="nc" id="L156">        double ab = ptA.distance(ptB);</span>
+<span class="nc" id="L157">        double cd = ptC.distance(ptD);</span>
+<span class="nc" id="L158">        Point2D center = GeomUtil.getMidPoint(ptC, ptD);</span>
+
+<span class="nc" id="L160">        ArrayList&lt;MeasureItem&gt; measVal = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L162">        double ratio = adapter.getCalibRatio();</span>
+<span class="nc" id="L163">        String unitStr = adapter.getUnit();</span>
+
+<span class="nc bnc" id="L165" title="All 2 branches missed.">        if (CENTER_X.getComputed()) {</span>
+<span class="nc" id="L166">          measVal.add(</span>
+<span class="nc" id="L167">              new MeasureItem(CENTER_X, adapter.getXCalibratedValue(center.getX()), unitStr));</span>
+        }
+<span class="nc bnc" id="L169" title="All 2 branches missed.">        if (CENTER_Y.getComputed()) {</span>
+<span class="nc" id="L170">          measVal.add(</span>
+<span class="nc" id="L171">              new MeasureItem(CENTER_Y, adapter.getYCalibratedValue(center.getY()), unitStr));</span>
+        }
+<span class="nc bnc" id="L173" title="All 2 branches missed.">        if (WIDTH.getComputed()) {</span>
+<span class="nc" id="L174">          measVal.add(new MeasureItem(WIDTH, ab * ratio, unitStr));</span>
+        }
+<span class="nc bnc" id="L176" title="All 2 branches missed.">        if (HEIGHT.getComputed()) {</span>
+<span class="nc" id="L177">          measVal.add(new MeasureItem(HEIGHT, cd * ratio, unitStr));</span>
+        }
+<span class="nc bnc" id="L179" title="All 2 branches missed.">        if (ORIENTATION.getComputed()) {</span>
+<span class="nc" id="L180">          measVal.add(</span>
+              new MeasureItem(
+                  ORIENTATION,
+<span class="nc" id="L183">                  MathUtil.getOrientation(ptA, ptB),</span>
+<span class="nc" id="L184">                  Messages.getString(&quot;measure.deg&quot;)));</span>
+        }
+<span class="nc bnc" id="L186" title="All 2 branches missed.">        if (AREA.getComputed()) {</span>
+<span class="nc" id="L187">          Double val = Math.PI * ab * ratio * cd * ratio / 4.0;</span>
+          String unit =
+<span class="nc bnc" id="L189" title="All 2 branches missed.">              &quot;pix&quot;.equals(unitStr) // NON-NLS</span>
+<span class="nc" id="L190">                  ? unitStr</span>
+<span class="nc" id="L191">                  : unitStr + &quot;2&quot;;</span>
+<span class="nc" id="L192">          measVal.add(new MeasureItem(AREA, val, unit));</span>
+        }
+<span class="nc bnc" id="L194" title="All 2 branches missed.">        if (PERIMETER.getComputed()) {</span>
+<span class="nc" id="L195">          double a = ratio * ab / 2.0;</span>
+<span class="nc" id="L196">          double b = ratio * cd / 2.0;</span>
+<span class="nc" id="L197">          Double val = 2.0 * Math.PI * Math.sqrt((a * a + b * b) / 2.0);</span>
+<span class="nc" id="L198">          measVal.add(new MeasureItem(PERIMETER, val, unitStr));</span>
+        }
+
+<span class="nc" id="L201">        List&lt;MeasureItem&gt; stats = getImageStatistics(layer, releaseEvent);</span>
+<span class="nc bnc" id="L202" title="All 2 branches missed.">        if (stats != null) {</span>
+<span class="nc" id="L203">          measVal.addAll(stats);</span>
+        }
+<span class="nc" id="L205">        return measVal;</span>
+      }
+    }
+<span class="nc" id="L208">    return Collections.emptyList();</span>
+  }
+
+  @Override
+  public List&lt;Measurement&gt; getMeasurementList() {
+<span class="nc" id="L213">    return MEASUREMENT_LIST;</span>
+  }
+
+  @Override
+  public List&lt;Point2D&gt; getRectanglePointList() {
+<span class="nc" id="L218">    updateTool();</span>
+<span class="nc" id="L219">    List&lt;Point2D&gt; pts = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L220" title="All 4 branches missed.">    if (lineABvalid &amp;&amp; lineCDvalid) {</span>
+<span class="nc" id="L221">      Point2D n = new Point2D.Double(ptC.getX(), ptC.getY());</span>
+<span class="nc" id="L222">      Point2D s = new Point2D.Double(ptD.getX(), ptD.getY());</span>
+<span class="nc" id="L223">      Line2D we = GeomUtil.getParallelLine(ptA, ptB, ptC.distance(ptD) / 2.0);</span>
+<span class="nc bnc" id="L224" title="All 2 branches missed.">      if (ptA.getX() &gt; ptB.getX()) {</span>
+<span class="nc" id="L225">        pts.add(n);</span>
+<span class="nc" id="L226">        pts.add(s);</span>
+<span class="nc" id="L227">        pts.add(we.getP1());</span>
+<span class="nc" id="L228">        pts.add(we.getP2());</span>
+      } else {
+<span class="nc" id="L230">        pts.add(we.getP1());</span>
+<span class="nc" id="L231">        pts.add(we.getP2());</span>
+<span class="nc" id="L232">        pts.add(n);</span>
+<span class="nc" id="L233">        pts.add(s);</span>
+      }
+    }
+<span class="nc" id="L236">    return pts;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

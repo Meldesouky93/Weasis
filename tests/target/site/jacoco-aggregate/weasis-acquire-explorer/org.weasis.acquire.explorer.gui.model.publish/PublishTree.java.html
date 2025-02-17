@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>PublishTree.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer.gui.model.publish</a> &gt; <span class="el_source">PublishTree.java</span></div><h1>PublishTree.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer.gui.model.publish;
+
+import eu.essilab.lablib.checkboxtree.CheckboxTree;
+import eu.essilab.lablib.checkboxtree.TreeCheckingListener;
+import eu.essilab.lablib.checkboxtree.TreeCheckingModel;
+import javax.swing.JScrollPane;
+import org.weasis.core.ui.util.TreeBuilder;
+
+public class PublishTree extends JScrollPane {
+
+  private final CheckboxTree checkboxTree;
+  private final PublishTreeModel publishTreeModel;
+
+<span class="nc" id="L23">  public PublishTree() {</span>
+<span class="nc" id="L24">    this.publishTreeModel = new PublishTreeModel();</span>
+<span class="nc" id="L25">    checkboxTree = new CheckboxTree(publishTreeModel.getModel());</span>
+<span class="nc" id="L26">    TreeCheckingModel checkingModel = publishTreeModel.getCheckingModel();</span>
+<span class="nc" id="L27">    checkboxTree.setCheckingModel(</span>
+        checkingModel); // be aware that checkingPaths is cleared at this point
+<span class="nc" id="L29">    checkboxTree.setCellRenderer(TreeBuilder.buildNoIconCheckboxTreeCellRenderer());</span>
+<span class="nc" id="L30">    setViewportView(checkboxTree);</span>
+<span class="nc" id="L31">  }</span>
+
+  public CheckboxTree getTree() {
+<span class="nc" id="L34">    return checkboxTree;</span>
+  }
+
+  public PublishTreeModel getModel() {
+<span class="nc" id="L38">    return publishTreeModel;</span>
+  }
+
+  public void addTreeCheckingListener(TreeCheckingListener tsl) {
+<span class="nc" id="L42">    checkboxTree.addTreeCheckingListener(tsl);</span>
+<span class="nc" id="L43">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AuthProvider.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.auth</a> &gt; <span class="el_source">AuthProvider.java</span></div><h1>AuthProvider.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2021 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.auth;
+
+public class AuthProvider {
+
+  public static final String DEFAULT_NAME = &quot;name&quot;; // NON-NLS
+  private String name;
+  private String authorizationUri;
+  private String tokenUri;
+  private String revokeTokenUri;
+  private boolean openId;
+
+  public AuthProvider(
+      String name,
+      String authorizationUri,
+      String tokenUri,
+      String revokeTokenUri,
+<span class="nc" id="L26">      boolean openId) {</span>
+<span class="nc" id="L27">    this.name = name;</span>
+<span class="nc" id="L28">    this.authorizationUri = authorizationUri;</span>
+<span class="nc" id="L29">    this.tokenUri = tokenUri;</span>
+<span class="nc" id="L30">    this.revokeTokenUri = revokeTokenUri;</span>
+<span class="nc" id="L31">    this.openId = openId;</span>
+<span class="nc" id="L32">  }</span>
+
+  public boolean getOpenId() {
+<span class="nc" id="L35">    return openId;</span>
+  }
+
+  public void setOpenId(boolean openId) {
+<span class="nc" id="L39">    this.openId = openId;</span>
+<span class="nc" id="L40">  }</span>
+
+  public String getName() {
+<span class="nc" id="L43">    return name;</span>
+  }
+
+  public void setName(String name) {
+<span class="nc" id="L47">    this.name = name;</span>
+<span class="nc" id="L48">  }</span>
+
+  public String getAuthorizationUri() {
+<span class="nc" id="L51">    return authorizationUri;</span>
+  }
+
+  public void setAuthorizationUri(String authorizationUri) {
+<span class="nc" id="L55">    this.authorizationUri = authorizationUri;</span>
+<span class="nc" id="L56">  }</span>
+
+  public String getTokenUri() {
+<span class="nc" id="L59">    return tokenUri;</span>
+  }
+
+  public void setTokenUri(String tokenUri) {
+<span class="nc" id="L63">    this.tokenUri = tokenUri;</span>
+<span class="nc" id="L64">  }</span>
+
+  public String getRevokeTokenUri() {
+<span class="nc" id="L67">    return revokeTokenUri;</span>
+  }
+
+  public void setRevokeTokenUri(String revokeTokenUri) {
+<span class="nc" id="L71">    this.revokeTokenUri = revokeTokenUri;</span>
+<span class="nc" id="L72">  }</span>
+
+  public String getUserNameAttribute() {
+<span class="nc" id="L75">    return DEFAULT_NAME;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

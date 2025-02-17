@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>LabelHighlighted.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.util</a> &gt; <span class="el_source">LabelHighlighted.java</span></div><h1>LabelHighlighted.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2022 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.util;
+
+import java.awt.Color;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import javax.swing.JLabel;
+
+public class LabelHighlighted extends JLabel {
+<span class="nc" id="L23">  private final List&lt;Rectangle2D&gt; rectangles = new ArrayList&lt;&gt;();</span>
+  private final Color highlightColor;
+
+<span class="nc" id="L26">  public LabelHighlighted(Color highlightColor) {</span>
+<span class="nc" id="L27">    this.highlightColor = Objects.requireNonNull(highlightColor);</span>
+<span class="nc" id="L28">  }</span>
+
+  public void reset() {
+<span class="nc" id="L31">    rectangles.clear();</span>
+<span class="nc" id="L32">    repaint();</span>
+<span class="nc" id="L33">  }</span>
+
+  public void highlightText(String textToHighlight) {
+<span class="nc bnc" id="L36" title="All 2 branches missed.">    if (textToHighlight == null) {</span>
+<span class="nc" id="L37">      return;</span>
+    }
+<span class="nc" id="L39">    reset();</span>
+
+<span class="nc" id="L41">    final String textToMatch = textToHighlight.toLowerCase().trim();</span>
+<span class="nc bnc" id="L42" title="All 2 branches missed.">    if (textToMatch.isEmpty()) {</span>
+<span class="nc" id="L43">      return;</span>
+    }
+
+<span class="nc" id="L46">    final String labelText = getText().toLowerCase();</span>
+<span class="nc bnc" id="L47" title="All 2 branches missed.">    if (labelText.contains(textToMatch)) {</span>
+<span class="nc" id="L48">      String highlight = textToHighlight.trim();</span>
+<span class="nc" id="L49">      FontMetrics fm = getFontMetrics(getFont());</span>
+<span class="nc" id="L50">      float w = -1;</span>
+<span class="nc" id="L51">      final float h = fm.getHeight() - 1f;</span>
+<span class="nc" id="L52">      int i = 0;</span>
+      while (true) {
+<span class="nc" id="L54">        i = labelText.indexOf(textToMatch, i);</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">        if (i == -1) {</span>
+<span class="nc" id="L56">          break;</span>
+        }
+<span class="nc bnc" id="L58" title="All 2 branches missed.">        if (w == -1) {</span>
+<span class="nc" id="L59">          String matchingText = getText().substring(i, i + highlight.length());</span>
+<span class="nc" id="L60">          w = fm.stringWidth(matchingText);</span>
+        }
+<span class="nc" id="L62">        String preText = getText().substring(0, i);</span>
+<span class="nc" id="L63">        float x = fm.stringWidth(preText);</span>
+<span class="nc" id="L64">        rectangles.add(new Rectangle2D.Float(x, 1, w, h));</span>
+<span class="nc" id="L65">        i = i + textToMatch.length();</span>
+<span class="nc" id="L66">      }</span>
+<span class="nc" id="L67">      repaint();</span>
+    }
+<span class="nc" id="L69">  }</span>
+
+  public List&lt;Rectangle2D&gt; getRectangles() {
+<span class="nc" id="L72">    return rectangles;</span>
+  }
+
+  @Override
+  protected void paintComponent(Graphics g) {
+<span class="nc" id="L77">    g.setColor(getBackground());</span>
+<span class="nc" id="L78">    g.fillRect(0, 0, getWidth(), getHeight());</span>
+<span class="nc bnc" id="L79" title="All 2 branches missed.">    if (!rectangles.isEmpty()) {</span>
+<span class="nc" id="L80">      Graphics2D g2d = (Graphics2D) g;</span>
+<span class="nc" id="L81">      Color c = g2d.getColor();</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">      for (Rectangle2D rectangle : rectangles) {</span>
+<span class="nc" id="L83">        g2d.setColor(highlightColor);</span>
+<span class="nc" id="L84">        g2d.fill(rectangle);</span>
+<span class="nc" id="L85">      }</span>
+<span class="nc" id="L86">      g2d.setColor(c);</span>
+    }
+<span class="nc" id="L88">    super.paintComponent(g);</span>
+<span class="nc" id="L89">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

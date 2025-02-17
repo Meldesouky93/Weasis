@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AbstractFileModel.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.explorer.model</a> &gt; <span class="el_source">AbstractFileModel.java</span></div><h1>AbstractFileModel.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.explorer.model;
+
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import javax.swing.SwingUtilities;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.command.Option;
+import org.weasis.core.api.command.Options;
+import org.weasis.core.api.explorer.ObservableEvent;
+import org.weasis.core.api.gui.util.GuiExecutor;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.media.data.*;
+
+public abstract class AbstractFileModel implements TreeModel, DataExplorerModel {
+<span class="nc" id="L29">  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractFileModel.class);</span>
+
+<span class="nc" id="L31">  public static final List&lt;String&gt; functions = List.of(&quot;get&quot;, &quot;close&quot;); // NON-NLS</span>
+
+  public static final String NAME = &quot;All Files&quot;; // NON-NLS
+<span class="nc" id="L34">  public static final TreeModelNode group =</span>
+      new TreeModelNode(1, 0, TagW.Group, new TagView(TagW.Group, TagW.FileName));
+<span class="nc" id="L36">  public static final TreeModelNode series =</span>
+      new TreeModelNode(2, 0, TagW.SubseriesInstanceUID, new TagView(TagW.FileName));
+
+<span class="nc" id="L39">  private static final List&lt;TreeModelNode&gt; modelStructure =</span>
+<span class="nc" id="L40">      Arrays.asList(TreeModelNode.ROOT, group, series);</span>
+
+  private final Tree&lt;MediaSeriesGroup&gt; model;
+<span class="nc" id="L43">  private PropertyChangeSupport propertyChange = null;</span>
+
+<span class="nc" id="L45">  protected AbstractFileModel() {</span>
+<span class="nc" id="L46">    model = new Tree&lt;&gt;(MediaSeriesGroupNode.rootNode);</span>
+<span class="nc" id="L47">  }</span>
+
+  @Override
+  public List&lt;Codec&lt;MediaElement&gt;&gt; getCodecPlugins() {
+<span class="nc" id="L51">    return GuiUtils.getUICore().getCodecPlugins();</span>
+  }
+
+  @Override
+  public Collection&lt;MediaSeriesGroup&gt; getChildren(MediaSeriesGroup node) {
+<span class="nc" id="L56">    return model.getSuccessors(node);</span>
+  }
+
+  @Override
+  public MediaSeriesGroup getHierarchyNode(MediaSeriesGroup parent, Object value) {
+<span class="nc bnc" id="L61" title="All 4 branches missed.">    if (parent != null || value != null) {</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">      for (MediaSeriesGroup node : model.getSuccessors(parent)) {</span>
+<span class="nc bnc" id="L63" title="All 2 branches missed.">        if (node.matchIdValue(value)) {</span>
+<span class="nc" id="L64">          return node;</span>
+        }
+<span class="nc" id="L66">      }</span>
+    }
+<span class="nc" id="L68">    return null;</span>
+  }
+
+  @Override
+  public void addHierarchyNode(MediaSeriesGroup root, MediaSeriesGroup leaf) {
+<span class="nc" id="L73">    model.addLeaf(root, leaf);</span>
+<span class="nc" id="L74">  }</span>
+
+  @Override
+  public void removeHierarchyNode(MediaSeriesGroup root, MediaSeriesGroup leaf) {
+<span class="nc" id="L78">    Tree&lt;MediaSeriesGroup&gt; tree = model.getTree(root);</span>
+<span class="nc bnc" id="L79" title="All 2 branches missed.">    if (tree != null) {</span>
+<span class="nc" id="L80">      tree.removeLeaf(leaf);</span>
+    }
+<span class="nc" id="L82">  }</span>
+
+  @Override
+  public MediaSeriesGroup getParent(MediaSeriesGroup node, TreeModelNode modelNode) {
+<span class="nc bnc" id="L86" title="All 4 branches missed.">    if (null != node &amp;&amp; modelNode != null) {</span>
+<span class="nc bnc" id="L87" title="All 2 branches missed.">      if (node.getTagID().equals(modelNode.tagElement())) {</span>
+<span class="nc" id="L88">        return node;</span>
+      }
+<span class="nc" id="L90">      Tree&lt;MediaSeriesGroup&gt; tree = model.getTree(node);</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">      if (tree != null) {</span>
+        Tree&lt;MediaSeriesGroup&gt; parent;
+<span class="nc bnc" id="L93" title="All 2 branches missed.">        while ((parent = tree.getParent()) != null) {</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">          if (parent.getHead().getTagID().equals(modelNode.tagElement())) {</span>
+<span class="nc" id="L95">            return parent.getHead();</span>
+          }
+<span class="nc" id="L97">          tree = parent;</span>
+        }
+      }
+    }
+<span class="nc" id="L101">    return null;</span>
+  }
+
+  public void dispose() {
+<span class="nc bnc" id="L105" title="All 2 branches missed.">    for (MediaSeriesGroup mediaSeriesGroup : this.getChildren(MediaSeriesGroupNode.rootNode)) {</span>
+<span class="nc" id="L106">      mediaSeriesGroup.dispose();</span>
+<span class="nc" id="L107">    }</span>
+<span class="nc" id="L108">    model.clear();</span>
+<span class="nc" id="L109">  }</span>
+
+  @Override
+  public String toString() {
+<span class="nc" id="L113">    return NAME;</span>
+  }
+
+  @Override
+  public List&lt;TreeModelNode&gt; getModelStructure() {
+<span class="nc" id="L118">    return modelStructure;</span>
+  }
+
+  @Override
+  public void addPropertyChangeListener(PropertyChangeListener propertychangelistener) {
+<span class="nc bnc" id="L123" title="All 2 branches missed.">    if (propertyChange == null) {</span>
+<span class="nc" id="L124">      propertyChange = new PropertyChangeSupport(this);</span>
+    }
+<span class="nc" id="L126">    propertyChange.addPropertyChangeListener(propertychangelistener);</span>
+<span class="nc" id="L127">  }</span>
+
+  @Override
+  public void removePropertyChangeListener(PropertyChangeListener propertychangelistener) {
+<span class="nc bnc" id="L131" title="All 2 branches missed.">    if (propertyChange != null) {</span>
+<span class="nc" id="L132">      propertyChange.removePropertyChangeListener(propertychangelistener);</span>
+    }
+<span class="nc" id="L134">  }</span>
+
+  @Override
+  public void firePropertyChange(final ObservableEvent event) {
+<span class="nc bnc" id="L138" title="All 2 branches missed.">    if (propertyChange != null) {</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">      if (event == null) {</span>
+<span class="nc" id="L140">        throw new NullPointerException();</span>
+      }
+<span class="nc bnc" id="L142" title="All 2 branches missed.">      if (SwingUtilities.isEventDispatchThread()) {</span>
+<span class="nc" id="L143">        propertyChange.firePropertyChange(event);</span>
+      } else {
+<span class="nc" id="L145">        SwingUtilities.invokeLater(() -&gt; propertyChange.firePropertyChange(event));</span>
+      }
+    }
+<span class="nc" id="L148">  }</span>
+
+  public void removeTopGroup(MediaSeriesGroup topGroup) {
+<span class="nc bnc" id="L151" title="All 2 branches missed.">    if (topGroup != null) {</span>
+<span class="nc" id="L152">      firePropertyChange(</span>
+          new ObservableEvent(
+              ObservableEvent.BasicAction.REMOVE, AbstractFileModel.this, null, topGroup));
+<span class="nc" id="L155">      Collection&lt;MediaSeriesGroup&gt; seriesList = getChildren(topGroup);</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">      for (MediaSeriesGroup mediaSeriesGroup : seriesList) {</span>
+<span class="nc" id="L157">        mediaSeriesGroup.dispose();</span>
+<span class="nc" id="L158">      }</span>
+<span class="nc" id="L159">      removeHierarchyNode(MediaSeriesGroupNode.rootNode, topGroup);</span>
+<span class="nc" id="L160">      LOGGER.info(&quot;Remove Group: {}&quot;, topGroup);</span>
+    }
+<span class="nc" id="L162">  }</span>
+
+  public void removeSeries(MediaSeriesGroup seriesGroup) {
+<span class="nc bnc" id="L165" title="All 2 branches missed.">    if (seriesGroup != null) {</span>
+      // remove first series in UI (Viewer using this series)
+<span class="nc" id="L167">      firePropertyChange(</span>
+          new ObservableEvent(
+              ObservableEvent.BasicAction.REMOVE, AbstractFileModel.this, null, seriesGroup));
+      // remove in the data model
+<span class="nc" id="L171">      MediaSeriesGroup topGroup = getParent(seriesGroup, AbstractFileModel.group);</span>
+<span class="nc" id="L172">      removeHierarchyNode(topGroup, seriesGroup);</span>
+<span class="nc" id="L173">      seriesGroup.dispose();</span>
+<span class="nc" id="L174">      LOGGER.info(&quot;Remove Series/Image: {}&quot;, seriesGroup);</span>
+    }
+<span class="nc" id="L176">  }</span>
+
+  @Override
+  public boolean applySplittingRules(Series&lt;?&gt; original, MediaElement media) {
+<span class="nc" id="L180">    return false;</span>
+  }
+
+  public abstract void get(String[] argv) throws IOException;
+
+  public void close(String[] argv) throws IOException {
+<span class="nc" id="L186">    final String[] usage = {</span>
+      &quot;Close images&quot;, // NON-NLS
+      &quot;Usage: dicom:close (-a | ([-g UID]... [-s UID]...)) &quot;, // NON-NLS
+      &quot;  -a --all         close all series&quot;, // NON-NLS
+      &quot;  -g --group=UID   close a group from its UID&quot;, // NON-NLS
+      &quot;  -s --series=UID   close an series/image from its UID&quot;, // NON-NLS
+      &quot;  -? --help        show help&quot; // NON-NLS
+    };
+<span class="nc" id="L194">    final Option opt = Options.compile(usage).parse(argv);</span>
+<span class="nc" id="L195">    final List&lt;String&gt; gargs = opt.getList(&quot;group&quot;); // NON-NLS</span>
+<span class="nc" id="L196">    final List&lt;String&gt; iargs = opt.getList(&quot;series&quot;); // NON-NLS</span>
+
+<span class="nc bnc" id="L198" title="All 8 branches missed.">    if (opt.isSet(&quot;help&quot;) || (gargs.isEmpty() &amp;&amp; iargs.isEmpty() &amp;&amp; !opt.isSet(&quot;all&quot;))) { // NON-NLS</span>
+<span class="nc" id="L199">      opt.usage();</span>
+<span class="nc" id="L200">      return;</span>
+    }
+
+<span class="nc" id="L203">    GuiExecutor.execute(</span>
+        () -&gt; {
+<span class="nc" id="L205">          AbstractFileModel dataModel = AbstractFileModel.this;</span>
+<span class="nc" id="L206">          firePropertyChange(</span>
+              new ObservableEvent(ObservableEvent.BasicAction.SELECT, dataModel, null, dataModel));
+<span class="nc bnc" id="L208" title="All 2 branches missed.">          if (opt.isSet(&quot;all&quot;)) { // NON-NLS</span>
+<span class="nc bnc" id="L209" title="All 2 branches missed.">            for (MediaSeriesGroup g : model.getSuccessors(MediaSeriesGroupNode.rootNode)) {</span>
+<span class="nc" id="L210">              dataModel.removeTopGroup(g);</span>
+<span class="nc" id="L211">            }</span>
+          } else {
+<span class="nc bnc" id="L213" title="All 2 branches missed.">            if (opt.isSet(&quot;group&quot;)) { // NON-NLS</span>
+
+<span class="nc bnc" id="L215" title="All 2 branches missed.">              for (String gUID : gargs) {</span>
+<span class="nc" id="L216">                dataModel.removeTopGroup(getHierarchyNode(MediaSeriesGroupNode.rootNode, gUID));</span>
+<span class="nc" id="L217">              }</span>
+            }
+
+<span class="nc bnc" id="L220" title="All 2 branches missed.">            if (opt.isSet(&quot;series&quot;)) { // NON-NLS</span>
+<span class="nc bnc" id="L221" title="All 2 branches missed.">              for (String uid : iargs) {</span>
+                for (MediaSeriesGroup topGroup :
+<span class="nc bnc" id="L223" title="All 2 branches missed.">                    model.getSuccessors(MediaSeriesGroupNode.rootNode)) {</span>
+<span class="nc" id="L224">                  MediaSeriesGroup s = getHierarchyNode(topGroup, uid);</span>
+<span class="nc bnc" id="L225" title="All 2 branches missed.">                  if (s != null) {</span>
+<span class="nc" id="L226">                    removeSeries(s);</span>
+<span class="nc" id="L227">                    break;</span>
+                  }
+<span class="nc" id="L229">                }</span>
+<span class="nc" id="L230">              }</span>
+            }
+          }
+<span class="nc" id="L233">        });</span>
+<span class="nc" id="L234">  }</span>
+
+  @Override
+  public TreeModelNode getTreeModelNodeForNewPlugin() {
+<span class="nc" id="L238">    return group;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

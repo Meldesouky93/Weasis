@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ToolBarContainer.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.util</a> &gt; <span class="el_source">ToolBarContainer.java</span></div><h1>ToolBarContainer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.util;
+
+import java.awt.Component;
+import java.awt.FlowLayout;
+import java.awt.Graphics;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.List;
+import javax.swing.Icon;
+import javax.swing.JButton;
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import org.weasis.core.api.gui.Insertable;
+import org.weasis.core.api.gui.InsertableUtil;
+import org.weasis.core.api.util.ResourceUtil;
+
+public class ToolBarContainer extends JPanel {
+<span class="nc" id="L30">  public static final Toolbar EMPTY = buildEmptyToolBar(&quot;empty&quot;);</span>
+<span class="nc" id="L31">  private final List&lt;Toolbar&gt; bars = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L33">  public ToolBarContainer() {</span>
+<span class="nc" id="L34">    setLayout(new WrapLayout(FlowLayout.LEADING, 0, 0));</span>
+<span class="nc" id="L35">    addMouseListener(new PopClickListener());</span>
+<span class="nc" id="L36">  }</span>
+
+  /** Registers a new ToolBar. */
+  public void registerToolBar(List&lt;Toolbar&gt; toolBars) {
+<span class="nc" id="L40">    unregisterAll();</span>
+
+<span class="nc bnc" id="L42" title="All 4 branches missed.">    if (toolBars == null || toolBars.isEmpty()) {</span>
+<span class="nc" id="L43">      add(ToolBarContainer.EMPTY.getComponent());</span>
+<span class="nc" id="L44">      bars.add(ToolBarContainer.EMPTY);</span>
+    } else {
+      // Sort toolbars according the position
+<span class="nc" id="L47">      InsertableUtil.sortInsertable(toolBars);</span>
+
+<span class="nc" id="L49">      synchronized (toolBars) { // NOSONAR lock object is the list for iterating its elements safely</span>
+<span class="nc bnc" id="L50" title="All 2 branches missed.">        for (Toolbar b : toolBars) {</span>
+<span class="nc" id="L51">          WtoolBar bar = b.getComponent();</span>
+<span class="nc bnc" id="L52" title="All 2 branches missed.">          if (bar instanceof DynamicToolbar dyn) {</span>
+<span class="nc" id="L53">            dyn.updateToolbar();</span>
+          }
+<span class="nc bnc" id="L55" title="All 2 branches missed.">          if (bar.isComponentEnabled()) {</span>
+<span class="nc" id="L56">            add(bar);</span>
+          }
+<span class="nc" id="L58">          bars.add(b);</span>
+<span class="nc" id="L59">        }</span>
+<span class="nc" id="L60">      }</span>
+    }
+
+<span class="nc" id="L63">    revalidate();</span>
+<span class="nc" id="L64">    repaint();</span>
+<span class="nc" id="L65">  }</span>
+
+  public void displayToolbar(WtoolBar bar, boolean show) {
+<span class="nc bnc" id="L68" title="All 2 branches missed.">    if (show != bar.isComponentEnabled()) {</span>
+<span class="nc bnc" id="L69" title="All 2 branches missed.">      if (show) {</span>
+<span class="nc" id="L70">        int barIndex = bar.getComponentPosition();</span>
+<span class="nc" id="L71">        int insert = 0;</span>
+<span class="nc bnc" id="L72" title="All 2 branches missed.">        for (Insertable b : bars) {</span>
+<span class="nc bnc" id="L73" title="All 4 branches missed.">          if (b.isComponentEnabled() &amp;&amp; b.getComponentPosition() &lt; barIndex) {</span>
+<span class="nc" id="L74">            insert++;</span>
+          }
+<span class="nc" id="L76">        }</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">        if (insert &gt;= getComponentCount()) {</span>
+          // -1 =&gt; inserting after the last component
+<span class="nc" id="L79">          insert = -1;</span>
+        }
+<span class="nc" id="L81">        add(bar, insert);</span>
+<span class="nc" id="L82">      } else {</span>
+<span class="nc" id="L83">        super.remove(bar);</span>
+      }
+<span class="nc" id="L85">      bar.setComponentEnabled(show);</span>
+<span class="nc" id="L86">      revalidate();</span>
+<span class="nc" id="L87">      repaint();</span>
+    }
+<span class="nc" id="L89">  }</span>
+
+  private void unregisterAll() {
+<span class="nc" id="L92">    bars.clear();</span>
+<span class="nc" id="L93">    removeAll();</span>
+<span class="nc" id="L94">  }</span>
+
+  /**
+   * Returns the list of currently registered toolbars.
+   *
+   * &lt;p&gt;returns a new list at each invocation.
+   */
+  public List&lt;Toolbar&gt; getRegisteredToolBars() {
+<span class="nc" id="L102">    return new ArrayList&lt;&gt;(bars);</span>
+  }
+
+<span class="nc" id="L105">  class PopClickListener extends MouseAdapter {</span>
+    @Override
+    public void mousePressed(MouseEvent e) {
+<span class="nc bnc" id="L108" title="All 2 branches missed.">      if (e.isPopupTrigger()) doPop(e);</span>
+<span class="nc" id="L109">    }</span>
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+<span class="nc bnc" id="L113" title="All 2 branches missed.">      if (e.isPopupTrigger()) doPop(e);</span>
+<span class="nc" id="L114">    }</span>
+
+    private void doPop(MouseEvent e) {
+<span class="nc" id="L117">      PopUpToolbars menu = new PopUpToolbars();</span>
+<span class="nc" id="L118">      menu.show(e.getComponent(), e.getX(), e.getY());</span>
+<span class="nc" id="L119">    }</span>
+  }
+
+  class PopUpToolbars extends JPopupMenu {
+<span class="nc" id="L123">    public PopUpToolbars() {</span>
+<span class="nc bnc" id="L124" title="All 2 branches missed.">      for (final Toolbar bar : getRegisteredToolBars()) {</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">        if (!Insertable.Type.EMPTY.equals(bar.getType())) {</span>
+<span class="nc" id="L126">          JCheckBoxMenuItem item =</span>
+<span class="nc" id="L127">              new JCheckBoxMenuItem(bar.getComponentName(), bar.isComponentEnabled());</span>
+<span class="nc" id="L128">          item.addActionListener(</span>
+              e -&gt; {
+<span class="nc bnc" id="L130" title="All 2 branches missed.">                if (e.getSource() instanceof JCheckBoxMenuItem menuItem) {</span>
+<span class="nc" id="L131">                  displayToolbar(bar.getComponent(), menuItem.isSelected());</span>
+                }
+<span class="nc" id="L133">              });</span>
+<span class="nc" id="L134">          add(item);</span>
+        }
+<span class="nc" id="L136">      }</span>
+<span class="nc" id="L137">    }</span>
+  }
+
+  public static WtoolBar buildEmptyToolBar(String name) {
+<span class="nc" id="L141">    WtoolBar toolBar =</span>
+<span class="nc" id="L142">        new WtoolBar(name, 0) {</span>
+          @Override
+          public Type getType() {
+<span class="nc" id="L145">            return Type.EMPTY;</span>
+          }
+        };
+<span class="nc" id="L148">    toolBar.add(buildToolBarSizerComponent());</span>
+<span class="nc" id="L149">    return toolBar;</span>
+  }
+
+  private static JComponent buildToolBarSizerComponent() {
+<span class="nc" id="L153">    return new JButton(</span>
+<span class="nc" id="L154">        new Icon() {</span>
+
+          @Override
+          public void paintIcon(Component c, Graphics g, int x, int y) {
+            // Do noting
+<span class="nc" id="L159">          }</span>
+
+          @Override
+          public int getIconWidth() {
+<span class="nc" id="L163">            return 2;</span>
+          }
+
+          @Override
+          public int getIconHeight() {
+<span class="nc" id="L168">            return ResourceUtil.TOOLBAR_ICON_SIZE;</span>
+          }
+        });
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

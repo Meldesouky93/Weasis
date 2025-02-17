@@ -1,0 +1,602 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>DicomImageElement.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec</a> &gt; <span class="el_source">DicomImageElement.java</span></div><h1>DicomImageElement.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec;
+
+import java.awt.image.RenderedImage;
+import java.io.File;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import org.dcm4che3.data.Attributes;
+import org.dcm4che3.data.Tag;
+import org.dcm4che3.data.UID;
+import org.dcm4che3.image.PhotometricInterpretation;
+import org.dcm4che3.img.DicomImageAdapter;
+import org.dcm4che3.img.DicomImageReadParam;
+import org.dcm4che3.img.DicomImageReader;
+import org.dcm4che3.img.DicomMetaData;
+import org.dcm4che3.img.DicomOutputData;
+import org.dcm4che3.img.ImageRendering;
+import org.dcm4che3.img.data.PrDicomObject;
+import org.dcm4che3.img.lut.PresetWindowLevel;
+import org.dcm4che3.img.stream.BytesWithImageDescriptor;
+import org.dcm4che3.img.stream.ImageAdapter;
+import org.dcm4che3.img.stream.ImageAdapter.AdaptTransferSyntax;
+import org.dcm4che3.img.util.DicomUtils;
+import org.joml.Vector3d;
+import org.opencv.core.Core.MinMaxLocResult;
+import org.opencv.core.CvType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.gui.util.ActionW;
+import org.weasis.core.api.image.OpManager;
+import org.weasis.core.api.image.SimpleOpManager;
+import org.weasis.core.api.image.WindowOp;
+import org.weasis.core.api.image.util.Unit;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.util.MathUtil;
+import org.weasis.core.util.StringUtil;
+import org.weasis.dicom.codec.display.OverlayOp;
+import org.weasis.dicom.codec.display.ShutterOp;
+import org.weasis.dicom.codec.display.WindowAndPresetsOp;
+import org.weasis.dicom.codec.geometry.GeometryOfSlice;
+import org.weasis.dicom.codec.utils.Ultrasound;
+import org.weasis.dicom.param.AttributeEditorContext;
+import org.weasis.opencv.data.ImageCV;
+import org.weasis.opencv.data.LookupTableCV;
+import org.weasis.opencv.data.PlanarImage;
+import org.weasis.opencv.op.lut.LutParameters;
+import org.weasis.opencv.op.lut.LutShape;
+import org.weasis.opencv.op.lut.PresentationStateLut;
+import org.weasis.opencv.op.lut.WlParams;
+import org.weasis.opencv.op.lut.WlPresentation;
+
+public class DicomImageElement extends ImageElement implements DicomElement {
+
+<span class="nc" id="L66">  private static final Logger LOGGER = LoggerFactory.getLogger(DicomImageElement.class);</span>
+
+<span class="nc" id="L68">  public static final List&lt;LutShape&gt; DEFAULT_LUT_FUNCTIONS =</span>
+<span class="nc" id="L69">      List.of(</span>
+          LutShape.LINEAR, LutShape.SIGMOID, LutShape.SIGMOID_NORM, LutShape.LOG, LutShape.LOG_INV);
+<span class="nc" id="L71">  private DicomImageAdapter adapter = null;</span>
+<span class="nc" id="L72">  private Collection&lt;LutShape&gt; lutShapeCollection = null;</span>
+
+  public DicomImageElement(DcmMediaReader mediaIO, Object key) {
+<span class="nc" id="L75">    super(mediaIO, key);</span>
+
+<span class="nc" id="L77">    initPixelConfiguration();</span>
+<span class="nc" id="L78">  }</span>
+
+  public void initPixelConfiguration() {
+<span class="nc" id="L81">    this.pixelSizeX = 1.0;</span>
+<span class="nc" id="L82">    this.pixelSizeY = 1.0;</span>
+<span class="nc" id="L83">    this.pixelSpacingUnit = Unit.PIXEL;</span>
+
+    double[] val;
+<span class="nc" id="L86">    String modality = TagD.getTagValue(mediaIO, Tag.Modality, String.class);</span>
+    // Physical distance in mm between the center of each pixel (ratio in mm)
+<span class="nc" id="L88">    val = TagD.getTagValue(mediaIO, Tag.PixelSpacing, double[].class);</span>
+
+<span class="nc bnc" id="L90" title="All 4 branches missed.">    if (val == null || val.length != 2) {</span>
+<span class="nc" id="L91">      boolean magFactor =</span>
+<span class="nc bnc" id="L92" title="All 2 branches missed.">          &quot;CR&quot;.equals(modality)</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">              || &quot;DX&quot;.equals(modality)</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">              || &quot;IO&quot;.equals(modality)</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">              || &quot;MG&quot;.equals(modality)</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">              || &quot;PX&quot;.equals(modality)</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">              || &quot;RF&quot;.equals(modality)</span>
+<span class="nc bnc" id="L98" title="All 2 branches missed.">              || &quot;XA&quot;.equals(modality);</span>
+<span class="nc" id="L99">      val = getMagnifiedPixelSpacing(magFactor);</span>
+<span class="nc" id="L100">    } else {</span>
+<span class="nc" id="L101">      pixelSizeCalibrationDescription =</span>
+<span class="nc" id="L102">          TagD.getTagValue(mediaIO, Tag.PixelSpacingCalibrationDescription, String.class);</span>
+    }
+<span class="nc bnc" id="L104" title="All 4 branches missed.">    if (val == null || val.length != 2) {</span>
+<span class="nc" id="L105">      val = TagD.getTagValue(mediaIO, Tag.NominalScannedPixelSpacing, double[].class);</span>
+<span class="nc bnc" id="L106" title="All 2 branches missed.">      pixelSizeCalibrationDescription = val == null ? null : &quot;At scanner&quot;; // NON-NLS</span>
+    }
+
+<span class="nc bnc" id="L109" title="All 8 branches missed.">    if (val != null &amp;&amp; val.length == 2 &amp;&amp; val[0] &gt; 0.0 &amp;&amp; val[1] &gt; 0.0) {</span>
+      /*
+       * Pixel Spacing = Row Spacing \ Column Spacing =&gt; (Y,X) The first value is the row spacing in mm, that
+       * is the spacing between the centers of adjacent rows, or vertical spacing. Pixel Spacing must be
+       * always positive, but some DICOMs have negative values
+       */
+<span class="nc" id="L115">      setPixelSize(val[1], val[0]);</span>
+<span class="nc" id="L116">      pixelSpacingUnit = Unit.MILLIMETER;</span>
+    }
+
+<span class="nc" id="L119">    initPixelValueUnit(modality);</span>
+
+<span class="nc bnc" id="L121" title="All 2 branches missed.">    if (val == null) {</span>
+<span class="nc" id="L122">      initPixelAspectRatio();</span>
+    }
+<span class="nc" id="L124">  }</span>
+
+  private void initPixelValueUnit(String modality) {
+    // DICOM $C.11.1.1.2 Modality LUT and Rescale Type
+    // Specifies the units of the output of the Modality LUT or rescale operation.
+    // Defined Terms:
+    // OD = The number in the LUT represents thousands of optical density. That is, a value of
+    // 2140 represents an optical density of 2.140.
+    // HU = Hounsfield Units (CT)
+    // US = Unspecified
+    // Other values are permitted, but are not defined by the DICOM Standard.
+<span class="nc" id="L135">    pixelValueUnit = TagD.getTagValue(this, Tag.RescaleType, String.class);</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">    if (pixelValueUnit == null) {</span>
+      // For some other modalities like PET
+<span class="nc" id="L138">      pixelValueUnit = TagD.getTagValue(this, Tag.Units, String.class);</span>
+    }
+<span class="nc bnc" id="L140" title="All 4 branches missed.">    if (pixelValueUnit == null &amp;&amp; &quot;CT&quot;.equals(modality)) {</span>
+<span class="nc" id="L141">      String sopClass = TagD.getTagValue(mediaIO, Tag.SOPClassUID, String.class);</span>
+<span class="nc bnc" id="L142" title="All 4 branches missed.">      if (StringUtil.hasText(sopClass) &amp;&amp; !sopClass.startsWith(UID.SecondaryCaptureImageStorage)) {</span>
+<span class="nc" id="L143">        pixelValueUnit = &quot;HU&quot;;</span>
+      }
+<span class="nc bnc" id="L145" title="All 4 branches missed.">    } else if (pixelSpacingUnit == Unit.PIXEL &amp;&amp; &quot;US&quot;.equals(modality)) {</span>
+<span class="nc" id="L146">      Attributes spatialCalibration =</span>
+<span class="nc" id="L147">          Ultrasound.getUniqueSpatialRegion(getMediaReader().getDicomObject());</span>
+<span class="nc bnc" id="L148" title="All 2 branches missed.">      if (spatialCalibration != null) {</span>
+<span class="nc" id="L149">        Double calibX =</span>
+<span class="nc" id="L150">            DicomUtils.getDoubleFromDicomElement(spatialCalibration, Tag.PhysicalDeltaX, null);</span>
+<span class="nc" id="L151">        Double calibY =</span>
+<span class="nc" id="L152">            DicomUtils.getDoubleFromDicomElement(spatialCalibration, Tag.PhysicalDeltaY, null);</span>
+<span class="nc bnc" id="L153" title="All 4 branches missed.">        if (calibX != null &amp;&amp; calibY != null) {</span>
+<span class="nc" id="L154">          calibX = Math.abs(calibX);</span>
+<span class="nc" id="L155">          calibY = Math.abs(calibY);</span>
+          // Do not apply when value X and Y are different, otherwise the image will be stretched
+<span class="nc bnc" id="L157" title="All 2 branches missed.">          if (MathUtil.isEqual(calibX, calibY)) {</span>
+<span class="nc" id="L158">            setPixelSize(calibX, calibY);</span>
+<span class="nc" id="L159">            pixelSpacingUnit = Unit.CENTIMETER;</span>
+          }
+        }
+      }
+    }
+<span class="nc" id="L164">  }</span>
+
+  private void initPixelAspectRatio() {
+<span class="nc" id="L167">    int[] aspects = TagD.getTagValue(mediaIO, Tag.PixelAspectRatio, int[].class);</span>
+<span class="nc bnc" id="L168" title="All 6 branches missed.">    if (aspects != null &amp;&amp; aspects.length == 2 &amp;&amp; aspects[0] != aspects[1]) {</span>
+      /*
+       * Set the Pixel Aspect Ratio to the pixel size of the image to stretch the rendered image (for having
+       * square pixel on the display image)
+       */
+<span class="nc bnc" id="L173" title="All 2 branches missed.">      if (aspects[1] &lt; aspects[0]) {</span>
+<span class="nc" id="L174">        setPixelSize(1.0, (double) aspects[0] / (double) aspects[1]);</span>
+      } else {
+<span class="nc" id="L176">        setPixelSize((double) aspects[1] / (double) aspects[0], 1.0);</span>
+      }
+    }
+<span class="nc" id="L179">  }</span>
+
+  private double[] getMagnifiedPixelSpacing(boolean useMagnificationFactor) {
+<span class="nc" id="L182">    double[] val = TagD.getTagValue(mediaIO, Tag.ImagerPixelSpacing, double[].class);</span>
+    // Follows D. Clunie recommendations
+<span class="nc bnc" id="L184" title="All 2 branches missed.">    pixelSizeCalibrationDescription = val == null ? null : &quot;At Detector&quot;; // NON-NLS</span>
+<span class="nc bnc" id="L185" title="All 10 branches missed.">    if (useMagnificationFactor &amp;&amp; val != null &amp;&amp; val.length == 2 &amp;&amp; val[0] &gt; 0.0 &amp;&amp; val[1] &gt; 0.0) {</span>
+<span class="nc" id="L186">      Double estimatedFactor =</span>
+<span class="nc" id="L187">          TagD.getTagValue(mediaIO, Tag.EstimatedRadiographicMagnificationFactor, Double.class);</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">      if (estimatedFactor == null) {</span>
+<span class="nc" id="L189">        Double distanceSourceToDetector =</span>
+<span class="nc" id="L190">            TagD.getTagValue(mediaIO, Tag.DistanceSourceToDetector, Double.class);</span>
+<span class="nc" id="L191">        Double distanceSourceToPatient =</span>
+<span class="nc" id="L192">            TagD.getTagValue(mediaIO, Tag.DistanceSourceToPatient, Double.class);</span>
+<span class="nc bnc" id="L193" title="All 4 branches missed.">        if (distanceSourceToDetector != null &amp;&amp; distanceSourceToPatient != null) {</span>
+<span class="nc" id="L194">          estimatedFactor = distanceSourceToDetector / distanceSourceToPatient;</span>
+        }
+      }
+<span class="nc bnc" id="L197" title="All 4 branches missed.">      if (estimatedFactor != null &amp;&amp; estimatedFactor &gt; 0) {</span>
+<span class="nc" id="L198">        val[0] = val[0] / estimatedFactor;</span>
+<span class="nc" id="L199">        val[1] = val[1] / estimatedFactor;</span>
+<span class="nc" id="L200">        pixelSizeCalibrationDescription = &quot;Magnified&quot;; // NON-NLS</span>
+      }
+    }
+<span class="nc" id="L203">    return val;</span>
+  }
+
+  /**
+   * @return return the min value after modality pixel transformation and after pixel padding
+   *     operation if padding exists.
+   */
+  @Override
+  public double getMinValue(WlPresentation wlp) {
+<span class="nc bnc" id="L212" title="All 2 branches missed.">    if (isImageInitialized()) {</span>
+<span class="nc" id="L213">      return adapter.getMinValue(wlp);</span>
+    }
+<span class="nc" id="L215">    return 0.0;</span>
+  }
+
+  /**
+   * @return return the max value after modality pixel transformation and after pixel padding
+   *     operation if padding exists.
+   */
+  @Override
+  public double getMaxValue(WlPresentation wlp) {
+<span class="nc bnc" id="L224" title="All 2 branches missed.">    if (isImageInitialized()) {</span>
+<span class="nc" id="L225">      return adapter.getMaxValue(wlp);</span>
+    }
+<span class="nc" id="L227">    return 0.0;</span>
+  }
+
+  @Override
+  protected boolean isGrayImage(RenderedImage source) {
+<span class="nc" id="L232">    Boolean val = (Boolean) getTagValue(TagW.MonoChrome);</span>
+<span class="nc bnc" id="L233" title="All 4 branches missed.">    return val == null || val;</span>
+  }
+
+  /**
+   * Data representation of the pixel samples. Each sample shall have the same pixel representation.
+   * Enumerated Values: 0000H = unsigned integer. 0001H = 2's complement
+   *
+   * @return true if Tag exist and if explicitly defined a signed
+   * @see &quot;DICOM standard PS 3.3 - §C.7.6.3 - Image Pixel Module&quot;
+   */
+  public boolean isPixelRepresentationSigned() {
+<span class="nc bnc" id="L244" title="All 2 branches missed.">    if (isImageInitialized()) {</span>
+<span class="nc" id="L245">      return adapter.getImageDescriptor().isSigned();</span>
+    }
+<span class="nc" id="L247">    Integer pixelRepresentation = TagD.getTagValue(this, Tag.PixelRepresentation, Integer.class);</span>
+<span class="nc bnc" id="L248" title="All 4 branches missed.">    return (pixelRepresentation != null) &amp;&amp; (pixelRepresentation != 0);</span>
+  }
+
+  public int getBitsStored() {
+<span class="nc bnc" id="L252" title="All 2 branches missed.">    if (isImageInitialized()) {</span>
+<span class="nc" id="L253">      return adapter.getBitsStored();</span>
+    }
+<span class="nc" id="L255">    return TagD.getTagValue(this, Tag.BitsStored, Integer.class);</span>
+  }
+
+  public int getBitsAllocated() {
+<span class="nc bnc" id="L259" title="All 2 branches missed.">    if (isImageInitialized()) {</span>
+<span class="nc" id="L260">      return adapter.getImageDescriptor().getBitsAllocated();</span>
+    }
+<span class="nc" id="L262">    return TagD.getTagValue(this, Tag.BitsAllocated, Integer.class);</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L267">    return TagD.getTagValue(this, Tag.SOPInstanceUID, String.class);</span>
+  }
+
+  @Override
+  public DcmMediaReader getMediaReader() {
+<span class="nc" id="L272">    return (DcmMediaReader) super.getMediaReader();</span>
+  }
+
+  @Override
+  public Number pixelToRealValue(Number pixelValue, WlPresentation wlp) {
+<span class="nc bnc" id="L277" title="All 4 branches missed.">    if (pixelValue != null &amp;&amp; isImageInitialized()) {</span>
+<span class="nc" id="L278">      return adapter.pixelToRealValue(pixelValue, wlp);</span>
+    }
+<span class="nc" id="L280">    return pixelValue;</span>
+  }
+
+  /**
+   * The value of Photometric Interpretation specifies the intended interpretation of the image
+   * pixel data.
+   *
+   * @return following values (MONOCHROME1 , MONOCHROME2 , PALETTE COLOR ....) Other values are
+   *     permitted but the meaning is not defined by this Standard.
+   */
+  public PhotometricInterpretation getPhotometricInterpretation() {
+<span class="nc bnc" id="L291" title="All 2 branches missed.">    if (isImageInitialized()) {</span>
+<span class="nc" id="L292">      return adapter.getImageDescriptor().getPhotometricInterpretation();</span>
+    }
+<span class="nc" id="L294">    return null;</span>
+  }
+
+  protected boolean isImageInitialized() {
+<span class="nc bnc" id="L298" title="All 2 branches missed.">    if (adapter == null) {</span>
+<span class="nc bnc" id="L299" title="All 2 branches missed.">      return getImage(null, true) != null;</span>
+    }
+<span class="nc" id="L301">    return true;</span>
+  }
+
+  public PlanarImage getModalityLutImage(OpManager manager, DicomImageReadParam params) {
+<span class="nc bnc" id="L305" title="All 2 branches missed.">    PlanarImage image = getImage(manager, adapter == null);</span>
+<span class="nc" id="L306">    return ImageRendering.getModalityLutImage(image, adapter, params);</span>
+  }
+
+  public LutParameters getModalityLutParameters(
+      boolean pixelPadding, LookupTableCV mLUTSeq, boolean inversePaddingMLUT, PrDicomObject pr) {
+<span class="nc bnc" id="L311" title="All 2 branches missed.">    if (isImageInitialized()) {</span>
+<span class="nc" id="L312">      return adapter.getLutParameters(pixelPadding, mLUTSeq, inversePaddingMLUT, pr);</span>
+    }
+<span class="nc" id="L314">    return null;</span>
+  }
+
+  public boolean isPhotometricInterpretationInverse(PresentationStateLut pr) {
+<span class="nc bnc" id="L318" title="All 2 branches missed.">    if (isImageInitialized()) {</span>
+<span class="nc" id="L319">      return adapter.isPhotometricInterpretationInverse(pr);</span>
+    }
+<span class="nc" id="L321">    return false;</span>
+  }
+
+  /**
+   * @param wl the WlParams value
+   * @return 8 bits unsigned Lookup Table
+   */
+  @Override
+  public LookupTableCV getVOILookup(WlParams wl) {
+<span class="nc bnc" id="L330" title="All 2 branches missed.">    if (isImageInitialized()) {</span>
+<span class="nc" id="L331">      return adapter.getVOILookup(wl);</span>
+    }
+<span class="nc" id="L333">    return null;</span>
+  }
+
+  /**
+   * @return default as first element of preset List &lt;br&gt;
+   *     Note : null should never be returned since auto is at least one preset
+   */
+  public PresetWindowLevel getDefaultPreset(WlPresentation wlp) {
+<span class="nc bnc" id="L341" title="All 2 branches missed.">    if (isImageInitialized()) {</span>
+<span class="nc" id="L342">      return adapter.getDefaultPreset(wlp);</span>
+    }
+<span class="nc" id="L344">    return null;</span>
+  }
+
+  public boolean containsPreset(PresetWindowLevel preset) {
+<span class="nc bnc" id="L348" title="All 6 branches missed.">    if (preset != null &amp;&amp; isImageInitialized() &amp;&amp; adapter.getPresetCollectionSize() &gt; 0) {</span>
+<span class="nc" id="L349">      List&lt;PresetWindowLevel&gt; collection = adapter.getPresetList(null);</span>
+<span class="nc bnc" id="L350" title="All 2 branches missed.">      if (collection != null) {</span>
+<span class="nc" id="L351">        return collection.contains(preset);</span>
+      }
+    }
+<span class="nc" id="L354">    return false;</span>
+  }
+
+  public synchronized Collection&lt;LutShape&gt; getLutShapeCollection(WlPresentation wlp) {
+<span class="nc bnc" id="L358" title="All 2 branches missed.">    if (lutShapeCollection != null) {</span>
+<span class="nc" id="L359">      return lutShapeCollection;</span>
+    }
+
+<span class="nc" id="L362">    lutShapeCollection = new LinkedHashSet&lt;&gt;();</span>
+<span class="nc bnc" id="L363" title="All 2 branches missed.">    if (isImageInitialized()) {</span>
+<span class="nc" id="L364">      List&lt;PresetWindowLevel&gt; presetList = adapter.getPresetList(wlp);</span>
+<span class="nc bnc" id="L365" title="All 2 branches missed.">      if (presetList != null) {</span>
+<span class="nc bnc" id="L366" title="All 2 branches missed.">        for (PresetWindowLevel preset : presetList) {</span>
+<span class="nc" id="L367">          lutShapeCollection.add(preset.getLutShape());</span>
+<span class="nc" id="L368">        }</span>
+      }
+    }
+<span class="nc" id="L371">    lutShapeCollection.addAll(DicomImageElement.DEFAULT_LUT_FUNCTIONS);</span>
+
+<span class="nc" id="L373">    return lutShapeCollection;</span>
+  }
+
+  public List&lt;PresetWindowLevel&gt; getPresetList(WlPresentation wl) {
+<span class="nc" id="L377">    return getPresetList(wl, false);</span>
+  }
+
+  public List&lt;PresetWindowLevel&gt; getPresetList(WlPresentation wl, boolean reload) {
+<span class="nc bnc" id="L381" title="All 2 branches missed.">    if (isImageInitialized()) {</span>
+<span class="nc" id="L382">      return adapter.getPresetList(wl, reload);</span>
+    }
+<span class="nc" id="L384">    return Collections.emptyList();</span>
+  }
+
+  @Override
+  protected void findMinMaxValues(PlanarImage img, boolean exclude8bitImage) {
+    /*
+     * This function can be called several times from the inner class Load. min and max will be computed only once.
+     */
+
+<span class="nc bnc" id="L393" title="All 4 branches missed.">    if (img != null &amp;&amp; !isImageAvailable()) {</span>
+<span class="nc" id="L394">      DicomMetaData meta = getMediaReader().getDicomMetaData();</span>
+<span class="nc bnc" id="L395" title="All 2 branches missed.">      if (meta != null) {</span>
+<span class="nc" id="L396">        adapter = new DicomImageAdapter(img, meta.getImageDescriptor());</span>
+<span class="nc" id="L397">        MinMaxLocResult val = adapter.getMinMax();</span>
+<span class="nc bnc" id="L398" title="All 2 branches missed.">        if (val != null) {</span>
+<span class="nc" id="L399">          this.minPixelValue = val.minVal;</span>
+<span class="nc" id="L400">          this.maxPixelValue = val.maxVal;</span>
+        }
+      }
+    }
+<span class="nc" id="L404">  }</span>
+
+  public double[] getDisplayPixelSize() {
+<span class="nc" id="L407">    return new double[] {pixelSizeX, pixelSizeY};</span>
+  }
+
+  @Override
+  public LutShape getDefaultShape(WlPresentation wlp) {
+<span class="nc" id="L412">    PresetWindowLevel defaultPreset = getDefaultPreset(wlp);</span>
+<span class="nc bnc" id="L413" title="All 2 branches missed.">    return (defaultPreset != null) ? defaultPreset.getLutShape() : super.getDefaultShape(null);</span>
+  }
+
+  @Override
+  public double getDefaultWindow(WlPresentation wlp) {
+<span class="nc" id="L418">    PresetWindowLevel defaultPreset = getDefaultPreset(wlp);</span>
+<span class="nc bnc" id="L419" title="All 2 branches missed.">    return (defaultPreset != null) ? defaultPreset.getWindow() : super.getDefaultWindow(null);</span>
+  }
+
+  @Override
+  public double getDefaultLevel(WlPresentation wlp) {
+<span class="nc" id="L424">    PresetWindowLevel defaultPreset = getDefaultPreset(wlp);</span>
+<span class="nc bnc" id="L425" title="All 2 branches missed.">    return (defaultPreset != null) ? defaultPreset.getLevel() : super.getDefaultLevel(null);</span>
+  }
+
+  @Override
+  public PlanarImage getRenderedImage(PlanarImage imageSource, Map&lt;String, Object&gt; params) {
+<span class="nc bnc" id="L430" title="All 2 branches missed.">    if (imageSource == null) {</span>
+<span class="nc" id="L431">      return null;</span>
+    }
+<span class="nc" id="L433">    DicomMetaData meta = getMediaReader().getDicomMetaData();</span>
+<span class="nc bnc" id="L434" title="All 2 branches missed.">    if (meta != null) {</span>
+<span class="nc" id="L435">      DicomImageReadParam readParams = new DicomImageReadParam();</span>
+<span class="nc bnc" id="L436" title="All 2 branches missed.">      if (params != null) {</span>
+<span class="nc" id="L437">        readParams.setPresentationState(</span>
+<span class="nc" id="L438">            (PrDicomObject) params.get(WindowAndPresetsOp.P_PR_ELEMENT));</span>
+
+<span class="nc" id="L440">        readParams.setWindowCenter((Double) params.get(ActionW.LEVEL.cmd()));</span>
+<span class="nc" id="L441">        readParams.setWindowWidth((Double) params.get(ActionW.WINDOW.cmd()));</span>
+<span class="nc" id="L442">        readParams.setLevelMin((Double) params.get(ActionW.LEVEL_MIN.cmd()));</span>
+<span class="nc" id="L443">        readParams.setLevelMax((Double) params.get(ActionW.LEVEL_MAX.cmd()));</span>
+<span class="nc" id="L444">        readParams.setVoiLutShape((LutShape) params.get(ActionW.LUT_SHAPE.cmd()));</span>
+
+<span class="nc" id="L446">        readParams.setApplyPixelPadding((Boolean) params.get(ActionW.IMAGE_PIX_PADDING.cmd()));</span>
+<span class="nc" id="L447">        readParams.setApplyWindowLevelToColorImage((Boolean) params.get(WindowOp.P_APPLY_WL_COLOR));</span>
+<span class="nc" id="L448">        readParams.setInverseLut((Boolean) params.get(WindowOp.P_INVERSE_LEVEL));</span>
+<span class="nc" id="L449">        readParams.setFillOutsideLutRange((Boolean) params.get(WindowOp.P_FILL_OUTSIDE_LUT));</span>
+      }
+<span class="nc bnc" id="L451" title="All 2 branches missed.">      if (isImageInitialized()) {</span>
+<span class="nc" id="L452">        return ImageRendering.getVoiLutImage(imageSource, adapter, readParams);</span>
+      }
+    }
+<span class="nc" id="L455">    return null;</span>
+  }
+
+  public GeometryOfSlice getSliceGeometry() {
+    // This geometry is adapted to get square pixel  for display
+<span class="nc" id="L460">    return getGeometry(true);</span>
+  }
+
+  public GeometryOfSlice getRawSliceGeometry() {
+<span class="nc" id="L464">    return getGeometry(false);</span>
+  }
+
+  private GeometryOfSlice getGeometry(boolean isDisplay) {
+<span class="nc" id="L468">    double[] imgOr = TagD.getTagValue(this, Tag.ImageOrientationPatient, double[].class);</span>
+<span class="nc bnc" id="L469" title="All 4 branches missed.">    if (imgOr != null &amp;&amp; imgOr.length == 6) {</span>
+<span class="nc" id="L470">      double[] pos = TagD.getTagValue(this, Tag.ImagePositionPatient, double[].class);</span>
+<span class="nc bnc" id="L471" title="All 4 branches missed.">      if (pos != null &amp;&amp; pos.length == 3) {</span>
+<span class="nc" id="L472">        Double sliceTickness = TagD.getTagValue(this, Tag.SliceThickness, Double.class);</span>
+<span class="nc bnc" id="L473" title="All 2 branches missed.">        if (sliceTickness == null) {</span>
+<span class="nc" id="L474">          sliceTickness = getPixelSize();</span>
+        }
+        double[] pixSize =
+<span class="nc bnc" id="L477" title="All 2 branches missed.">            isDisplay ? new double[] {getPixelSize(), getPixelSize()} : getDisplayPixelSize();</span>
+<span class="nc" id="L478">        Vector3d spacing = new Vector3d(pixSize[0], pixSize[1], sliceTickness);</span>
+<span class="nc" id="L479">        Integer rows = TagD.getTagValue(this, Tag.Rows, Integer.class);</span>
+<span class="nc" id="L480">        Integer columns = TagD.getTagValue(this, Tag.Columns, Integer.class);</span>
+<span class="nc bnc" id="L481" title="All 8 branches missed.">        if (rows != null &amp;&amp; columns != null &amp;&amp; rows &gt; 0 &amp;&amp; columns &gt; 0) {</span>
+          // SliceThickness is only use in IntersectVolume
+          // With isDisplay, adapt rows and columns to have square pixel image size
+          Vector3d dimensions =
+<span class="nc bnc" id="L485" title="All 2 branches missed.">              isDisplay</span>
+<span class="nc" id="L486">                  ? new Vector3d(rows * getRescaleY(), columns * getRescaleX(), 1)</span>
+<span class="nc" id="L487">                  : new Vector3d(rows, columns, 1);</span>
+<span class="nc" id="L488">          return new GeometryOfSlice(</span>
+              new Vector3d(imgOr[0], imgOr[1], imgOr[2]),
+              new Vector3d(imgOr[3], imgOr[4], imgOr[5]),
+              new Vector3d(pos),
+              spacing,
+<span class="nc" id="L493">              sliceTickness,</span>
+              dimensions);
+        }
+      }
+    }
+<span class="nc" id="L498">    return null;</span>
+  }
+
+  @Override
+  public Attributes saveToFile(File output, DicomExportParameters params) {
+<span class="nc bnc" id="L503" title="All 4 branches missed.">    boolean hasTransformation = params.dicomEditors() != null &amp;&amp; !params.dicomEditors().isEmpty();</span>
+<span class="nc bnc" id="L504" title="All 4 branches missed.">    if (!hasTransformation &amp;&amp; params.syntax() == null) {</span>
+<span class="nc" id="L505">      super.saveToFile(output);</span>
+<span class="nc" id="L506">      return new Attributes();</span>
+    }
+
+<span class="nc" id="L509">    DicomMetaData metaData = getMediaReader().getDicomMetaData();</span>
+    String outputTsuid =
+<span class="nc bnc" id="L511" title="All 2 branches missed.">        params.syntax() == null</span>
+<span class="nc" id="L512">            ? metaData.getTransferSyntaxUID()</span>
+<span class="nc" id="L513">            : params.syntax().getTransferSyntaxUID();</span>
+<span class="nc" id="L514">    outputTsuid =</span>
+<span class="nc" id="L515">        getOutputTransferSyntax(params.onlyRaw(), metaData.getTransferSyntaxUID(), outputTsuid);</span>
+<span class="nc" id="L516">    var adaptTransferSyntax = new AdaptTransferSyntax(metaData.getTransferSyntaxUID(), outputTsuid);</span>
+<span class="nc" id="L517">    adaptTransferSyntax.setJpegQuality(params.compressionQuality());</span>
+<span class="nc" id="L518">    adaptTransferSyntax.setCompressionRatioFactor(params.compressionRatioFactor());</span>
+<span class="nc" id="L519">    Attributes attributes = new Attributes(metaData.getDicomObject());</span>
+<span class="nc" id="L520">    AttributeEditorContext context =</span>
+<span class="nc" id="L521">        new AttributeEditorContext(adaptTransferSyntax.getOriginal(), null, null);</span>
+<span class="nc bnc" id="L522" title="All 2 branches missed.">    if (hasTransformation) {</span>
+<span class="nc" id="L523">      params.dicomEditors().forEach(e -&gt; e.apply(attributes, context));</span>
+    }
+
+<span class="nc" id="L526">    BytesWithImageDescriptor desc =</span>
+<span class="nc" id="L527">        ImageAdapter.imageTranscode(attributes, adaptTransferSyntax, context);</span>
+<span class="nc bnc" id="L528" title="All 2 branches missed.">    if (ImageAdapter.writeDicomFile(</span>
+<span class="nc" id="L529">        attributes, adaptTransferSyntax, context.getEditable(), desc, output)) {</span>
+<span class="nc" id="L530">      return attributes;</span>
+    } else {
+<span class="nc" id="L532">      LOGGER.error(&quot;Cannot export DICOM file: {}&quot;, getFileCache().getOriginalFile().orElse(null));</span>
+<span class="nc" id="L533">      return null;</span>
+    }
+  }
+
+  @Override
+  public SimpleOpManager buildSimpleOpManager(
+      boolean img16, boolean padding, boolean shutter, boolean overlay, double ratio) {
+<span class="nc" id="L540">    SimpleOpManager manager = new SimpleOpManager();</span>
+<span class="nc" id="L541">    PlanarImage image = getImage(null);</span>
+<span class="nc bnc" id="L542" title="All 2 branches missed.">    if (image != null) {</span>
+<span class="nc bnc" id="L543" title="All 2 branches missed.">      if (img16) {</span>
+<span class="nc" id="L544">        DicomImageReadParam params = new DicomImageReadParam();</span>
+<span class="nc" id="L545">        params.setApplyPixelPadding(padding);</span>
+
+<span class="nc" id="L547">        image = getModalityLutImage(null, params);</span>
+<span class="nc bnc" id="L548" title="All 2 branches missed.">        if (CvType.depth(image.type()) == CvType.CV_16S) {</span>
+<span class="nc" id="L549">          ImageCV dstImg = new ImageCV();</span>
+<span class="nc" id="L550">          image.toImageCV().convertTo(dstImg, CvType.CV_16UC(image.channels()), 1.0, 32768);</span>
+<span class="nc" id="L551">          image = dstImg;</span>
+        }
+<span class="nc" id="L553">      } else {</span>
+<span class="nc" id="L554">        manager.addImageOperationAction(new WindowAndPresetsOp());</span>
+<span class="nc" id="L555">        manager.setParamValue(WindowOp.OP_NAME, WindowOp.P_IMAGE_ELEMENT, this);</span>
+<span class="nc" id="L556">        manager.setParamValue(WindowOp.OP_NAME, ActionW.IMAGE_PIX_PADDING.cmd(), padding);</span>
+<span class="nc" id="L557">        manager.setParamValue(WindowOp.OP_NAME, ActionW.DEFAULT_PRESET.cmd(), true);</span>
+      }
+
+<span class="nc bnc" id="L560" title="All 2 branches missed.">      if (shutter) {</span>
+<span class="nc" id="L561">        manager.addImageOperationAction(new ShutterOp());</span>
+<span class="nc" id="L562">        manager.setParamValue(ShutterOp.OP_NAME, ShutterOp.P_IMAGE_ELEMENT, this);</span>
+<span class="nc" id="L563">        manager.setParamValue(ShutterOp.OP_NAME, ShutterOp.P_SHOW, true);</span>
+<span class="nc" id="L564">        manager.setParamValue(</span>
+<span class="nc" id="L565">            ShutterOp.OP_NAME, ShutterOp.P_SHAPE, getTagValue(TagW.ShutterFinalShape));</span>
+<span class="nc" id="L566">        manager.setParamValue(</span>
+<span class="nc" id="L567">            ShutterOp.OP_NAME, ShutterOp.P_PS_VALUE, getTagValue(TagW.ShutterPSValue));</span>
+<span class="nc" id="L568">        manager.setParamValue(</span>
+<span class="nc" id="L569">            ShutterOp.OP_NAME, ShutterOp.P_RGB_COLOR, getTagValue(TagW.ShutterRGBColor));</span>
+      }
+<span class="nc bnc" id="L571" title="All 2 branches missed.">      if (overlay) {</span>
+<span class="nc" id="L572">        manager.addImageOperationAction(new OverlayOp());</span>
+<span class="nc" id="L573">        manager.setParamValue(OverlayOp.OP_NAME, OverlayOp.P_IMAGE_ELEMENT, this);</span>
+<span class="nc" id="L574">        manager.setParamValue(OverlayOp.OP_NAME, OverlayOp.P_SHOW, true);</span>
+      }
+<span class="nc" id="L576">      manager.addImageOperationAction(buildZoomOp(ratio));</span>
+<span class="nc" id="L577">      manager.setFirstNode(image);</span>
+    }
+<span class="nc" id="L579">    return manager;</span>
+  }
+
+  private static String getOutputTransferSyntax(
+      boolean onlyRaw, String originalTsuid, String outputTsuid) {
+<span class="nc bnc" id="L584" title="All 2 branches missed.">    if (outputTsuid == null) {</span>
+<span class="nc" id="L585">      return originalTsuid;</span>
+    }
+<span class="nc bnc" id="L587" title="All 6 branches missed.">    if (onlyRaw &amp;&amp; !DicomUtils.isNative(originalTsuid) &amp;&amp; !UID.RLELossless.equals(originalTsuid)) {</span>
+<span class="nc" id="L588">      return originalTsuid;</span>
+    }
+<span class="nc bnc" id="L590" title="All 2 branches missed.">    if (DicomOutputData.isSupportedSyntax(outputTsuid)</span>
+<span class="nc bnc" id="L591" title="All 2 branches missed.">        &amp;&amp; DicomImageReader.isSupportedSyntax(originalTsuid)) {</span>
+<span class="nc" id="L592">      return outputTsuid;</span>
+    }
+<span class="nc bnc" id="L594" title="All 2 branches missed.">    if (UID.RLELossless.equals(originalTsuid)</span>
+<span class="nc bnc" id="L595" title="All 2 branches missed.">        || UID.ImplicitVRLittleEndian.equals(originalTsuid)</span>
+<span class="nc bnc" id="L596" title="All 2 branches missed.">        || UID.ExplicitVRBigEndian.equals(originalTsuid)) {</span>
+<span class="nc" id="L597">      return UID.ExplicitVRLittleEndian;</span>
+    }
+<span class="nc" id="L599">    return originalTsuid;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,577 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AdvancedShape.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.utils.bean</a> &gt; <span class="el_source">AdvancedShape.java</span></div><h1>AdvancedShape.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.utils.bean;
+
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.Paint;
+import java.awt.Rectangle;
+import java.awt.Shape;
+import java.awt.Stroke;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Area;
+import java.awt.geom.Line2D;
+import java.awt.geom.Path2D;
+import java.awt.geom.PathIterator;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.gui.util.GeomUtil;
+import org.weasis.core.ui.model.graphic.Graphic;
+import org.weasis.core.util.MathUtil;
+
+public class AdvancedShape implements Shape {
+<span class="nc" id="L36">  private static final Logger LOGGER = LoggerFactory.getLogger(AdvancedShape.class);</span>
+
+  /**
+   * First element should be considered as the main shape used for drawing of the main features of
+   * graphic.&lt;br&gt;
+   * For instance, this first shape defines measurement areas or path lines. Other shape are usually
+   * dedicated to decorative drawings, with or without invariant size according to the view.
+   */
+  public final List&lt;BasicShape&gt; shapeList;
+
+  protected AffineTransform transform;
+  private final Graphic graphic;
+
+<span class="nc" id="L49">  public AdvancedShape(Graphic graphic, int initialShapeNumber) {</span>
+<span class="nc" id="L50">    this.graphic = Objects.requireNonNull(graphic, &quot;Graphic cannot be null!&quot;);</span>
+<span class="nc" id="L51">    this.shapeList = new ArrayList&lt;&gt;(initialShapeNumber);</span>
+<span class="nc" id="L52">  }</span>
+
+  public List&lt;BasicShape&gt; getShapeList() {
+<span class="nc" id="L55">    return shapeList;</span>
+  }
+
+  public BasicShape addShape(Shape shape) {
+<span class="nc" id="L59">    BasicShape s = new BasicShape(shape);</span>
+<span class="nc" id="L60">    shapeList.add(s);</span>
+<span class="nc" id="L61">    return s;</span>
+  }
+
+  public BasicShape addShape(Shape shape, Stroke stroke, boolean fixedLineWidth) {
+<span class="nc" id="L65">    BasicShape s = new BasicShape(shape, stroke, fixedLineWidth);</span>
+<span class="nc" id="L66">    shapeList.add(s);</span>
+<span class="nc" id="L67">    return s;</span>
+  }
+
+  ScaleInvariantShape addScaleInvShape(Shape shape, Point2D anchorPoint) {
+<span class="nc" id="L71">    return addScaleInvShape(</span>
+<span class="nc" id="L72">        shape, anchorPoint, graphic.getStroke(graphic.getLineThickness()), false);</span>
+  }
+
+  public ScaleInvariantShape addScaleInvShape(
+      Shape shape, Point2D anchorPoint, double scalingMin, boolean fixedLineWidth) {
+<span class="nc" id="L77">    return addScaleInvShape(</span>
+        shape,
+        anchorPoint,
+        scalingMin,
+<span class="nc" id="L81">        graphic.getStroke(graphic.getLineThickness()),</span>
+        fixedLineWidth);
+  }
+
+  public InvariantShape addAllInvShape(
+      Shape shape, Point2D anchorPoint, Stroke stroke, boolean fixedLineWidth) {
+<span class="nc" id="L87">    InvariantShape s = new InvariantShape(shape, stroke, anchorPoint, fixedLineWidth);</span>
+<span class="nc" id="L88">    shapeList.add(s);</span>
+<span class="nc" id="L89">    return s;</span>
+  }
+
+  public LinkSegmentToInvariantShape addLinkSegmentToInvariantShape(
+      Line2D line, Point2D anchorPoint, Shape invShape, Stroke stroke, boolean fixedLineWidth) {
+<span class="nc" id="L94">    LinkSegmentToInvariantShape s =</span>
+        new LinkSegmentToInvariantShape(line, stroke, anchorPoint, invShape, fixedLineWidth);
+<span class="nc" id="L96">    shapeList.add(s);</span>
+<span class="nc" id="L97">    return s;</span>
+  }
+
+  public ScaleInvariantShape addScaleInvShape(
+      Shape shape, Point2D anchorPoint, double scalingMin, Stroke stroke, boolean fixedLineWidth) {
+<span class="nc" id="L102">    ScaleInvariantShape s =</span>
+        new ScaleInvariantShape(shape, stroke, anchorPoint, scalingMin, fixedLineWidth);
+<span class="nc" id="L104">    shapeList.add(s);</span>
+<span class="nc" id="L105">    return s;</span>
+  }
+
+  public ScaleInvariantShape addScaleInvShape(
+      Shape shape, Point2D anchorPoint, Stroke stroke, boolean fixedLineWidth) {
+<span class="nc" id="L110">    ScaleInvariantShape s = new ScaleInvariantShape(shape, stroke, anchorPoint, fixedLineWidth);</span>
+<span class="nc" id="L111">    shapeList.add(s);</span>
+<span class="nc" id="L112">    return s;</span>
+  }
+
+  public void setAffineTransform(AffineTransform transform) {
+<span class="nc" id="L116">    this.transform = transform;</span>
+<span class="nc" id="L117">  }</span>
+
+  public void paint(Graphics2D g2d, AffineTransform transform) {
+<span class="nc" id="L120">    setAffineTransform(transform);</span>
+
+<span class="nc" id="L122">    Paint oldPaint = g2d.getPaint();</span>
+<span class="nc" id="L123">    Stroke oldStroke = g2d.getStroke();</span>
+
+<span class="nc" id="L125">    Paint paint = graphic.getColorPaint();</span>
+<span class="nc" id="L126">    boolean filled = graphic.getFilled();</span>
+
+<span class="nc bnc" id="L128" title="All 2 branches missed.">    for (BasicShape item : shapeList) {</span>
+<span class="nc bnc" id="L129" title="All 2 branches missed.">      if (item.isVisible()) {</span>
+<span class="nc" id="L130">        Shape drawingShape = item.getRealShape();</span>
+
+<span class="nc bnc" id="L132" title="All 2 branches missed.">        if (drawingShape != null) {</span>
+<span class="nc bnc" id="L133" title="All 2 branches missed.">          if (transform != null) {</span>
+<span class="nc" id="L134">            drawingShape = transform.createTransformedShape(drawingShape);</span>
+          }
+<span class="nc" id="L136">          Paint itemPaint = item.getColorPaint();</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">          g2d.setPaint(itemPaint == null ? paint : itemPaint);</span>
+<span class="nc" id="L138">          g2d.setStroke(item.stroke);</span>
+<span class="nc" id="L139">          g2d.draw(drawingShape);</span>
+
+<span class="nc" id="L141">          Boolean itemFilled = item.getFilled();</span>
+<span class="nc bnc" id="L142" title="All 6 branches missed.">          if (itemFilled == null ? filled : itemFilled) {</span>
+<span class="nc" id="L143">            float fillOpacity = graphic.getFillOpacity();</span>
+<span class="nc bnc" id="L144" title="All 4 branches missed.">            if (fillOpacity &lt; 1.0f &amp;&amp; g2d.getPaint() instanceof Color color) {</span>
+<span class="nc" id="L145">              int alpha = (int) (fillOpacity * color.getAlpha());</span>
+<span class="nc" id="L146">              g2d.setPaint(new Color(color.getRed(), color.getGreen(), color.getBlue(), alpha));</span>
+            }
+<span class="nc" id="L148">            g2d.fill(drawingShape);</span>
+          }
+        }
+      }
+<span class="nc" id="L152">    }</span>
+
+<span class="nc" id="L154">    g2d.setPaint(oldPaint);</span>
+<span class="nc" id="L155">    g2d.setStroke(oldStroke);</span>
+<span class="nc" id="L156">  }</span>
+
+  /**
+   * @return a shape which is by convention the first shape in the list which is dedicated to the
+   *     user tool drawing
+   */
+  public Shape getGeneralShape() {
+<span class="nc bnc" id="L163" title="All 2 branches missed.">    if (!shapeList.isEmpty()) {</span>
+<span class="nc" id="L164">      BasicShape s = shapeList.get(0);</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">      if (s != null) {</span>
+<span class="nc" id="L166">        return s.getRealShape();</span>
+      }
+    }
+<span class="nc" id="L169">    return null;</span>
+  }
+
+  @Override
+  public Rectangle getBounds() {
+<span class="nc" id="L174">    Rectangle rectangle = null;</span>
+
+<span class="nc bnc" id="L176" title="All 2 branches missed.">    for (BasicShape item : shapeList) {</span>
+<span class="nc" id="L177">      Shape realShape = item.getRealShape();</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">      Rectangle bounds = realShape != null ? realShape.getBounds() : null;</span>
+
+<span class="nc bnc" id="L180" title="All 2 branches missed.">      if (bounds != null) {</span>
+<span class="nc bnc" id="L181" title="All 2 branches missed.">        if (rectangle == null) {</span>
+<span class="nc" id="L182">          rectangle = bounds;</span>
+        } else {
+<span class="nc" id="L184">          rectangle.add(bounds);</span>
+        }
+      }
+<span class="nc" id="L187">    }</span>
+
+<span class="nc" id="L189">    return rectangle;</span>
+  }
+
+  @Override
+  public Rectangle2D getBounds2D() {
+<span class="nc" id="L194">    Rectangle2D rectangle = null;</span>
+
+<span class="nc bnc" id="L196" title="All 2 branches missed.">    for (BasicShape item : shapeList) {</span>
+<span class="nc" id="L197">      Shape realShape = item.getRealShape();</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">      Rectangle2D bounds = realShape != null ? realShape.getBounds2D() : null;</span>
+
+<span class="nc bnc" id="L200" title="All 2 branches missed.">      if (bounds != null) {</span>
+<span class="nc bnc" id="L201" title="All 2 branches missed.">        if (rectangle == null) {</span>
+<span class="nc" id="L202">          rectangle = bounds;</span>
+        } else {
+<span class="nc" id="L204">          rectangle.add(bounds);</span>
+        }
+      }
+<span class="nc" id="L207">    }</span>
+<span class="nc" id="L208">    return rectangle;</span>
+  }
+
+  @Override
+  public boolean contains(double x, double y) {
+<span class="nc bnc" id="L213" title="All 2 branches missed.">    for (BasicShape item : shapeList) {</span>
+<span class="nc" id="L214">      Shape realShape = item.getRealShape();</span>
+<span class="nc bnc" id="L215" title="All 4 branches missed.">      if (realShape != null &amp;&amp; realShape.contains(x, y)) {</span>
+<span class="nc" id="L216">        return true;</span>
+      }
+<span class="nc" id="L218">    }</span>
+<span class="nc" id="L219">    return false;</span>
+  }
+
+  @Override
+  public boolean contains(Point2D p) {
+<span class="nc bnc" id="L224" title="All 2 branches missed.">    for (BasicShape item : shapeList) {</span>
+<span class="nc" id="L225">      Shape realShape = item.getRealShape();</span>
+
+<span class="nc bnc" id="L227" title="All 4 branches missed.">      if (realShape != null &amp;&amp; realShape.contains(p)) {</span>
+<span class="nc" id="L228">        return true;</span>
+      }
+<span class="nc" id="L230">    }</span>
+<span class="nc" id="L231">    return false;</span>
+  }
+
+  @Override
+  public boolean contains(double x, double y, double w, double h) {
+<span class="nc bnc" id="L236" title="All 2 branches missed.">    for (BasicShape item : shapeList) {</span>
+<span class="nc" id="L237">      Shape realShape = item.getRealShape();</span>
+<span class="nc bnc" id="L238" title="All 4 branches missed.">      if (realShape != null &amp;&amp; realShape.contains(x, y, w, h)) {</span>
+<span class="nc" id="L239">        return true;</span>
+      }
+<span class="nc" id="L241">    }</span>
+<span class="nc" id="L242">    return false;</span>
+  }
+
+  @Override
+  public boolean contains(Rectangle2D r) {
+<span class="nc bnc" id="L247" title="All 2 branches missed.">    for (BasicShape item : shapeList) {</span>
+<span class="nc" id="L248">      Shape realShape = item.getRealShape();</span>
+
+<span class="nc bnc" id="L250" title="All 4 branches missed.">      if (realShape != null &amp;&amp; realShape.contains(r)) {</span>
+<span class="nc" id="L251">        return true;</span>
+      }
+<span class="nc" id="L253">    }</span>
+<span class="nc" id="L254">    return false;</span>
+  }
+
+  @Override
+  public boolean intersects(double x, double y, double w, double h) {
+<span class="nc bnc" id="L259" title="All 2 branches missed.">    for (BasicShape item : shapeList) {</span>
+<span class="nc" id="L260">      Shape realShape = item.getRealShape();</span>
+<span class="nc bnc" id="L261" title="All 4 branches missed.">      if (realShape != null &amp;&amp; realShape.intersects(x, y, w, h)) {</span>
+<span class="nc" id="L262">        return true;</span>
+      }
+<span class="nc" id="L264">    }</span>
+<span class="nc" id="L265">    return false;</span>
+  }
+
+  @Override
+  public boolean intersects(Rectangle2D r) {
+<span class="nc bnc" id="L270" title="All 2 branches missed.">    for (BasicShape item : shapeList) {</span>
+<span class="nc" id="L271">      Shape realShape = item.getRealShape();</span>
+<span class="nc bnc" id="L272" title="All 4 branches missed.">      if (realShape != null &amp;&amp; realShape.intersects(r)) {</span>
+<span class="nc" id="L273">        return true;</span>
+      }
+<span class="nc" id="L275">    }</span>
+<span class="nc" id="L276">    return false;</span>
+  }
+
+  @Override
+  public PathIterator getPathIterator(AffineTransform at) {
+<span class="nc bnc" id="L281" title="All 2 branches missed.">    if (at != null) {</span>
+<span class="nc" id="L282">      setAffineTransform(at);</span>
+    }
+<span class="nc" id="L284">    return getFullPathShape().getPathIterator(at);</span>
+  }
+
+  @Override
+  public PathIterator getPathIterator(AffineTransform at, double flatness) {
+<span class="nc bnc" id="L289" title="All 2 branches missed.">    if (at != null) {</span>
+<span class="nc" id="L290">      setAffineTransform(at);</span>
+    }
+<span class="nc" id="L292">    return getFullPathShape().getPathIterator(at, flatness);</span>
+  }
+
+  private Path2D getFullPathShape() {
+<span class="nc" id="L296">    Path2D pathShape = new Path2D.Double(Path2D.WIND_NON_ZERO);</span>
+
+<span class="nc bnc" id="L298" title="All 2 branches missed.">    for (BasicShape item : shapeList) {</span>
+<span class="nc" id="L299">      Shape realShape = item.getRealShape();</span>
+<span class="nc bnc" id="L300" title="All 2 branches missed.">      if (realShape != null) {</span>
+<span class="nc" id="L301">        pathShape.append(realShape, false);</span>
+      }
+<span class="nc" id="L303">    }</span>
+
+<span class="nc" id="L305">    return pathShape;</span>
+  }
+
+  public Area getArea(AffineTransform transform) {
+<span class="nc" id="L309">    setAffineTransform(transform);</span>
+<span class="nc" id="L310">    double scalingFactor = GeomUtil.extractScalingFactor(transform);</span>
+<span class="nc" id="L311">    double growingSize = graphic.getHandleSize() * 2.0 / scalingFactor;</span>
+<span class="nc" id="L312">    Stroke boundingStroke =</span>
+        new BasicStroke((float) growingSize, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND);
+
+<span class="nc" id="L315">    Area pathBoundingArea = new Area();</span>
+
+<span class="nc bnc" id="L317" title="All 2 branches missed.">    for (BasicShape item : shapeList) {</span>
+
+      // Note : if shape is invalid, like a path with an odd number of curves, creating a new Area
+      // involves a
+      // &quot;java.lang.InternalError&quot;. Because trapping the exception is too much time-consuming it's
+      // the user
+      // responsibility of this not to happen
+
+<span class="nc" id="L325">      Shape strokedArea = null;</span>
+      try {
+<span class="nc" id="L327">        Shape realShape = item.getRealShape();</span>
+<span class="nc bnc" id="L328" title="All 2 branches missed.">        if (realShape != null) {</span>
+<span class="nc" id="L329">          Shape strokedShape = boundingStroke.createStrokedShape(realShape);</span>
+<span class="nc" id="L330">          strokedArea = new Area(strokedShape);</span>
+        }
+
+<span class="nc" id="L333">      } catch (Exception e) {</span>
+<span class="nc" id="L334">        LOGGER.error(&quot;This shape cannot be drawn, the graphic is deleted.&quot;, e);</span>
+<span class="nc" id="L335">        graphic.fireRemoveAction();</span>
+<span class="nc" id="L336">      }</span>
+<span class="nc bnc" id="L337" title="All 2 branches missed.">      if (strokedArea != null) {</span>
+<span class="nc" id="L338">        pathBoundingArea.add(new Area(strokedArea));</span>
+      }
+<span class="nc" id="L340">    }</span>
+<span class="nc" id="L341">    return pathBoundingArea;</span>
+  }
+
+  public class BasicShape {
+    final Shape shape;
+    final boolean fixedLineWidth;
+    Stroke stroke;
+    boolean visible;
+    Boolean filled;
+    Paint colorPaint;
+
+    public BasicShape(Shape shape) {
+<span class="nc" id="L353">      this(shape, graphic.getStroke(graphic.getLineThickness()), false);</span>
+<span class="nc" id="L354">    }</span>
+
+<span class="nc" id="L356">    public BasicShape(Shape shape, Stroke stroke, boolean fixedLineWidth) {</span>
+<span class="nc bnc" id="L357" title="All 4 branches missed.">      if (shape == null || stroke == null) {</span>
+<span class="nc" id="L358">        throw new IllegalArgumentException();</span>
+      }
+<span class="nc" id="L360">      this.shape = shape;</span>
+<span class="nc" id="L361">      this.stroke = stroke;</span>
+<span class="nc" id="L362">      this.fixedLineWidth = fixedLineWidth;</span>
+<span class="nc" id="L363">      this.visible = true;</span>
+<span class="nc" id="L364">      this.filled = null;</span>
+<span class="nc" id="L365">      this.colorPaint = null;</span>
+<span class="nc" id="L366">    }</span>
+
+    public Paint getColorPaint() {
+<span class="nc" id="L369">      return colorPaint;</span>
+    }
+
+    public void setColorPaint(Paint colorPaint) {
+<span class="nc" id="L373">      this.colorPaint = colorPaint;</span>
+<span class="nc" id="L374">    }</span>
+
+    public Boolean getFilled() {
+<span class="nc" id="L377">      return filled;</span>
+    }
+
+    public Shape getRealShape() {
+<span class="nc" id="L381">      return shape;</span>
+    }
+
+    public void changeLineThickness(float width) {
+<span class="nc bnc" id="L385" title="All 2 branches missed.">      if (!fixedLineWidth</span>
+<span class="nc bnc" id="L386" title="All 2 branches missed.">          &amp;&amp; stroke instanceof BasicStroke s</span>
+<span class="nc bnc" id="L387" title="All 2 branches missed.">          &amp;&amp; MathUtil.isDifferent(s.getLineWidth(), width)) {</span>
+<span class="nc" id="L388">        stroke =</span>
+            new BasicStroke(
+                width,
+<span class="nc" id="L391">                s.getEndCap(),</span>
+<span class="nc" id="L392">                s.getLineJoin(),</span>
+<span class="nc" id="L393">                s.getMiterLimit(),</span>
+<span class="nc" id="L394">                s.getDashArray(),</span>
+<span class="nc" id="L395">                s.getDashPhase());</span>
+      }
+<span class="nc" id="L397">    }</span>
+
+    public void setVisible(boolean visible) {
+<span class="nc" id="L400">      this.visible = visible;</span>
+<span class="nc" id="L401">    }</span>
+
+    public boolean isVisible() {
+<span class="nc" id="L404">      return visible;</span>
+    }
+
+    public Shape getShape() {
+<span class="nc" id="L408">      return shape;</span>
+    }
+
+    public boolean isFixedLineWidth() {
+<span class="nc" id="L412">      return fixedLineWidth;</span>
+    }
+
+    public Stroke getStroke() {
+<span class="nc" id="L416">      return stroke;</span>
+    }
+
+    public void setStroke(Stroke stroke) {
+<span class="nc" id="L420">      this.stroke = stroke;</span>
+<span class="nc" id="L421">    }</span>
+
+    public void setFilled(boolean filled) {
+<span class="nc" id="L424">      this.filled = filled;</span>
+<span class="nc" id="L425">    }</span>
+  }
+
+  /** Dedicated to drawings with invariant size around anchorPoint according to the view */
+  public class ScaleInvariantShape extends BasicShape {
+    final Point2D anchorPoint;
+    final double scalingMin;
+
+    public ScaleInvariantShape(
+        Shape shape, Stroke stroke, Point2D anchorPoint, boolean fixedLineWidth) {
+<span class="nc" id="L435">      this(shape, stroke, anchorPoint, 0.0, fixedLineWidth);</span>
+<span class="nc" id="L436">    }</span>
+
+    public ScaleInvariantShape(
+        Shape shape,
+        Stroke stroke,
+        Point2D anchorPoint,
+        double scalingMin,
+<span class="nc" id="L443">        boolean fixedLineWidth) {</span>
+<span class="nc" id="L444">      super(shape, stroke, fixedLineWidth);</span>
+
+<span class="nc bnc" id="L446" title="All 2 branches missed.">      if (anchorPoint == null) {</span>
+<span class="nc" id="L447">        throw new IllegalArgumentException();</span>
+      }
+
+<span class="nc bnc" id="L450" title="All 2 branches missed.">      if (scalingMin &lt; 0) {</span>
+<span class="nc" id="L451">        throw new IllegalArgumentException();</span>
+      }
+
+<span class="nc" id="L454">      this.anchorPoint = (Point2D) anchorPoint.clone();</span>
+<span class="nc" id="L455">      this.scalingMin = scalingMin;</span>
+<span class="nc" id="L456">    }</span>
+
+    @Override
+    public Shape getRealShape() {
+<span class="nc" id="L460">      double scalingFactor = GeomUtil.extractScalingFactor(transform);</span>
+<span class="nc" id="L461">      double scale = Math.max(scalingFactor, scalingMin);</span>
+<span class="nc bnc" id="L462" title="All 2 branches missed.">      return MathUtil.isDifferentFromZero(scale)</span>
+<span class="nc" id="L463">          ? GeomUtil.getScaledShape(shape, 1 / scale, anchorPoint)</span>
+<span class="nc" id="L464">          : null;</span>
+    }
+  }
+
+  /**
+   * Invariant to all the transformations except to flip (horizontal mirror)
+   *
+   * @version $Rev$ $Date$
+   */
+  public class InvariantShape extends BasicShape {
+
+    final Point2D anchorPoint;
+
+<span class="nc" id="L477">    public InvariantShape(Shape shape, Stroke stroke, Point2D anchorPoint, boolean fixedLineWidth) {</span>
+<span class="nc" id="L478">      super(shape, stroke, fixedLineWidth);</span>
+
+<span class="nc bnc" id="L480" title="All 2 branches missed.">      if (anchorPoint == null) {</span>
+<span class="nc" id="L481">        throw new IllegalArgumentException();</span>
+      }
+<span class="nc" id="L483">      this.anchorPoint = (Point2D) anchorPoint.clone();</span>
+<span class="nc" id="L484">    }</span>
+
+    @Override
+    public Shape getRealShape() {
+<span class="nc bnc" id="L488" title="All 2 branches missed.">      if (transform == null) {</span>
+<span class="nc" id="L489">        return shape;</span>
+      }
+<span class="nc" id="L491">      AffineTransform invTransform = new AffineTransform(); // Identity transformation.</span>
+
+<span class="nc" id="L493">      double scale = GeomUtil.extractScalingFactor(transform);</span>
+<span class="nc" id="L494">      double angleRad = GeomUtil.extractAngleRad(transform);</span>
+<span class="nc" id="L495">      boolean scaled = MathUtil.isDifferent(scale, 1.0);</span>
+<span class="nc" id="L496">      boolean rotated = MathUtil.isDifferentFromZero(angleRad);</span>
+
+<span class="nc" id="L498">      invTransform.translate(anchorPoint.getX(), anchorPoint.getY());</span>
+
+<span class="nc bnc" id="L500" title="All 2 branches missed.">      if (scaled) {</span>
+<span class="nc" id="L501">        invTransform.scale(1 / scale, 1 / scale);</span>
+      }
+<span class="nc bnc" id="L503" title="All 2 branches missed.">      if (rotated) {</span>
+<span class="nc" id="L504">        invTransform.rotate(-angleRad);</span>
+      }
+<span class="nc bnc" id="L506" title="All 2 branches missed.">      if ((transform.getType() &amp; AffineTransform.TYPE_FLIP) != 0) {</span>
+<span class="nc" id="L507">        invTransform.scale(-1.0, -1.0);</span>
+      }
+<span class="nc" id="L509">      invTransform.translate(-anchorPoint.getX(), -anchorPoint.getY());</span>
+
+<span class="nc" id="L511">      return invTransform.createTransformedShape(shape);</span>
+    }
+  }
+
+  public class LinkSegmentToInvariantShape extends BasicShape {
+
+    final Point2D anchorPoint;
+    final Shape invShape;
+
+    public LinkSegmentToInvariantShape(
+<span class="nc" id="L521">        Line2D line, Stroke stroke, Point2D anchorPoint, Shape invShape, boolean fixedLineWidth) {</span>
+<span class="nc" id="L522">      super(line, stroke, fixedLineWidth);</span>
+
+<span class="nc bnc" id="L524" title="All 2 branches missed.">      if (anchorPoint == null) {</span>
+<span class="nc" id="L525">        throw new IllegalArgumentException();</span>
+      }
+<span class="nc" id="L527">      this.anchorPoint = (Point2D) anchorPoint.clone();</span>
+<span class="nc" id="L528">      this.invShape = invShape;</span>
+<span class="nc" id="L529">    }</span>
+
+    @Override
+    public Shape getRealShape() {
+<span class="nc bnc" id="L533" title="All 2 branches missed.">      if (transform == null) {</span>
+<span class="nc" id="L534">        return shape;</span>
+      }
+<span class="nc" id="L536">      Line2D line = (Line2D) shape;</span>
+
+<span class="nc" id="L538">      AffineTransform invTransform = new AffineTransform(); // Identity transformation.</span>
+
+<span class="nc" id="L540">      double scale = GeomUtil.extractScalingFactor(transform);</span>
+<span class="nc" id="L541">      double angleRad = GeomUtil.extractAngleRad(transform);</span>
+<span class="nc" id="L542">      boolean scaled = MathUtil.isDifferent(scale, 1.0);</span>
+<span class="nc" id="L543">      boolean rotated = MathUtil.isDifferentFromZero(angleRad);</span>
+
+<span class="nc" id="L545">      invTransform.translate(anchorPoint.getX(), anchorPoint.getY());</span>
+
+<span class="nc bnc" id="L547" title="All 2 branches missed.">      if (scaled) {</span>
+<span class="nc" id="L548">        invTransform.scale(1 / scale, 1 / scale);</span>
+      }
+<span class="nc bnc" id="L550" title="All 2 branches missed.">      if (rotated) {</span>
+<span class="nc" id="L551">        invTransform.rotate(-angleRad);</span>
+      }
+<span class="nc" id="L553">      invTransform.translate(-anchorPoint.getX(), -anchorPoint.getY());</span>
+
+<span class="nc" id="L555">      Point2D p = null;</span>
+<span class="nc bnc" id="L556" title="All 2 branches missed.">      if (invShape instanceof Rectangle2D rectangle2D) {</span>
+        // Find the intersection between the line and the text box
+<span class="nc" id="L558">        AffineTransform tr = new AffineTransform();</span>
+<span class="nc" id="L559">        tr.translate(anchorPoint.getX(), anchorPoint.getY());</span>
+<span class="nc bnc" id="L560" title="All 2 branches missed.">        if (scaled) {</span>
+<span class="nc" id="L561">          tr.scale(scale, scale);</span>
+        }
+<span class="nc bnc" id="L563" title="All 2 branches missed.">        if (rotated) {</span>
+<span class="nc" id="L564">          tr.rotate(angleRad);</span>
+        }
+<span class="nc" id="L566">        tr.translate(-anchorPoint.getX(), -anchorPoint.getY());</span>
+
+<span class="nc" id="L568">        Point2D p2 = line.getP2();</span>
+<span class="nc" id="L569">        tr.transform(p2, p2);</span>
+<span class="nc" id="L570">        p = GeomUtil.getIntersectPoint(new Line2D.Double(anchorPoint, p2), rectangle2D);</span>
+      }
+<span class="nc bnc" id="L572" title="All 2 branches missed.">      Point2D invpt = invTransform.transform(p == null ? line.getP1() : p, null);</span>
+<span class="nc" id="L573">      return new Line2D.Double(invpt, line.getP2());</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

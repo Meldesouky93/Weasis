@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AbstractDragGraphicArea.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.graphic</a> &gt; <span class="el_source">AbstractDragGraphicArea.java</span></div><h1>AbstractDragGraphicArea.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.graphic;
+
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Area;
+import java.util.List;
+import org.weasis.core.api.image.util.MeasurableLayer;
+import org.weasis.core.ui.editor.image.ImageRegionStatistics;
+import org.weasis.core.ui.model.utils.bean.MeasureItem;
+
+public abstract class AbstractDragGraphicArea extends AbstractDragGraphic implements GraphicArea {
+
+  protected AbstractDragGraphicArea(Integer pointNumber) {
+<span class="nc" id="L22">    super(pointNumber);</span>
+<span class="nc" id="L23">  }</span>
+
+  protected AbstractDragGraphicArea(AbstractDragGraphicArea graphic) {
+<span class="nc" id="L26">    super(graphic);</span>
+<span class="nc" id="L27">  }</span>
+
+  @Override
+  public Area getArea(AffineTransform transform) {
+<span class="nc bnc" id="L31" title="All 2 branches missed.">    if (shape == null) {</span>
+<span class="nc" id="L32">      return new Area();</span>
+    } else {
+<span class="nc" id="L34">      Area area = super.getArea(transform);</span>
+<span class="nc" id="L35">      area.add(new Area(shape)); // Add inside area for closed shape</span>
+<span class="nc" id="L36">      return area;</span>
+    }
+  }
+
+  @Override
+  public List&lt;MeasureItem&gt; getImageStatistics(MeasurableLayer layer, Boolean releaseEvent) {
+<span class="nc" id="L42">    return ImageRegionStatistics.getImageStatistics(this, layer, releaseEvent);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

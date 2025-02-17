@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>RotationOp.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.image</a> &gt; <span class="el_source">RotationOp.java</span></div><h1>RotationOp.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.image;
+
+import java.util.Objects;
+import java.util.Optional;
+import org.opencv.core.Core;
+import org.opencv.core.Mat;
+import org.opencv.core.Point;
+import org.opencv.core.Rect;
+import org.opencv.core.RotatedRect;
+import org.opencv.imgproc.Imgproc;
+import org.weasis.core.Messages;
+import org.weasis.core.util.MathUtil;
+import org.weasis.opencv.data.ImageCV;
+import org.weasis.opencv.data.PlanarImage;
+import org.weasis.opencv.op.ImageProcessor;
+
+public class RotationOp extends AbstractOp {
+
+<span class="nc" id="L28">  public static final String OP_NAME = Messages.getString(&quot;RotationOperation.title&quot;);</span>
+
+  /**
+   * Set the clockwise angle value in degree (Required parameter).
+   *
+   * &lt;p&gt;Integer value.
+   */
+  public static final String P_ROTATE = &quot;rotate&quot;; // NON-NLS
+
+<span class="nc" id="L37">  public RotationOp() {</span>
+<span class="nc" id="L38">    setName(OP_NAME);</span>
+<span class="nc" id="L39">  }</span>
+
+  public RotationOp(RotationOp op) {
+<span class="nc" id="L42">    super(op);</span>
+<span class="nc" id="L43">  }</span>
+
+  @Override
+  public RotationOp copy() {
+<span class="nc" id="L47">    return new RotationOp(this);</span>
+  }
+
+  @Override
+  public void process() throws Exception {
+<span class="nc" id="L52">    PlanarImage source = (PlanarImage) params.get(Param.INPUT_IMG);</span>
+<span class="nc" id="L53">    PlanarImage result = source;</span>
+<span class="nc" id="L54">    int rotationAngle = Optional.ofNullable((Integer) params.get(P_ROTATE)).orElse(0);</span>
+<span class="nc" id="L55">    rotationAngle = rotationAngle % 360;</span>
+
+<span class="nc bnc" id="L57" title="All 2 branches missed.">    if (rotationAngle != 0) {</span>
+      // optimize rotation by right angles
+<span class="nc" id="L59">      Integer rotOp = null;</span>
+<span class="nc bnc" id="L60" title="All 2 branches missed.">      if (rotationAngle == 90) {</span>
+<span class="nc" id="L61">        rotOp = Core.ROTATE_90_CLOCKWISE;</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">      } else if (rotationAngle == 180) {</span>
+<span class="nc" id="L63">        rotOp = Core.ROTATE_180;</span>
+<span class="nc bnc" id="L64" title="All 2 branches missed.">      } else if (rotationAngle == 270) {</span>
+<span class="nc" id="L65">        rotOp = Core.ROTATE_90_COUNTERCLOCKWISE;</span>
+      }
+
+<span class="nc bnc" id="L68" title="All 2 branches missed.">      if (rotOp == null) {</span>
+<span class="nc" id="L69">        result =</span>
+<span class="nc" id="L70">            getRotatedImage(</span>
+<span class="nc" id="L71">                source.toMat(), rotationAngle, source.width() / 2.0, source.height() / 2.0);</span>
+      } else {
+<span class="nc" id="L73">        result = ImageProcessor.getRotatedImage(source.toMat(), rotOp);</span>
+      }
+    }
+<span class="nc" id="L76">    params.put(Param.OUTPUT_IMG, result);</span>
+<span class="nc" id="L77">  }</span>
+
+  public static ImageCV getRotatedImage(Mat source, double angle, double centerx, double centery) {
+<span class="nc bnc" id="L80" title="All 2 branches missed.">    if (MathUtil.isEqualToZero(angle)) {</span>
+<span class="nc" id="L81">      return ImageCV.toImageCV(source);</span>
+    }
+<span class="nc" id="L83">    Mat srcImg = Objects.requireNonNull(source);</span>
+<span class="nc" id="L84">    Point ptCenter = new Point(centerx, centery);</span>
+<span class="nc" id="L85">    Mat rot = Imgproc.getRotationMatrix2D(ptCenter, -angle, 1.0);</span>
+<span class="nc" id="L86">    ImageCV dstImg = new ImageCV();</span>
+    // determine bounding rectangle
+<span class="nc" id="L88">    Rect bbox = new RotatedRect(ptCenter, srcImg.size(), -angle).boundingRect();</span>
+<span class="nc" id="L89">    double[] matrix = new double[rot.cols() * rot.rows()];</span>
+    // adjust transformation matrix
+<span class="nc" id="L91">    rot.get(0, 0, matrix);</span>
+<span class="nc" id="L92">    matrix[2] += bbox.width / 2.0 - centerx;</span>
+<span class="nc" id="L93">    matrix[rot.cols() + 2] += bbox.height / 2.0 - centery;</span>
+<span class="nc" id="L94">    rot.put(0, 0, matrix);</span>
+<span class="nc" id="L95">    Imgproc.warpAffine(srcImg, dstImg, rot, bbox.size());</span>
+<span class="nc" id="L96">    return dstImg;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

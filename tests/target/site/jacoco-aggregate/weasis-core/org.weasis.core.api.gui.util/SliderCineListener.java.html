@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>SliderCineListener.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.gui.util</a> &gt; <span class="el_source">SliderCineListener.java</span></div><h1>SliderCineListener.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.gui.util;
+
+import java.util.concurrent.atomic.AtomicInteger;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.Timer;
+import javax.swing.UIManager;
+import javax.swing.border.TitledBorder;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.GuiUtils.IconColor;
+import org.weasis.core.util.MathUtil;
+import org.weasis.core.util.StringUtil;
+
+public abstract class SliderCineListener extends SliderChangeListener {
+
+<span class="nc" id="L24">  public enum TIME {</span>
+<span class="nc" id="L25">    SECOND,</span>
+<span class="nc" id="L26">    MINUTE,</span>
+<span class="nc" id="L27">    HOUR</span>
+  }
+
+  private static final double DEFAULT_MIN = 0.01;
+  private static final double DEFAULT_MAX = 90.0;
+
+<span class="nc" id="L33">  protected volatile boolean sweeping = false;</span>
+<span class="nc" id="L34">  private volatile boolean backward = false;</span>
+
+  private volatile long startTime;
+  private volatile long spentTime;
+
+<span class="nc" id="L39">  private final AtomicInteger iteration = new AtomicInteger(0);</span>
+
+  private final TIME time;
+  private final SpinnerNumberModel speedModel;
+
+<span class="nc" id="L44">  private final Timer timer =</span>
+      new Timer(
+          1000 / 20,
+          _ -&gt; {
+<span class="nc" id="L48">            int step = (int) (getSpeed() / 5);</span>
+<span class="nc bnc" id="L49" title="All 2 branches missed.">            if (step &lt;= 0) {</span>
+<span class="nc" id="L50">              step = 1;</span>
+            }
+<span class="nc bnc" id="L52" title="All 2 branches missed.">            if (iteration.getAndIncrement() % step == 0) {</span>
+<span class="nc" id="L53">              long prevStartTime = startTime;</span>
+<span class="nc" id="L54">              startTime = System.currentTimeMillis();</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">              if (iteration.get() &gt; step) {</span>
+<span class="nc" id="L56">                spentTime = (System.currentTimeMillis() - prevStartTime) / 1000;</span>
+              } else {
+<span class="nc" id="L58">                spentTime = 0;</span>
+              }
+            }
+<span class="nc bnc" id="L61" title="All 2 branches missed.">            int offset = backward ? -1 : 1;</span>
+<span class="nc" id="L62">            int frameIndex = getSliderValue() + offset;</span>
+<span class="nc bnc" id="L63" title="All 2 branches missed.">            if (frameIndex &gt; getSliderMax()) {</span>
+<span class="nc bnc" id="L64" title="All 2 branches missed.">              if (sweeping) {</span>
+<span class="nc" id="L65">                backward = true;</span>
+<span class="nc" id="L66">                frameIndex = frameIndex - 2;</span>
+              } else {
+<span class="nc" id="L68">                frameIndex = getSliderMin();</span>
+              }
+<span class="nc bnc" id="L70" title="All 2 branches missed.">            } else if (frameIndex &lt; getSliderMin()) {</span>
+<span class="nc" id="L71">              backward = false;</span>
+<span class="nc" id="L72">              frameIndex = getSliderMin();</span>
+            }
+<span class="nc" id="L74">            setSliderValue(frameIndex);</span>
+<span class="nc" id="L75">          });</span>
+
+  protected SliderCineListener(
+      Feature&lt;? extends ActionState&gt; action,
+      int min,
+      int max,
+      int value,
+      double speed,
+      TIME time,
+      double mouseSensitivity) {
+<span class="nc" id="L85">    this(action, min, max, value, speed, time);</span>
+<span class="nc" id="L86">    setMouseSensitivity(mouseSensitivity);</span>
+<span class="nc" id="L87">  }</span>
+
+  protected SliderCineListener(
+      Feature&lt;? extends ActionState&gt; action, int min, int max, int value, double speed, TIME time) {
+<span class="nc" id="L91">    super(action, min, max, value);</span>
+<span class="nc" id="L92">    this.time = time;</span>
+<span class="nc" id="L93">    speedModel = new SpinnerNumberModel(speed, DEFAULT_MIN, DEFAULT_MAX, 1.0);</span>
+<span class="nc" id="L94">    speedModel.addChangeListener(_ -&gt; updateSpeed());</span>
+<span class="nc" id="L95">  }</span>
+
+  public void start() {
+<span class="nc bnc" id="L98" title="All 4 branches missed.">    if (!timer.isRunning() &amp;&amp; getSliderMax() - getSliderMin() &gt; 0) {</span>
+<span class="nc" id="L99">      timer.setDelay((int) (1000 / getSpeed()));</span>
+<span class="nc" id="L100">      iteration.set(0);</span>
+<span class="nc" id="L101">      timer.start();</span>
+    }
+<span class="nc" id="L103">  }</span>
+
+  public void stop() {
+<span class="nc bnc" id="L106" title="All 2 branches missed.">    if (timer.isRunning()) {</span>
+<span class="nc" id="L107">      timer.stop();</span>
+    }
+<span class="nc" id="L109">  }</span>
+
+  public boolean isCining() {
+<span class="nc" id="L112">    return timer.isRunning();</span>
+  }
+
+  public double getSpeed() {
+<span class="nc" id="L116">    return (Double) speedModel.getValue();</span>
+  }
+
+  @Override
+  public void updateSliderProperties(JSliderW slider) {
+<span class="nc" id="L121">    double rate = getCurrentCineRate();</span>
+<span class="nc" id="L122">    StringBuilder buffer = new StringBuilder(Messages.getString(&quot;SliderCineListener.img&quot;));</span>
+<span class="nc" id="L123">    buffer.append(StringUtil.COLON_AND_SPACE);</span>
+<span class="nc" id="L124">    buffer.append(getValueToDisplay());</span>
+
+<span class="nc bnc" id="L126" title="All 4 branches missed.">    if (slider.isDisplayValueInTitle() &amp;&amp; slider.getBorder() instanceof TitledBorder titledBorder) {</span>
+<span class="nc bnc" id="L127" title="All 2 branches missed.">      if (MathUtil.isDifferentFromZero(rate)) {</span>
+<span class="nc" id="L128">        buffer.append(&quot; (&quot;);</span>
+<span class="nc" id="L129">        buffer.append(DecFormatter.twoDecimal(rate));</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">        if (TIME.SECOND.equals(time)) {</span>
+<span class="nc" id="L131">          buffer.append(Messages.getString(&quot;SliderCineListener.fps&quot;));</span>
+<span class="nc bnc" id="L132" title="All 2 branches missed.">        } else if (TIME.MINUTE.equals(time)) {</span>
+<span class="nc" id="L133">          buffer.append(Messages.getString(&quot;SliderCineListener.fpm&quot;));</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">        } else if (TIME.HOUR.equals(time)) {</span>
+<span class="nc" id="L135">          buffer.append(Messages.getString(&quot;SliderCineListener.fph&quot;));</span>
+        }
+<span class="nc" id="L137">        buffer.append(&quot;)&quot;);</span>
+      }
+<span class="nc" id="L139">      titledBorder.setTitleColor(</span>
+<span class="nc bnc" id="L140" title="All 4 branches missed.">          rate &gt; 0 &amp;&amp; Math.abs(rate - getSpeed()) &gt; getSpeed() / 20.0</span>
+<span class="nc" id="L141">              ? IconColor.ACTIONS_RED.getColor()</span>
+<span class="nc" id="L142">              : UIManager.getColor(&quot;TitledBorder.titleColor&quot;));</span>
+<span class="nc" id="L143">      titledBorder.setTitle(buffer.toString());</span>
+<span class="nc" id="L144">      slider.repaint();</span>
+    } else {
+<span class="nc" id="L146">      slider.setToolTipText(buffer.toString());</span>
+    }
+<span class="nc" id="L148">  }</span>
+
+  public double getCurrentCineRate() {
+<span class="nc bnc" id="L151" title="All 2 branches missed.">    if (isCining()) {</span>
+<span class="nc" id="L152">      double time = spentTime;</span>
+<span class="nc bnc" id="L153" title="All 2 branches missed.">      if (time == 0) {</span>
+<span class="nc" id="L154">        return 1000.0 / timer.getDelay();</span>
+      }
+<span class="nc" id="L156">      return spentTime;</span>
+    }
+<span class="nc" id="L158">    return 0.0;</span>
+  }
+
+  public void setSpeed(double speed) {
+<span class="nc" id="L162">    speedModel.setValue(Math.max(DEFAULT_MIN, Math.min(speed, DEFAULT_MAX)));</span>
+<span class="nc" id="L163">  }</span>
+
+  protected void updateSpeed() {
+<span class="nc bnc" id="L166" title="All 2 branches missed.">    if (timer.isRunning()) {</span>
+<span class="nc" id="L167">      iteration.set(0);</span>
+<span class="nc" id="L168">      timer.setDelay((int) (1000 / getSpeed()));</span>
+    }
+<span class="nc" id="L170">  }</span>
+
+  public SpinnerNumberModel getSpeedModel() {
+<span class="nc" id="L173">    return speedModel;</span>
+  }
+
+  public void setSweeping(boolean sweep) {
+<span class="nc" id="L177">    this.sweeping = sweep;</span>
+<span class="nc" id="L178">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

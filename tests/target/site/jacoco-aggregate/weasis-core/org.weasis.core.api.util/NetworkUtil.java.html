@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>NetworkUtil.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.util</a> &gt; <span class="el_source">NetworkUtil.java</span></div><h1>NetworkUtil.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.util;
+
+import com.github.scribejava.core.model.OAuthRequest;
+import com.github.scribejava.core.model.Verb;
+import com.github.scribejava.core.oauth.OAuth20Service;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.auth.AuthMethod;
+import org.weasis.core.api.auth.OAuth2ServiceFactory;
+import org.weasis.core.api.gui.util.AppProperties;
+import org.weasis.core.util.StreamIOException;
+import org.weasis.core.util.StringUtil;
+
+public class NetworkUtil {
+<span class="nc" id="L39">  private static final Logger LOGGER = LoggerFactory.getLogger(NetworkUtil.class);</span>
+
+  private static final int MAX_REDIRECTS = 3;
+
+  private NetworkUtil() {}
+
+  public static int getUrlConnectionTimeout() {
+<span class="nc" id="L46">    return StringUtil.getInt(System.getProperty(&quot;UrlConnectionTimeout&quot;), 5000);</span>
+  }
+
+  public static int getUrlReadTimeout() {
+<span class="nc" id="L50">    return StringUtil.getInt(System.getProperty(&quot;UrlReadTimeout&quot;), 15000);</span>
+  }
+
+  public static URI getURI(String pathOrUri) throws MalformedURLException, URISyntaxException {
+<span class="nc" id="L54">    URI uri = null;</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">    if (!pathOrUri.startsWith(&quot;http&quot;)) { // NON-NLS</span>
+      try {
+<span class="nc" id="L57">        File file = new File(pathOrUri);</span>
+<span class="nc bnc" id="L58" title="All 2 branches missed.">        if (file.canRead()) {</span>
+<span class="nc" id="L59">          uri = file.toURI();</span>
+        }
+<span class="nc" id="L61">      } catch (Exception e) {</span>
+        // Do nothing
+<span class="nc" id="L63">      }</span>
+    }
+<span class="nc bnc" id="L65" title="All 2 branches missed.">    if (uri == null) {</span>
+<span class="nc" id="L66">      uri = new URL(pathOrUri).toURI();</span>
+    }
+<span class="nc" id="L68">    return uri;</span>
+  }
+
+  public static HttpResponse getHttpResponse(
+      String url, URLParameters urlParameters, AuthMethod authMethod) throws IOException {
+<span class="nc" id="L73">    return getHttpResponse(url, urlParameters, authMethod, null);</span>
+  }
+
+  public static HttpResponse getHttpResponse(
+      String url, URLParameters urlParameters, AuthMethod authMethod, OAuthRequest authRequest)
+      throws IOException {
+<span class="nc bnc" id="L79" title="All 4 branches missed.">    if (authMethod == null || OAuth2ServiceFactory.noAuth.equals(authMethod)) {</span>
+<span class="nc" id="L80">      return prepareConnection(new URL(url).openConnection(), urlParameters);</span>
+    }
+    OAuthRequest request;
+<span class="nc" id="L83">    request =</span>
+<span class="nc" id="L84">        Objects.requireNonNullElseGet(</span>
+            authRequest,
+<span class="nc bnc" id="L86" title="All 2 branches missed.">            () -&gt; new OAuthRequest(urlParameters.isHttpPost() ? Verb.POST : Verb.GET, url));</span>
+<span class="nc" id="L87">    return prepareAuthConnection(request, urlParameters, authMethod);</span>
+  }
+
+  public static ClosableURLConnection getUrlConnection(String url, URLParameters urlParameters)
+      throws IOException {
+<span class="nc" id="L92">    return prepareConnection(new URL(url).openConnection(), urlParameters);</span>
+  }
+
+  public static ClosableURLConnection getUrlConnection(URL url, URLParameters urlParameters)
+      throws IOException {
+<span class="nc" id="L97">    return prepareConnection(url.openConnection(), urlParameters);</span>
+  }
+
+  private static void updateHeadersWithAppProperties(URLConnection urlConnection) {
+<span class="nc" id="L101">    urlConnection.setRequestProperty(&quot;User-Agent&quot;, AppProperties.WEASIS_USER_AGENT);</span>
+<span class="nc" id="L102">    urlConnection.setRequestProperty(&quot;Weasis-User&quot;, AppProperties.WEASIS_USER);</span>
+<span class="nc" id="L103">  }</span>
+
+  private static AuthResponse prepareAuthConnection(
+      OAuthRequest request, URLParameters urlParameters, AuthMethod authMethod) throws IOException {
+<span class="nc" id="L107">    Map&lt;String, String&gt; headers = urlParameters.getUnmodifiableHeaders();</span>
+<span class="nc bnc" id="L108" title="All 2 branches missed.">    if (!headers.isEmpty()) {</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">      for (Entry&lt;String, String&gt; element : headers.entrySet()) {</span>
+<span class="nc" id="L110">        request.addHeader(element.getKey(), element.getValue());</span>
+<span class="nc" id="L111">      }</span>
+    }
+<span class="nc" id="L113">    request.addHeader(&quot;User-Agent&quot;, AppProperties.WEASIS_USER_AGENT); // NON-NLS</span>
+<span class="nc" id="L114">    request.addHeader(&quot;Weasis-User&quot;, AppProperties.WEASIS_USER); // NON-NLS</span>
+
+    try {
+<span class="nc" id="L117">      OAuth20Service service = OAuth2ServiceFactory.getService(authMethod);</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">      if (service == null) {</span>
+<span class="nc" id="L119">        throw new IllegalStateException(&quot;Not a valid authentication method: &quot; + authMethod);</span>
+      }
+<span class="nc" id="L121">      service.signRequest(authMethod.getToken(), request);</span>
+<span class="nc" id="L122">      return new AuthResponse(service.execute(request));</span>
+<span class="nc" id="L123">    } catch (InterruptedException e) {</span>
+<span class="nc" id="L124">      Thread.currentThread().interrupt();</span>
+<span class="nc" id="L125">      throw new StreamIOException(e);</span>
+<span class="nc" id="L126">    } catch (Exception e) {</span>
+<span class="nc" id="L127">      throw new StreamIOException(e);</span>
+    }
+  }
+
+  private static ClosableURLConnection prepareConnection(
+      URLConnection urlConnection, URLParameters urlParameters) throws StreamIOException {
+<span class="nc" id="L133">    Map&lt;String, String&gt; headers = urlParameters.getUnmodifiableHeaders();</span>
+
+<span class="nc bnc" id="L135" title="All 2 branches missed.">    if (!headers.isEmpty()) {</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">      for (Entry&lt;String, String&gt; element : headers.entrySet()) {</span>
+<span class="nc" id="L137">        urlConnection.setRequestProperty(element.getKey(), element.getValue());</span>
+<span class="nc" id="L138">      }</span>
+    }
+
+<span class="nc" id="L141">    updateHeadersWithAppProperties(urlConnection);</span>
+
+<span class="nc" id="L143">    urlConnection.setConnectTimeout(urlParameters.getConnectTimeout());</span>
+<span class="nc" id="L144">    urlConnection.setReadTimeout(urlParameters.getReadTimeout());</span>
+<span class="nc" id="L145">    urlConnection.setAllowUserInteraction(urlParameters.isAllowUserInteraction());</span>
+<span class="nc" id="L146">    urlConnection.setUseCaches(urlParameters.isUseCaches());</span>
+<span class="nc" id="L147">    urlConnection.setIfModifiedSince(urlParameters.getIfModifiedSince());</span>
+<span class="nc" id="L148">    urlConnection.setDoInput(true);</span>
+<span class="nc bnc" id="L149" title="All 2 branches missed.">    if (urlParameters.isHttpPost()) {</span>
+<span class="nc" id="L150">      urlConnection.setDoOutput(true);</span>
+    }
+<span class="nc bnc" id="L152" title="All 2 branches missed.">    if (urlConnection instanceof HttpURLConnection httpURLConnection) {</span>
+      try {
+<span class="nc bnc" id="L154" title="All 2 branches missed.">        if (urlParameters.isHttpPost()) {</span>
+<span class="nc" id="L155">          httpURLConnection.setRequestMethod(&quot;POST&quot;);</span>
+        } else {
+<span class="nc" id="L157">          return new ClosableURLConnection(readResponse(httpURLConnection, headers));</span>
+        }
+<span class="nc" id="L159">      } catch (StreamIOException e) {</span>
+<span class="nc" id="L160">        throw e;</span>
+<span class="nc" id="L161">      } catch (IOException e) {</span>
+<span class="nc" id="L162">        throw new StreamIOException(e);</span>
+<span class="nc" id="L163">      }</span>
+    }
+<span class="nc" id="L165">    return new ClosableURLConnection(urlConnection);</span>
+  }
+
+  public static URLConnection readResponse(
+      HttpURLConnection httpURLConnection, Map&lt;String, String&gt; headers) throws IOException {
+<span class="nc" id="L170">    int code = httpURLConnection.getResponseCode();</span>
+<span class="nc bnc" id="L171" title="All 4 branches missed.">    if (code &lt; HttpURLConnection.HTTP_OK || code &gt;= HttpURLConnection.HTTP_MULT_CHOICE) {</span>
+<span class="nc bnc" id="L172" title="All 6 branches missed.">      if (code == HttpURLConnection.HTTP_MOVED_TEMP</span>
+          || code == HttpURLConnection.HTTP_MOVED_PERM
+          || code == HttpURLConnection.HTTP_SEE_OTHER) {
+<span class="nc" id="L175">        return applyRedirectionStream(httpURLConnection, headers);</span>
+      }
+
+<span class="nc" id="L178">      LOGGER.warn(&quot;http Status {} - {}&quot;, code, httpURLConnection.getResponseMessage());</span>
+
+      // Following is only intended LOG more info about Http Server Error
+<span class="nc bnc" id="L181" title="All 2 branches missed.">      if (LOGGER.isTraceEnabled()) {</span>
+<span class="nc" id="L182">        writeErrorResponse(httpURLConnection);</span>
+      }
+<span class="nc" id="L184">      throw new StreamIOException(httpURLConnection.getResponseMessage());</span>
+    }
+<span class="nc" id="L186">    return httpURLConnection;</span>
+  }
+
+  public static String read(URLConnection urlConnection) throws IOException {
+<span class="nc" id="L190">    urlConnection.connect();</span>
+<span class="nc" id="L191">    try (BufferedReader in =</span>
+<span class="nc" id="L192">        new BufferedReader(new InputStreamReader(urlConnection.getInputStream()))) {</span>
+<span class="nc" id="L193">      StringBuilder body = new StringBuilder();</span>
+      String inputLine;
+
+<span class="nc bnc" id="L196" title="All 2 branches missed.">      while ((inputLine = in.readLine()) != null) {</span>
+<span class="nc" id="L197">        body.append(inputLine);</span>
+      }
+<span class="nc" id="L199">      return body.toString();</span>
+    }
+  }
+
+  public static URLConnection applyRedirectionStream(
+      URLConnection urlConnection, Map&lt;String, String&gt; headers) throws IOException {
+<span class="nc" id="L205">    URLConnection c = urlConnection;</span>
+<span class="nc" id="L206">    String redirect = c.getHeaderField(&quot;Location&quot;);</span>
+<span class="nc bnc" id="L207" title="All 2 branches missed.">    for (int i = 0; i &lt; MAX_REDIRECTS; i++) {</span>
+<span class="nc bnc" id="L208" title="All 2 branches missed.">      if (redirect != null) {</span>
+<span class="nc" id="L209">        String cookies = c.getHeaderField(&quot;Set-Cookie&quot;);</span>
+<span class="nc bnc" id="L210" title="All 2 branches missed.">        if (c instanceof HttpURLConnection httpURLConnection) {</span>
+<span class="nc" id="L211">          httpURLConnection.disconnect();</span>
+        }
+<span class="nc" id="L213">        c = new URL(redirect).openConnection();</span>
+<span class="nc" id="L214">        c.setRequestProperty(&quot;Cookie&quot;, cookies);</span>
+<span class="nc bnc" id="L215" title="All 4 branches missed.">        if (headers != null &amp;&amp; !headers.isEmpty()) {</span>
+<span class="nc bnc" id="L216" title="All 2 branches missed.">          for (Entry&lt;String, String&gt; element : headers.entrySet()) {</span>
+<span class="nc" id="L217">            c.addRequestProperty(element.getKey(), element.getValue());</span>
+<span class="nc" id="L218">          }</span>
+        }
+<span class="nc" id="L220">        redirect = c.getHeaderField(&quot;Location&quot;);</span>
+      } else {
+        break;
+      }
+    }
+<span class="nc" id="L225">    return c;</span>
+  }
+
+  public static boolean urlValidator(String url) {
+    try {
+<span class="nc" id="L230">      new URL(url).toURI();</span>
+<span class="nc" id="L231">      return true;</span>
+<span class="nc" id="L232">    } catch (URISyntaxException | MalformedURLException exception) {</span>
+<span class="nc" id="L233">      return false;</span>
+    }
+  }
+
+  private static void writeErrorResponse(HttpURLConnection httpURLConnection) throws IOException {
+<span class="nc" id="L238">    InputStream errorStream = httpURLConnection.getErrorStream();</span>
+<span class="nc bnc" id="L239" title="All 2 branches missed.">    if (errorStream != null) {</span>
+<span class="nc" id="L240">      try (InputStreamReader inputStream =</span>
+              new InputStreamReader(errorStream, StandardCharsets.UTF_8);
+<span class="nc" id="L242">          BufferedReader reader = new BufferedReader(inputStream)) {</span>
+<span class="nc" id="L243">        StringBuilder stringBuilder = new StringBuilder();</span>
+        String line;
+<span class="nc bnc" id="L245" title="All 2 branches missed.">        while ((line = reader.readLine()) != null) {</span>
+<span class="nc" id="L246">          stringBuilder.append(line);</span>
+        }
+<span class="nc" id="L248">        String errorDescription = stringBuilder.toString();</span>
+<span class="nc bnc" id="L249" title="All 2 branches missed.">        if (StringUtil.hasText(errorDescription)) {</span>
+<span class="nc" id="L250">          LOGGER.trace(&quot;HttpURLConnection ERROR, server response: {}&quot;, errorDescription);</span>
+        }
+      }
+    }
+<span class="nc" id="L254">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

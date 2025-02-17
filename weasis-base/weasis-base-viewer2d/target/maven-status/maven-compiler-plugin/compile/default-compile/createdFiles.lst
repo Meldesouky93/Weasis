@@ -1,0 +1,17 @@
+org/weasis/base/viewer2d/EventManager.class
+org/weasis/base/viewer2d/ImportToolBar$1.class
+org/weasis/base/viewer2d/View2dContainer.class
+org/weasis/base/viewer2d/View2dContainer$2.class
+org/weasis/base/viewer2d/dockable/DisplayTool.class
+org/weasis/base/viewer2d/internal/Activator.class
+org/weasis/base/viewer2d/ImportToolBar.class
+org/weasis/base/viewer2d/EventManager$1.class
+org/weasis/base/viewer2d/View2d$1.class
+org/weasis/base/viewer2d/View2d.class
+org/weasis/base/viewer2d/InfoLayer.class
+org/weasis/base/viewer2d/ViewerFactory.class
+org/weasis/base/viewer2d/Messages.class
+org/weasis/base/viewer2d/View2d$SeriesHandler.class
+org/weasis/base/viewer2d/View2dContainer$1.class
+org/weasis/base/viewer2d/EventManager$2.class
+org/weasis/base/viewer2d/dockable/ImageTool.class

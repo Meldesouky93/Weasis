@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>Global.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer.core.bean</a> &gt; <span class="el_source">Global.java</span></div><h1>Global.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer.core.bean;
+
+import java.util.Iterator;
+import java.util.Map.Entry;
+import org.dcm4che3.data.Tag;
+import org.dcm4che3.util.TagUtils;
+import org.dcm4che3.util.UIDUtils;
+import org.weasis.core.api.media.data.TagReadable;
+import org.weasis.core.api.media.data.TagUtil;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.api.media.data.Taggable;
+import org.weasis.dicom.codec.TagD;
+
+public class Global extends DefaultTaggable {
+
+<span class="nc" id="L25">  public static final Integer PATIENT_DICOM_GROUP_NUMBER = Integer.parseInt(&quot;0010&quot;, 16);</span>
+
+<span class="nc" id="L27">  protected boolean allowFullEdition = true;</span>
+
+<span class="nc" id="L29">  public Global() {</span>
+<span class="nc" id="L30">    init(null);</span>
+<span class="nc" id="L31">  }</span>
+
+  public void init(Taggable taggable) {
+<span class="nc" id="L34">    clear();</span>
+<span class="nc" id="L35">    tags.put(TagD.get(Tag.StudyInstanceUID), UIDUtils.createUID());</span>
+
+<span class="nc bnc" id="L37" title="All 2 branches missed.">    if (taggable != null) {</span>
+<span class="nc" id="L38">      taggable</span>
+<span class="nc" id="L39">          .getTagEntrySetIterator()</span>
+<span class="nc" id="L40">          .forEachRemaining(</span>
+              i -&gt; {
+<span class="nc" id="L42">                TagW tag = i.getKey();</span>
+<span class="nc bnc" id="L43" title="All 2 branches missed.">                if (tag != null) {</span>
+<span class="nc" id="L44">                  tags.put(tag, i.getValue());</span>
+                }
+<span class="nc" id="L46">              });</span>
+    }
+
+<span class="nc" id="L49">    allowFullEdition =</span>
+<span class="nc bnc" id="L50" title="All 2 branches missed.">        getTagValue(TagD.get(Tag.PatientID)) == null</span>
+<span class="nc bnc" id="L51" title="All 2 branches missed.">            || getTagValue(TagD.get(Tag.PatientName)) == null;</span>
+<span class="nc" id="L52">  }</span>
+
+  /**
+   * Updates all Dicom Tags from the given document except Patient Dicom Group Tags
+   *
+   * @param tagList list of tags
+   */
+  public void updateAllButPatient(TagReadable tagList) {
+<span class="nc bnc" id="L60" title="All 2 branches missed.">    if (tagList != null) {</span>
+<span class="nc" id="L61">      tagList</span>
+<span class="nc" id="L62">          .getTagEntrySetIterator()</span>
+<span class="nc" id="L63">          .forEachRemaining(</span>
+              i -&gt; {
+<span class="nc" id="L65">                TagW tag = i.getKey();</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">                if (tag != null</span>
+<span class="nc bnc" id="L67" title="All 2 branches missed.">                    &amp;&amp; TagUtils.groupNumber(tag.getId()) != PATIENT_DICOM_GROUP_NUMBER) {</span>
+<span class="nc" id="L68">                  tags.put(tag, i.getValue());</span>
+                }
+<span class="nc" id="L70">              });</span>
+    }
+<span class="nc" id="L72">  }</span>
+
+  public boolean containsSameTagValues(Taggable taggable, Integer dicomGroupNumber) {
+<span class="nc bnc" id="L75" title="All 2 branches missed.">    if (taggable != null) {</span>
+<span class="nc" id="L76">      Iterator&lt;Entry&lt;TagW, Object&gt;&gt; iter = taggable.getTagEntrySetIterator();</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">      while (iter.hasNext()) {</span>
+<span class="nc" id="L78">        Entry&lt;TagW, Object&gt; entry = iter.next();</span>
+<span class="nc" id="L79">        TagW tag = entry.getKey();</span>
+<span class="nc bnc" id="L80" title="All 4 branches missed.">        if (tag != null</span>
+            &amp;&amp; (dicomGroupNumber == null
+<span class="nc bnc" id="L82" title="All 2 branches missed.">                || TagUtils.groupNumber(tag.getId()) == dicomGroupNumber)) {</span>
+<span class="nc bnc" id="L83" title="All 2 branches missed.">          if (this.containTagKey(tag)) {</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">            if (!TagUtil.isEquals(this.getTagValue(tag), entry.getValue())) {</span>
+<span class="nc" id="L85">              return false;</span>
+            }
+<span class="nc bnc" id="L87" title="All 2 branches missed.">          } else if (entry.getValue() != null) {</span>
+<span class="nc" id="L88">            return false;</span>
+          }
+        }
+<span class="nc" id="L91">      }</span>
+    }
+<span class="nc" id="L93">    return true;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L98">    TagW name = TagD.get(Tag.PatientName);</span>
+<span class="nc" id="L99">    return name.getFormattedTagValue(getTagValue(name), null);</span>
+  }
+
+  public boolean isAllowFullEdition() {
+<span class="nc" id="L103">    return allowFullEdition;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

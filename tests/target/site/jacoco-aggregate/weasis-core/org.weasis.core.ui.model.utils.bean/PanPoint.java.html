@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>PanPoint.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.utils.bean</a> &gt; <span class="el_source">PanPoint.java</span></div><h1>PanPoint.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.utils.bean;
+
+import java.awt.geom.Point2D;
+import java.util.Objects;
+
+public class PanPoint extends Point2D {
+<span class="nc" id="L16">  public enum State {</span>
+<span class="nc" id="L17">    MOVE,</span>
+<span class="nc" id="L18">    CENTER,</span>
+<span class="nc" id="L19">    DRAGSTART,</span>
+<span class="nc" id="L20">    DRAGGING,</span>
+<span class="nc" id="L21">    DRAGEND</span>
+  }
+
+  private double x;
+  private double y;
+  private final State state;
+  private boolean highlightedPosition;
+
+  public PanPoint(State state) {
+<span class="nc" id="L30">    this(state, 0.0, 0.0);</span>
+<span class="nc" id="L31">  }</span>
+
+<span class="nc" id="L33">  public PanPoint(State state, double x, double y) {</span>
+<span class="nc" id="L34">    this.x = x;</span>
+<span class="nc" id="L35">    this.y = y;</span>
+<span class="nc" id="L36">    this.state = Objects.requireNonNull(state);</span>
+<span class="nc" id="L37">    this.highlightedPosition = false;</span>
+<span class="nc" id="L38">  }</span>
+
+  public State getState() {
+<span class="nc" id="L41">    return state;</span>
+  }
+
+  @Override
+  public double getX() {
+<span class="nc" id="L46">    return x;</span>
+  }
+
+  @Override
+  public double getY() {
+<span class="nc" id="L51">    return y;</span>
+  }
+
+  @Override
+  public void setLocation(double x, double y) {
+<span class="nc" id="L56">    this.x = x;</span>
+<span class="nc" id="L57">    this.y = y;</span>
+<span class="nc" id="L58">  }</span>
+
+  @Override
+  public int hashCode() {
+<span class="nc" id="L62">    final int prime = 31;</span>
+<span class="nc" id="L63">    int result = super.hashCode();</span>
+<span class="nc bnc" id="L64" title="All 2 branches missed.">    result = prime * result + (highlightedPosition ? 1231 : 1237);</span>
+<span class="nc" id="L65">    result = prime * result + state.hashCode();</span>
+    long temp;
+<span class="nc" id="L67">    temp = java.lang.Double.doubleToLongBits(x);</span>
+<span class="nc" id="L68">    result = prime * result + (int) (temp ^ (temp &gt;&gt;&gt; 32));</span>
+<span class="nc" id="L69">    temp = java.lang.Double.doubleToLongBits(y);</span>
+<span class="nc" id="L70">    result = prime * result + (int) (temp ^ (temp &gt;&gt;&gt; 32));</span>
+<span class="nc" id="L71">    return result;</span>
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+<span class="nc bnc" id="L76" title="All 2 branches missed.">    if (obj == null) {</span>
+<span class="nc" id="L77">      return false;</span>
+    }
+<span class="nc bnc" id="L79" title="All 2 branches missed.">    if (this == obj) {</span>
+<span class="nc" id="L80">      return true;</span>
+    }
+<span class="nc bnc" id="L82" title="All 2 branches missed.">    if (getClass() != obj.getClass()) {</span>
+<span class="nc" id="L83">      return false;</span>
+    }
+
+<span class="nc" id="L86">    PanPoint other = (PanPoint) obj;</span>
+<span class="nc bnc" id="L87" title="All 2 branches missed.">    if (highlightedPosition != other.highlightedPosition) {</span>
+<span class="nc" id="L88">      return false;</span>
+    }
+<span class="nc bnc" id="L90" title="All 2 branches missed.">    if (state != other.state) {</span>
+<span class="nc" id="L91">      return false;</span>
+    }
+<span class="nc bnc" id="L93" title="All 2 branches missed.">    if (java.lang.Double.doubleToLongBits(x) != java.lang.Double.doubleToLongBits(other.x)) {</span>
+<span class="nc" id="L94">      return false;</span>
+    }
+<span class="nc bnc" id="L96" title="All 2 branches missed.">    return java.lang.Double.doubleToLongBits(y) == java.lang.Double.doubleToLongBits(other.y);</span>
+  }
+
+  public boolean isHighlightedPosition() {
+<span class="nc" id="L100">    return highlightedPosition;</span>
+  }
+
+  public void setHighlightedPosition(boolean highlightedPosition) {
+<span class="nc" id="L104">    this.highlightedPosition = highlightedPosition;</span>
+<span class="nc" id="L105">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

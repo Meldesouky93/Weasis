@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>PixelInfo.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image</a> &gt; <span class="el_source">PixelInfo.java</span></div><h1>PixelInfo.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image;
+
+import java.awt.Point;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.DecFormatter;
+import org.weasis.core.api.image.util.Unit;
+
+/** User: boraldo Date: 28.01.14 Time: 15:02 */
+<span class="nc" id="L18">public class PixelInfo {</span>
+  private double[] values;
+  private String[] channelNames;
+  private String pixelValueUnit;
+  private Point position;
+  private Unit pixelSpacingUnit;
+  // Only display square pixel, so one value is enough.
+  private Double pixelSize;
+
+  public double[] getValues() {
+<span class="nc" id="L28">    return values;</span>
+  }
+
+  public void setValues(double[] values) {
+<span class="nc" id="L32">    this.values = values;</span>
+<span class="nc" id="L33">  }</span>
+
+  public String[] getChannelNames() {
+<span class="nc" id="L36">    return channelNames;</span>
+  }
+
+  public void setChannelNames(String[] channelNames) {
+<span class="nc" id="L40">    this.channelNames = channelNames;</span>
+<span class="nc" id="L41">  }</span>
+
+  public String getPixelValueUnit() {
+<span class="nc" id="L44">    return pixelValueUnit;</span>
+  }
+
+  public void setPixelValueUnit(String pixelValueUnit) {
+<span class="nc" id="L48">    this.pixelValueUnit = pixelValueUnit;</span>
+<span class="nc" id="L49">  }</span>
+
+  public String getPixelValueText() {
+<span class="nc bnc" id="L52" title="All 2 branches missed.">    if (values != null) {</span>
+<span class="nc bnc" id="L53" title="All 2 branches missed.">      if (values.length == 1) {</span>
+<span class="nc" id="L54">        StringBuilder text = new StringBuilder();</span>
+<span class="nc" id="L55">        text.append(DecFormatter.allNumber(values[0]));</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">        if (pixelValueUnit != null) {</span>
+<span class="nc" id="L57">          text.append(&quot; &quot;);</span>
+<span class="nc" id="L58">          text.append(pixelValueUnit);</span>
+        }
+<span class="nc" id="L60">        return text.toString();</span>
+<span class="nc bnc" id="L61" title="All 2 branches missed.">      } else if (values.length &gt; 1) {</span>
+        // TODO add preference for Pixel value type (RGB, IHS...) and pixel position (pix, real)
+        // float[] ihs = IHSColorSpace.getInstance().fromRGB(new float[]
+        // {
+        // c[0] / 255f, c[1] / 255f, c[2] / 255f
+        // });
+        // c[0] = (int) (ihs[0] * 255f);
+        // c[1] = (int) ((ihs[1] / (Math.PI * 2)) * 255f);
+        // c[2] = (int) (ihs[2] * 255f);
+        //
+        // message.append(&quot; (I = &quot; + c[0] + &quot;, H = &quot; + c[1] + &quot;, S = &quot; + c[2] + &quot;)&quot;);
+
+<span class="nc" id="L73">        StringBuilder text = new StringBuilder();</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">        for (int i = 0; i &lt; values.length; i++) {</span>
+<span class="nc" id="L75">          text.append(&quot; &quot;);</span>
+<span class="nc" id="L76">          text.append(</span>
+<span class="nc bnc" id="L77" title="All 4 branches missed.">              (channelNames == null || i &gt;= channelNames.length)</span>
+<span class="nc" id="L78">                  ? Messages.getString(&quot;PixelInfo.unknown&quot;)</span>
+<span class="nc" id="L79">                  : channelNames[i].substring(0, 1));</span>
+<span class="nc" id="L80">          text.append(&quot;=&quot;);</span>
+<span class="nc" id="L81">          text.append(DecFormatter.twoDecimal(values[i]));</span>
+        }
+<span class="nc" id="L83">        return text.toString();</span>
+      }
+    }
+<span class="nc" id="L86">    return Messages.getString(&quot;PixelInfo.no_val&quot;);</span>
+  }
+
+  public Unit getPixelSpacingUnit() {
+<span class="nc" id="L90">    return pixelSpacingUnit;</span>
+  }
+
+  public void setPixelSpacingUnit(Unit pixelSpacingUnit) {
+<span class="nc" id="L94">    this.pixelSpacingUnit = pixelSpacingUnit;</span>
+<span class="nc" id="L95">  }</span>
+
+  public Double getPixelSize() {
+<span class="nc" id="L98">    return pixelSize;</span>
+  }
+
+  public void setPixelSize(Double pixelSize) {
+<span class="nc" id="L102">    this.pixelSize = pixelSize;</span>
+<span class="nc" id="L103">  }</span>
+
+  public Point getPosition() {
+<span class="nc" id="L106">    return position;</span>
+  }
+
+  public void setPosition(Point position) {
+<span class="nc" id="L110">    this.position = position;</span>
+<span class="nc" id="L111">  }</span>
+
+  public String getPixelPositionText() {
+<span class="nc bnc" id="L114" title="All 2 branches missed.">    if (position == null) {</span>
+<span class="nc" id="L115">      return Messages.getString(&quot;DefaultView2d.out&quot;);</span>
+    }
+<span class="nc" id="L117">    return &quot;(&quot; + position.x + &quot;,&quot; + position.y + &quot;)&quot;;</span>
+  }
+
+  public String getRealPositionText() {
+<span class="nc bnc" id="L121" title="All 6 branches missed.">    if (position == null || pixelSpacingUnit == null || pixelSize == null) {</span>
+<span class="nc" id="L122">      return getPixelPositionText();</span>
+    }
+
+<span class="nc" id="L125">    StringBuilder text = new StringBuilder(&quot;(&quot;);</span>
+<span class="nc" id="L126">    text.append(DecFormatter.twoDecimal(pixelSize * position.x));</span>
+<span class="nc" id="L127">    text.append(pixelSpacingUnit.getAbbreviation());</span>
+<span class="nc" id="L128">    text.append(&quot;,&quot;);</span>
+<span class="nc" id="L129">    text.append(DecFormatter.twoDecimal(pixelSize * position.y));</span>
+<span class="nc" id="L130">    text.append(pixelSpacingUnit.getAbbreviation());</span>
+<span class="nc" id="L131">    text.append(&quot;)&quot;);</span>
+<span class="nc" id="L132">    return text.toString();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ViewSetting.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.pref</a> &gt; <span class="el_source">ViewSetting.java</span></div><h1>ViewSetting.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.pref;
+
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.GraphicsConfiguration;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsEnvironment;
+import java.awt.Rectangle;
+import java.util.ArrayList;
+import java.util.List;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerNumberModel;
+import org.osgi.service.prefs.Preferences;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.service.BundlePreferences;
+import org.weasis.core.api.util.FontItem;
+import org.weasis.core.ui.editor.image.MeasureToolBar;
+import org.weasis.core.ui.editor.image.dockable.MeasureTool;
+import org.weasis.core.ui.model.graphic.Graphic;
+import org.weasis.core.ui.model.utils.ImageStatistics;
+import org.weasis.core.ui.model.utils.bean.Measurement;
+
+public class ViewSetting {
+  public static final String PREFERENCE_NODE = &quot;view2d.default&quot;;
+<span class="nc" id="L34">  public static final FontItem DEFAULT_FONT = FontItem.SMALL_SEMIBOLD;</span>
+  private FontItem fontItem;
+  private boolean drawOnlyOnce;
+  private boolean filled;
+  private float fillOpacity;
+  private Color lineColor;
+
+<span class="nc" id="L41">  private final SpinnerNumberModel spinnerModel = new SpinnerNumberModel(1, 1, 8, 1);</span>
+  private boolean basicStatistics;
+  private boolean moreStatistics;
+<span class="nc" id="L44">  private final List&lt;Monitor&gt; monitors = new ArrayList&lt;&gt;(2);</span>
+
+<span class="nc" id="L46">  public ViewSetting() {</span>
+<span class="nc" id="L47">    this.fontItem = DEFAULT_FONT;</span>
+<span class="nc" id="L48">    this.drawOnlyOnce = true;</span>
+<span class="nc" id="L49">    this.filled = Graphic.DEFAULT_FILLED;</span>
+<span class="nc" id="L50">    this.fillOpacity = Graphic.DEFAULT_FILL_OPACITY;</span>
+<span class="nc" id="L51">    this.lineColor = Graphic.DEFAULT_COLOR;</span>
+<span class="nc" id="L52">    this.basicStatistics = true;</span>
+<span class="nc" id="L53">    this.moreStatistics = true;</span>
+<span class="nc" id="L54">    spinnerModel.addChangeListener(</span>
+        _ -&gt; {
+<span class="nc bnc" id="L56" title="All 2 branches missed.">          if (spinnerModel.getValue() instanceof Integer intVal) {</span>
+<span class="nc" id="L57">            setLineWidth(intVal);</span>
+<span class="nc" id="L58">            MeasureTool.updateMeasureProperties();</span>
+          }
+<span class="nc" id="L60">        });</span>
+<span class="nc" id="L61">  }</span>
+
+  public void applyPreferences(Preferences prefs) {
+<span class="nc bnc" id="L64" title="All 2 branches missed.">    if (prefs != null) {</span>
+<span class="nc" id="L65">      Preferences p = prefs.node(ViewSetting.PREFERENCE_NODE);</span>
+<span class="nc" id="L66">      Preferences font = p.node(&quot;font&quot;); // NON-NLS</span>
+<span class="nc" id="L67">      String fontKey = font.get(&quot;type&quot;, DEFAULT_FONT.getKey()); // NON-NLS</span>
+<span class="nc" id="L68">      this.fontItem = FontItem.getFontItem(fontKey, DEFAULT_FONT);</span>
+
+<span class="nc" id="L70">      Preferences draw = p.node(&quot;drawing&quot;); // NON-NLS</span>
+<span class="nc" id="L71">      drawOnlyOnce = draw.getBoolean(&quot;once&quot;, drawOnlyOnce); // NON-NLS</span>
+<span class="nc" id="L72">      int lineWidth = draw.getInt(&quot;width&quot;, Graphic.DEFAULT_LINE_THICKNESS.intValue()); // NON-NLS</span>
+<span class="nc" id="L73">      setLineWidth(lineWidth);</span>
+<span class="nc" id="L74">      int rgb = draw.getInt(&quot;color&quot;, Graphic.DEFAULT_COLOR.getRGB()); // NON-NLS</span>
+<span class="nc" id="L75">      lineColor = new Color(rgb, true);</span>
+<span class="nc" id="L76">      filled = draw.getBoolean(&quot;fill&quot;, Graphic.DEFAULT_FILLED); // NON-NLS</span>
+<span class="nc" id="L77">      fillOpacity = draw.getFloat(&quot;fillOpacity&quot;, Graphic.DEFAULT_FILL_OPACITY); // NON-NLS</span>
+
+<span class="nc" id="L79">      Preferences stats = p.node(&quot;statistics&quot;); // NON-NLS</span>
+<span class="nc" id="L80">      basicStatistics = stats.getBoolean(&quot;basic&quot;, basicStatistics); // NON-NLS</span>
+<span class="nc" id="L81">      moreStatistics = stats.getBoolean(&quot;more&quot;, moreStatistics); // NON-NLS</span>
+
+<span class="nc" id="L83">      ImageStatistics.IMAGE_PIXELS.setComputed(basicStatistics);</span>
+<span class="nc" id="L84">      ImageStatistics.IMAGE_MIN.setComputed(basicStatistics);</span>
+<span class="nc" id="L85">      ImageStatistics.IMAGE_MAX.setComputed(basicStatistics);</span>
+<span class="nc" id="L86">      ImageStatistics.IMAGE_MEAN.setComputed(basicStatistics);</span>
+
+<span class="nc" id="L88">      ImageStatistics.IMAGE_MEDIAN.setComputed(moreStatistics);</span>
+<span class="nc" id="L89">      ImageStatistics.IMAGE_STD.setComputed(moreStatistics);</span>
+<span class="nc" id="L90">      ImageStatistics.IMAGE_SKEW.setComputed(moreStatistics);</span>
+<span class="nc" id="L91">      ImageStatistics.IMAGE_KURTOSIS.setComputed(moreStatistics);</span>
+<span class="nc" id="L92">      ImageStatistics.IMAGE_ENTROPY.setComputed(moreStatistics);</span>
+
+<span class="nc" id="L94">      String labels = stats.get(&quot;label&quot;, null); // NON-NLS</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">      if (labels != null) {</span>
+<span class="nc" id="L96">        String[] items = labels.split(&quot;,&quot;);</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">        for (String item : items) {</span>
+<span class="nc" id="L98">          String[] val = item.split(&quot;:&quot;);</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">          if (val.length == 2) {</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">            for (Measurement m : ImageStatistics.ALL_MEASUREMENTS) {</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">              if (val[0].equals(String.valueOf(m.getId()))) {</span>
+<span class="nc" id="L102">                m.setGraphicLabel(isTrueValue(val[1]));</span>
+<span class="nc" id="L103">                break;</span>
+              }
+            }
+          }
+        }
+      }
+
+      // Forget the Selection Graphic
+<span class="nc bnc" id="L111" title="All 2 branches missed.">      for (int i = 1; i &lt; MeasureToolBar.getMeasureGraphicList().size(); i++) {</span>
+<span class="nc" id="L112">        Graphic graph = MeasureToolBar.getMeasureGraphicList().get(i);</span>
+<span class="nc" id="L113">        List&lt;Measurement&gt; list = graph.getMeasurementList();</span>
+<span class="nc bnc" id="L114" title="All 4 branches missed.">        if (list != null &amp;&amp; !list.isEmpty()) {</span>
+<span class="nc" id="L115">          Preferences gpref = p.node(graph.getClass().getSimpleName());</span>
+<span class="nc" id="L116">          labels = gpref.get(&quot;label&quot;, null); // NON-NLS</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">          if (labels != null) {</span>
+<span class="nc" id="L118">            String[] items = labels.split(&quot;,&quot;);</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">            for (String item : items) {</span>
+<span class="nc" id="L120">              String[] val = item.split(&quot;:&quot;);</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">              if (val.length == 2) {</span>
+<span class="nc bnc" id="L122" title="All 2 branches missed.">                for (Measurement m : list) {</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">                  if (val[0].equals(String.valueOf(m.getId()))) {</span>
+<span class="nc" id="L124">                    m.setGraphicLabel(isTrueValue(val[1]));</span>
+<span class="nc" id="L125">                    break;</span>
+                  }
+<span class="nc" id="L127">                }</span>
+              }
+            }
+          }
+        }
+      }
+    }
+<span class="nc" id="L134">  }</span>
+
+  public List&lt;Monitor&gt; getMonitors() {
+<span class="nc" id="L137">    return new ArrayList&lt;&gt;(monitors);</span>
+  }
+
+  public Monitor getMonitor(GraphicsDevice device) {
+<span class="nc bnc" id="L141" title="All 2 branches missed.">    for (Monitor m : monitors) {</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">      if (m.getGraphicsDevice() == device) {</span>
+<span class="nc" id="L143">        return m;</span>
+      }
+<span class="nc" id="L145">    }</span>
+<span class="nc" id="L146">    return null;</span>
+  }
+
+  public void initMonitors() {
+<span class="nc" id="L150">    monitors.clear();</span>
+<span class="nc" id="L151">    GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();</span>
+<span class="nc" id="L152">    GraphicsDevice[] gd = ge.getScreenDevices();</span>
+
+<span class="nc bnc" id="L154" title="All 2 branches missed.">    for (GraphicsDevice graphicsDevice : gd) {</span>
+<span class="nc" id="L155">      final GraphicsConfiguration config = graphicsDevice.getDefaultConfiguration();</span>
+<span class="nc bnc" id="L156" title="All 4 branches missed.">      if (config == null || graphicsDevice.getType() != GraphicsDevice.TYPE_RASTER_SCREEN) {</span>
+<span class="nc" id="L157">        continue;</span>
+      }
+
+<span class="nc" id="L160">      Monitor monitor = new Monitor(graphicsDevice);</span>
+<span class="nc" id="L161">      String screen = buildScreenItem(monitor);</span>
+<span class="nc" id="L162">      double pitch = GuiUtils.getUICore().getLocalPersistence().getDoubleProperty(screen, 0.0);</span>
+<span class="nc" id="L163">      monitor.setRealScaleFactor(pitch);</span>
+<span class="nc" id="L164">      monitors.add(monitor);</span>
+    }
+<span class="nc" id="L166">  }</span>
+
+  static String buildScreenItem(Monitor monitor) {
+<span class="nc" id="L169">    StringBuilder buf = new StringBuilder(&quot;screen.&quot;); // NON-NLS</span>
+<span class="nc" id="L170">    buf.append(monitor.getMonitorID());</span>
+<span class="nc" id="L171">    Rectangle b = monitor.getBounds();</span>
+<span class="nc" id="L172">    buf.append(&quot;.&quot;);</span>
+<span class="nc" id="L173">    buf.append(b.width);</span>
+<span class="nc" id="L174">    buf.append(&quot;x&quot;); // NON-NLS</span>
+<span class="nc" id="L175">    buf.append(b.height);</span>
+<span class="nc" id="L176">    buf.append(&quot;.pitch&quot;);</span>
+<span class="nc" id="L177">    return buf.toString();</span>
+  }
+
+  private static boolean isTrueValue(String val) {
+<span class="nc" id="L181">    return &quot;1&quot;.equals(val.trim());</span>
+  }
+
+  private static void writeLabels(StringBuilder buffer, Measurement m) {
+<span class="nc" id="L185">    buffer.append(m.getId());</span>
+<span class="nc" id="L186">    buffer.append(&quot;:&quot;);</span>
+<span class="nc bnc" id="L187" title="All 2 branches missed.">    buffer.append(m.getGraphicLabel() ? &quot;1&quot; : &quot;0&quot;); // NON-NLS</span>
+<span class="nc" id="L188">  }</span>
+
+  public void savePreferences(Preferences prefs) {
+<span class="nc bnc" id="L191" title="All 2 branches missed.">    if (prefs != null) {</span>
+<span class="nc" id="L192">      Preferences p = prefs.node(ViewSetting.PREFERENCE_NODE);</span>
+<span class="nc" id="L193">      Preferences font = p.node(&quot;font&quot;); // NON-NLS</span>
+<span class="nc" id="L194">      BundlePreferences.putStringPreferences(font, &quot;type&quot;, getFontItem().getKey()); // NON-NLS</span>
+
+<span class="nc" id="L196">      Preferences draw = p.node(&quot;drawing&quot;); // NON-NLS</span>
+<span class="nc" id="L197">      BundlePreferences.putBooleanPreferences(draw, &quot;once&quot;, drawOnlyOnce); // NON-NLS</span>
+<span class="nc" id="L198">      BundlePreferences.putIntPreferences(draw, &quot;width&quot;, getLineWidth()); // NON-NLS</span>
+<span class="nc" id="L199">      BundlePreferences.putIntPreferences(draw, &quot;color&quot;, lineColor.getRGB()); // NON-NLS</span>
+<span class="nc" id="L200">      BundlePreferences.putBooleanPreferences(draw, &quot;fill&quot;, filled); // NON-NLS</span>
+<span class="nc" id="L201">      BundlePreferences.putFloatPreferences(draw, &quot;fillOpacity&quot;, fillOpacity); // NON-NLS</span>
+
+<span class="nc" id="L203">      Preferences stats = p.node(&quot;statistics&quot;); // NON-NLS</span>
+<span class="nc" id="L204">      BundlePreferences.putBooleanPreferences(stats, &quot;basic&quot;, basicStatistics); // NON-NLS</span>
+<span class="nc" id="L205">      BundlePreferences.putBooleanPreferences(stats, &quot;more&quot;, moreStatistics); // NON-NLS</span>
+<span class="nc" id="L206">      StringBuilder buffer = new StringBuilder();</span>
+<span class="nc" id="L207">      writeLabels(buffer, ImageStatistics.ALL_MEASUREMENTS[0]);</span>
+<span class="nc bnc" id="L208" title="All 2 branches missed.">      for (int i = 1; i &lt; ImageStatistics.ALL_MEASUREMENTS.length; i++) {</span>
+<span class="nc" id="L209">        buffer.append(&quot;,&quot;);</span>
+<span class="nc" id="L210">        writeLabels(buffer, ImageStatistics.ALL_MEASUREMENTS[i]);</span>
+      }
+<span class="nc" id="L212">      BundlePreferences.putStringPreferences(stats, &quot;label&quot;, buffer.toString()); // NON-NLS</span>
+
+      // Forget the Selection Graphic
+<span class="nc bnc" id="L215" title="All 2 branches missed.">      for (int i = 1; i &lt; MeasureToolBar.getMeasureGraphicList().size(); i++) {</span>
+<span class="nc" id="L216">        Graphic graph = MeasureToolBar.getMeasureGraphicList().get(i);</span>
+<span class="nc" id="L217">        List&lt;Measurement&gt; list = graph.getMeasurementList();</span>
+<span class="nc bnc" id="L218" title="All 4 branches missed.">        if (list != null &amp;&amp; !list.isEmpty()) {</span>
+<span class="nc" id="L219">          Preferences gpref = p.node(graph.getClass().getSimpleName());</span>
+<span class="nc" id="L220">          buffer = new StringBuilder();</span>
+<span class="nc" id="L221">          writeLabels(buffer, list.getFirst());</span>
+<span class="nc bnc" id="L222" title="All 2 branches missed.">          for (int j = 1; j &lt; list.size(); j++) {</span>
+<span class="nc" id="L223">            buffer.append(&quot;,&quot;);</span>
+<span class="nc" id="L224">            writeLabels(buffer, list.get(j));</span>
+          }
+<span class="nc" id="L226">          BundlePreferences.putStringPreferences(gpref, &quot;label&quot;, buffer.toString()); // NON-NLS</span>
+        }
+      }
+    }
+<span class="nc" id="L230">  }</span>
+
+  public void setFontItem(FontItem fontItem) {
+<span class="nc bnc" id="L233" title="All 2 branches missed.">    this.fontItem = fontItem == null ? DEFAULT_FONT : fontItem;</span>
+<span class="nc" id="L234">  }</span>
+
+  public Font getFont() {
+<span class="nc" id="L237">    return getFontItem().getFont();</span>
+  }
+
+  public FontItem getFontItem() {
+<span class="nc" id="L241">    FontItem item = fontItem;</span>
+<span class="nc bnc" id="L242" title="All 2 branches missed.">    return item == null ? DEFAULT_FONT : fontItem;</span>
+  }
+
+  public void setDrawOnlyOnce(boolean drawOnlyOnce) {
+<span class="nc" id="L246">    this.drawOnlyOnce = drawOnlyOnce;</span>
+<span class="nc" id="L247">  }</span>
+
+  public boolean isDrawOnlyOnce() {
+<span class="nc" id="L250">    return drawOnlyOnce;</span>
+  }
+
+  public Color getLineColor() {
+<span class="nc" id="L254">    return lineColor;</span>
+  }
+
+  public void setLineColor(Color lineColor) {
+<span class="nc" id="L258">    this.lineColor = lineColor;</span>
+<span class="nc" id="L259">  }</span>
+
+  public int getLineWidth() {
+<span class="nc" id="L262">    return (int) spinnerModel.getValue();</span>
+  }
+
+  public void setLineWidth(int lineWidth) {
+<span class="nc" id="L266">    spinnerModel.setValue(Math.max(1, Math.min(8, lineWidth)));</span>
+<span class="nc" id="L267">  }</span>
+
+  public boolean isFilled() {
+<span class="nc" id="L270">    return filled;</span>
+  }
+
+  public void setFilled(boolean filled) {
+<span class="nc" id="L274">    this.filled = filled;</span>
+<span class="nc" id="L275">  }</span>
+
+  public float getFillOpacity() {
+<span class="nc" id="L278">    return fillOpacity;</span>
+  }
+
+  public void setFillOpacity(float fillOpacity) {
+<span class="nc" id="L282">    this.fillOpacity = fillOpacity;</span>
+<span class="nc" id="L283">  }</span>
+
+  public boolean isBasicStatistics() {
+<span class="nc" id="L286">    return basicStatistics;</span>
+  }
+
+  public void setBasicStatistics(boolean basicStatistics) {
+<span class="nc" id="L290">    this.basicStatistics = basicStatistics;</span>
+<span class="nc" id="L291">  }</span>
+
+  public boolean isMoreStatistics() {
+<span class="nc" id="L294">    return moreStatistics;</span>
+  }
+
+  public void setMoreStatistics(boolean moreStatistics) {
+<span class="nc" id="L298">    this.moreStatistics = moreStatistics;</span>
+<span class="nc" id="L299">  }</span>
+
+  public void initLineWidthSpinner(JSpinner spinner) {
+<span class="nc" id="L302">    spinner.setModel(spinnerModel);</span>
+<span class="nc" id="L303">    GuiUtils.formatCheckAction(spinner);</span>
+<span class="nc" id="L304">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

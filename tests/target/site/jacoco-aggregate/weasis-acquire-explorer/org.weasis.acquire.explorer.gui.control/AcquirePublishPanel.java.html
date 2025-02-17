@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AcquirePublishPanel.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer.gui.control</a> &gt; <span class="el_source">AcquirePublishPanel.java</span></div><h1>AcquirePublishPanel.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer.gui.control;
+
+import java.beans.PropertyChangeEvent;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.function.Supplier;
+import javax.swing.JButton;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.SwingWorker;
+import javax.swing.SwingWorker.StateValue;
+import org.dcm4che3.net.Status;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.acquire.explorer.AcquireImageInfo;
+import org.weasis.acquire.explorer.AcquireImageStatus;
+import org.weasis.acquire.explorer.AcquireManager;
+import org.weasis.acquire.explorer.Messages;
+import org.weasis.acquire.explorer.PublishDicomTask;
+import org.weasis.acquire.explorer.gui.dialog.AcquirePublishDialog;
+import org.weasis.core.api.auth.AuthMethod;
+import org.weasis.core.api.auth.OAuth2ServiceFactory;
+import org.weasis.core.api.gui.task.CircularProgressBar;
+import org.weasis.core.api.gui.util.AppProperties;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.gui.util.WinUtil;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.api.util.ThreadUtil;
+import org.weasis.core.util.FileUtil;
+import org.weasis.dicom.explorer.pref.node.AbstractDicomNode;
+import org.weasis.dicom.explorer.pref.node.AuthenticationPersistence;
+import org.weasis.dicom.explorer.pref.node.DefaultDicomNode;
+import org.weasis.dicom.explorer.pref.node.DicomWebNode;
+import org.weasis.dicom.op.CStore;
+import org.weasis.dicom.param.AdvancedParams;
+import org.weasis.dicom.param.ConnectOptions;
+import org.weasis.dicom.param.DicomNode;
+import org.weasis.dicom.param.DicomProgress;
+import org.weasis.dicom.param.DicomState;
+import org.weasis.dicom.send.StowRS;
+import org.weasis.dicom.web.ContentType;
+
+public class AcquirePublishPanel extends JPanel {
+<span class="nc" id="L58">  private static final Logger LOGGER = LoggerFactory.getLogger(AcquirePublishPanel.class);</span>
+
+<span class="nc" id="L60">  private final JButton publishBtn = new JButton(Messages.getString(&quot;AcquirePublishPanel.publish&quot;));</span>
+<span class="nc" id="L61">  private final CircularProgressBar progressBar = new CircularProgressBar(0, 100);</span>
+  private AuthMethod authMethod;
+
+<span class="nc" id="L64">  public static final ExecutorService PUBLISH_DICOM =</span>
+<span class="nc" id="L65">      ThreadUtil.buildNewSingleThreadExecutor(&quot;Publish Dicom&quot;); // NON-NLS</span>
+
+<span class="nc" id="L67">  public AcquirePublishPanel() {</span>
+<span class="nc" id="L68">    publishBtn.addActionListener(</span>
+        e -&gt; {
+<span class="nc" id="L70">          final AcquirePublishDialog dialog = new AcquirePublishDialog(AcquirePublishPanel.this);</span>
+<span class="nc" id="L71">          GuiUtils.showCenterScreen(dialog, WinUtil.getParentWindow(AcquirePublishPanel.this));</span>
+<span class="nc" id="L72">        });</span>
+
+<span class="nc" id="L74">    publishBtn.setPreferredSize(GuiUtils.getDimension(150, 40));</span>
+
+<span class="nc" id="L76">    add(publishBtn);</span>
+<span class="nc" id="L77">    add(progressBar);</span>
+
+<span class="nc" id="L79">    progressBar.setVisible(false);</span>
+<span class="nc" id="L80">  }</span>
+
+  public void publishDirDicom(
+      File exportDirDicom,
+      AbstractDicomNode destinationNode,
+      String callingAet,
+      List&lt;AcquireImageInfo&gt; toPublish) {
+<span class="nc" id="L87">    SwingWorker&lt;DicomState, File&gt; publishDicomTask = null;</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">    if (destinationNode instanceof DefaultDicomNode defaultDicomNode) {</span>
+<span class="nc" id="L89">      publishDicomTask =</span>
+<span class="nc" id="L90">          publishDicomDimse(exportDirDicom, defaultDicomNode.getDicomNode(), callingAet);</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">    } else if (destinationNode instanceof final DicomWebNode node) {</span>
+<span class="nc" id="L92">      publishDicomTask = publishStow(exportDirDicom, node, toPublish);</span>
+    }
+
+<span class="nc bnc" id="L95" title="All 2 branches missed.">    if (publishDicomTask != null) {</span>
+<span class="nc" id="L96">      publishDicomTask.addPropertyChangeListener(this::publishChanged);</span>
+<span class="nc" id="L97">      PUBLISH_DICOM.execute(publishDicomTask);</span>
+    }
+<span class="nc" id="L99">  }</span>
+
+  public PublishDicomTask publishDicomDimse(
+      File exportDirDicom, DicomNode destNode, String callingAet) {
+<span class="nc" id="L103">    DicomProgress dicomProgress = new DicomProgress();</span>
+<span class="nc" id="L104">    Supplier&lt;DicomState&gt; publish =</span>
+        () -&gt; {
+<span class="nc" id="L106">          List&lt;String&gt; exportFilesDicomPath = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L107">          exportFilesDicomPath.add(exportDirDicom.getPath());</span>
+<span class="nc" id="L108">          AdvancedParams params = new AdvancedParams();</span>
+<span class="nc" id="L109">          ConnectOptions connectOptions = new ConnectOptions();</span>
+<span class="nc" id="L110">          connectOptions.setConnectTimeout(3000);</span>
+<span class="nc" id="L111">          connectOptions.setAcceptTimeout(5000);</span>
+<span class="nc" id="L112">          params.setConnectOptions(connectOptions);</span>
+<span class="nc" id="L113">          DicomNode callingNode = new DicomNode(callingAet); // NON-NLS</span>
+          try {
+<span class="nc" id="L115">            return CStore.process(</span>
+                params, callingNode, destNode, exportFilesDicomPath, dicomProgress);
+          } finally {
+<span class="nc" id="L118">            FileUtil.recursiveDelete(exportDirDicom);</span>
+          }
+        };
+<span class="nc" id="L121">    return new PublishDicomTask(publish, dicomProgress);</span>
+  }
+
+  public PublishDicomTask publishStow(
+      File exportDirDicom, DicomWebNode node, List&lt;AcquireImageInfo&gt; toPublish) {
+<span class="nc" id="L126">    AuthMethod auth = AuthenticationPersistence.getAuthMethod(node.getAuthMethodUid());</span>
+<span class="nc bnc" id="L127" title="All 2 branches missed.">    if (!OAuth2ServiceFactory.noAuth.equals(auth)) {</span>
+<span class="nc" id="L128">      String oldCode = auth.getCode();</span>
+<span class="nc" id="L129">      authMethod = auth;</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">      if (authMethod.getToken() == null) {</span>
+<span class="nc" id="L131">        return null;</span>
+      }
+<span class="nc bnc" id="L133" title="All 2 branches missed.">      if (!Objects.equals(oldCode, authMethod.getCode())) {</span>
+<span class="nc" id="L134">        AuthenticationPersistence.saveMethod();</span>
+      }
+    }
+
+<span class="nc" id="L138">    Supplier&lt;DicomState&gt; publish =</span>
+        () -&gt; {
+<span class="nc" id="L140">          try (StowRS stowRS =</span>
+              new StowRS(
+<span class="nc" id="L142">                  node.getUrl().toString(),</span>
+                  ContentType.APPLICATION_DICOM,
+                  AppProperties.WEASIS_NAME,
+<span class="nc" id="L145">                  node.getHeaders())) {</span>
+
+<span class="nc" id="L147">            DicomState state =</span>
+<span class="nc" id="L148">                stowRS.uploadDicom(</span>
+<span class="nc" id="L149">                    Collections.singletonList(exportDirDicom.getAbsolutePath()), true, authMethod);</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">            if (state.getStatus() == Status.Success) {</span>
+<span class="nc" id="L151">              toPublish.forEach(</span>
+                  i -&gt; {
+<span class="nc" id="L153">                    i.setStatus(AcquireImageStatus.PUBLISHED);</span>
+<span class="nc" id="L154">                    i.getImage().setTag(TagW.Checked, Boolean.TRUE);</span>
+<span class="nc" id="L155">                    AcquireManager.getInstance().removeImage(i);</span>
+<span class="nc" id="L156">                  });</span>
+            }
+<span class="nc" id="L158">            return state;</span>
+<span class="nc" id="L159">          } catch (Exception e) {</span>
+<span class="nc" id="L160">            LOGGER.error(&quot;STOW-RS publish&quot;, e);</span>
+<span class="nc" id="L161">            return DicomState.buildMessage(null, e.getMessage(), null);</span>
+          } finally {
+<span class="nc" id="L163">            FileUtil.recursiveDelete(exportDirDicom);</span>
+          }
+        };
+<span class="nc" id="L166">    return new PublishDicomTask(publish, new DicomProgress());</span>
+  }
+
+  private void publishChanged(PropertyChangeEvent evt) {
+<span class="nc bnc" id="L170" title="All 2 branches missed.">    if (&quot;progress&quot;.equals(evt.getPropertyName())) {</span>
+<span class="nc" id="L171">      int progress = (Integer) evt.getNewValue();</span>
+<span class="nc" id="L172">      progressBar.setValue(progress);</span>
+
+<span class="nc bnc" id="L174" title="All 2 branches missed.">    } else if (&quot;state&quot;.equals(evt.getPropertyName())) {</span>
+<span class="nc bnc" id="L175" title="All 2 branches missed.">      if (StateValue.STARTED == evt.getNewValue()) {</span>
+<span class="nc" id="L176">        publishBtn.setEnabled(false);</span>
+<span class="nc" id="L177">        progressBar.setVisible(true);</span>
+<span class="nc" id="L178">        progressBar.setValue(0);</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">      } else if (StateValue.DONE == evt.getNewValue()) {</span>
+        try {
+<span class="nc" id="L181">          SwingWorker&lt;DicomState, File&gt; publishDicomTask =</span>
+<span class="nc" id="L182">              (SwingWorker&lt;DicomState, File&gt;) evt.getSource();</span>
+<span class="nc" id="L183">          final DicomState dicomState = publishDicomTask.get();</span>
+<span class="nc bnc" id="L184" title="All 4 branches missed.">          if (dicomState.getStatus() != Status.Success &amp;&amp; dicomState.getStatus() != Status.Cancel) {</span>
+<span class="nc" id="L185">            LOGGER.error(&quot;Dicom send error: {}&quot;, dicomState.getMessage());</span>
+<span class="nc" id="L186">            JOptionPane.showMessageDialog(</span>
+<span class="nc" id="L187">                WinUtil.getParentWindow(AcquirePublishPanel.this),</span>
+<span class="nc" id="L188">                dicomState.getMessage(),</span>
+                null,
+                JOptionPane.ERROR_MESSAGE);
+          }
+<span class="nc" id="L192">        } catch (InterruptedException e) {</span>
+<span class="nc" id="L193">          LOGGER.warn(&quot;Retrieving task Interruption&quot;);</span>
+<span class="nc" id="L194">          Thread.currentThread().interrupt();</span>
+<span class="nc" id="L195">        } catch (ExecutionException e) {</span>
+<span class="nc" id="L196">          LOGGER.error(&quot;Retrieving task&quot;, e);</span>
+<span class="nc" id="L197">        }</span>
+<span class="nc" id="L198">        publishBtn.setEnabled(true);</span>
+<span class="nc" id="L199">        progressBar.setVisible(false);</span>
+      }
+    }
+<span class="nc" id="L202">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

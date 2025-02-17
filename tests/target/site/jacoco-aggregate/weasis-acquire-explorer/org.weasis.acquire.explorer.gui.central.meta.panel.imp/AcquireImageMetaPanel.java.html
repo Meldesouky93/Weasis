@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AcquireImageMetaPanel.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer.gui.central.meta.panel.imp</a> &gt; <span class="el_source">AcquireImageMetaPanel.java</span></div><h1>AcquireImageMetaPanel.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer.gui.central.meta.panel.imp;
+
+import org.weasis.acquire.explorer.Messages;
+import org.weasis.acquire.explorer.gui.central.meta.model.AcquireMetadataTableModel;
+import org.weasis.acquire.explorer.gui.central.meta.model.imp.AcquireImageMeta;
+import org.weasis.acquire.explorer.gui.central.meta.panel.AcquireMetadataPanel;
+import org.weasis.core.util.StringUtil;
+
+public class AcquireImageMetaPanel extends AcquireMetadataPanel {
+
+<span class="nc" id="L20">  private static final String NO_IMAGE = Messages.getString(&quot;AcquireImageMetaPanel.no_img&quot;);</span>
+<span class="nc" id="L21">  private static final String IMAGE_PREFIX =</span>
+<span class="nc" id="L22">      Messages.getString(&quot;AcquireImageMetaPanel.img&quot;) + StringUtil.COLON_AND_SPACE;</span>
+
+  public AcquireImageMetaPanel(String title) {
+<span class="nc" id="L25">    super(title);</span>
+<span class="nc" id="L26">  }</span>
+
+  @Override
+  public AcquireMetadataTableModel newTableModel() {
+<span class="nc" id="L30">    return new AcquireImageMeta(imageInfo);</span>
+  }
+
+  @Override
+  public String getDisplayText() {
+<span class="nc bnc" id="L35" title="All 2 branches missed.">    if (imageInfo != null) {</span>
+<span class="nc" id="L36">      return IMAGE_PREFIX + imageInfo.getImage().getName();</span>
+    } else {
+<span class="nc" id="L38">      return NO_IMAGE;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

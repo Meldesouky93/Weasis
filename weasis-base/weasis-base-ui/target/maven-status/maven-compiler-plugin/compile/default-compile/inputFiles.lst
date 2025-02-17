@@ -1,0 +1,9 @@
+/workspaces/Weasis/weasis-base/weasis-base-ui/src/main/java/org/weasis/base/ui/Messages.java
+/workspaces/Weasis/weasis-base/weasis-base-ui/src/main/java/org/weasis/base/ui/gui/DesktopAdapter.java
+/workspaces/Weasis/weasis-base/weasis-base-ui/src/main/java/org/weasis/base/ui/gui/LicencesDialog.java
+/workspaces/Weasis/weasis-base/weasis-base-ui/src/main/java/org/weasis/base/ui/gui/MainWindowListener.java
+/workspaces/Weasis/weasis-base/weasis-base-ui/src/main/java/org/weasis/base/ui/gui/Release.java
+/workspaces/Weasis/weasis-base/weasis-base-ui/src/main/java/org/weasis/base/ui/gui/WeasisAboutBox.java
+/workspaces/Weasis/weasis-base/weasis-base-ui/src/main/java/org/weasis/base/ui/gui/WeasisWin.java
+/workspaces/Weasis/weasis-base/weasis-base-ui/src/main/java/org/weasis/base/ui/gui/WeasisWinListener.java
+/workspaces/Weasis/weasis-base/weasis-base-ui/src/main/java/org/weasis/base/ui/internal/Activator.java

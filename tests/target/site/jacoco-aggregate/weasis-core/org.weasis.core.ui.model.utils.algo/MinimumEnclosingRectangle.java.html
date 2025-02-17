@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>MinimumEnclosingRectangle.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.utils.algo</a> &gt; <span class="el_source">MinimumEnclosingRectangle.java</span></div><h1>MinimumEnclosingRectangle.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.utils.algo;
+
+import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import org.weasis.core.util.MathUtil;
+
+public class MinimumEnclosingRectangle {
+  private final List&lt;Point2D&gt; points;
+  private final boolean isConvex;
+
+<span class="nc" id="L23">  private List&lt;Point2D&gt; cvxPts = null;</span>
+<span class="nc" id="L24">  private Line2D minDistSeg = new Line2D.Double();</span>
+<span class="nc" id="L25">  private Point2D minDistPt = null;</span>
+<span class="nc" id="L26">  private double minDist = 0.0;</span>
+
+  public MinimumEnclosingRectangle(List&lt;Point2D&gt; points) {
+<span class="nc" id="L29">    this(points, false);</span>
+<span class="nc" id="L30">  }</span>
+
+<span class="nc" id="L32">  public MinimumEnclosingRectangle(List&lt;Point2D&gt; points, boolean isConvex) {</span>
+<span class="nc" id="L33">    this.points = points;</span>
+<span class="nc" id="L34">    this.isConvex = isConvex;</span>
+<span class="nc" id="L35">  }</span>
+
+  private void computeWidthConvex(List&lt;Point2D&gt; pts) {
+<span class="nc" id="L38">    this.cvxPts = pts;</span>
+
+<span class="nc" id="L40">    int size = cvxPts.size();</span>
+<span class="nc bnc" id="L41" title="All 2 branches missed.">    if (size == 0) {</span>
+<span class="nc" id="L42">      minDist = 0.0;</span>
+<span class="nc" id="L43">      minDistPt = null;</span>
+<span class="nc" id="L44">      minDistSeg = null;</span>
+<span class="nc bnc" id="L45" title="All 2 branches missed.">    } else if (size == 1) {</span>
+<span class="nc" id="L46">      minDist = 0.0;</span>
+<span class="nc" id="L47">      minDistPt = cvxPts.get(0);</span>
+<span class="nc" id="L48">      minDistSeg.setLine(minDistPt.getX(), minDistPt.getY(), minDistPt.getX(), minDistPt.getY());</span>
+<span class="nc bnc" id="L49" title="All 4 branches missed.">    } else if (size == 2 || size == 3) {</span>
+<span class="nc" id="L50">      minDist = 0.0;</span>
+<span class="nc" id="L51">      minDistPt = cvxPts.get(0);</span>
+<span class="nc" id="L52">      Point2D p2 = cvxPts.get(1);</span>
+<span class="nc" id="L53">      minDistSeg.setLine(minDistPt.getX(), minDistPt.getY(), p2.getX(), p2.getY());</span>
+<span class="nc" id="L54">    } else {</span>
+<span class="nc" id="L55">      searchRingMinDiameter(cvxPts);</span>
+    }
+<span class="nc" id="L57">  }</span>
+
+  private void searchRingMinDiameter(List&lt;Point2D&gt; pts) {
+<span class="nc" id="L60">    minDist = Double.MAX_VALUE;</span>
+<span class="nc" id="L61">    int curIndex = 1;</span>
+
+<span class="nc bnc" id="L63" title="All 2 branches missed.">    for (int i = 0; i &lt; pts.size() - 1; i++) {</span>
+<span class="nc" id="L64">      curIndex = findMaxPerpendicularDistanceFromAB(pts, pts.get(i), pts.get(i + 1), curIndex);</span>
+    }
+<span class="nc" id="L66">  }</span>
+
+  private int findMaxPerpendicularDistanceFromAB(
+      List&lt;Point2D&gt; pts, Point2D ptA, Point2D ptB, int startIndex) {
+<span class="nc" id="L70">    double maxDist = distanceFromAB(pts.get(startIndex), ptA, ptB);</span>
+<span class="nc" id="L71">    double nextDist = maxDist;</span>
+<span class="nc" id="L72">    int maxIndex = startIndex;</span>
+<span class="nc" id="L73">    int nextIndex = maxIndex;</span>
+
+<span class="nc bnc" id="L75" title="All 2 branches missed.">    while (nextDist &gt;= maxDist) {</span>
+<span class="nc" id="L76">      maxDist = nextDist;</span>
+<span class="nc" id="L77">      maxIndex = nextIndex;</span>
+<span class="nc" id="L78">      nextIndex = nextIndex(pts, maxIndex);</span>
+<span class="nc" id="L79">      nextDist = distanceFromAB(pts.get(nextIndex), ptA, ptB);</span>
+    }
+
+<span class="nc bnc" id="L82" title="All 2 branches missed.">    if (maxDist &lt; minDist) {</span>
+<span class="nc" id="L83">      minDist = maxDist;</span>
+<span class="nc" id="L84">      minDistPt = pts.get(maxIndex);</span>
+<span class="nc" id="L85">      minDistSeg = new Line2D.Double(ptA, ptB);</span>
+    }
+<span class="nc" id="L87">    return maxIndex;</span>
+  }
+
+  private static int nextIndex(List&lt;Point2D&gt; pts, int index) {
+<span class="nc" id="L91">    int i = index + 1;</span>
+<span class="nc bnc" id="L92" title="All 2 branches missed.">    return i &gt;= pts.size() ? 0 : i;</span>
+  }
+
+  public static double distanceFromAB(Point2D p, Point2D a, Point2D b) {
+<span class="nc" id="L96">    double len2 =</span>
+<span class="nc" id="L97">        (b.getX() - a.getX()) * (b.getX() - a.getX())</span>
+<span class="nc" id="L98">            + (b.getY() - a.getY()) * (b.getY() - a.getY());</span>
+<span class="nc" id="L99">    double s =</span>
+<span class="nc" id="L100">        ((a.getY() - p.getY()) * (b.getX() - a.getX())</span>
+<span class="nc" id="L101">                - (a.getX() - p.getX()) * (b.getY() - a.getY()))</span>
+            / len2;
+<span class="nc" id="L103">    return Math.abs(s) * Math.sqrt(len2);</span>
+  }
+
+  /**
+   * Gets the minimum rectangle enclosing the points
+   *
+   * @return the minimum rectangle
+   */
+  public List&lt;Point2D&gt; getMinimumRectangle() {
+<span class="nc bnc" id="L112" title="All 2 branches missed.">    if (minDistPt == null) {</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">      if (isConvex) {</span>
+<span class="nc" id="L114">        computeWidthConvex(points);</span>
+      } else {
+<span class="nc" id="L116">        List&lt;java.awt.geom.Point2D&gt; convexPts = (new ConvexHull(points)).getConvexHull();</span>
+<span class="nc" id="L117">        computeWidthConvex(convexPts);</span>
+      }
+    }
+
+<span class="nc bnc" id="L121" title="All 2 branches missed.">    if (MathUtil.isEqualToZero(minDist)) {</span>
+<span class="nc" id="L122">      return Collections.emptyList();</span>
+    }
+
+<span class="nc" id="L125">    double dx = minDistSeg.getX2() - minDistSeg.getX1();</span>
+<span class="nc" id="L126">    double dy = minDistSeg.getY2() - minDistSeg.getY1();</span>
+
+<span class="nc" id="L128">    double minPara = Double.MAX_VALUE;</span>
+<span class="nc" id="L129">    double maxPara = -Double.MAX_VALUE;</span>
+<span class="nc" id="L130">    double minPerp = Double.MAX_VALUE;</span>
+<span class="nc" id="L131">    double maxPerp = -Double.MAX_VALUE;</span>
+
+    // compute maxima and minima of lines parallel and perpendicular to AB segment
+<span class="nc bnc" id="L134" title="All 2 branches missed.">    for (Point2D cvxPt : cvxPts) {</span>
+
+<span class="nc" id="L136">      double paraC = getC(dx, dy, cvxPt);</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">      if (paraC &gt; maxPara) {</span>
+<span class="nc" id="L138">        maxPara = paraC;</span>
+      }
+<span class="nc bnc" id="L140" title="All 2 branches missed.">      if (paraC &lt; minPara) {</span>
+<span class="nc" id="L141">        minPara = paraC;</span>
+      }
+
+<span class="nc" id="L144">      double perpC = getC(-dy, dx, cvxPt);</span>
+<span class="nc bnc" id="L145" title="All 2 branches missed.">      if (perpC &gt; maxPerp) {</span>
+<span class="nc" id="L146">        maxPerp = perpC;</span>
+      }
+<span class="nc bnc" id="L148" title="All 2 branches missed.">      if (perpC &lt; minPerp) {</span>
+<span class="nc" id="L149">        minPerp = perpC;</span>
+      }
+<span class="nc" id="L151">    }</span>
+
+<span class="nc" id="L153">    Line2D.Double maxPerpLine = getLine(-dx, -dy, maxPerp);</span>
+<span class="nc" id="L154">    Line2D.Double minPerpLine = getLine(-dx, -dy, minPerp);</span>
+<span class="nc" id="L155">    Line2D.Double maxParaLine = getLine(-dy, dx, maxPara);</span>
+<span class="nc" id="L156">    Line2D.Double minParaLine = getLine(-dy, dx, minPara);</span>
+
+<span class="nc" id="L158">    List&lt;Point2D&gt; rect = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L159">    rect.add(</span>
+<span class="nc" id="L160">        intersection(</span>
+<span class="nc" id="L161">            maxParaLine.getP1(), maxParaLine.getP2(), maxPerpLine.getP1(), maxPerpLine.getP2()));</span>
+<span class="nc" id="L162">    rect.add(</span>
+<span class="nc" id="L163">        intersection(</span>
+<span class="nc" id="L164">            minParaLine.getP1(), minParaLine.getP2(), maxPerpLine.getP1(), maxPerpLine.getP2()));</span>
+<span class="nc" id="L165">    rect.add(</span>
+<span class="nc" id="L166">        intersection(</span>
+<span class="nc" id="L167">            minParaLine.getP1(), minParaLine.getP2(), minPerpLine.getP1(), minPerpLine.getP2()));</span>
+<span class="nc" id="L168">    rect.add(</span>
+<span class="nc" id="L169">        intersection(</span>
+<span class="nc" id="L170">            maxParaLine.getP1(), maxParaLine.getP2(), minPerpLine.getP1(), minPerpLine.getP2()));</span>
+
+<span class="nc" id="L172">    return rect;</span>
+  }
+
+  /** Intersection point between two line segments. */
+  public static Point2D intersection(Point2D u1, Point2D u2, Point2D w1, Point2D w2) {
+
+<span class="nc" id="L178">    double ux = u1.getY() - u2.getY();</span>
+<span class="nc" id="L179">    double uy = u2.getX() - u1.getX();</span>
+<span class="nc" id="L180">    double ul = u1.getX() * u2.getY() - u2.getX() * u1.getY();</span>
+
+<span class="nc" id="L182">    double wx = w1.getY() - w2.getY();</span>
+<span class="nc" id="L183">    double wy = w2.getX() - w1.getX();</span>
+<span class="nc" id="L184">    double wl = w1.getX() * w2.getY() - w2.getX() * w1.getY();</span>
+
+<span class="nc" id="L186">    double x = uy * wl - wy * ul;</span>
+<span class="nc" id="L187">    double y = wx * ul - ux * wl;</span>
+<span class="nc" id="L188">    double l = ux * wy - wx * uy;</span>
+
+<span class="nc" id="L190">    double xNorm = x / l;</span>
+<span class="nc" id="L191">    double yNorm = y / l;</span>
+
+<span class="nc bnc" id="L193" title="All 2 branches missed.">    if ((Double.isNaN(xNorm))</span>
+<span class="nc bnc" id="L194" title="All 4 branches missed.">        || (Double.isInfinite(xNorm) || Double.isNaN(yNorm))</span>
+<span class="nc bnc" id="L195" title="All 2 branches missed.">        || (Double.isInfinite(yNorm))) {</span>
+<span class="nc" id="L196">      return null;</span>
+    }
+
+<span class="nc" id="L199">    return new Point2D.Double(xNorm, yNorm);</span>
+  }
+
+  private static double getC(double a, double b, Point2D p) {
+<span class="nc" id="L203">    return a * p.getY() - b * p.getX();</span>
+  }
+
+  private static Line2D.Double getLine(double a, double b, double c) {
+    // Line equation: ax + by = c
+<span class="nc bnc" id="L208" title="All 2 branches missed.">    if (Math.abs(b) &gt; Math.abs(a)) {</span>
+<span class="nc" id="L209">      return new Line2D.Double(0.0, c / b, 1.0, c / b - a / b);</span>
+    } else {
+<span class="nc" id="L211">      return new Line2D.Double(c / a, 0.0, c / a - b / a, 1.0);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>IntersectSlice.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec.geometry</a> &gt; <span class="el_source">IntersectSlice.java</span></div><h1>IntersectSlice.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec.geometry;
+
+import java.awt.geom.Point2D;
+import java.util.List;
+import org.joml.Vector3d;
+
+/**
+ * @author David A. Clunie
+ */
+public class IntersectSlice extends LocalizerPoster {
+
+  public IntersectSlice(
+      Vector3d row, Vector3d column, Vector3d tlhc, Vector3d voxelSpacing, Vector3d dimensions) {
+<span class="nc" id="L23">    super(row, column, tlhc, voxelSpacing, dimensions);</span>
+<span class="nc" id="L24">  }</span>
+
+  public IntersectSlice(GeometryOfSlice geometry) {
+<span class="nc" id="L27">    super(geometry);</span>
+<span class="nc" id="L28">  }</span>
+
+  private static boolean allTrue(boolean[] array) {
+<span class="nc" id="L31">    boolean all = true;</span>
+<span class="nc bnc" id="L32" title="All 2 branches missed.">    for (boolean b : array) {</span>
+<span class="nc bnc" id="L33" title="All 2 branches missed.">      if (!b) {</span>
+<span class="nc" id="L34">        all = false;</span>
+<span class="nc" id="L35">        break;</span>
+      }
+    }
+<span class="nc" id="L38">    return all;</span>
+  }
+
+  private static boolean oppositeEdges(boolean[] array) {
+<span class="nc bnc" id="L42" title="All 8 branches missed.">    return array[0] &amp;&amp; array[2] || array[1] &amp;&amp; array[3];</span>
+  }
+
+  private static boolean adjacentEdges(boolean[] array) {
+<span class="nc bnc" id="L46" title="All 16 branches missed.">    return array[0] &amp;&amp; array[1]</span>
+        || array[1] &amp;&amp; array[2]
+        || array[2] &amp;&amp; array[3]
+        || array[3] &amp;&amp; array[0];
+  }
+
+  private static boolean[] classifyCornersOfRectangleIntoEdgesCrossingZPlane(Vector3d[] corners) {
+<span class="nc" id="L53">    int size = corners.length;</span>
+<span class="nc" id="L54">    boolean[] classification = new boolean[size];</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">    for (int i = 0; i &lt; size; ++i) {</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">      int next = (i == size - 1) ? 0 : i + 1;</span>
+<span class="nc" id="L57">      classification[i] = classifyCornersIntoEdgeCrossingZPlane(corners[i], corners[next]);</span>
+    }
+<span class="nc" id="L59">    return classification;</span>
+  }
+
+  @Override
+  public List&lt;Point2D&gt; getOutlineOnLocalizerForThisGeometry(
+      Vector3d row,
+      Vector3d column,
+      Vector3d tlhc,
+      Vector3d voxelSpacing,
+      double sliceThickness,
+      Vector3d dimensions) {
+
+<span class="nc" id="L71">    Vector3d[] corners =</span>
+<span class="nc" id="L72">        getCornersOfSourceRectangleInSourceSpace(row, column, tlhc, voxelSpacing, dimensions);</span>
+<span class="nc bnc" id="L73" title="All 2 branches missed.">    for (int i = 0; i &lt; 4; ++i) {</span>
+      // We want to consider each edge of the source slice with respect to
+      // the plane of the target localizer, so transform the source corners
+      // into the target localizer space, and then see which edges cross
+      // the Z plane of the localizer
+
+<span class="nc" id="L79">      corners[i] = transformPointFromSourceSpaceIntoLocalizerSpace(corners[i]);</span>
+
+      // Now, points with a Z value of zero are in the plane of the localizer plane
+      // Edges with one Z value +ve (or 0) and the other -ve (or 0) cross (or touch) the localizer
+      // plane
+      // Edges with both Z values +ve or both -ve don't cross the localizer plane
+    }
+
+<span class="nc" id="L87">    boolean[] edges = classifyCornersOfRectangleIntoEdgesCrossingZPlane(corners);</span>
+
+<span class="nc bnc" id="L89" title="All 2 branches missed.">    if (allTrue(edges)) {</span>
+      // &quot;Source in exactly the same plane as the localizer
+<span class="nc" id="L91">      return drawOutlineOnLocalizer(corners); // draw a rectangle</span>
+<span class="nc bnc" id="L92" title="All 2 branches missed.">    } else if (oppositeEdges(edges)) {</span>
+      // draw line between where two edges cross (have zero Z value)
+<span class="nc" id="L94">      return drawLinesBetweenAnyPointsWhichIntersectPlaneWhereZIsZero(corners);</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">    } else if (adjacentEdges(edges)) {</span>
+      // draw line between where two edges cross (have zero Z value)
+<span class="nc" id="L97">      return drawLinesBetweenAnyPointsWhichIntersectPlaneWhereZIsZero(corners);</span>
+    } else {
+      // No edges cross the localizer
+<span class="nc" id="L100">      return null;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

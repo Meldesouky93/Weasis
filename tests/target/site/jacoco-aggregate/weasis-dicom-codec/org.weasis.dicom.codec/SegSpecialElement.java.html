@@ -1,0 +1,375 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>SegSpecialElement.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec</a> &gt; <span class="el_source">SegSpecialElement.java</span></div><h1>SegSpecialElement.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2021 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec;
+
+import java.awt.Color;
+import java.awt.Point;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import javax.swing.tree.DefaultMutableTreeNode;
+import org.dcm4che3.data.Attributes;
+import org.dcm4che3.data.Sequence;
+import org.dcm4che3.data.Tag;
+import org.dcm4che3.img.data.CIELab;
+import org.dcm4che3.img.util.DicomUtils;
+import org.joml.Vector3d;
+import org.opencv.core.Core;
+import org.weasis.core.api.gui.util.DecFormatter;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.image.measure.MeasurementsAdapter;
+import org.weasis.core.api.util.ResourceUtil.OtherIcon;
+import org.weasis.core.api.util.ResourceUtil.ResourceIconPath;
+import org.weasis.core.ui.model.graphic.imp.seg.SegContour;
+import org.weasis.core.ui.model.graphic.imp.seg.SegMeasurableLayer;
+import org.weasis.core.ui.model.graphic.imp.seg.SegRegion;
+import org.weasis.core.ui.util.StructToolTipTreeNode;
+import org.weasis.core.util.StringUtil;
+import org.weasis.dicom.codec.geometry.VectorUtils;
+import org.weasis.dicom.codec.utils.DicomMediaUtils;
+import org.weasis.dicom.macro.Code;
+import org.weasis.opencv.data.PlanarImage;
+import org.weasis.opencv.op.ImageConversion;
+import org.weasis.opencv.seg.Region;
+import org.weasis.opencv.seg.RegionAttributes;
+import org.weasis.opencv.seg.Segment;
+
+public class SegSpecialElement extends HiddenSpecialElement
+    implements SpecialElementReferences, SpecialElementRegion {
+
+<span class="nc" id="L53">  static final DecimalFormat roundDouble = new DecimalFormat(&quot;0.######&quot;);</span>
+
+  static {
+<span class="nc" id="L56">    roundDouble.setRoundingMode(RoundingMode.HALF_UP);</span>
+<span class="nc" id="L57">    roundDouble.setGroupingUsed(false);</span>
+<span class="nc" id="L58">  }</span>
+
+<span class="nc" id="L60">  private final Map&lt;String, Map&lt;String, Set&lt;SegContour&gt;&gt;&gt; refMap = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L61">  private final Map&lt;Integer, Set&lt;SegContour&gt;&gt; roiMap = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L62">  private final Map&lt;String, Set&lt;SegContour&gt;&gt; postitionMap = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L63">  private final Map&lt;Integer, SegRegion&lt;DicomImageElement&gt;&gt; segAttributes = new HashMap&lt;&gt;();</span>
+
+<span class="nc" id="L65">  private volatile float opacity = 1.0f;</span>
+<span class="nc" id="L66">  private volatile boolean visible = true;</span>
+
+  public SegSpecialElement(DicomMediaIO mediaIO) {
+<span class="nc" id="L69">    super(mediaIO);</span>
+<span class="nc" id="L70">  }</span>
+
+  public static DefaultMutableTreeNode buildStructRegionNode(SegRegion&lt;?&gt; contour) {
+<span class="nc" id="L73">    return new StructToolTipTreeNode(contour, false) {</span>
+      @Override
+      public String getToolTipText() {
+<span class="nc" id="L76">        SegRegion&lt;?&gt; seg = (SegRegion&lt;?&gt;) getUserObject();</span>
+<span class="nc" id="L77">        StringBuilder buf = new StringBuilder();</span>
+<span class="nc" id="L78">        buf.append(GuiUtils.HTML_START);</span>
+<span class="nc" id="L79">        buf.append(&quot;&lt;b&gt;&quot;);</span>
+<span class="nc" id="L80">        buf.append(seg.getLabel());</span>
+<span class="nc" id="L81">        buf.append(&quot;&lt;/b&gt;&quot;);</span>
+<span class="nc" id="L82">        buf.append(GuiUtils.HTML_BR);</span>
+<span class="nc" id="L83">        buf.append(&quot;Algorithm type&quot;);</span>
+<span class="nc" id="L84">        buf.append(StringUtil.COLON_AND_SPACE);</span>
+<span class="nc" id="L85">        buf.append(seg.getType());</span>
+<span class="nc" id="L86">        buf.append(GuiUtils.HTML_BR);</span>
+<span class="nc" id="L87">        String algoName = seg.getAlgorithmName();</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">        if (StringUtil.hasText(algoName)) {</span>
+<span class="nc" id="L89">          buf.append(&quot;Algorithm name&quot;);</span>
+<span class="nc" id="L90">          buf.append(StringUtil.COLON_AND_SPACE);</span>
+<span class="nc" id="L91">          buf.append(algoName);</span>
+<span class="nc" id="L92">          buf.append(GuiUtils.HTML_BR);</span>
+        }
+<span class="nc" id="L94">        List&lt;String&gt; categories = seg.getCategories();</span>
+<span class="nc bnc" id="L95" title="All 4 branches missed.">        if (categories != null &amp;&amp; !categories.isEmpty()) {</span>
+<span class="nc" id="L96">          buf.append(&quot;Categories&quot;);</span>
+<span class="nc" id="L97">          buf.append(StringUtil.COLON_AND_SPACE);</span>
+<span class="nc" id="L98">          buf.append(String.join(&quot;, &quot;, categories));</span>
+<span class="nc" id="L99">          buf.append(GuiUtils.HTML_BR);</span>
+        }
+<span class="nc" id="L101">        List&lt;String&gt; anatomicRegionCodes = seg.getAnatomicRegionCodes();</span>
+<span class="nc bnc" id="L102" title="All 4 branches missed.">        if (anatomicRegionCodes != null &amp;&amp; !anatomicRegionCodes.isEmpty()) {</span>
+<span class="nc" id="L103">          buf.append(&quot;Anatomic regions&quot;);</span>
+<span class="nc" id="L104">          buf.append(StringUtil.COLON_AND_SPACE);</span>
+<span class="nc" id="L105">          buf.append(String.join(&quot;, &quot;, anatomicRegionCodes));</span>
+<span class="nc" id="L106">          buf.append(GuiUtils.HTML_BR);</span>
+        }
+<span class="nc" id="L108">        buf.append(&quot;Voxel count&quot;);</span>
+<span class="nc" id="L109">        buf.append(StringUtil.COLON_AND_SPACE);</span>
+<span class="nc" id="L110">        buf.append(DecFormatter.allNumber(seg.getNumberOfPixels()));</span>
+<span class="nc" id="L111">        buf.append(GuiUtils.HTML_BR);</span>
+<span class="nc" id="L112">        SegMeasurableLayer&lt;?&gt; layer = seg.getMeasurableLayer();</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">        if (layer != null) {</span>
+<span class="nc" id="L114">          MeasurementsAdapter adapter =</span>
+<span class="nc" id="L115">              layer.getMeasurementAdapter(layer.getSourceImage().getPixelSpacingUnit());</span>
+<span class="nc" id="L116">          buf.append(&quot;Volume (%s3)&quot;.formatted(adapter.getUnit()));</span>
+<span class="nc" id="L117">          buf.append(StringUtil.COLON_AND_SPACE);</span>
+<span class="nc" id="L118">          double ratio = adapter.getCalibRatio();</span>
+<span class="nc" id="L119">          buf.append(</span>
+<span class="nc" id="L120">              DecFormatter.twoDecimal(</span>
+<span class="nc" id="L121">                  seg.getNumberOfPixels() * ratio * ratio * layer.getThickness()));</span>
+<span class="nc" id="L122">          buf.append(GuiUtils.HTML_BR);</span>
+        }
+<span class="nc" id="L124">        buf.append(GuiUtils.HTML_END);</span>
+<span class="nc" id="L125">        return buf.toString();</span>
+      }
+    };
+  }
+
+  @Override
+  protected void initLabel() {
+<span class="nc" id="L132">    StringBuilder buf = new StringBuilder();</span>
+<span class="nc" id="L133">    Integer val = TagD.getTagValue(this, Tag.InstanceNumber, Integer.class);</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">    if (val != null) {</span>
+<span class="nc" id="L135">      buf.append(&quot;[&quot;);</span>
+<span class="nc" id="L136">      buf.append(val);</span>
+<span class="nc" id="L137">      buf.append(&quot;] &quot;);</span>
+    }
+<span class="nc" id="L139">    Attributes dicom = ((DicomMediaIO) mediaIO).getDicomObject();</span>
+<span class="nc" id="L140">    String item = dicom.getString(Tag.ContentLabel);</span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">    if (item != null) {</span>
+<span class="nc" id="L142">      buf.append(item);</span>
+    }
+<span class="nc" id="L144">    item = dicom.getString(Tag.ContentDescription);</span>
+<span class="nc bnc" id="L145" title="All 2 branches missed.">    if (item != null) {</span>
+<span class="nc" id="L146">      buf.append(&quot; - &quot;);</span>
+<span class="nc" id="L147">      buf.append(item);</span>
+    }
+<span class="nc" id="L149">    label = buf.toString();</span>
+<span class="nc" id="L150">  }</span>
+
+  public Map&lt;Integer, Set&lt;SegContour&gt;&gt; getRoiMap() {
+<span class="nc" id="L153">    return roiMap;</span>
+  }
+
+  public Map&lt;String, Map&lt;String, Set&lt;SegContour&gt;&gt;&gt; getRefMap() {
+<span class="nc" id="L157">    return refMap;</span>
+  }
+
+  @Override
+  public Map&lt;String, Set&lt;SegContour&gt;&gt; getPositionMap() {
+<span class="nc" id="L162">    return postitionMap;</span>
+  }
+
+  public Map&lt;Integer, SegRegion&lt;DicomImageElement&gt;&gt; getSegAttributes() {
+<span class="nc" id="L166">    return segAttributes;</span>
+  }
+
+  @Override
+  public boolean isVisible() {
+<span class="nc" id="L171">    return visible;</span>
+  }
+
+  @Override
+  public void setVisible(boolean visible) {
+<span class="nc" id="L176">    this.visible = visible;</span>
+<span class="nc" id="L177">  }</span>
+
+  @Override
+  public float getOpacity() {
+<span class="nc" id="L181">    return opacity;</span>
+  }
+
+  @Override
+  public void setOpacity(float opacity) {
+<span class="nc" id="L186">    this.opacity = Math.max(0.0f, Math.min(opacity, 1.0f));</span>
+<span class="nc" id="L187">    updateOpacityInSegAttributes(this.opacity);</span>
+<span class="nc" id="L188">  }</span>
+
+  @Override
+  public void initReferences(String originSeriesUID) {
+<span class="nc" id="L192">    refMap.clear();</span>
+<span class="nc" id="L193">    Attributes dicom = ((DicomMediaIO) mediaIO).getDicomObject();</span>
+<span class="nc bnc" id="L194" title="All 2 branches missed.">    if (dicom != null) {</span>
+<span class="nc" id="L195">      Function&lt;String, Map&lt;String, Set&lt;SegContour&gt;&gt;&gt; addSeries =</span>
+<span class="nc" id="L196">          seriesUID -&gt; refMap.computeIfAbsent(seriesUID, _ -&gt; new HashMap&lt;&gt;());</span>
+<span class="nc" id="L197">      HiddenSeriesManager.getInstance().extractReferencedSeries(dicom, originSeriesUID, addSeries);</span>
+    }
+<span class="nc" id="L199">  }</span>
+
+  @Override
+  public ResourceIconPath getIconPath() {
+<span class="nc" id="L203">    return OtherIcon.SEGMENTATION;</span>
+  }
+
+  public void initContours(DicomSeries series) {
+<span class="nc" id="L207">    roiMap.clear();</span>
+
+<span class="nc" id="L209">    Attributes dicom = ((DicomMediaIO) mediaIO).getDicomObject();</span>
+<span class="nc" id="L210">    String segmentType = dicom.getString(Tag.SegmentationType);</span>
+<span class="nc bnc" id="L211" title="All 2 branches missed.">    if (&quot;FRACTIONAL&quot;.equals(segmentType)) {</span>
+      // TODO: handle fractional segmentations
+    }
+
+    // Locate the name and number of each ROI
+<span class="nc" id="L216">    Map&lt;SegRegion&lt;DicomImageElement&gt;, Point&gt; regionPosition = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L217">    Sequence segSeq = dicom.getSequence(Tag.SegmentSequence);</span>
+
+<span class="nc bnc" id="L219" title="All 4 branches missed.">    if (segSeq != null &amp;&amp; series != null) {</span>
+<span class="nc bnc" id="L220" title="All 2 branches missed.">      for (Attributes seg : segSeq) {</span>
+<span class="nc" id="L221">        int nb = seg.getInt(Tag.SegmentNumber, -1);</span>
+<span class="nc" id="L222">        String segmentLabel = seg.getString(Tag.SegmentLabel, &quot;&quot; + nb);</span>
+
+<span class="nc" id="L224">        int[] colorRgb =</span>
+<span class="nc" id="L225">            CIELab.dicomLab2rgb(</span>
+<span class="nc" id="L226">                DicomUtils.getIntArrayFromDicomElement(</span>
+                    seg, Tag.RecommendedDisplayCIELabValue, null));
+<span class="nc" id="L228">        Color rgbColor = RegionAttributes.getColor(colorRgb, nb, opacity);</span>
+
+<span class="nc" id="L230">        SegRegion&lt;DicomImageElement&gt; attributes = new SegRegion&lt;&gt;(nb, segmentLabel, rgbColor);</span>
+<span class="nc" id="L231">        attributes.setInteriorOpacity(0.2f);</span>
+<span class="nc" id="L232">        attributes.setDescription(seg.getString(Tag.SegmentDescription));</span>
+<span class="nc" id="L233">        attributes.setType(seg.getString(Tag.SegmentAlgorithmType));</span>
+<span class="nc" id="L234">        attributes.setAlgorithmName(seg.getString(Tag.SegmentAlgorithmName));</span>
+
+<span class="nc" id="L236">        Sequence regionSeq = seg.getSequence(Tag.AnatomicRegionSequence);</span>
+<span class="nc bnc" id="L237" title="All 2 branches missed.">        if (regionSeq != null) {</span>
+<span class="nc" id="L238">          attributes.setAnatomicRegionCodes(</span>
+<span class="nc" id="L239">              Code.toCodeMacros(regionSeq).stream().map(Code::getCodeMeaning).toList());</span>
+        }
+
+<span class="nc" id="L242">        Sequence categorySeq = seg.getSequence(Tag.SegmentedPropertyCategoryCodeSequence);</span>
+<span class="nc bnc" id="L243" title="All 2 branches missed.">        if (categorySeq != null) {</span>
+<span class="nc" id="L244">          attributes.setCategories(</span>
+<span class="nc" id="L245">              Code.toCodeMacros(categorySeq).stream().map(Code::getCodeMeaning).toList());</span>
+        }
+
+<span class="nc" id="L248">        segAttributes.put(nb, attributes);</span>
+<span class="nc" id="L249">        regionPosition.put(attributes, new Point(-1, -1));</span>
+<span class="nc" id="L250">      }</span>
+    }
+
+<span class="nc" id="L253">    Sequence perFrameSeq = dicom.getSequence(Tag.PerFrameFunctionalGroupsSequence);</span>
+<span class="nc bnc" id="L254" title="All 2 branches missed.">    if (perFrameSeq != null) {</span>
+<span class="nc" id="L255">      int index = 0;</span>
+<span class="nc bnc" id="L256" title="All 2 branches missed.">      for (Attributes frame : perFrameSeq) {</span>
+<span class="nc" id="L257">        index++;</span>
+<span class="nc" id="L258">        List&lt;String&gt; sopUIDList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L259">        Sequence derivationSeq = frame.getSequence(Tag.DerivationImageSequence);</span>
+<span class="nc bnc" id="L260" title="All 2 branches missed.">        if (derivationSeq != null) {</span>
+<span class="nc bnc" id="L261" title="All 2 branches missed.">          for (Attributes derivation : derivationSeq) {</span>
+<span class="nc" id="L262">            HiddenSeriesManager.addSourceImage(derivation, sopUIDList);</span>
+<span class="nc" id="L263">          }</span>
+        }
+
+<span class="nc" id="L266">        DicomImageElement binaryMask = series.getMedia(index - 1, null, null);</span>
+<span class="nc bnc" id="L267" title="All 2 branches missed.">        if (binaryMask != null) {</span>
+<span class="nc" id="L268">          Attributes refSeqNb = frame.getNestedDataset(Tag.SegmentIdentificationSequence);</span>
+<span class="nc bnc" id="L269" title="All 2 branches missed.">          if (refSeqNb != null) {</span>
+<span class="nc" id="L270">            Integer nb =</span>
+<span class="nc" id="L271">                DicomUtils.getIntegerFromDicomElement(refSeqNb, Tag.ReferencedSegmentNumber, null);</span>
+<span class="nc bnc" id="L272" title="All 2 branches missed.">            if (nb != null) {</span>
+<span class="nc" id="L273">              SegRegion&lt;?&gt; c = segAttributes.get(nb);</span>
+<span class="nc bnc" id="L274" title="All 2 branches missed.">              if (c != null) {</span>
+<span class="nc" id="L275">                buildGraphic(binaryMask, index, c);</span>
+<span class="nc" id="L276">                Point p = regionPosition.get(c);</span>
+<span class="nc bnc" id="L277" title="All 2 branches missed.">                if (p != null) {</span>
+<span class="nc bnc" id="L278" title="All 2 branches missed.">                  if (p.x == -1) {</span>
+<span class="nc" id="L279">                    p.x = index - 1;</span>
+                  } else {
+<span class="nc" id="L281">                    p.y = index - 1;</span>
+                  }
+                }
+              }
+            }
+          }
+        }
+
+<span class="nc" id="L289">        Set&lt;SegContour&gt; contour = roiMap.get(index);</span>
+<span class="nc bnc" id="L290" title="All 4 branches missed.">        if (contour != null &amp;&amp; !contour.isEmpty()) {</span>
+<span class="nc" id="L291">          refMap.forEach(</span>
+              (key, _) -&gt; {
+<span class="nc" id="L293">                Map&lt;String, Set&lt;SegContour&gt;&gt; map = refMap.get(key);</span>
+<span class="nc bnc" id="L294" title="All 2 branches missed.">                if (map != null) {</span>
+<span class="nc" id="L295">                  sopUIDList.forEach(</span>
+                      sopUID -&gt; {
+<span class="nc" id="L297">                        Set&lt;SegContour&gt; list = map.get(sopUID);</span>
+<span class="nc bnc" id="L298" title="All 2 branches missed.">                        if (list != null) {</span>
+<span class="nc" id="L299">                          list.addAll(contour);</span>
+                        }
+<span class="nc" id="L301">                      });</span>
+                }
+<span class="nc" id="L303">              });</span>
+        }
+<span class="nc" id="L305">      }</span>
+    }
+
+<span class="nc" id="L308">    regionPosition.forEach(</span>
+        (region, p) -&gt; {
+<span class="nc" id="L310">          SegMeasurableLayer&lt;DicomImageElement&gt; measurableLayer = getMeasurableLayer(series, p);</span>
+<span class="nc" id="L311">          region.setMeasurableLayer(measurableLayer);</span>
+<span class="nc" id="L312">        });</span>
+<span class="nc" id="L313">  }</span>
+
+  private void addPositionMap(Attributes frame, Set&lt;SegContour&gt; contour) {
+<span class="nc" id="L316">    Attributes refPos = frame.getNestedDataset(Tag.PlanePositionSequence);</span>
+<span class="nc bnc" id="L317" title="All 2 branches missed.">    if (refPos != null) {</span>
+<span class="nc" id="L318">      double[] pos =</span>
+<span class="nc" id="L319">          DicomUtils.getDoubleArrayFromDicomElement(</span>
+              refPos,
+              Tag.ImagePositionPatient,
+<span class="nc" id="L322">              TagD.getTagValue(mediaIO, Tag.ImagePositionPatient, double[].class));</span>
+<span class="nc bnc" id="L323" title="All 4 branches missed.">      if (pos != null &amp;&amp; pos.length == 3) {</span>
+<span class="nc" id="L324">        Vector3d pPos = new Vector3d(pos);</span>
+<span class="nc" id="L325">        Attributes refImgPos = frame.getNestedDataset(Tag.PlaneOrientationSequence);</span>
+<span class="nc" id="L326">        double[] imagePosition =</span>
+<span class="nc" id="L327">            DicomUtils.getDoubleArrayFromDicomElement(</span>
+                refImgPos,
+                Tag.ImageOrientationPatient,
+<span class="nc" id="L330">                TagD.getTagValue(mediaIO, Tag.ImageOrientationPatient, double[].class));</span>
+<span class="nc bnc" id="L331" title="All 4 branches missed.">        if (imagePosition != null &amp;&amp; imagePosition.length == 6) {</span>
+<span class="nc" id="L332">          Vector3d vr = new Vector3d(imagePosition);</span>
+<span class="nc" id="L333">          Vector3d vc = new Vector3d(imagePosition[3], imagePosition[4], imagePosition[5]);</span>
+<span class="nc" id="L334">          Vector3d normal = VectorUtils.computeNormalOfSurface(vr, vc);</span>
+<span class="nc" id="L335">          normal.mul(pPos);</span>
+<span class="nc" id="L336">          String position = normal.toString(roundDouble).replace(&quot;-0 &quot;, &quot;0 &quot;);</span>
+<span class="nc" id="L337">          Set&lt;SegContour&gt; set = postitionMap.computeIfAbsent(position, _ -&gt; new LinkedHashSet&lt;&gt;());</span>
+<span class="nc" id="L338">          set.addAll(contour);</span>
+        }
+      }
+    }
+<span class="nc" id="L342">  }</span>
+
+  private SegMeasurableLayer&lt;DicomImageElement&gt; getMeasurableLayer(DicomSeries series, Point p) {
+<span class="nc bnc" id="L345" title="All 10 branches missed.">    if (series != null &amp;&amp; series.size(null) &gt; 0 &amp;&amp; p != null &amp;&amp; p.x &gt;= 0 &amp;&amp; p.y &gt;= 0) {</span>
+<span class="nc" id="L346">      DicomImageElement first = series.getMedia(p.x, null, null);</span>
+<span class="nc" id="L347">      DicomImageElement last = series.getMedia(p.y, null, null);</span>
+<span class="nc" id="L348">      DicomImageElement img = series.getMedia(p.y - (p.y - p.x) / 2, null, null);</span>
+<span class="nc bnc" id="L349" title="All 6 branches missed.">      if (img != null &amp;&amp; first != null &amp;&amp; last != null) {</span>
+<span class="nc" id="L350">        double thickness = DicomMediaUtils.getThickness(first, last);</span>
+<span class="nc bnc" id="L351" title="All 2 branches missed.">        if (thickness &lt;= 0.0) {</span>
+<span class="nc" id="L352">          thickness = 1.0;</span>
+        } else {
+<span class="nc" id="L354">          thickness /= (p.y - p.x) + 1;</span>
+        }
+<span class="nc" id="L356">        return new SegMeasurableLayer&lt;&gt;(img, thickness);</span>
+      }
+    }
+<span class="nc" id="L359">    return null;</span>
+  }
+
+  private void buildGraphic(DicomImageElement binaryMask, int id, SegRegion&lt;?&gt; region) {
+<span class="nc" id="L363">    PlanarImage binary = binaryMask.getImage();</span>
+<span class="nc" id="L364">    List&lt;Segment&gt; segmentList = Region.buildSegmentList(binary);</span>
+<span class="nc" id="L365">    int nbPixels = Core.countNonZero(binary.toMat());</span>
+<span class="nc" id="L366">    ImageConversion.releasePlanarImage(binary);</span>
+<span class="nc bnc" id="L367" title="All 2 branches missed.">    if (!segmentList.isEmpty()) {</span>
+<span class="nc" id="L368">      SegContour contour = new SegContour(String.valueOf(id), segmentList, nbPixels);</span>
+<span class="nc" id="L369">      region.addPixels(contour);</span>
+<span class="nc" id="L370">      contour.setAttributes(region);</span>
+<span class="nc" id="L371">      roiMap.computeIfAbsent(id, _ -&gt; new LinkedHashSet&lt;&gt;()).add(contour);</span>
+    }
+<span class="nc" id="L373">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

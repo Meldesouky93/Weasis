@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ImageGroupPane.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer.gui.central</a> &gt; <span class="el_source">ImageGroupPane.java</span></div><h1>ImageGroupPane.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer.gui.central;
+
+import java.awt.BorderLayout;
+import java.util.List;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
+import org.weasis.acquire.explorer.AcquireManager;
+import org.weasis.acquire.explorer.Messages;
+import org.weasis.base.explorer.JIThumbnailCache;
+import org.weasis.base.viewer2d.EventManager;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.media.data.MediaSeries;
+import org.weasis.core.ui.editor.SeriesViewerEvent;
+import org.weasis.core.ui.editor.SeriesViewerEvent.EVENT;
+import org.weasis.core.ui.editor.SeriesViewerUI;
+import org.weasis.core.ui.editor.image.ViewerPlugin;
+import org.weasis.core.ui.util.ToolBarContainer;
+
+public class ImageGroupPane extends ViewerPlugin&lt;ImageElement&gt; {
+
+<span class="nc" id="L30">  public static final SeriesViewerUI UI = new SeriesViewerUI(ImageGroupPane.class);</span>
+
+  public final AcquireTabPanel tabbedPane;
+
+  public ImageGroupPane(String pluginName, JIThumbnailCache thumbCache) {
+<span class="nc" id="L35">    super(pluginName);</span>
+<span class="nc" id="L36">    this.tabbedPane = new AcquireTabPanel(thumbCache);</span>
+<span class="nc bnc" id="L37" title="All 2 branches missed.">    if (!UI.init.getAndSet(true)) {</span>
+<span class="nc" id="L38">      UI.toolBars.add(ToolBarContainer.EMPTY);</span>
+    }
+<span class="nc" id="L40">    init();</span>
+<span class="nc" id="L41">  }</span>
+
+  private void init() {
+<span class="nc" id="L44">    setLayout(new BorderLayout());</span>
+<span class="nc" id="L45">    add(tabbedPane, BorderLayout.CENTER);</span>
+<span class="nc" id="L46">  }</span>
+
+  @Override
+  public List&lt;MediaSeries&lt;ImageElement&gt;&gt; getOpenSeries() {
+<span class="nc" id="L50">    return null;</span>
+  }
+
+  @Override
+  public void addSeries(MediaSeries&lt;ImageElement&gt; series) {
+    // Do nothing
+<span class="nc" id="L56">  }</span>
+
+  @Override
+  public void removeSeries(MediaSeries&lt;ImageElement&gt; series) {
+    // Do nothing
+<span class="nc" id="L61">  }</span>
+
+  @Override
+  public JMenu fillSelectedPluginMenu(JMenu menuRoot) {
+<span class="nc bnc" id="L65" title="All 2 branches missed.">    if (menuRoot != null) {</span>
+<span class="nc" id="L66">      menuRoot.removeAll();</span>
+      // JMenuItem item = new JMenuItem(&quot;Build a new study&quot;);
+      // item.addActionListener(e -&gt; AcquireManager.GLOBAL.setTag(TagD.get(Tag.StudyInstanceUID),
+      // UIDUtils.createUID()));
+      // menuRoot.add(item);
+<span class="nc" id="L71">      JMenuItem item2 = new JMenuItem(Messages.getString(&quot;ImageGroupPane.rm_all&quot;));</span>
+<span class="nc" id="L72">      item2.addActionListener(e -&gt; AcquireManager.getInstance().removeAllImages());</span>
+<span class="nc" id="L73">      menuRoot.add(item2);</span>
+    }
+<span class="nc" id="L75">    return menuRoot;</span>
+  }
+
+  @Override
+  public SeriesViewerUI getSeriesViewerUI() {
+<span class="nc" id="L80">    return UI;</span>
+  }
+
+  @Override
+  public void setSelected(boolean selected) {
+<span class="nc bnc" id="L85" title="All 2 branches missed.">    if (selected) {</span>
+<span class="nc" id="L86">      EventManager.getInstance()</span>
+<span class="nc" id="L87">          .fireSeriesViewerListeners(new SeriesViewerEvent(this, null, null, EVENT.SELECT_VIEW));</span>
+<span class="nc" id="L88">      tabbedPane.refreshGUI();</span>
+    }
+<span class="nc" id="L90">  }</span>
+
+  @Override
+  public void setSelectedAndGetFocus() {
+<span class="nc" id="L94">    super.setSelectedAndGetFocus();</span>
+<span class="nc" id="L95">    updateAll();</span>
+<span class="nc" id="L96">  }</span>
+
+  private void updateAll() {
+<span class="nc" id="L99">    tabbedPane.clearUnusedSeries(AcquireManager.getBySeries());</span>
+<span class="nc" id="L100">    tabbedPane.setSelected(tabbedPane.getSelected());</span>
+<span class="nc" id="L101">    tabbedPane.revalidate();</span>
+<span class="nc" id="L102">    tabbedPane.repaint();</span>
+<span class="nc" id="L103">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

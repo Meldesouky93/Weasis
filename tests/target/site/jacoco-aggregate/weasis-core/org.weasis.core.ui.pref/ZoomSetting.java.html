@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ZoomSetting.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.pref</a> &gt; <span class="el_source">ZoomSetting.java</span></div><h1>ZoomSetting.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.pref;
+
+import java.awt.Color;
+import org.osgi.service.prefs.Preferences;
+import org.weasis.core.api.image.ZoomOp.Interpolation;
+import org.weasis.core.api.service.BundlePreferences;
+
+<span class="nc" id="L17">public class ZoomSetting {</span>
+
+  public static final String PREFERENCE_NODE = &quot;zoom&quot;; // NON-NLS
+  // public static final String P_ZOOM_SYNCH = &quot;zoom.synch&quot;;
+  // public static final String P_SHOW_DRAWINGS = &quot;show.drawings&quot;;
+  // public static final String P_ROUND = &quot;round&quot;;
+
+<span class="nc" id="L24">  private boolean lensShowDrawings = true;</span>
+<span class="nc" id="L25">  private boolean lensSynchronize = false;</span>
+<span class="nc" id="L26">  private int lensWidth = 200;</span>
+<span class="nc" id="L27">  private int lensHeight = 200;</span>
+<span class="nc" id="L28">  private int interpolation = 1;</span>
+<span class="nc" id="L29">  private boolean lensRound = false;</span>
+<span class="nc" id="L30">  private int lensLineWidth = 2;</span>
+<span class="nc" id="L31">  private Color lensLineColor = new Color(195, 109, 254);</span>
+
+  public void applyPreferences(Preferences prefs) {
+<span class="nc bnc" id="L34" title="All 2 branches missed.">    if (prefs != null) {</span>
+<span class="nc" id="L35">      Preferences p = prefs.node(ZoomSetting.PREFERENCE_NODE);</span>
+<span class="nc" id="L36">      setInterpolation(p.getInt(&quot;interpolation&quot;, Interpolation.BILINEAR.ordinal())); // NON-NLS</span>
+    }
+<span class="nc" id="L38">  }</span>
+
+  public void savePreferences(Preferences prefs) {
+<span class="nc bnc" id="L41" title="All 2 branches missed.">    if (prefs != null) {</span>
+<span class="nc" id="L42">      Preferences p = prefs.node(ZoomSetting.PREFERENCE_NODE);</span>
+<span class="nc" id="L43">      BundlePreferences.putIntPreferences(p, &quot;interpolation&quot;, interpolation); // NON-NLS</span>
+    }
+<span class="nc" id="L45">  }</span>
+
+  public boolean isLensShowDrawings() {
+<span class="nc" id="L48">    return lensShowDrawings;</span>
+  }
+
+  public void setLensShowDrawings(boolean lensShowDrawings) {
+<span class="nc" id="L52">    this.lensShowDrawings = lensShowDrawings;</span>
+<span class="nc" id="L53">  }</span>
+
+  public boolean isLensSynchronize() {
+<span class="nc" id="L56">    return lensSynchronize;</span>
+  }
+
+  public void setLensSynchronize(boolean lensSynchronize) {
+<span class="nc" id="L60">    this.lensSynchronize = lensSynchronize;</span>
+<span class="nc" id="L61">  }</span>
+
+  public int getLensWidth() {
+<span class="nc" id="L64">    return lensWidth;</span>
+  }
+
+  public void setLensWidth(int lensWidth) {
+<span class="nc" id="L68">    this.lensWidth = lensWidth;</span>
+<span class="nc" id="L69">  }</span>
+
+  public int getLensHeight() {
+<span class="nc" id="L72">    return lensHeight;</span>
+  }
+
+  public void setLensHeight(int lensHeight) {
+<span class="nc" id="L76">    this.lensHeight = lensHeight;</span>
+<span class="nc" id="L77">  }</span>
+
+  /**
+   * @return ordinal value of ZoomOp.Interpolation
+   */
+  public int getInterpolation() {
+<span class="nc" id="L83">    return interpolation;</span>
+  }
+
+  /**
+   * Set the zoom interpolation
+   *
+   * @param interpolation ordinal value of ZoomOp.Interpolation
+   */
+  public void setInterpolation(int interpolation) {
+<span class="nc bnc" id="L92" title="All 4 branches missed.">    if (interpolation &lt; 0 || interpolation &gt;= Interpolation.values().length) {</span>
+<span class="nc" id="L93">      this.interpolation = Interpolation.BILINEAR.ordinal();</span>
+    } else {
+<span class="nc" id="L95">      this.interpolation = interpolation;</span>
+    }
+<span class="nc" id="L97">  }</span>
+
+  public boolean isLensRound() {
+<span class="nc" id="L100">    return lensRound;</span>
+  }
+
+  public void setLensRound(boolean lensRound) {
+<span class="nc" id="L104">    this.lensRound = lensRound;</span>
+<span class="nc" id="L105">  }</span>
+
+  public int getLensLineWidth() {
+<span class="nc" id="L108">    return lensLineWidth;</span>
+  }
+
+  public void setLensLineWidth(int lensLineWidth) {
+<span class="nc" id="L112">    this.lensLineWidth = lensLineWidth;</span>
+<span class="nc" id="L113">  }</span>
+
+  public Color getLensLineColor() {
+<span class="nc" id="L116">    return lensLineColor;</span>
+  }
+
+  public void setLensLineColor(Color lensLineColor) {
+<span class="nc" id="L120">    this.lensLineColor = lensLineColor;</span>
+<span class="nc" id="L121">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

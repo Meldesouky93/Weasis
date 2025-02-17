@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>DicomCodec.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec</a> &gt; <span class="el_source">DicomCodec.java</span></div><h1>DicomCodec.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec;
+
+import java.net.URI;
+import java.util.Hashtable;
+import javax.imageio.spi.IIOServiceProvider;
+import org.dcm4che3.data.SpecificCharacterSet;
+import org.dcm4che3.img.DicomImageReaderSpi;
+import org.dcm4che3.util.UIDUtils;
+import org.osgi.service.component.ComponentContext;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.media.data.Codec;
+import org.weasis.core.api.media.data.MediaReader;
+import org.weasis.imageio.codec.ImageioUtil;
+
+@org.osgi.service.component.annotations.Component(service = Codec.class)
+<span class="nc" id="L32">public class DicomCodec implements Codec&lt;DicomImageElement&gt; {</span>
+<span class="nc" id="L33">  private static final Logger LOGGER = LoggerFactory.getLogger(DicomCodec.class);</span>
+
+  public static final String NAME = &quot;dcm4che&quot;; // NON-NLS
+<span class="nc" id="L36">  public static final String[] FILE_EXTENSIONS = {&quot;dcm&quot;, &quot;dic&quot;, &quot;dicm&quot;, &quot;dicom&quot;}; // NON-NLS</span>
+
+  private static final String LOGGER_KEY = &quot;always.info.ItemParser&quot;;
+  private static final String LOGGER_VAL = &quot;org.dcm4che3.imageio.ItemParser&quot;;
+
+<span class="nc" id="L41">  private static final IIOServiceProvider[] dcm4cheCodecs = {new DicomImageReaderSpi()};</span>
+
+  @Override
+  public String[] getReaderMIMETypes() {
+<span class="nc" id="L45">    return new String[] {</span>
+      DicomMediaIO.DICOM_MIMETYPE,
+      DicomMediaIO.SERIES_XDSI,
+      DicomMediaIO.IMAGE_MIMETYPE,
+      DicomMediaIO.SERIES_VIDEO_MIMETYPE,
+      DicomMediaIO.SERIES_ENCAP_DOC_MIMETYPE
+    };
+  }
+
+  @Override
+  public String[] getReaderExtensions() {
+<span class="nc" id="L56">    return FILE_EXTENSIONS;</span>
+  }
+
+  @Override
+  public boolean isMimeTypeSupported(String mimeType) {
+<span class="nc bnc" id="L61" title="All 2 branches missed.">    if (mimeType != null) {</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">      for (String mime : getReaderMIMETypes()) {</span>
+<span class="nc bnc" id="L63" title="All 2 branches missed.">        if (mimeType.equals(mime)) {</span>
+<span class="nc" id="L64">          return true;</span>
+        }
+      }
+    }
+<span class="nc" id="L68">    return false;</span>
+  }
+
+  @Override
+  public MediaReader&lt;DicomImageElement&gt; getMediaIO(
+      URI media, String mimeType, Hashtable&lt;String, Object&gt; properties) {
+<span class="nc bnc" id="L74" title="All 2 branches missed.">    if (isMimeTypeSupported(mimeType)) {</span>
+<span class="nc" id="L75">      return new DicomMediaIO(media);</span>
+    }
+<span class="nc" id="L77">    return null;</span>
+  }
+
+  @Override
+  public String getCodecName() {
+<span class="nc" id="L82">    return NAME;</span>
+  }
+
+  @Override
+  public String[] getWriterExtensions() {
+<span class="nc" id="L87">    return FILE_EXTENSIONS;</span>
+  }
+
+  @Override
+  public String[] getWriterMIMETypes() {
+<span class="nc" id="L92">    return new String[] {DicomMediaIO.DICOM_MIMETYPE};</span>
+  }
+
+  // ================================================================================
+  // OSGI service implementation
+  // ================================================================================
+
+  @Activate
+  protected void activate(ComponentContext context) {
+<span class="nc" id="L101">    LOGGER.info(&quot;Activate DicomCodec&quot;);</span>
+
+    /**
+     * Set value for dicom root UID which should be registered at the
+     * https://www.iana.org/assignments/enterprise-numbers &lt;br&gt;
+     * Default value is 2.25, this enables users to generate OIDs without any registration procedure
+     *
+     * @see http://www.dclunie.com/medical-image-faq/html/part2.html#UUID &lt;br&gt;
+     *     http://www.oid-info.com/get/2.25 &lt;br&gt;
+     *     http://www.itu.int/ITU-T/asn1/uuid.html&lt;br&gt;
+     *     http://healthcaresecprivacy.blogspot.ch/2011/02/creating-and-using-unique-id-uuid-oid.html
+     */
+    String weasisRootUID =
+<span class="nc" id="L114">        GuiUtils.getUICore()</span>
+<span class="nc" id="L115">            .getSystemPreferences()</span>
+<span class="nc" id="L116">            .getProperty(&quot;weasis.dicom.root.uid&quot;, UIDUtils.getRoot());</span>
+<span class="nc" id="L117">    UIDUtils.setRoot(weasisRootUID);</span>
+
+    // Set the default encoding (must contain ASCII)
+<span class="nc" id="L120">    SpecificCharacterSet.setDefaultCharacterSet(&quot;ISO_IR 100&quot;); // NON-NLS</span>
+
+<span class="nc bnc" id="L122" title="All 2 branches missed.">    for (IIOServiceProvider p : dcm4cheCodecs) {</span>
+<span class="nc" id="L123">      ImageioUtil.registerServiceProvider(p);</span>
+    }
+<span class="nc" id="L125">  }</span>
+
+  @Deactivate
+  protected void deactivate(ComponentContext context) {
+<span class="nc" id="L129">    LOGGER.info(&quot;Deactivate DicomCodec&quot;);</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">    for (IIOServiceProvider p : dcm4cheCodecs) {</span>
+<span class="nc" id="L131">      ImageioUtil.deregisterServiceProvider(p);</span>
+    }
+<span class="nc" id="L133">  }</span>
+
+  @Reference(
+      service = DicomSpecialElementFactory.class,
+      cardinality = ReferenceCardinality.MULTIPLE,
+      policy = ReferencePolicy.DYNAMIC,
+      unbind = &quot;removeDicomSpecialElementFactory&quot;)
+  void addDicomSpecialElementFactory(DicomSpecialElementFactory factory) {
+<span class="nc" id="L141">    String name = factory.getClass().getName();</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">    for (String modality : factory.getModalities()) {</span>
+<span class="nc" id="L143">      DicomSpecialElementFactory prev = DicomMediaIO.DCM_ELEMENT_FACTORIES.put(modality, factory);</span>
+<span class="nc bnc" id="L144" title="All 2 branches missed.">      if (prev != null) {</span>
+<span class="nc" id="L145">        LOGGER.warn(&quot;{} factory has been replaced by {}&quot;, prev.getClass().getName(), name);</span>
+      }
+<span class="nc" id="L147">      LOGGER.info(&quot;Register DicomSpecialElementFactory: {} =&gt; {}&quot;, modality, name);</span>
+    }
+<span class="nc" id="L149">  }</span>
+
+  void removeDicomSpecialElementFactory(DicomSpecialElementFactory factory) {
+<span class="nc" id="L152">    String name = factory.getClass().getName();</span>
+<span class="nc bnc" id="L153" title="All 2 branches missed.">    for (String modality : factory.getModalities()) {</span>
+<span class="nc" id="L154">      DicomSpecialElementFactory f = DicomMediaIO.DCM_ELEMENT_FACTORIES.get(modality);</span>
+<span class="nc bnc" id="L155" title="All 2 branches missed.">      if (factory.equals(f)) {</span>
+<span class="nc" id="L156">        DicomMediaIO.DCM_ELEMENT_FACTORIES.remove(modality);</span>
+<span class="nc" id="L157">        LOGGER.info(&quot;Unregister DicomSpecialElementFactory: {} =&gt; {}&quot;, modality, name);</span>
+      } else {
+<span class="nc" id="L159">        LOGGER.warn(</span>
+            &quot;{}: Unregistering {} has no effect, {} is registered instead&quot;,
+            modality,
+            name,
+<span class="nc" id="L163">            f.getClass().getName());</span>
+      }
+    }
+<span class="nc" id="L166">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

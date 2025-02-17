@@ -1,0 +1,428 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AcquirePublishDialog.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer.gui.dialog</a> &gt; <span class="el_source">AcquirePublishDialog.java</span></div><h1>AcquirePublishDialog.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer.gui.dialog;
+
+import static org.weasis.core.api.gui.Insertable.ITEM_SEPARATOR_LARGE;
+import static org.weasis.core.api.gui.Insertable.ITEM_SEPARATOR_SMALL;
+
+import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.File;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.SwingWorker;
+import javax.swing.SwingWorker.StateValue;
+import javax.swing.WindowConstants;
+import javax.swing.tree.DefaultMutableTreeNode;
+import javax.swing.tree.TreePath;
+import net.miginfocom.swing.MigLayout;
+import org.osgi.service.prefs.Preferences;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.acquire.explorer.AcquireImageInfo;
+import org.weasis.acquire.explorer.AcquireManager;
+import org.weasis.acquire.explorer.DicomizeTask;
+import org.weasis.acquire.explorer.MediaImporterFactory;
+import org.weasis.acquire.explorer.Messages;
+import org.weasis.acquire.explorer.PublishDicomTask;
+import org.weasis.acquire.explorer.gui.central.meta.model.imp.AcquireGlobalMeta;
+import org.weasis.acquire.explorer.gui.central.meta.model.imp.AcquireImageMeta;
+import org.weasis.acquire.explorer.gui.central.meta.model.imp.AcquireSeriesMeta;
+import org.weasis.acquire.explorer.gui.control.AcquirePublishPanel;
+import org.weasis.acquire.explorer.gui.model.publish.PublishTree;
+import org.weasis.core.api.gui.util.AppProperties;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.gui.util.WinUtil;
+import org.weasis.core.api.image.ImageOpNode;
+import org.weasis.core.api.image.ZoomOp;
+import org.weasis.core.api.service.BundlePreferences;
+import org.weasis.core.api.service.WProperties;
+import org.weasis.core.api.util.FontItem;
+import org.weasis.core.api.util.ThreadUtil;
+import org.weasis.core.util.StringUtil;
+import org.weasis.dicom.explorer.pref.node.AbstractDicomNode;
+import org.weasis.dicom.explorer.pref.node.AbstractDicomNode.UsageType;
+import org.weasis.dicom.explorer.pref.node.DefaultDicomNode;
+import org.weasis.opencv.data.PlanarImage;
+
+public class AcquirePublishDialog extends JDialog {
+<span class="nc" id="L67">  private static final Logger LOGGER = LoggerFactory.getLogger(AcquirePublishDialog.class);</span>
+  private static final String LAST_SEL_NODE = &quot;lastSelectedNode&quot;;
+  public static final String P_LAST_RESOLUTION = &quot;last.resolution&quot;;
+  public static final String PREFERENCE_NODE = &quot;publish&quot;; // NON-NLS
+  private static final String LAST_CALLING_NODE = &quot;lastCallingNode&quot;;
+<span class="nc" id="L72">  private final JComboBox&lt;AbstractDicomNode&gt; comboCallingNode = new JComboBox&lt;&gt;();</span>
+
+<span class="nc" id="L74">  public enum Resolution {</span>
+<span class="nc" id="L75">    ORIGINAL(Messages.getString(&quot;AcquirePublishDialog.original&quot;), Integer.MAX_VALUE),</span>
+<span class="nc" id="L76">    ULTRA_HD(Messages.getString(&quot;AcquirePublishDialog.high_res&quot;), 3840),</span>
+<span class="nc" id="L77">    FULL_HD(Messages.getString(&quot;AcquirePublishDialog.med_res&quot;), 1920),</span>
+<span class="nc" id="L78">    HD_DVD(Messages.getString(&quot;AcquirePublishDialog.low_res&quot;), 1280);</span>
+
+    private final String title;
+    private final int maxSize;
+
+<span class="nc" id="L83">    Resolution(String title, int size) {</span>
+<span class="nc" id="L84">      this.title = title;</span>
+<span class="nc" id="L85">      this.maxSize = size;</span>
+<span class="nc" id="L86">    }</span>
+
+    @Override
+    public String toString() {
+<span class="nc" id="L90">      return title;</span>
+    }
+
+    public String getTitle() {
+<span class="nc" id="L94">      return title;</span>
+    }
+
+    public int getMaxSize() {
+<span class="nc" id="L98">      return maxSize;</span>
+    }
+
+    public static Resolution getInstance(String val) {
+<span class="nc bnc" id="L102" title="All 2 branches missed.">      if (StringUtil.hasText(val)) {</span>
+        try {
+<span class="nc" id="L104">          return Resolution.valueOf(val);</span>
+<span class="nc" id="L105">        } catch (Exception e) {</span>
+<span class="nc" id="L106">          LOGGER.error(&quot;Cannot find Resolution: {}&quot;, val, e);</span>
+        }
+      }
+<span class="nc" id="L109">      return Resolution.ORIGINAL;</span>
+    }
+  }
+
+  private final AcquirePublishPanel publishPanel;
+
+  private PublishTree publishTree;
+  private JComboBox&lt;Resolution&gt; resolutionCombo;
+  private JButton publishButton;
+  private JButton cancelButton;
+  private JProgressBar progressBar;
+
+  private transient ActionListener clearAndHideActionListener;
+<span class="nc" id="L122">  private final JComboBox&lt;AbstractDicomNode&gt; comboNode = new JComboBox&lt;&gt;();</span>
+
+  public AcquirePublishDialog(AcquirePublishPanel publishPanel) {
+<span class="nc" id="L125">    super(</span>
+<span class="nc" id="L126">        WinUtil.getParentWindow(publishPanel),</span>
+<span class="nc" id="L127">        Messages.getString(&quot;AcquirePublishDialog.publication&quot;),</span>
+        ModalityType.APPLICATION_MODAL);
+<span class="nc" id="L129">    this.publishPanel = publishPanel;</span>
+
+<span class="nc" id="L131">    setContentPane(initContent());</span>
+<span class="nc" id="L132">    publishTree</span>
+<span class="nc" id="L133">        .getTree()</span>
+<span class="nc" id="L134">        .addCheckingPath(new TreePath(publishTree.getModel().getRootNode().getPath()));</span>
+
+<span class="nc" id="L136">    setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);</span>
+<span class="nc" id="L137">    addWindowListener(</span>
+<span class="nc" id="L138">        new WindowAdapter() {</span>
+          @Override
+          public void windowClosing(WindowEvent we) {
+<span class="nc" id="L141">            cancelButton.doClick();</span>
+<span class="nc" id="L142">          }</span>
+        });
+
+<span class="nc" id="L145">    setPreferredSize(GuiUtils.getDimension(700, 400));</span>
+<span class="nc" id="L146">    pack();</span>
+<span class="nc" id="L147">  }</span>
+
+  private JPanel initContent() {
+<span class="nc" id="L150">    JPanel contentPane =</span>
+        new JPanel(new MigLayout(&quot;fill, insets 10&quot;, &quot;[grow]&quot;, &quot;[][][grow][]&quot;)); // NON-NLS
+
+<span class="nc" id="L153">    JLabel questionLabel = new JLabel(Messages.getString(&quot;AcquirePublishDialog.select_pub&quot;));</span>
+<span class="nc" id="L154">    questionLabel.setFont(FontItem.DEFAULT_SEMIBOLD.getFont());</span>
+
+<span class="nc" id="L156">    contentPane.add(questionLabel, &quot;wrap&quot;); // NON-NLS</span>
+<span class="nc" id="L157">    publishTree = new PublishTree();</span>
+<span class="nc" id="L158">    publishTree.addTreeCheckingListener(</span>
+        evt -&gt; {
+<span class="nc bnc" id="L160" title="All 2 branches missed.">          resolutionCombo.setEnabled(!getOversizedSelected(publishTree).isEmpty());</span>
+<span class="nc" id="L161">        });</span>
+<span class="nc" id="L162">    contentPane.add(publishTree, &quot;grow, wrap&quot;); // NON-NLS</span>
+
+<span class="nc" id="L164">    contentPane.add(</span>
+        new JLabel(
+<span class="nc" id="L166">            Messages.getString(&quot;AcquirePublishDialog.resolution&quot;) + StringUtil.COLON_AND_SPACE),</span>
+        &quot;split 2, span&quot;); // NON-NLS
+<span class="nc" id="L168">    resolutionCombo = new JComboBox&lt;&gt;(Resolution.values());</span>
+<span class="nc" id="L169">    Preferences prefs =</span>
+<span class="nc" id="L170">        BundlePreferences.getDefaultPreferences(AppProperties.getBundleContext(this.getClass()));</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">    if (prefs != null) {</span>
+<span class="nc" id="L172">      Preferences p = prefs.node(PREFERENCE_NODE);</span>
+<span class="nc" id="L173">      resolutionCombo.setSelectedItem(</span>
+<span class="nc" id="L174">          Resolution.getInstance(p.get(P_LAST_RESOLUTION, Resolution.ORIGINAL.name())));</span>
+    }
+<span class="nc" id="L176">    resolutionCombo.setEnabled(false);</span>
+<span class="nc" id="L177">    contentPane.add(resolutionCombo, &quot;wrap&quot;); // NON-NLS</span>
+
+<span class="nc" id="L179">    JLabel lblDestination =</span>
+        new JLabel(
+<span class="nc" id="L181">            Messages.getString(&quot;AcquirePublishDialog.lblDestination.text&quot;) + StringUtil.COLON);</span>
+<span class="nc" id="L182">    GuiUtils.setPreferredWidth(comboNode, 210, 185);</span>
+<span class="nc" id="L183">    AbstractDicomNode.addTooltipToComboList(comboNode);</span>
+<span class="nc" id="L184">    loadDicomNodes();</span>
+
+<span class="nc" id="L186">    JPanel panel = GuiUtils.getFlowLayoutPanel(ITEM_SEPARATOR_SMALL, 0, lblDestination, comboNode);</span>
+<span class="nc bnc" id="L187" title="All 2 branches missed.">    if (comboCallingNode.getItemCount() &gt; 0) {</span>
+<span class="nc" id="L188">      AbstractDicomNode.addTooltipToComboList(comboCallingNode);</span>
+<span class="nc" id="L189">      JLabel lblCalling = new JLabel(Messages.getString(&quot;calling.node&quot;) + StringUtil.COLON);</span>
+<span class="nc" id="L190">      GuiUtils.setPreferredWidth(comboCallingNode, 160, 120);</span>
+
+<span class="nc" id="L192">      panel.add(GuiUtils.boxHorizontalStrut(ITEM_SEPARATOR_LARGE));</span>
+<span class="nc" id="L193">      panel.add(lblCalling);</span>
+<span class="nc" id="L194">      panel.add(comboCallingNode);</span>
+    }
+<span class="nc" id="L196">    contentPane.add(panel, &quot;split 5, span, wrap&quot;); // NON-NLS</span>
+
+<span class="nc" id="L198">    publishButton = new JButton(Messages.getString(&quot;AcquirePublishDialog.publish&quot;));</span>
+<span class="nc" id="L199">    publishButton.addActionListener(e -&gt; publishAction());</span>
+
+<span class="nc" id="L201">    cancelButton = new JButton(Messages.getString(&quot;AcquirePublishDialog.cancel&quot;));</span>
+<span class="nc" id="L202">    clearAndHideActionListener = e -&gt; clearAndHide();</span>
+<span class="nc" id="L203">    cancelButton.addActionListener(clearAndHideActionListener);</span>
+
+<span class="nc" id="L205">    progressBar = new JProgressBar();</span>
+<span class="nc" id="L206">    progressBar.setStringPainted(true);</span>
+<span class="nc" id="L207">    progressBar.setVisible(false);</span>
+<span class="nc" id="L208">    contentPane.add(progressBar, &quot;split 3, span, growx, gaptop 20&quot;); // NON-NLS</span>
+<span class="nc" id="L209">    contentPane.add(publishButton);</span>
+<span class="nc" id="L210">    contentPane.add(cancelButton, &quot;wrap&quot;); // NON-NLS</span>
+<span class="nc" id="L211">    return contentPane;</span>
+  }
+
+  private void loadDicomNodes() {
+<span class="nc bnc" id="L215" title="All 2 branches missed.">    if (!StringUtil.hasText(</span>
+<span class="nc" id="L216">        GuiUtils.getUICore().getSystemPreferences().getProperty(&quot;weasis.acquire.dest.host&quot;))) {</span>
+<span class="nc" id="L217">      AbstractDicomNode.loadDicomNodes(comboNode, AbstractDicomNode.Type.DICOM, UsageType.STORAGE);</span>
+<span class="nc" id="L218">      AbstractDicomNode.loadDicomNodes(comboNode, AbstractDicomNode.Type.WEB, UsageType.STORAGE);</span>
+<span class="nc" id="L219">      String desc = MediaImporterFactory.EXPORT_PERSISTENCE.getProperty(LAST_SEL_NODE);</span>
+<span class="nc" id="L220">      AbstractDicomNode.selectDicomNode(comboNode.getModel(), desc);</span>
+
+<span class="nc bnc" id="L222" title="All 2 branches missed.">      if (comboNode.getItemCount() == 0) {</span>
+<span class="nc" id="L223">        comboNode.addItem(getDestinationConfiguration());</span>
+      }
+<span class="nc" id="L225">    } else {</span>
+<span class="nc" id="L226">      comboNode.addItem(getDestinationConfiguration());</span>
+    }
+
+    String weasisAet =
+<span class="nc" id="L230">        GuiUtils.getUICore().getSystemPreferences().getProperty(&quot;weasis.aet&quot;); // NON-NLS</span>
+<span class="nc bnc" id="L231" title="All 2 branches missed.">    if (!StringUtil.hasText(weasisAet)) {</span>
+<span class="nc" id="L232">      AbstractDicomNode.loadDicomNodes(</span>
+          comboCallingNode, AbstractDicomNode.Type.DICOM_CALLING, UsageType.STORAGE);
+<span class="nc" id="L234">      String calling = MediaImporterFactory.EXPORT_PERSISTENCE.getProperty(LAST_CALLING_NODE);</span>
+<span class="nc" id="L235">      AbstractDicomNode.selectDicomNode(comboCallingNode.getModel(), calling);</span>
+    }
+<span class="nc" id="L237">  }</span>
+
+  private static AbstractDicomNode getDestinationConfiguration() {
+<span class="nc" id="L240">    WProperties preferences = GuiUtils.getUICore().getSystemPreferences();</span>
+<span class="nc" id="L241">    String host = preferences.getProperty(&quot;weasis.acquire.dest.host&quot;, &quot;localhost&quot;); // NON-NLS</span>
+<span class="nc" id="L242">    String aet = preferences.getProperty(&quot;weasis.acquire.dest.aet&quot;, &quot;DCM4CHEE&quot;); // NON-NLS</span>
+<span class="nc" id="L243">    String port = preferences.getProperty(&quot;weasis.acquire.dest.port&quot;, &quot;11112&quot;); // NON-NLS</span>
+<span class="nc" id="L244">    return new DefaultDicomNode(</span>
+<span class="nc" id="L245">        Messages.getString(&quot;AcquirePublishDialog.def_archive&quot;),</span>
+        aet,
+        host,
+<span class="nc" id="L248">        Integer.parseInt(port),</span>
+        UsageType.BOTH);
+  }
+
+  private void publishAction() {
+<span class="nc" id="L253">    List&lt;AcquireImageInfo&gt; toPublish = getSelectedImages(publishTree);</span>
+
+<span class="nc bnc" id="L255" title="All 2 branches missed.">    if (toPublish.isEmpty()) {</span>
+<span class="nc" id="L256">      JOptionPane.showMessageDialog(</span>
+<span class="nc" id="L257">          WinUtil.getValidComponent(this),</span>
+<span class="nc" id="L258">          Messages.getString(&quot;AcquirePublishDialog.select_one_msg&quot;),</span>
+<span class="nc" id="L259">          this.getTitle(),</span>
+          JOptionPane.ERROR_MESSAGE);
+<span class="nc" id="L261">      return;</span>
+    }
+
+<span class="nc" id="L264">    boolean publishable = AcquireGlobalMeta.isPublishable(AcquireManager.GLOBAL);</span>
+<span class="nc bnc" id="L265" title="All 2 branches missed.">    if (publishable) {</span>
+<span class="nc bnc" id="L266" title="All 2 branches missed.">      for (AcquireImageInfo info : toPublish) {</span>
+<span class="nc" id="L267">        publishable = AcquireSeriesMeta.isPublishable(info.getSeries());</span>
+<span class="nc bnc" id="L268" title="All 2 branches missed.">        if (!publishable) {</span>
+<span class="nc" id="L269">          break;</span>
+        }
+<span class="nc" id="L271">        publishable = AcquireImageMeta.isPublishable(info.getImage());</span>
+<span class="nc bnc" id="L272" title="All 2 branches missed.">        if (!publishable) {</span>
+<span class="nc" id="L273">          break;</span>
+        }
+<span class="nc" id="L275">      }</span>
+    }
+<span class="nc bnc" id="L277" title="All 2 branches missed.">    if (!publishable) {</span>
+<span class="nc" id="L278">      JOptionPane.showMessageDialog(</span>
+<span class="nc" id="L279">          WinUtil.getValidComponent(this),</span>
+<span class="nc" id="L280">          Messages.getString(&quot;AcquirePublishDialog.pub_warn_msg&quot;),</span>
+<span class="nc" id="L281">          this.getTitle(),</span>
+          JOptionPane.ERROR_MESSAGE);
+<span class="nc" id="L283">      return;</span>
+    }
+
+<span class="nc bnc" id="L286" title="All 2 branches missed.">    for (AcquireImageInfo imgInfo : toPublish) {</span>
+<span class="nc" id="L287">      setZoomRatio(imgInfo, null);</span>
+<span class="nc" id="L288">    }</span>
+<span class="nc" id="L289">    Resolution resolution = (Resolution) resolutionCombo.getSelectedItem();</span>
+<span class="nc bnc" id="L290" title="All 2 branches missed.">    if (resolution != Resolution.ORIGINAL) {</span>
+<span class="nc" id="L291">      List&lt;AcquireImageInfo&gt; overSizedSelected = getOversizedSelected(publishTree);</span>
+<span class="nc bnc" id="L292" title="All 2 branches missed.">      if (!overSizedSelected.isEmpty()) {</span>
+<span class="nc bnc" id="L293" title="All 2 branches missed.">        for (AcquireImageInfo imgInfo : overSizedSelected) {</span>
+          // calculate zoom ration
+<span class="nc" id="L295">          setZoomRatio(imgInfo, PublishDicomTask.calculateRatio(imgInfo, resolution));</span>
+<span class="nc" id="L296">        }</span>
+      }
+    }
+
+<span class="nc" id="L300">    SwingWorker&lt;File, AcquireImageInfo&gt; dicomizeTask =</span>
+<span class="nc" id="L301">        getFileAcquireImageInfoSwingWorker(toPublish);</span>
+
+<span class="nc" id="L303">    ThreadUtil.buildNewSingleThreadExecutor(&quot;Dicomize&quot;).execute(dicomizeTask); // NON-NLS</span>
+<span class="nc" id="L304">  }</span>
+
+  private SwingWorker&lt;File, AcquireImageInfo&gt; getFileAcquireImageInfoSwingWorker(
+      List&lt;AcquireImageInfo&gt; toPublish) {
+<span class="nc" id="L308">    SwingWorker&lt;File, AcquireImageInfo&gt; dicomizeTask = new DicomizeTask(toPublish);</span>
+<span class="nc" id="L309">    ActionListener taskCancelActionListener = e -&gt; dicomizeTask.cancel(true);</span>
+
+<span class="nc" id="L311">    dicomizeTask.addPropertyChangeListener(</span>
+        evt -&gt; {
+<span class="nc bnc" id="L313" title="All 2 branches missed.">          if (&quot;progress&quot;.equals(evt.getPropertyName())) {</span>
+<span class="nc" id="L314">            int progress = (Integer) evt.getNewValue();</span>
+<span class="nc" id="L315">            progressBar.setValue(progress);</span>
+
+<span class="nc bnc" id="L317" title="All 2 branches missed.">          } else if (&quot;state&quot;.equals(evt.getPropertyName())) {</span>
+
+<span class="nc bnc" id="L319" title="All 2 branches missed.">            if (StateValue.STARTED == evt.getNewValue()) {</span>
+<span class="nc" id="L320">              resolutionCombo.setEnabled(false);</span>
+<span class="nc" id="L321">              progressBar.setVisible(true);</span>
+<span class="nc" id="L322">              publishButton.setEnabled(false);</span>
+<span class="nc" id="L323">              cancelButton.removeActionListener(clearAndHideActionListener);</span>
+<span class="nc" id="L324">              cancelButton.addActionListener(taskCancelActionListener);</span>
+
+<span class="nc bnc" id="L326" title="All 2 branches missed.">            } else if (StateValue.DONE == evt.getNewValue()) {</span>
+<span class="nc" id="L327">              File exportDirDicom = null;</span>
+
+<span class="nc bnc" id="L329" title="All 2 branches missed.">              if (!dicomizeTask.isCancelled()) {</span>
+                try {
+<span class="nc" id="L331">                  exportDirDicom = dicomizeTask.get();</span>
+<span class="nc" id="L332">                } catch (InterruptedException doNothing) {</span>
+<span class="nc" id="L333">                  LOGGER.warn(&quot;Dicomizing task Interruption&quot;);</span>
+<span class="nc" id="L334">                  Thread.currentThread().interrupt();</span>
+<span class="nc" id="L335">                } catch (ExecutionException e) {</span>
+<span class="nc" id="L336">                  LOGGER.error(&quot;Dicomizing task&quot;, e);</span>
+<span class="nc" id="L337">                }</span>
+
+<span class="nc bnc" id="L339" title="All 2 branches missed.">                if (exportDirDicom != null) {</span>
+<span class="nc" id="L340">                  AbstractDicomNode node = (AbstractDicomNode) comboNode.getSelectedItem();</span>
+                  String weasisAet =
+<span class="nc" id="L342">                      GuiUtils.getUICore()</span>
+<span class="nc" id="L343">                          .getSystemPreferences()</span>
+<span class="nc" id="L344">                          .getProperty(&quot;weasis.aet&quot;); // NON-NLS</span>
+<span class="nc bnc" id="L345" title="All 2 branches missed.">                  if (!StringUtil.hasText(weasisAet)) {</span>
+                    weasisAet =
+<span class="nc bnc" id="L347" title="All 2 branches missed.">                        comboCallingNode.getSelectedItem() == null</span>
+<span class="nc" id="L348">                            ? &quot;WEASIS_AE&quot; // NON-NLS</span>
+<span class="nc" id="L349">                            : ((DefaultDicomNode) comboCallingNode.getSelectedItem()).getAeTitle();</span>
+                  }
+<span class="nc" id="L351">                  publishPanel.publishDirDicom(exportDirDicom, node, weasisAet, toPublish);</span>
+<span class="nc" id="L352">                  clearAndHide();</span>
+<span class="nc" id="L353">                } else {</span>
+<span class="nc" id="L354">                  JOptionPane.showMessageDialog(</span>
+<span class="nc" id="L355">                      WinUtil.getValidComponent(this),</span>
+<span class="nc" id="L356">                      Messages.getString(&quot;AcquirePublishDialog.dicomize_error_msg&quot;),</span>
+<span class="nc" id="L357">                      Messages.getString(&quot;AcquirePublishDialog.dicomize_error_title&quot;),</span>
+                      JOptionPane.ERROR_MESSAGE);
+                }
+              }
+
+<span class="nc bnc" id="L362" title="All 2 branches missed.">              if (exportDirDicom == null) {</span>
+<span class="nc bnc" id="L363" title="All 2 branches missed.">                resolutionCombo.setEnabled(!getOversizedSelected(publishTree).isEmpty());</span>
+<span class="nc" id="L364">                progressBar.setValue(0);</span>
+<span class="nc" id="L365">                progressBar.setVisible(false);</span>
+<span class="nc" id="L366">                publishButton.setEnabled(true);</span>
+<span class="nc" id="L367">                cancelButton.removeActionListener(taskCancelActionListener);</span>
+<span class="nc" id="L368">                cancelButton.addActionListener(clearAndHideActionListener);</span>
+              }
+            }
+          }
+<span class="nc" id="L372">        });</span>
+<span class="nc" id="L373">    return dicomizeTask;</span>
+  }
+
+  private static void setZoomRatio(AcquireImageInfo imgInfo, Double ratio) {
+<span class="nc" id="L377">    imgInfo.getCurrentValues().setRatio(ratio);</span>
+<span class="nc" id="L378">    ImageOpNode node = imgInfo.getPostProcessOpManager().getNode(ZoomOp.OP_NAME);</span>
+<span class="nc bnc" id="L379" title="All 2 branches missed.">    if (node != null) {</span>
+<span class="nc" id="L380">      node.clearIOCache();</span>
+<span class="nc" id="L381">      node.setParam(ZoomOp.P_RATIO_X, ratio);</span>
+<span class="nc" id="L382">      node.setParam(ZoomOp.P_RATIO_Y, ratio);</span>
+    }
+<span class="nc" id="L384">  }</span>
+
+  private List&lt;AcquireImageInfo&gt; getSelectedImages(PublishTree tree) {
+<span class="nc" id="L387">    return Arrays.stream(tree.getModel().getCheckingPaths())</span>
+<span class="nc" id="L388">        .map(o1 -&gt; (DefaultMutableTreeNode) o1.getLastPathComponent())</span>
+<span class="nc" id="L389">        .filter(o2 -&gt; o2.getUserObject() instanceof AcquireImageInfo)</span>
+<span class="nc" id="L390">        .map(o3 -&gt; (AcquireImageInfo) o3.getUserObject())</span>
+<span class="nc" id="L391">        .collect(Collectors.toList());</span>
+  }
+
+  private List&lt;AcquireImageInfo&gt; getOversizedSelected(PublishTree tree) {
+<span class="nc" id="L395">    return getSelectedImages(tree).stream().filter(oversizedImages()).collect(Collectors.toList());</span>
+  }
+
+  private Predicate&lt;AcquireImageInfo&gt; oversizedImages() {
+<span class="nc" id="L399">    return acqImg -&gt; {</span>
+<span class="nc" id="L400">      PlanarImage img = acqImg.getImage().getImage(acqImg.getPostProcessOpManager());</span>
+<span class="nc bnc" id="L401" title="All 2 branches missed.">      return img.width() &gt; Resolution.ULTRA_HD.maxSize</span>
+<span class="nc bnc" id="L402" title="All 2 branches missed.">          || img.height() &gt; Resolution.ULTRA_HD.maxSize;</span>
+    };
+  }
+
+  public void clearAndHide() {
+<span class="nc" id="L407">    final AbstractDicomNode node = (AbstractDicomNode) comboNode.getSelectedItem();</span>
+<span class="nc bnc" id="L408" title="All 2 branches missed.">    if (node != null) {</span>
+<span class="nc" id="L409">      MediaImporterFactory.EXPORT_PERSISTENCE.setProperty(LAST_SEL_NODE, node.getDescription());</span>
+    }
+<span class="nc" id="L411">    final AbstractDicomNode callingNode = (AbstractDicomNode) comboCallingNode.getSelectedItem();</span>
+<span class="nc bnc" id="L412" title="All 2 branches missed.">    if (callingNode != null) {</span>
+<span class="nc" id="L413">      MediaImporterFactory.EXPORT_PERSISTENCE.setProperty(</span>
+<span class="nc" id="L414">          LAST_CALLING_NODE, callingNode.getDescription());</span>
+    }
+<span class="nc" id="L416">    Preferences prefs =</span>
+<span class="nc" id="L417">        BundlePreferences.getDefaultPreferences(AppProperties.getBundleContext(this.getClass()));</span>
+<span class="nc bnc" id="L418" title="All 2 branches missed.">    if (prefs != null) {</span>
+<span class="nc" id="L419">      Preferences p = prefs.node(PREFERENCE_NODE);</span>
+<span class="nc" id="L420">      Resolution resolution = (Resolution) resolutionCombo.getSelectedItem();</span>
+<span class="nc bnc" id="L421" title="All 2 branches missed.">      if (resolution != null) {</span>
+<span class="nc" id="L422">        BundlePreferences.putStringPreferences(p, P_LAST_RESOLUTION, resolution.name());</span>
+      }
+    }
+<span class="nc" id="L425">    dispose();</span>
+<span class="nc" id="L426">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

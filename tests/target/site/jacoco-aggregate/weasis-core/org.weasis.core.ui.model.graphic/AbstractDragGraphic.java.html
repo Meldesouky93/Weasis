@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AbstractDragGraphic.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.graphic</a> &gt; <span class="el_source">AbstractDragGraphic.java</span></div><h1>AbstractDragGraphic.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.graphic;
+
+import jakarta.xml.bind.annotation.XmlTransient;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.Robot;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Point2D;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import javax.swing.SwingUtilities;
+import org.weasis.core.ui.editor.image.ViewCanvas;
+import org.weasis.core.ui.model.utils.Draggable;
+import org.weasis.core.ui.model.utils.imp.DefaultDragSequence;
+import org.weasis.core.ui.model.utils.imp.DragLabelSequence;
+import org.weasis.core.ui.util.MouseEventDouble;
+
+@XmlTransient
+public abstract class AbstractDragGraphic extends AbstractGraphic implements DragGraphic {
+
+<span class="nc" id="L31">  private Boolean resizingOrMoving = DEFAULT_RESIZE_OR_MOVING;</span>
+
+  protected AbstractDragGraphic(Integer pointNumber) {
+<span class="nc" id="L34">    super(pointNumber);</span>
+<span class="nc" id="L35">  }</span>
+
+  protected AbstractDragGraphic(AbstractGraphic graphic) {
+<span class="nc" id="L38">    super(graphic);</span>
+<span class="nc" id="L39">  }</span>
+
+  @Override
+  public void setResizeOrMoving(Boolean value) {
+<span class="nc" id="L43">    this.resizingOrMoving = Optional.ofNullable(value).orElse(DEFAULT_RESIZE_OR_MOVING);</span>
+<span class="nc" id="L44">  }</span>
+
+  @Override
+  public void buildShape() {
+<span class="nc bnc" id="L48" title="All 2 branches missed.">    if (isShapeValid()) {</span>
+<span class="nc" id="L49">      buildShape(null);</span>
+    }
+<span class="nc" id="L51">  }</span>
+
+  @Override
+  protected void paintHandles(Graphics2D g2d, AffineTransform transform) {
+<span class="nc bnc" id="L55" title="All 2 branches missed.">    if (!getResizingOrMoving()) {</span>
+<span class="nc" id="L56">      super.paintHandles(g2d, transform);</span>
+    }
+<span class="nc" id="L58">  }</span>
+
+  @Override
+  public Boolean getResizingOrMoving() {
+<span class="nc" id="L62">    return Optional.ofNullable(resizingOrMoving).orElse(Boolean.FALSE);</span>
+  }
+
+  @Override
+  public void forceToAddPoints(Integer fromPtIndex) {
+<span class="nc bnc" id="L67" title="All 6 branches missed.">    if (variablePointsNumber &amp;&amp; fromPtIndex &gt;= 0 &amp;&amp; fromPtIndex &lt; pts.size()) {</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">      if (fromPtIndex &lt; pts.size() - 1) {</span>
+<span class="nc" id="L69">        List&lt;Point2D&gt; list = pts.subList(fromPtIndex + 1, pts.size());</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">        for (int i = 0; i &lt;= fromPtIndex; i++) {</span>
+<span class="nc" id="L71">          list.add(pts.get(i));</span>
+        }
+<span class="nc" id="L73">        pts = list;</span>
+      }
+<span class="nc" id="L75">      pointNumber = UNDEFINED;</span>
+    }
+<span class="nc" id="L77">  }</span>
+
+  @Override
+  public Point2D removeHandlePoint(Integer index, MouseEventDouble mouseEvent) {
+    // To keep a valid shape, do not remove when there are 2 points left.
+<span class="nc bnc" id="L82" title="All 8 branches missed.">    if (variablePointsNumber &amp;&amp; pts.size() &gt; 2 &amp;&amp; index &gt;= 0 &amp;&amp; index &lt; pts.size()) {</span>
+<span class="nc" id="L83">      Point2D pt = pts.remove(index.intValue());</span>
+<span class="nc" id="L84">      pointNumber = pts.size();</span>
+<span class="nc" id="L85">      buildShape(mouseEvent);</span>
+<span class="nc" id="L86">      return pt;</span>
+    }
+<span class="nc" id="L88">    return null;</span>
+  }
+
+  /** Adjust the mouse cursor at the center of the handle point */
+  @Override
+  public void moveMouseOverHandlePoint(Integer handlePtIndex, MouseEventDouble event) {
+<span class="nc" id="L94">    ViewCanvas&lt;?&gt; graphPane = getDefaultView2d(event);</span>
+
+<span class="nc bnc" id="L96" title="All 2 branches missed.">    if (graphPane != null) {</span>
+<span class="nc" id="L97">      Point2D handlePt = null;</span>
+
+<span class="nc bnc" id="L99" title="All 4 branches missed.">      if (handlePtIndex &gt;= 0 &amp;&amp; handlePtIndex &lt; pts.size()) {</span>
+<span class="nc" id="L100">        handlePt = pts.get(handlePtIndex);</span>
+      }
+
+<span class="nc bnc" id="L103" title="All 2 branches missed.">      if (handlePt != null) {</span>
+<span class="nc" id="L104">        Point mousePt = graphPane.getMouseCoordinatesFromImage(handlePt.getX(), handlePt.getY());</span>
+
+<span class="nc bnc" id="L106" title="All 6 branches missed.">        if (mousePt != null &amp;&amp; (event.getX() != mousePt.x || event.getY() != mousePt.y)) {</span>
+          try {
+<span class="nc" id="L108">            event.translatePoint(mousePt.x - event.getX(), mousePt.y - event.getY());</span>
+<span class="nc" id="L109">            event.setImageCoordinates(handlePt);</span>
+<span class="nc" id="L110">            SwingUtilities.convertPointToScreen(mousePt, graphPane.getJComponent());</span>
+<span class="nc" id="L111">            new Robot().mouseMove(mousePt.x, mousePt.y);</span>
+<span class="nc" id="L112">          } catch (Exception e) {</span>
+            // Do nothing
+<span class="nc" id="L114">          }</span>
+        }
+      }
+    }
+<span class="nc" id="L118">  }</span>
+
+  @Override
+  public Draggable createMoveDrag() {
+<span class="nc" id="L122">    return new DefaultDragSequence(this);</span>
+  }
+
+  @Override
+  public Draggable createResizeDrag() {
+<span class="nc" id="L127">    return createResizeDrag(UNDEFINED);</span>
+  }
+
+  @Override
+  public Draggable createResizeDrag(Integer i) {
+<span class="nc" id="L132">    return new DefaultDragSequence(this, i);</span>
+  }
+
+  @Override
+  public Draggable createDragLabelSequence() {
+<span class="nc" id="L137">    return new DragLabelSequence(this);</span>
+  }
+
+  @Override
+  public Integer moveAndResizeOnDrawing(
+      Integer handlePointIndex, Double deltaX, Double deltaY, MouseEventDouble mouseEvent) {
+<span class="nc bnc" id="L143" title="All 2 branches missed.">    if (Objects.equals(handlePointIndex, UNDEFINED)) {</span>
+<span class="nc" id="L144">      pts.stream()</span>
+<span class="nc" id="L145">          .filter(Objects::nonNull)</span>
+<span class="nc" id="L146">          .forEach(p -&gt; p.setLocation(p.getX() + deltaX, p.getY() + deltaY));</span>
+<span class="nc bnc" id="L147" title="All 4 branches missed.">    } else if (handlePointIndex &gt;= 0 &amp;&amp; handlePointIndex &lt; pts.size()) {</span>
+<span class="nc" id="L148">      Point2D point = pts.get(handlePointIndex);</span>
+<span class="nc" id="L149">      Optional.ofNullable(point).ifPresent(p -&gt; p.setLocation(mouseEvent.getImageCoordinates()));</span>
+    }
+<span class="nc" id="L151">    return handlePointIndex;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AuditLog.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.service</a> &gt; <span class="el_source">AuditLog.java</span></div><h1>AuditLog.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.service;
+
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.ConsoleAppender;
+import ch.qos.logback.core.rolling.FixedWindowRollingPolicy;
+import ch.qos.logback.core.rolling.RollingFileAppender;
+import ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy;
+import ch.qos.logback.core.util.FileSize;
+import java.io.File;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.gui.util.AppProperties;
+import org.weasis.core.util.StringUtil;
+
+/** The Class AuditLog allows writing specific traces for the application usage. */
+<span class="nc" id="L28">public class AuditLog {</span>
+  // Share this logger
+<span class="nc" id="L30">  public static final Logger LOGGER = LoggerFactory.getLogger(AuditLog.class);</span>
+
+  public static final String NAME_CONSOLE = &quot;CONSOLE&quot;;
+  public static final String NAME_ROLLING_FILES = &quot;ROLLING_FILES&quot;; // NON-NLS
+  public static final String NAME_AUDIT = &quot;AUDIT&quot;;
+
+  public static final String LOG_LEVEL = &quot;org.apache.sling.commons.log.level&quot;;
+  public static final String LOG_STACKTRACE_LIMIT = &quot;org.apache.sling.commons.log.stack.limit&quot;;
+  public static final String LOG_FILE_ACTIVATION = &quot;org.apache.sling.commons.log.file.activate&quot;;
+  public static final String LOG_FILE = &quot;org.apache.sling.commons.log.file&quot;;
+  public static final String LOG_FILE_NUMBER = &quot;org.apache.sling.commons.log.file.number&quot;;
+  public static final String LOG_FILE_SIZE = &quot;org.apache.sling.commons.log.file.size&quot;;
+  public static final String LOG_PATTERN = &quot;org.apache.sling.commons.log.pattern&quot;;
+  public static final String LOG_LOGGERS = &quot;org.apache.sling.commons.log.names&quot;;
+
+  public static final String MARKER_PERF = &quot;*PERF*&quot;; // NON-NLS
+  public static final String LOG_CLASSES = &quot;org.apache.sling.commons.log.classes&quot;;
+  public static final String LOG_FILE_PATTERN = &quot;org.apache.sling.commons.log.file.pattern&quot;;
+
+<span class="nc" id="L49">  public static final String LOG_FOLDER_PATH =</span>
+      AppProperties.WEASIS_PATH + File.separator + &quot;log&quot; + File.separator; // NON-NLS
+
+<span class="nc" id="L52">  public enum LEVEL {</span>
+<span class="nc" id="L53">    TRACE,</span>
+<span class="nc" id="L54">    DEBUG,</span>
+<span class="nc" id="L55">    INFO,</span>
+<span class="nc" id="L56">    WARN,</span>
+<span class="nc" id="L57">    ERROR;</span>
+
+    public static LEVEL getLevel(String level) {
+      try {
+<span class="nc" id="L61">        return LEVEL.valueOf(level);</span>
+<span class="nc" id="L62">      } catch (Exception ignore) {</span>
+        // Do nothing
+      }
+<span class="nc" id="L65">      return INFO;</span>
+    }
+  }
+
+  public static WProperties getAuditProperties() {
+<span class="nc" id="L70">    WProperties p = new WProperties();</span>
+<span class="nc" id="L71">    p.putBooleanProperty(AuditLog.LOG_FILE_ACTIVATION, true);</span>
+<span class="nc" id="L72">    p.setProperty(</span>
+        AuditLog.LOG_FILE,
+        AuditLog.LOG_FOLDER_PATH + &quot;audit-&quot; + AppProperties.WEASIS_USER + &quot;.log&quot;); // NON-NLS
+<span class="nc" id="L75">    p.setProperty(AuditLog.LOG_FILE_NUMBER, &quot;10&quot;);</span>
+<span class="nc" id="L76">    p.setProperty(AuditLog.LOG_FILE_SIZE, &quot;20MB&quot;); // NON-NLS</span>
+<span class="nc" id="L77">    p.setProperty(AuditLog.LOG_CLASSES, &quot;org.weasis.core.api.service.AuditLog&quot;);</span>
+<span class="nc" id="L78">    p.setProperty(</span>
+        AuditLog.LOG_FILE_PATTERN,
+        AuditLog.LOG_FOLDER_PATH + &quot;audit-&quot; + AppProperties.WEASIS_USER + &quot;.%i.log.zip&quot;); // NON-NLS
+<span class="nc" id="L81">    return p;</span>
+  }
+
+  public static void applyConfig(WProperties prefs, LoggerContext loggerContext) {
+<span class="nc" id="L85">    String pattern = prefs.getProperty(AuditLog.LOG_PATTERN);</span>
+<span class="nc" id="L86">    String limit = prefs.getProperty(AuditLog.LOG_STACKTRACE_LIMIT);</span>
+<span class="nc" id="L87">    PatternLayoutEncoder encoder = AuditLog.getPatternLayoutEncoder(loggerContext, pattern, limit);</span>
+
+<span class="nc" id="L89">    ch.qos.logback.classic.Logger logger =</span>
+<span class="nc" id="L90">        (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);</span>
+<span class="nc" id="L91">    AuditLog.createOrUpdateConsoleAppender(loggerContext, logger, encoder);</span>
+
+<span class="nc bnc" id="L93" title="All 2 branches missed.">    if (StringUtil.hasText(prefs.getProperty(AuditLog.LOG_FILE))) {</span>
+<span class="nc" id="L94">      prefs.setProperty(AuditLog.LOG_FILE_PATTERN, &quot;default.%i.log.zip&quot;); // NON-NLS</span>
+<span class="nc" id="L95">      RollingFileAppender&lt;ILoggingEvent&gt; rollingFileAppender =</span>
+<span class="nc" id="L96">          AuditLog.getRollingFilesAppender(logger, AuditLog.NAME_ROLLING_FILES);</span>
+<span class="nc" id="L97">      AuditLog.updateRollingFilesAppender(rollingFileAppender, loggerContext, prefs, encoder);</span>
+<span class="nc" id="L98">    } else {</span>
+<span class="nc" id="L99">      logger.detachAppender(AuditLog.NAME_ROLLING_FILES);</span>
+    }
+<span class="nc" id="L101">  }</span>
+
+  public static void createOrUpdateConsoleAppender(
+      LoggerContext loggerContext,
+      ch.qos.logback.classic.Logger logger,
+      PatternLayoutEncoder encoder) {
+<span class="nc bnc" id="L107" title="All 2 branches missed.">    if (logger.getAppender(NAME_CONSOLE)</span>
+<span class="nc" id="L108">        instanceof ConsoleAppender&lt;ILoggingEvent&gt; consoleAppender) {</span>
+<span class="nc" id="L109">      consoleAppender.setEncoder(encoder);</span>
+    } else {
+<span class="nc" id="L111">      ConsoleAppender&lt;ILoggingEvent&gt; appender = new ConsoleAppender&lt;&gt;();</span>
+<span class="nc" id="L112">      appender.setContext(loggerContext);</span>
+<span class="nc" id="L113">      appender.setName(NAME_CONSOLE);</span>
+<span class="nc" id="L114">      appender.setEncoder(encoder);</span>
+<span class="nc" id="L115">      appender.start();</span>
+<span class="nc" id="L116">      logger.addAppender(appender);</span>
+    }
+<span class="nc" id="L118">  }</span>
+
+  public static RollingFileAppender&lt;ILoggingEvent&gt; getRollingFilesAppender(
+      ch.qos.logback.classic.Logger logger, String name) {
+<span class="nc bnc" id="L122" title="All 2 branches missed.">    if (logger.getAppender(name) instanceof RollingFileAppender&lt;ILoggingEvent&gt; rollingAppender) {</span>
+<span class="nc" id="L123">      rollingAppender.stop();</span>
+<span class="nc" id="L124">      return rollingAppender;</span>
+    } else {
+<span class="nc" id="L126">      RollingFileAppender&lt;ILoggingEvent&gt; appender = new RollingFileAppender&lt;&gt;();</span>
+<span class="nc" id="L127">      appender.setName(name);</span>
+<span class="nc" id="L128">      return appender;</span>
+    }
+  }
+
+  public static void updateRollingFilesAppender(
+      RollingFileAppender&lt;ILoggingEvent&gt; appender,
+      LoggerContext loggerContext,
+      WProperties prefs,
+      PatternLayoutEncoder encoder) {
+<span class="nc" id="L137">    String logActivation = prefs.getProperty(AuditLog.LOG_FILE);</span>
+<span class="nc bnc" id="L138" title="All 2 branches missed.">    if (StringUtil.hasText(logActivation)) {</span>
+<span class="nc" id="L139">      Level level = Level.toLevel(prefs.getProperty(AuditLog.LOG_LEVEL), Level.INFO);</span>
+<span class="nc" id="L140">      int nbFiles = prefs.getIntProperty(AuditLog.LOG_FILE_NUMBER, 10);</span>
+<span class="nc" id="L141">      FileSize fileSize = FileSize.valueOf(prefs.getProperty(AuditLog.LOG_FILE_SIZE, &quot;10MB&quot;));</span>
+<span class="nc" id="L142">      String classes = prefs.getProperty(AuditLog.LOG_CLASSES, org.slf4j.Logger.ROOT_LOGGER_NAME);</span>
+<span class="nc" id="L143">      String filePattern =</span>
+          AuditLog.LOG_FOLDER_PATH
+<span class="nc" id="L145">              + prefs.getProperty(AuditLog.LOG_FILE_PATTERN, &quot;default.%i.log.zip&quot;);</span>
+
+<span class="nc" id="L147">      appender.setContext(loggerContext);</span>
+<span class="nc" id="L148">      appender.setEncoder(encoder);</span>
+<span class="nc" id="L149">      appender.setFile(logActivation);</span>
+
+<span class="nc" id="L151">      FixedWindowRollingPolicy rollingPolicy = new FixedWindowRollingPolicy();</span>
+<span class="nc" id="L152">      rollingPolicy.setContext(loggerContext);</span>
+<span class="nc" id="L153">      rollingPolicy.setParent(appender);</span>
+<span class="nc" id="L154">      rollingPolicy.setFileNamePattern(filePattern);</span>
+<span class="nc" id="L155">      rollingPolicy.setMinIndex(1);</span>
+<span class="nc" id="L156">      rollingPolicy.setMaxIndex(nbFiles);</span>
+<span class="nc" id="L157">      rollingPolicy.start();</span>
+
+<span class="nc" id="L159">      SizeBasedTriggeringPolicy&lt;ILoggingEvent&gt; triggeringPolicy = new SizeBasedTriggeringPolicy&lt;&gt;();</span>
+<span class="nc" id="L160">      triggeringPolicy.setMaxFileSize(fileSize);</span>
+<span class="nc" id="L161">      triggeringPolicy.start();</span>
+
+<span class="nc" id="L163">      appender.setRollingPolicy(rollingPolicy);</span>
+<span class="nc" id="L164">      appender.setTriggeringPolicy(triggeringPolicy);</span>
+<span class="nc" id="L165">      appender.start();</span>
+
+<span class="nc" id="L167">      ch.qos.logback.classic.Logger logger =</span>
+<span class="nc" id="L168">          (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(classes);</span>
+<span class="nc" id="L169">      logger.setLevel(level);</span>
+<span class="nc" id="L170">      logger.addAppender(appender);</span>
+    }
+<span class="nc" id="L172">  }</span>
+
+  public static PatternLayoutEncoder getPatternLayoutEncoder(
+      LoggerContext loggerContext, String pattern, String stackLimit) {
+<span class="nc" id="L176">    PatternLayoutEncoder encoder = new PatternLayoutEncoder();</span>
+<span class="nc" id="L177">    encoder.setContext(loggerContext);</span>
+
+<span class="nc bnc" id="L179" title="All 4 branches missed.">    String limit = StringUtil.hasText(stackLimit) &amp;&amp; !&quot;-1&quot;.equals(stackLimit) ? stackLimit : &quot;full&quot;;</span>
+<span class="nc" id="L180">    String str = pattern.replaceAll(&quot;ex\\{\\d+}&quot;, &quot;ex{&quot; + limit + &quot;}&quot;); // NON-NLS</span>
+<span class="nc" id="L181">    encoder.setPattern(str);</span>
+<span class="nc" id="L182">    encoder.start();</span>
+<span class="nc" id="L183">    return encoder;</span>
+  }
+
+  public static PatternLayoutEncoder getPatternLayoutEncoder(
+      LoggerContext loggerContext, String pattern) {
+<span class="nc" id="L188">    return getPatternLayoutEncoder(loggerContext, pattern, StringUtil.EMPTY_STRING);</span>
+  }
+
+  public static void logError(Logger log, Throwable t, String message) {
+<span class="nc bnc" id="L192" title="All 2 branches missed.">    if (log.isDebugEnabled()) {</span>
+<span class="nc" id="L193">      log.error(message, t);</span>
+    } else {
+<span class="nc" id="L195">      log.error(t.getMessage());</span>
+    }
+<span class="nc" id="L197">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

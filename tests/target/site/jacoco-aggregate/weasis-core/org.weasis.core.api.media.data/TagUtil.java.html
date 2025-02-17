@@ -1,0 +1,483 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>TagUtil.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.media.data</a> &gt; <span class="el_source">TagUtil.java</span></div><h1>TagUtil.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.media.data;
+
+import java.lang.reflect.Array;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
+import java.time.temporal.TemporalAccessor;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.regex.Pattern;
+import javax.xml.stream.XMLStreamReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.media.data.TagW.TagType;
+
+public final class TagUtil {
+<span class="nc" id="L32">  private static final Logger LOGGER = LoggerFactory.getLogger(TagUtil.class);</span>
+
+  private TagUtil() {}
+
+  public static Date toLocalDate(TemporalAccessor temporal) {
+<span class="nc bnc" id="L37" title="All 2 branches missed.">    if (temporal != null) {</span>
+      try {
+<span class="nc" id="L39">        TemporalAccessor t = temporal;</span>
+<span class="nc bnc" id="L40" title="All 2 branches missed.">        if (temporal instanceof LocalDate date) {</span>
+<span class="nc" id="L41">          t = date.atStartOfDay(ZoneId.systemDefault());</span>
+<span class="nc bnc" id="L42" title="All 2 branches missed.">        } else if (temporal instanceof LocalTime time) {</span>
+<span class="nc" id="L43">          t = time.atDate(LocalDate.ofEpochDay(0)).atZone(ZoneId.systemDefault());</span>
+<span class="nc bnc" id="L44" title="All 2 branches missed.">        } else if (temporal instanceof LocalDateTime dateTime) {</span>
+<span class="nc" id="L45">          t = dateTime.atZone(ZoneId.systemDefault());</span>
+        }
+<span class="nc" id="L47">        return Date.from(Instant.from(t));</span>
+<span class="nc" id="L48">      } catch (Exception e) {</span>
+<span class="nc" id="L49">        LOGGER.error(&quot;Date conversion&quot;, e);</span>
+      }
+    }
+<span class="nc" id="L52">    return null;</span>
+  }
+
+  public static Date[] toLocalDates(Object array) {
+<span class="nc bnc" id="L56" title="All 4 branches missed.">    if (array != null &amp;&amp; array.getClass().isArray()) {</span>
+<span class="nc" id="L57">      Date[] dates = new Date[Array.getLength(array)];</span>
+<span class="nc bnc" id="L58" title="All 2 branches missed.">      for (int i = 0; i &lt; dates.length; i++) {</span>
+<span class="nc" id="L59">        dates[i] = toLocalDate((TemporalAccessor) Array.get(array, i));</span>
+      }
+<span class="nc" id="L61">      return dates;</span>
+    }
+<span class="nc" id="L63">    return null;</span>
+  }
+
+  public static LocalDate toLocalDate(Date date) {
+<span class="nc bnc" id="L67" title="All 2 branches missed.">    if (date != null) {</span>
+      try {
+<span class="nc" id="L69">        LocalDateTime datetime = LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault());</span>
+<span class="nc" id="L70">        return datetime.toLocalDate();</span>
+<span class="nc" id="L71">      } catch (Exception e) {</span>
+<span class="nc" id="L72">        LOGGER.error(&quot;Date conversion&quot;, e);</span>
+      }
+    }
+<span class="nc" id="L75">    return null;</span>
+  }
+
+  public static LocalTime toLocalTime(Date date) {
+<span class="nc bnc" id="L79" title="All 2 branches missed.">    if (date != null) {</span>
+      try {
+<span class="nc" id="L81">        LocalDateTime datetime = LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault());</span>
+<span class="nc" id="L82">        return datetime.toLocalTime();</span>
+<span class="nc" id="L83">      } catch (Exception e) {</span>
+<span class="nc" id="L84">        LOGGER.error(&quot;Time conversion&quot;, e);</span>
+      }
+    }
+<span class="nc" id="L87">    return null;</span>
+  }
+
+  public static LocalDateTime toLocalDateTime(Date date) {
+<span class="nc bnc" id="L91" title="All 2 branches missed.">    if (date != null) {</span>
+      try {
+<span class="nc" id="L93">        return LocalDateTime.ofInstant(date.toInstant(), ZoneId.systemDefault());</span>
+<span class="nc" id="L94">      } catch (Exception e) {</span>
+<span class="nc" id="L95">        LOGGER.error(&quot;DateTime conversion&quot;, e);</span>
+      }
+    }
+<span class="nc" id="L98">    return null;</span>
+  }
+
+  public static Date dateTime(Date date, Date time) {
+<span class="nc bnc" id="L102" title="All 2 branches missed.">    if (time == null) {</span>
+<span class="nc" id="L103">      return date;</span>
+<span class="nc bnc" id="L104" title="All 2 branches missed.">    } else if (date == null) {</span>
+<span class="nc" id="L105">      return time;</span>
+    }
+<span class="nc" id="L107">    Calendar calendarA = Calendar.getInstance();</span>
+<span class="nc" id="L108">    calendarA.setTime(date);</span>
+
+<span class="nc" id="L110">    Calendar calendarB = Calendar.getInstance();</span>
+<span class="nc" id="L111">    calendarB.setTime(time);</span>
+
+<span class="nc" id="L113">    calendarA.set(Calendar.HOUR_OF_DAY, calendarB.get(Calendar.HOUR_OF_DAY));</span>
+<span class="nc" id="L114">    calendarA.set(Calendar.MINUTE, calendarB.get(Calendar.MINUTE));</span>
+<span class="nc" id="L115">    calendarA.set(Calendar.SECOND, calendarB.get(Calendar.SECOND));</span>
+<span class="nc" id="L116">    calendarA.set(Calendar.MILLISECOND, calendarB.get(Calendar.MILLISECOND));</span>
+
+<span class="nc" id="L118">    return calendarA.getTime();</span>
+  }
+
+  public static String formatDateTime(TemporalAccessor date) {
+<span class="nc bnc" id="L122" title="All 2 branches missed.">    if (date instanceof LocalDate) {</span>
+<span class="nc" id="L123">      return DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).format(date);</span>
+<span class="nc bnc" id="L124" title="All 2 branches missed.">    } else if (date instanceof LocalTime) {</span>
+<span class="nc" id="L125">      return DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM).format(date);</span>
+<span class="nc bnc" id="L126" title="All 4 branches missed.">    } else if (date instanceof LocalDateTime || date instanceof ZonedDateTime) {</span>
+<span class="nc" id="L127">      return DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM).format(date);</span>
+<span class="nc bnc" id="L128" title="All 2 branches missed.">    } else if (date instanceof Instant instant) {</span>
+<span class="nc" id="L129">      return DateTimeFormatter.ofLocalizedDateTime(FormatStyle.MEDIUM)</span>
+<span class="nc" id="L130">          .format(instant.atZone(ZoneId.systemDefault()));</span>
+    }
+<span class="nc" id="L132">    return &quot;&quot;;</span>
+  }
+
+  public static TagW[] getTagFromKeywords(String... tagKey) {
+<span class="nc" id="L136">    ArrayList&lt;TagW&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">    if (tagKey != null) {</span>
+<span class="nc bnc" id="L138" title="All 2 branches missed.">      for (String key : tagKey) {</span>
+<span class="nc" id="L139">        TagW t = TagW.get(key);</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">        if (t != null) {</span>
+<span class="nc" id="L141">          list.add(t);</span>
+        }
+      }
+    }
+<span class="nc" id="L145">    return list.toArray(new TagW[0]);</span>
+  }
+
+  public static String getTagAttribute(
+      XMLStreamReader xmler, String attribute, String defaultValue) {
+<span class="nc bnc" id="L150" title="All 2 branches missed.">    if (attribute != null) {</span>
+<span class="nc" id="L151">      String val = xmler.getAttributeValue(null, attribute);</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">      if (val != null) {</span>
+<span class="nc" id="L153">        return val;</span>
+      }
+    }
+<span class="nc" id="L156">    return defaultValue;</span>
+  }
+
+  public static String[] getStringArrayTagAttribute(
+      XMLStreamReader xmler, String attribute, String[] defaultValue) {
+<span class="nc" id="L161">    return getStringArrayTagAttribute(xmler, attribute, defaultValue, &quot;\\&quot;);</span>
+  }
+
+  public static String[] getStringArrayTagAttribute(
+      XMLStreamReader xmler, String attribute, String[] defaultValue, String separator) {
+<span class="nc bnc" id="L166" title="All 2 branches missed.">    if (attribute != null) {</span>
+<span class="nc" id="L167">      String val = xmler.getAttributeValue(null, attribute);</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">      if (val != null) {</span>
+<span class="nc" id="L169">        return val.split(Pattern.quote(separator));</span>
+      }
+    }
+<span class="nc" id="L172">    return defaultValue;</span>
+  }
+
+  public static Boolean getBooleanTagAttribute(
+      XMLStreamReader xmler, String attribute, Boolean defaultValue) {
+<span class="nc bnc" id="L177" title="All 2 branches missed.">    if (attribute != null) {</span>
+<span class="nc" id="L178">      String val = xmler.getAttributeValue(null, attribute);</span>
+      try {
+<span class="nc bnc" id="L180" title="All 2 branches missed.">        if (val != null) {</span>
+<span class="nc" id="L181">          return Boolean.valueOf(val);</span>
+        }
+<span class="nc" id="L183">      } catch (NumberFormatException e) {</span>
+<span class="nc" id="L184">        LOGGER.error(&quot;Cannot parse boolean {} of {}&quot;, val, attribute);</span>
+<span class="nc" id="L185">      }</span>
+    }
+<span class="nc" id="L187">    return defaultValue;</span>
+  }
+
+  public static Integer getIntegerTagAttribute(
+      XMLStreamReader xmler, String attribute, Integer defaultValue) {
+<span class="nc bnc" id="L192" title="All 2 branches missed.">    if (attribute != null) {</span>
+<span class="nc" id="L193">      String val = xmler.getAttributeValue(null, attribute);</span>
+      try {
+<span class="nc bnc" id="L195" title="All 2 branches missed.">        if (val != null) {</span>
+<span class="nc" id="L196">          return Integer.valueOf(val);</span>
+        }
+<span class="nc" id="L198">      } catch (NumberFormatException e) {</span>
+<span class="nc" id="L199">        LOGGER.error(&quot;Cannot parse integer {} of {}&quot;, val, attribute);</span>
+<span class="nc" id="L200">      }</span>
+    }
+<span class="nc" id="L202">    return defaultValue;</span>
+  }
+
+  public static int[] getIntArrayTagAttribute(
+      XMLStreamReader xmler, String attribute, int[] defaultValue) {
+<span class="nc" id="L207">    return getIntArrayTagAttribute(xmler, attribute, defaultValue, &quot;\\&quot;);</span>
+  }
+
+  public static int[] getIntArrayTagAttribute(
+      XMLStreamReader xmler, String attribute, int[] defaultValue, String separator) {
+<span class="nc bnc" id="L212" title="All 2 branches missed.">    if (attribute != null) {</span>
+<span class="nc" id="L213">      String val = xmler.getAttributeValue(null, attribute);</span>
+<span class="nc bnc" id="L214" title="All 2 branches missed.">      if (val != null) {</span>
+<span class="nc" id="L215">        String[] strs = val.split(Pattern.quote(separator));</span>
+<span class="nc" id="L216">        int[] vals = new int[strs.length];</span>
+<span class="nc bnc" id="L217" title="All 2 branches missed.">        for (int i = 0; i &lt; strs.length; i++) {</span>
+<span class="nc" id="L218">          vals[i] = Integer.parseInt(strs[i], 10);</span>
+        }
+<span class="nc" id="L220">        return vals;</span>
+      }
+    }
+<span class="nc" id="L223">    return defaultValue;</span>
+  }
+
+  public static Double getDoubleTagAttribute(
+      XMLStreamReader xmler, String attribute, Double defaultValue) {
+<span class="nc bnc" id="L228" title="All 2 branches missed.">    if (attribute != null) {</span>
+<span class="nc" id="L229">      String val = xmler.getAttributeValue(null, attribute);</span>
+      try {
+<span class="nc bnc" id="L231" title="All 2 branches missed.">        if (val != null) {</span>
+<span class="nc" id="L232">          return Double.valueOf(val);</span>
+        }
+<span class="nc" id="L234">      } catch (NumberFormatException e) {</span>
+<span class="nc" id="L235">        LOGGER.error(&quot;Cannot parse double {} of {}&quot;, val, attribute);</span>
+<span class="nc" id="L236">      }</span>
+    }
+<span class="nc" id="L238">    return defaultValue;</span>
+  }
+
+  public static double[] getDoubleArrayTagAttribute(
+      XMLStreamReader xmler, String attribute, double[] defaultValue) {
+<span class="nc" id="L243">    return getDoubleArrayTagAttribute(xmler, attribute, defaultValue, &quot;\\&quot;);</span>
+  }
+
+  public static double[] getDoubleArrayTagAttribute(
+      XMLStreamReader xmler, String attribute, double[] defaultValue, String separator) {
+<span class="nc bnc" id="L248" title="All 2 branches missed.">    if (attribute != null) {</span>
+<span class="nc" id="L249">      String val = xmler.getAttributeValue(null, attribute);</span>
+<span class="nc bnc" id="L250" title="All 2 branches missed.">      if (val != null) {</span>
+<span class="nc" id="L251">        String[] strs = val.split(Pattern.quote(separator));</span>
+<span class="nc" id="L252">        double[] vals = new double[strs.length];</span>
+<span class="nc bnc" id="L253" title="All 2 branches missed.">        for (int i = 0; i &lt; strs.length; i++) {</span>
+<span class="nc" id="L254">          vals[i] = Double.parseDouble(strs[0]);</span>
+        }
+<span class="nc" id="L256">        return vals;</span>
+      }
+    }
+<span class="nc" id="L259">    return defaultValue;</span>
+  }
+
+  public static Float getFloatTagAttribute(
+      XMLStreamReader xmler, String attribute, Float defaultValue) {
+<span class="nc bnc" id="L264" title="All 2 branches missed.">    if (attribute != null) {</span>
+<span class="nc" id="L265">      String val = xmler.getAttributeValue(null, attribute);</span>
+      try {
+<span class="nc bnc" id="L267" title="All 2 branches missed.">        if (val != null) {</span>
+<span class="nc" id="L268">          return Float.valueOf(val);</span>
+        }
+<span class="nc" id="L270">      } catch (NumberFormatException e) {</span>
+<span class="nc" id="L271">        LOGGER.error(&quot;Cannot parse float {} of {}&quot;, val, attribute);</span>
+<span class="nc" id="L272">      }</span>
+    }
+<span class="nc" id="L274">    return defaultValue;</span>
+  }
+
+  public static float[] getFloatArrayTagAttribute(
+      XMLStreamReader xmler, String attribute, float[] defaultValue) {
+<span class="nc" id="L279">    return getFloatArrayTagAttribute(xmler, attribute, defaultValue, &quot;\\&quot;);</span>
+  }
+
+  public static float[] getFloatArrayTagAttribute(
+      XMLStreamReader xmler, String attribute, float[] defaultValue, String separator) {
+<span class="nc bnc" id="L284" title="All 2 branches missed.">    if (attribute != null) {</span>
+<span class="nc" id="L285">      String val = xmler.getAttributeValue(null, attribute);</span>
+<span class="nc bnc" id="L286" title="All 2 branches missed.">      if (val != null) {</span>
+<span class="nc" id="L287">        String[] strs = val.split(Pattern.quote(separator));</span>
+<span class="nc" id="L288">        float[] vals = new float[strs.length];</span>
+<span class="nc bnc" id="L289" title="All 2 branches missed.">        for (int i = 0; i &lt; strs.length; i++) {</span>
+<span class="nc" id="L290">          vals[i] = Float.parseFloat(strs[0]);</span>
+        }
+<span class="nc" id="L292">        return vals;</span>
+      }
+    }
+<span class="nc" id="L295">    return defaultValue;</span>
+  }
+
+  public static TemporalAccessor getDateFromElement(
+      XMLStreamReader xmler, String attribute, TagType type, TemporalAccessor defaultValue) {
+<span class="nc bnc" id="L300" title="All 2 branches missed.">    if (attribute != null) {</span>
+<span class="nc" id="L301">      String val = xmler.getAttributeValue(null, attribute);</span>
+<span class="nc bnc" id="L302" title="All 2 branches missed.">      if (val != null) {</span>
+        try {
+<span class="nc bnc" id="L304" title="All 2 branches missed.">          if (TagType.TIME.equals(type)) {</span>
+<span class="nc" id="L305">            return LocalTime.parse(val);</span>
+<span class="nc bnc" id="L306" title="All 2 branches missed.">          } else if (TagType.DATETIME.equals(type)) {</span>
+<span class="nc" id="L307">            return LocalDateTime.parse(val);</span>
+          } else {
+<span class="nc" id="L309">            return LocalDate.parse(val);</span>
+          }
+<span class="nc" id="L311">        } catch (Exception e) {</span>
+<span class="nc" id="L312">          LOGGER.error(&quot;Parse date&quot;, e);</span>
+        }
+      }
+    }
+<span class="nc" id="L316">    return defaultValue;</span>
+  }
+
+  public static TemporalAccessor[] getDatesFromElement(
+      XMLStreamReader xmler, String attribute, TagType type, TemporalAccessor[] defaultValue) {
+<span class="nc" id="L321">    return getDatesFromElement(xmler, attribute, type, defaultValue, &quot;\\&quot;);</span>
+  }
+
+  public static TemporalAccessor[] getDatesFromElement(
+      XMLStreamReader xmler,
+      String attribute,
+      TagType type,
+      TemporalAccessor[] defaultValue,
+      String separator) {
+<span class="nc bnc" id="L330" title="All 2 branches missed.">    if (attribute != null) {</span>
+<span class="nc" id="L331">      String val = xmler.getAttributeValue(null, attribute);</span>
+<span class="nc bnc" id="L332" title="All 2 branches missed.">      if (val != null) {</span>
+<span class="nc" id="L333">        String[] strs = val.split(Pattern.quote(separator));</span>
+<span class="nc" id="L334">        TemporalAccessor[] vals = new TemporalAccessor[strs.length];</span>
+<span class="nc bnc" id="L335" title="All 2 branches missed.">        for (int i = 0; i &lt; strs.length; i++) {</span>
+          try {
+<span class="nc bnc" id="L337" title="All 2 branches missed.">            if (TagType.TIME.equals(type)) {</span>
+<span class="nc" id="L338">              vals[i] = LocalTime.parse(strs[i]);</span>
+<span class="nc bnc" id="L339" title="All 2 branches missed.">            } else if (TagType.DATETIME.equals(type)) {</span>
+<span class="nc" id="L340">              vals[i] = LocalDateTime.parse(strs[i]);</span>
+            } else {
+<span class="nc" id="L342">              vals[i] = LocalDate.parse(strs[i]);</span>
+            }
+<span class="nc" id="L344">          } catch (Exception e) {</span>
+<span class="nc" id="L345">            LOGGER.error(&quot;Parse date&quot;, e);</span>
+<span class="nc" id="L346">          }</span>
+        }
+<span class="nc" id="L348">        return vals;</span>
+      }
+    }
+<span class="nc" id="L351">    return defaultValue;</span>
+  }
+
+  public static boolean isEquals(Object value1, Object value2) {
+<span class="nc bnc" id="L355" title="All 4 branches missed.">    if (value1 == null &amp;&amp; value2 == null) {</span>
+<span class="nc" id="L356">      return true;</span>
+    }
+
+<span class="nc bnc" id="L359" title="All 4 branches missed.">    if (value1 == null || value2 == null) {</span>
+<span class="nc" id="L360">      return false;</span>
+    }
+
+<span class="nc bnc" id="L363" title="All 2 branches missed.">    if (value1.getClass().isArray()) {</span>
+<span class="nc bnc" id="L364" title="All 2 branches missed.">      if (!value2.getClass().isArray()) {</span>
+<span class="nc" id="L365">        return false;</span>
+      }
+<span class="nc" id="L367">      int vm1 = Array.getLength(value1);</span>
+<span class="nc" id="L368">      int vm2 = Array.getLength(value2);</span>
+
+<span class="nc bnc" id="L370" title="All 2 branches missed.">      if (vm1 != vm2) {</span>
+<span class="nc" id="L371">        return false;</span>
+      }
+
+<span class="nc bnc" id="L374" title="All 2 branches missed.">      for (int i = 0; i &lt; vm1; i++) {</span>
+<span class="nc" id="L375">        Object o1 = Array.get(value1, i);</span>
+<span class="nc" id="L376">        Object o2 = Array.get(value2, i);</span>
+<span class="nc bnc" id="L377" title="All 4 branches missed.">        if (o1 == null &amp;&amp; o2 == null) {</span>
+<span class="nc" id="L378">          continue;</span>
+        }
+<span class="nc bnc" id="L380" title="All 4 branches missed.">        if (o1 != null &amp;&amp; !o1.equals(o2)) {</span>
+<span class="nc" id="L381">          return false;</span>
+        }
+      }
+<span class="nc" id="L384">      return true;</span>
+    } else {
+<span class="nc" id="L386">      return value1.equals(value2);</span>
+    }
+  }
+
+  public static Object getTagValue(TagW tag, TagReadable... taggable) {
+<span class="nc bnc" id="L391" title="All 2 branches missed.">    for (TagReadable t : taggable) {</span>
+<span class="nc bnc" id="L392" title="All 2 branches missed.">      if (t != null) {</span>
+<span class="nc" id="L393">        Object val = t.getTagValue(tag);</span>
+<span class="nc bnc" id="L394" title="All 2 branches missed.">        if (val != null) {</span>
+<span class="nc" id="L395">          return val;</span>
+        }
+      }
+    }
+<span class="nc" id="L399">    return null;</span>
+  }
+
+  /**
+   * @param value1 the first object to compare
+   * @param value2 the second object to compare
+   * @param ignoreCase (only when values are String)
+   * @return the result of equals
+   */
+  public static boolean isEquals(Object value1, Object value2, boolean ignoreCase) {
+<span class="nc bnc" id="L409" title="All 4 branches missed.">    if (value1 == null &amp;&amp; value2 == null) {</span>
+<span class="nc" id="L410">      return true;</span>
+    }
+
+<span class="nc bnc" id="L413" title="All 4 branches missed.">    if (value1 == null || value2 == null) {</span>
+<span class="nc" id="L414">      return false;</span>
+    }
+
+<span class="nc bnc" id="L417" title="All 2 branches missed.">    if (value1.getClass().isArray()) {</span>
+<span class="nc bnc" id="L418" title="All 2 branches missed.">      if (!value2.getClass().isArray()) {</span>
+<span class="nc" id="L419">        return false;</span>
+      }
+<span class="nc" id="L421">      int vm1 = Array.getLength(value1);</span>
+<span class="nc" id="L422">      int vm2 = Array.getLength(value2);</span>
+
+<span class="nc bnc" id="L424" title="All 2 branches missed.">      if (vm1 != vm2) {</span>
+<span class="nc" id="L425">        return false;</span>
+      }
+
+<span class="nc bnc" id="L428" title="All 2 branches missed.">      for (int i = 0; i &lt; vm1; i++) {</span>
+<span class="nc" id="L429">        Object o1 = Array.get(value1, i);</span>
+<span class="nc" id="L430">        Object o2 = Array.get(value2, i);</span>
+<span class="nc bnc" id="L431" title="All 4 branches missed.">        if (o1 == null &amp;&amp; o2 == null) {</span>
+<span class="nc" id="L432">          continue;</span>
+        }
+<span class="nc bnc" id="L434" title="All 6 branches missed.">        if (ignoreCase &amp;&amp; o1 instanceof String st1 &amp;&amp; o2 instanceof String st2) {</span>
+<span class="nc bnc" id="L435" title="All 2 branches missed.">          if (!st1.equalsIgnoreCase(st2)) {</span>
+<span class="nc" id="L436">            return false;</span>
+          }
+<span class="nc bnc" id="L438" title="All 4 branches missed.">        } else if (o1 != null &amp;&amp; !o1.equals(o2)) {</span>
+<span class="nc" id="L439">          return false;</span>
+        }
+      }
+<span class="nc" id="L442">      return true;</span>
+    } else {
+<span class="nc bnc" id="L444" title="All 6 branches missed.">      if (ignoreCase &amp;&amp; value1 instanceof String st1 &amp;&amp; value2 instanceof String st2) {</span>
+<span class="nc" id="L445">        return st1.equalsIgnoreCase(st2);</span>
+      }
+<span class="nc" id="L447">      return value1.equals(value2);</span>
+    }
+  }
+
+  public static boolean isContaining(Object value, String s, boolean ignoreCase) {
+<span class="nc bnc" id="L452" title="All 2 branches missed.">    if (s == null) {</span>
+<span class="nc" id="L453">      return true;</span>
+    }
+
+<span class="nc bnc" id="L456" title="All 2 branches missed.">    if (value == null) {</span>
+<span class="nc" id="L457">      return false;</span>
+    }
+
+<span class="nc bnc" id="L460" title="All 2 branches missed.">    if (value.getClass().isArray()) {</span>
+
+<span class="nc" id="L462">      int vm1 = Array.getLength(value);</span>
+<span class="nc bnc" id="L463" title="All 2 branches missed.">      for (int i = 0; i &lt; vm1; i++) {</span>
+<span class="nc" id="L464">        Object o1 = Array.get(value, i);</span>
+<span class="nc bnc" id="L465" title="All 2 branches missed.">        if (o1 != null) {</span>
+<span class="nc bnc" id="L466" title="All 4 branches missed.">          if (ignoreCase &amp;&amp; o1.toString().toLowerCase().contains(s.toLowerCase())) {</span>
+<span class="nc" id="L467">            return true;</span>
+          }
+<span class="nc bnc" id="L469" title="All 2 branches missed.">          if (o1.toString().contains(s)) {</span>
+<span class="nc" id="L470">            return true;</span>
+          }
+        }
+      }
+<span class="nc" id="L474">      return false;</span>
+    } else {
+<span class="nc bnc" id="L476" title="All 2 branches missed.">      if (ignoreCase) {</span>
+<span class="nc" id="L477">        return value.toString().toLowerCase().contains(s.toLowerCase());</span>
+      }
+<span class="nc" id="L479">      return value.toString().contains(s);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

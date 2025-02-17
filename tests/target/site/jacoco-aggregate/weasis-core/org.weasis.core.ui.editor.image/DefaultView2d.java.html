@@ -1,0 +1,1270 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>DefaultView2d.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image</a> &gt; <span class="el_source">DefaultView2d.java</span></div><h1>DefaultView2d.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image;
+
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GraphicsConfiguration;
+import java.awt.GridBagConstraints;
+import java.awt.Paint;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.Stroke;
+import java.awt.Window;
+import java.awt.event.FocusEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.beans.PropertyChangeEvent;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
+import javax.swing.Action;
+import javax.swing.JCheckBoxMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPopupMenu;
+import javax.swing.SwingUtilities;
+import javax.swing.ToolTipManager;
+import org.opencv.core.CvType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.Image2DViewer;
+import org.weasis.core.api.gui.model.ViewModel;
+import org.weasis.core.api.gui.util.ActionW;
+import org.weasis.core.api.gui.util.Feature;
+import org.weasis.core.api.gui.util.Filter;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.gui.util.SliderCineListener;
+import org.weasis.core.api.image.AffineTransformOp;
+import org.weasis.core.api.image.FilterOp;
+import org.weasis.core.api.image.ImageOpEvent;
+import org.weasis.core.api.image.ImageOpNode;
+import org.weasis.core.api.image.OpManager;
+import org.weasis.core.api.image.PseudoColorOp;
+import org.weasis.core.api.image.WindowOp;
+import org.weasis.core.api.image.ZoomOp.Interpolation;
+import org.weasis.core.api.image.cv.ImageCVIO;
+import org.weasis.core.api.image.util.KernelData;
+import org.weasis.core.api.image.util.MeasurableLayer;
+import org.weasis.core.api.image.util.Unit;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.media.data.MediaSeries;
+import org.weasis.core.api.media.data.Series;
+import org.weasis.core.api.media.data.SeriesComparator;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.api.service.AuditLog;
+import org.weasis.core.api.util.FontItem;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.api.util.ResourceUtil.ActionIcon;
+import org.weasis.core.ui.docking.DockableTool;
+import org.weasis.core.ui.editor.image.SynchData.Mode;
+import org.weasis.core.ui.editor.image.dockable.MeasureTool;
+import org.weasis.core.ui.model.AbstractGraphicModel;
+import org.weasis.core.ui.model.GraphicModel;
+import org.weasis.core.ui.model.graphic.DragGraphic;
+import org.weasis.core.ui.model.graphic.Graphic;
+import org.weasis.core.ui.model.graphic.GraphicSelectionListener;
+import org.weasis.core.ui.model.imp.XmlGraphicModel;
+import org.weasis.core.ui.model.layer.LayerAnnotation;
+import org.weasis.core.ui.model.layer.LayerType;
+import org.weasis.core.ui.model.layer.imp.RenderedImageLayer;
+import org.weasis.core.ui.model.utils.Draggable;
+import org.weasis.core.ui.model.utils.bean.GraphicClipboard;
+import org.weasis.core.ui.model.utils.bean.PanPoint;
+import org.weasis.core.ui.model.utils.bean.PanPoint.State;
+import org.weasis.core.ui.model.utils.imp.DefaultViewModel;
+import org.weasis.core.ui.pref.Monitor;
+import org.weasis.core.ui.util.DefaultAction;
+import org.weasis.core.ui.util.MouseEventDouble;
+import org.weasis.core.ui.util.TitleMenuItem;
+import org.weasis.core.util.LangUtil;
+import org.weasis.core.util.MathUtil;
+import org.weasis.opencv.data.PlanarImage;
+import org.weasis.opencv.op.lut.ColorLut;
+
+/**
+ * @author Nicolas Roduit
+ * @author Benoit Jacquemoud
+ */
+public abstract class DefaultView2d&lt;E extends ImageElement&gt; extends GraphicsPane
+    implements ViewCanvas&lt;E&gt; {
+
+<span class="nc" id="L111">  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultView2d.class);</span>
+
+<span class="nc" id="L113">  public enum ZoomType {</span>
+<span class="nc" id="L114">    CURRENT,</span>
+<span class="nc" id="L115">    BEST_FIT,</span>
+<span class="nc" id="L116">    PIXEL_SIZE,</span>
+<span class="nc" id="L117">    REAL</span>
+  }
+
+  public static final int MINIMAL_IMAGES_FOR_3D = 5;
+
+<span class="nc" id="L122">  public static final GraphicClipboard GRAPHIC_CLIPBOARD = new GraphicClipboard();</span>
+
+<span class="nc" id="L124">  public static final Cursor EDIT_CURSOR =</span>
+<span class="nc" id="L125">      Feature.getImageCursor(&quot;editPoint.png&quot;, &quot;Edit Point&quot;, 0.5f, 0.5f); // NON-NLS</span>
+<span class="nc" id="L126">  public static final Cursor HAND_CURSOR =</span>
+<span class="nc" id="L127">      Feature.getSvgCursor(&quot;hand.svg&quot;, &quot;hand&quot;, 0.5f, 0.5f); // NON-NLS</span>
+<span class="nc" id="L128">  public static final Cursor WAIT_CURSOR = DefaultView2d.getNewCursor(Cursor.WAIT_CURSOR);</span>
+<span class="nc" id="L129">  public static final Cursor CROSS_CURSOR = DefaultView2d.getNewCursor(Cursor.CROSSHAIR_CURSOR);</span>
+<span class="nc" id="L130">  public static final Cursor MOVE_CURSOR = DefaultView2d.getNewCursor(Cursor.MOVE_CURSOR);</span>
+<span class="nc" id="L131">  public static final Cursor DEFAULT_CURSOR = DefaultView2d.getNewCursor(Cursor.DEFAULT_CURSOR);</span>
+
+  protected final FocusHandler&lt;E&gt; focusHandler;
+  protected final GraphicMouseHandler&lt;E&gt; graphicMouseHandler;
+
+<span class="nc" id="L136">  private final PanPoint highlightedPosition = new PanPoint(State.CENTER);</span>
+<span class="nc" id="L137">  private final PanPoint startedDragPoint = new PanPoint(State.DRAGSTART);</span>
+<span class="nc" id="L138">  private int pointerType = 0;</span>
+
+  protected final RenderedImageLayer&lt;E&gt; imageLayer;
+  protected Panner&lt;E&gt; panner;
+  protected ZoomWin&lt;E&gt; lens;
+  private final List&lt;ViewButton&gt; viewButtons;
+  protected ViewButton synchButton;
+
+<span class="nc" id="L146">  protected MediaSeries&lt;E&gt; series = null;</span>
+  protected LayerAnnotation infoLayer;
+  protected int tileOffset;
+
+  protected final ImageViewerEventManager&lt;E&gt; eventManager;
+
+  protected DefaultView2d(ImageViewerEventManager&lt;E&gt; eventManager) {
+<span class="nc" id="L153">    this(eventManager, null);</span>
+<span class="nc" id="L154">  }</span>
+
+  protected DefaultView2d(ImageViewerEventManager&lt;E&gt; eventManager, ViewModel viewModel) {
+<span class="nc" id="L157">    super(viewModel);</span>
+<span class="nc" id="L158">    this.eventManager = Objects.requireNonNull(eventManager);</span>
+<span class="nc" id="L159">    this.viewButtons = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L160">    this.tileOffset = 0;</span>
+
+<span class="nc" id="L162">    this.imageLayer = new RenderedImageLayer&lt;&gt;();</span>
+<span class="nc" id="L163">    actionsInView.put(ActionW.LENS.cmd(), false);</span>
+<span class="nc" id="L164">    initActionWState();</span>
+<span class="nc" id="L165">    this.graphicMouseHandler = new GraphicMouseHandler&lt;&gt;(this);</span>
+<span class="nc" id="L166">    this.focusHandler = new FocusHandler(this);</span>
+
+<span class="nc" id="L168">    setBorder(viewBorder);</span>
+<span class="nc" id="L169">    setFocusable(true);</span>
+    // Must be larger to the screens to be resized correctly by the container
+<span class="nc" id="L171">    setPreferredSize(new Dimension(4096, 4096));</span>
+<span class="nc" id="L172">    setMinimumSize(new Dimension(50, 50));</span>
+<span class="nc" id="L173">  }</span>
+
+  @Override
+  public void registerDefaultListeners() {
+<span class="nc" id="L177">    addFocusListener(this);</span>
+<span class="nc" id="L178">    ToolTipManager.sharedInstance().registerComponent(this);</span>
+<span class="nc" id="L179">    imageLayer.addLayerChangeListener(this);</span>
+<span class="nc" id="L180">  }</span>
+
+  protected void buildPanner() {
+<span class="nc" id="L183">    panner = Optional.ofNullable(panner).orElseGet(() -&gt; new Panner&lt;&gt;(this));</span>
+<span class="nc" id="L184">  }</span>
+
+  @Override
+  public void copyActionWState(HashMap&lt;String, Object&gt; actionsInView) {
+<span class="nc" id="L188">    actionsInView.putAll(this.actionsInView);</span>
+<span class="nc" id="L189">  }</span>
+
+  protected void initActionWState() {
+<span class="nc" id="L192">    E img = getImage();</span>
+<span class="nc" id="L193">    actionsInView.put(</span>
+<span class="nc bnc" id="L194" title="All 2 branches missed.">        ActionW.SPATIAL_UNIT.cmd(), img == null ? Unit.PIXEL : img.getPixelSpacingUnit());</span>
+<span class="nc" id="L195">    actionsInView.put(ZOOM_TYPE_CMD, ZoomType.BEST_FIT);</span>
+<span class="nc" id="L196">    actionsInView.put(ActionW.ZOOM.cmd(), 0.0);</span>
+
+<span class="nc" id="L198">    actionsInView.put(ActionW.DRAWINGS.cmd(), true);</span>
+<span class="nc" id="L199">    actionsInView.put(LayerType.CROSSLINES.name(), true);</span>
+<span class="nc" id="L200">    actionsInView.put(ActionW.INVERSE_STACK.cmd(), false);</span>
+<span class="nc" id="L201">    actionsInView.put(ActionW.FILTERED_SERIES.cmd(), null);</span>
+<span class="nc" id="L202">    actionsInView.put(ActionW.FLIP.cmd(), false);</span>
+<span class="nc" id="L203">    actionsInView.put(ActionW.ROTATION.cmd(), 0);</span>
+
+<span class="nc" id="L205">    OpManager disOp = getDisplayOpManager();</span>
+
+<span class="nc" id="L207">    disOp.setParamValue(</span>
+        WindowOp.OP_NAME,
+        WindowOp.P_APPLY_WL_COLOR,
+<span class="nc" id="L210">        eventManager.getOptions().getBooleanProperty(WindowOp.P_APPLY_WL_COLOR, true));</span>
+<span class="nc" id="L211">    disOp.setParamValue(</span>
+        AffineTransformOp.OP_NAME,
+        AffineTransformOp.P_INTERPOLATION,
+<span class="nc" id="L214">        Interpolation.getInterpolation(eventManager.getZoomSetting().getInterpolation()));</span>
+<span class="nc" id="L215">    disOp.setParamValue(AffineTransformOp.OP_NAME, AffineTransformOp.P_AFFINE_MATRIX, null);</span>
+<span class="nc" id="L216">    disOp.setParamValue(FilterOp.OP_NAME, FilterOp.P_KERNEL_DATA, KernelData.NONE);</span>
+<span class="nc" id="L217">    disOp.setParamValue(PseudoColorOp.OP_NAME, PseudoColorOp.P_LUT, ColorLut.IMAGE.getByteLut());</span>
+<span class="nc" id="L218">    disOp.setParamValue(PseudoColorOp.OP_NAME, PseudoColorOp.P_LUT_INVERSE, false);</span>
+<span class="nc" id="L219">  }</span>
+
+  @Override
+  public ImageViewerEventManager&lt;E&gt; getEventManager() {
+<span class="nc" id="L223">    return eventManager;</span>
+  }
+
+  @Override
+  public void updateSynchState() {
+<span class="nc bnc" id="L228" title="All 2 branches missed.">    if (getActionValue(ActionW.SYNCH_LINK.cmd()) != null) {</span>
+<span class="nc bnc" id="L229" title="All 2 branches missed.">      if (synchButton == null) {</span>
+<span class="nc" id="L230">        synchButton =</span>
+            new ViewButton(
+                (invoker, x, y) -&gt; {
+<span class="nc" id="L233">                  final SynchData synch = (SynchData) getActionValue(ActionW.SYNCH_LINK.cmd());</span>
+<span class="nc bnc" id="L234" title="All 2 branches missed.">                  if (synch == null) {</span>
+<span class="nc" id="L235">                    return;</span>
+                  }
+
+<span class="nc" id="L238">                  JPopupMenu popupMenu = new JPopupMenu();</span>
+<span class="nc" id="L239">                  TitleMenuItem itemTitle = new TitleMenuItem(ActionW.SYNCH.getTitle());</span>
+<span class="nc" id="L240">                  popupMenu.add(itemTitle);</span>
+<span class="nc" id="L241">                  popupMenu.addSeparator();</span>
+
+<span class="nc bnc" id="L243" title="All 2 branches missed.">                  for (Entry&lt;String, Boolean&gt; a : synch.getActions().entrySet()) {</span>
+<span class="nc" id="L244">                    JCheckBoxMenuItem menuItem = new JCheckBoxMenuItem(a.getKey(), a.getValue());</span>
+<span class="nc" id="L245">                    menuItem.addActionListener(</span>
+                        e -&gt; {
+<span class="nc bnc" id="L247" title="All 2 branches missed.">                          if (e.getSource() instanceof JCheckBoxMenuItem item) {</span>
+<span class="nc" id="L248">                            synch.getActions().put(item.getText(), item.isSelected());</span>
+                          }
+<span class="nc" id="L250">                        });</span>
+<span class="nc" id="L251">                    popupMenu.add(menuItem);</span>
+<span class="nc" id="L252">                  }</span>
+<span class="nc" id="L253">                  popupMenu.show(invoker, x, y);</span>
+<span class="nc" id="L254">                },</span>
+<span class="nc" id="L255">                ResourceUtil.getIcon(ActionIcon.SYNCH).derive(24, 24),</span>
+<span class="nc" id="L256">                ActionW.SYNCH.getTitle());</span>
+<span class="nc" id="L257">        synchButton.setVisible(true);</span>
+<span class="nc" id="L258">        synchButton.setPosition(GridBagConstraints.SOUTHEAST);</span>
+      }
+<span class="nc bnc" id="L260" title="All 2 branches missed.">      if (!getViewButtons().contains(synchButton)) {</span>
+<span class="nc" id="L261">        getViewButtons().add(synchButton);</span>
+      }
+<span class="nc" id="L263">      SynchData synch = (SynchData) getActionValue(ActionW.SYNCH_LINK.cmd());</span>
+<span class="nc bnc" id="L264" title="All 2 branches missed.">      synchButton.setVisible(!SynchData.Mode.NONE.equals(synch.getMode()));</span>
+<span class="nc" id="L265">    } else {</span>
+<span class="nc" id="L266">      getViewButtons().remove(synchButton);</span>
+    }
+<span class="nc" id="L268">  }</span>
+
+  protected PlanarImage getPreprocessedImage(E imageElement) {
+<span class="nc" id="L271">    return imageElement.getImage((OpManager) actionsInView.get(ActionW.PREPROCESSING.cmd()));</span>
+  }
+
+  protected void fillPixelInfo(final PixelInfo pixelInfo, final E imageElement, final double[] c) {
+<span class="nc bnc" id="L275" title="All 4 branches missed.">    if (c != null &amp;&amp; c.length &gt; 0) {</span>
+<span class="nc" id="L276">      pixelInfo.setValues(c);</span>
+    }
+<span class="nc" id="L278">  }</span>
+
+  @Override
+  public PixelInfo getPixelInfo(final Point p) {
+<span class="nc" id="L282">    PixelInfo pixelInfo = new PixelInfo();</span>
+<span class="nc" id="L283">    E imageElement = imageLayer.getSourceImage();</span>
+<span class="nc" id="L284">    PlanarImage image = imageLayer.getSourceRenderedImage();</span>
+<span class="nc bnc" id="L285" title="All 4 branches missed.">    if (imageElement != null &amp;&amp; image != null) {</span>
+<span class="nc" id="L286">      Rectangle2D area = viewModel.getModelArea();</span>
+<span class="nc" id="L287">      Point offset = getImageLayer().getOffset();</span>
+<span class="nc bnc" id="L288" title="All 2 branches missed.">      if (offset != null) {</span>
+        // Offset used for Crop operation
+<span class="nc" id="L290">        area.setRect(offset.getX(), offset.getY(), area.getWidth(), area.getHeight());</span>
+<span class="nc" id="L291">        p.translate(-(int) area.getX(), -(int) area.getY());</span>
+      }
+
+<span class="nc bnc" id="L294" title="All 2 branches missed.">      if (area.contains(p)) {</span>
+        try {
+          // Handle special case of non-square pixel image
+<span class="nc" id="L297">          pixelInfo.setPosition(new Point(p.x, p.y));</span>
+<span class="nc" id="L298">          pixelInfo.setPixelSpacingUnit(imageElement.getPixelSpacingUnit());</span>
+<span class="nc" id="L299">          pixelInfo.setPixelSize(imageElement.getPixelSize());</span>
+<span class="nc" id="L300">          double[] c = image.get(p.y, p.x);</span>
+<span class="nc" id="L301">          pixelInfo.setPixelValueUnit(imageElement.getPixelValueUnit());</span>
+<span class="nc" id="L302">          fillPixelInfo(pixelInfo, imageElement, c);</span>
+<span class="nc bnc" id="L303" title="All 4 branches missed.">          if (c != null &amp;&amp; c.length &gt;= 1) {</span>
+<span class="nc" id="L304">            pixelInfo.setChannelNames(getChannelNames(image));</span>
+          }
+<span class="nc" id="L306">        } catch (Exception e) {</span>
+<span class="nc" id="L307">          LOGGER.error(&quot;Get pixel value&quot;, e);</span>
+<span class="nc" id="L308">        }</span>
+      }
+    }
+<span class="nc" id="L311">    return pixelInfo;</span>
+  }
+
+  protected static String[] getChannelNames(PlanarImage image) {
+<span class="nc bnc" id="L315" title="All 2 branches missed.">    if (image != null) {</span>
+<span class="nc" id="L316">      int channels = CvType.channels(image.type());</span>
+<span class="nc bnc" id="L317" title="All 2 branches missed.">      if (channels == 3) {</span>
+<span class="nc" id="L318">        return new String[] {</span>
+<span class="nc" id="L319">          Messages.getString(&quot;DefaultView2d.blue&quot;),</span>
+<span class="nc" id="L320">          Messages.getString(&quot;DefaultView2d.green&quot;),</span>
+<span class="nc" id="L321">          Messages.getString(&quot;DefaultView2d.red&quot;)</span>
+        };
+<span class="nc bnc" id="L323" title="All 2 branches missed.">      } else if (channels == 1) {</span>
+<span class="nc" id="L324">        return new String[] {Messages.getString(&quot;DefaultView2d.gray&quot;)};</span>
+      }
+    }
+<span class="nc" id="L327">    return null;</span>
+  }
+
+  protected static class BulkDragSequence implements Draggable {
+    private final List&lt;Draggable&gt; childDS;
+
+<span class="nc" id="L333">    BulkDragSequence(List&lt;DragGraphic&gt; dragGraphList, MouseEventDouble mouseEvent) {</span>
+<span class="nc" id="L334">      childDS = new ArrayList&lt;&gt;(dragGraphList.size());</span>
+
+<span class="nc bnc" id="L336" title="All 2 branches missed.">      for (DragGraphic dragGraph : dragGraphList) {</span>
+<span class="nc" id="L337">        Draggable dragSequence = dragGraph.createMoveDrag();</span>
+<span class="nc bnc" id="L338" title="All 2 branches missed.">        if (dragSequence != null) {</span>
+<span class="nc" id="L339">          childDS.add(dragSequence);</span>
+        }
+<span class="nc" id="L341">      }</span>
+<span class="nc" id="L342">    }</span>
+
+    @Override
+    public void startDrag(MouseEventDouble mouseevent) {
+<span class="nc" id="L346">      int i = 0;</span>
+<span class="nc bnc" id="L347" title="All 2 branches missed.">      for (int j = childDS.size(); i &lt; j; i++) {</span>
+<span class="nc" id="L348">        (childDS.get(i)).startDrag(mouseevent);</span>
+      }
+<span class="nc" id="L350">    }</span>
+
+    @Override
+    public void drag(MouseEventDouble mouseevent) {
+<span class="nc" id="L354">      int i = 0;</span>
+<span class="nc bnc" id="L355" title="All 2 branches missed.">      for (int j = childDS.size(); i &lt; j; i++) {</span>
+<span class="nc" id="L356">        (childDS.get(i)).drag(mouseevent);</span>
+      }
+<span class="nc" id="L358">    }</span>
+
+    @Override
+    public Boolean completeDrag(MouseEventDouble mouseevent) {
+<span class="nc" id="L362">      int i = 0;</span>
+<span class="nc bnc" id="L363" title="All 2 branches missed.">      for (int j = childDS.size(); i &lt; j; i++) {</span>
+<span class="nc" id="L364">        (childDS.get(i)).completeDrag(mouseevent);</span>
+      }
+<span class="nc" id="L366">      return true;</span>
+    }
+  }
+
+  @Override
+  @SuppressWarnings({&quot;rawtypes&quot;, &quot;unchecked&quot;})
+  public Panner getPanner() {
+<span class="nc" id="L373">    return panner;</span>
+  }
+
+  @Override
+  public void closeLens() {
+<span class="nc bnc" id="L378" title="All 2 branches missed.">    if (lens != null) {</span>
+<span class="nc" id="L379">      lens.showLens(false);</span>
+<span class="nc" id="L380">      this.remove(lens);</span>
+<span class="nc" id="L381">      actionsInView.put(ActionW.LENS.cmd(), false);</span>
+<span class="nc" id="L382">      lens = null;</span>
+    }
+<span class="nc" id="L384">  }</span>
+
+  @Override
+  public void setSeries(MediaSeries&lt;E&gt; series) {
+<span class="nc" id="L388">    setSeries(series, null);</span>
+<span class="nc" id="L389">  }</span>
+
+  @Override
+  public void setSeries(MediaSeries&lt;E&gt; newSeries, E selectedMedia) {
+<span class="nc" id="L393">    MediaSeries&lt;E&gt; oldSequence = this.series;</span>
+<span class="nc" id="L394">    this.series = newSeries;</span>
+
+<span class="nc bnc" id="L396" title="All 4 branches missed.">    if (oldSequence == null &amp;&amp; newSeries == null) {</span>
+<span class="nc" id="L397">      return;</span>
+    }
+<span class="nc bnc" id="L399" title="All 2 branches missed.">    if (oldSequence != null</span>
+<span class="nc bnc" id="L400" title="All 2 branches missed.">        &amp;&amp; oldSequence.equals(newSeries)</span>
+<span class="nc bnc" id="L401" title="All 2 branches missed.">        &amp;&amp; imageLayer.getSourceImage() != null) {</span>
+<span class="nc bnc" id="L402" title="All 2 branches missed.">      if (eventManager.isActionRegistered(ActionW.VOLUME)</span>
+<span class="nc bnc" id="L403" title="All 2 branches missed.">          &amp;&amp; !eventManager.isActionEnabled(ActionW.VOLUME)</span>
+<span class="nc bnc" id="L404" title="All 2 branches missed.">          &amp;&amp; newSeries.size(null) &gt;= MINIMAL_IMAGES_FOR_3D) {</span>
+        // Force update to activate 3D buttons
+<span class="nc" id="L406">        eventManager.updateComponentsListener(this);</span>
+      }
+<span class="nc" id="L408">      return;</span>
+    }
+
+<span class="nc" id="L411">    GuiUtils.getUICore().closeSeries(oldSequence);</span>
+
+<span class="nc" id="L413">    initActionWState();</span>
+    try {
+<span class="nc bnc" id="L415" title="All 2 branches missed.">      if (newSeries == null) {</span>
+<span class="nc" id="L416">        setImage(null);</span>
+      } else {
+<span class="nc" id="L418">        E media = selectedMedia;</span>
+<span class="nc bnc" id="L419" title="All 2 branches missed.">        if (selectedMedia == null) {</span>
+<span class="nc" id="L420">          media =</span>
+<span class="nc" id="L421">              newSeries.getMedia(</span>
+<span class="nc" id="L422">                  Math.max(tileOffset, 0),</span>
+<span class="nc" id="L423">                  (Filter&lt;E&gt;) actionsInView.get(ActionW.FILTERED_SERIES.cmd()),</span>
+<span class="nc" id="L424">                  getCurrentSortComparator());</span>
+        }
+<span class="nc" id="L426">        imageLayer.fireOpEvent(</span>
+            new ImageOpEvent(ImageOpEvent.OpEvent.SERIES_CHANGE, series, media, null));
+<span class="nc bnc" id="L428" title="All 2 branches missed.">        if (lens != null) {</span>
+<span class="nc" id="L429">          lens.setFreezeImage(null);</span>
+        }
+<span class="nc" id="L431">        setImage(media);</span>
+      }
+<span class="nc" id="L433">    } catch (Exception e) {</span>
+<span class="nc" id="L434">      AuditLog.logError(LOGGER, e, &quot;Unexpected error:&quot;); // NON-NLS</span>
+<span class="nc" id="L435">      imageLayer.setImage(null, null);</span>
+<span class="nc" id="L436">      closeLens();</span>
+    } finally {
+<span class="nc" id="L438">      eventManager.updateComponentsListener(this);</span>
+    }
+
+    // Set the sequence to the state OPEN
+<span class="nc bnc" id="L442" title="All 2 branches missed.">    if (newSeries != null) {</span>
+<span class="nc" id="L443">      newSeries.setOpen(true);</span>
+    }
+<span class="nc" id="L445">  }</span>
+
+  protected int getImageSize(E img, TagW tag1, TagW tag2) {
+<span class="nc" id="L448">    Integer size = (Integer) img.getTagValue(tag1);</span>
+<span class="nc bnc" id="L449" title="All 2 branches missed.">    if (size == null) {</span>
+<span class="nc" id="L450">      size = (Integer) img.getTagValue(tag2);</span>
+    }
+<span class="nc bnc" id="L452" title="All 2 branches missed.">    return (size == null) ? ImageCVIO.TILE_SIZE : size;</span>
+  }
+
+  protected Rectangle getImageBounds(E img) {
+<span class="nc bnc" id="L456" title="All 2 branches missed.">    if (img != null) {</span>
+<span class="nc" id="L457">      PlanarImage source = getPreprocessedImage(img);</span>
+      // Get the displayed width (adapted in case of the aspect ratio is not 1/1)
+<span class="nc" id="L459">      boolean nosquarePixel = MathUtil.isDifferent(img.getRescaleX(), img.getRescaleY());</span>
+      int width =
+<span class="nc bnc" id="L461" title="All 4 branches missed.">          source == null || nosquarePixel</span>
+<span class="nc" id="L462">              ? img.getRescaleWidth(</span>
+<span class="nc" id="L463">                  getImageSize(img, TagW.ImageWidth, TagW.get(&quot;Columns&quot;))) // NON-NLS</span>
+<span class="nc" id="L464">              : source.width();</span>
+      int height =
+<span class="nc bnc" id="L466" title="All 4 branches missed.">          source == null || nosquarePixel</span>
+<span class="nc" id="L467">              ? img.getRescaleHeight(</span>
+<span class="nc" id="L468">                  getImageSize(img, TagW.ImageHeight, TagW.get(&quot;Rows&quot;))) // NON-NLS</span>
+<span class="nc" id="L469">              : source.height();</span>
+<span class="nc" id="L470">      return new Rectangle(0, 0, width, height);</span>
+    }
+<span class="nc" id="L472">    return new Rectangle(0, 0, 512, 512);</span>
+  }
+
+  protected void updateCanvas(E img, boolean triggerViewModelChangeListeners) {
+<span class="nc" id="L476">    final Rectangle modelArea = getImageBounds(img);</span>
+<span class="nc bnc" id="L477" title="All 2 branches missed.">    if (!modelArea.equals(getViewModel().getModelArea())) {</span>
+<span class="nc" id="L478">      DefaultViewModel m = (DefaultViewModel) getViewModel();</span>
+<span class="nc" id="L479">      boolean oldVal = m.isEnableViewModelChangeListeners();</span>
+<span class="nc bnc" id="L480" title="All 2 branches missed.">      if (!triggerViewModelChangeListeners) {</span>
+<span class="nc" id="L481">        m.setEnableViewModelChangeListeners(false);</span>
+      }
+<span class="nc" id="L483">      m.adjustMinViewScaleFromImage(modelArea.width, modelArea.height);</span>
+<span class="nc" id="L484">      m.setModelArea(modelArea);</span>
+<span class="nc bnc" id="L485" title="All 2 branches missed.">      if (!triggerViewModelChangeListeners) {</span>
+<span class="nc" id="L486">        m.setEnableViewModelChangeListeners(oldVal);</span>
+      }
+    }
+<span class="nc" id="L489">  }</span>
+
+  @Override
+  public void updateCanvas(boolean triggerViewModelChangeListeners) {
+<span class="nc" id="L493">    updateCanvas(getImage(), triggerViewModelChangeListeners);</span>
+<span class="nc" id="L494">  }</span>
+
+  protected void setImage(E img) {
+<span class="nc" id="L497">    boolean updateGraphics = false;</span>
+<span class="nc" id="L498">    imageLayer.setEnableDispOperations(false);</span>
+<span class="nc bnc" id="L499" title="All 2 branches missed.">    if (img == null) {</span>
+<span class="nc" id="L500">      eventManager.getAction(ActionW.SCROLL_SERIES).ifPresent(SliderCineListener::stop);</span>
+<span class="nc" id="L501">      actionsInView.put(ActionW.SPATIAL_UNIT.cmd(), Unit.PIXEL);</span>
+<span class="nc bnc" id="L502" title="All 2 branches missed.">      if (eventManager.getSelectedViewPane() == this) {</span>
+<span class="nc" id="L503">        eventManager</span>
+<span class="nc" id="L504">            .getAction(ActionW.SPATIAL_UNIT)</span>
+<span class="nc" id="L505">            .ifPresent(</span>
+                c -&gt;
+<span class="nc" id="L507">                    c.setSelectedItemWithoutTriggerAction(</span>
+<span class="nc" id="L508">                        actionsInView.get(ActionW.SPATIAL_UNIT.cmd())));</span>
+      }
+
+      // Force the update for null image
+<span class="nc" id="L512">      imageLayer.setEnableDispOperations(true);</span>
+<span class="nc" id="L513">      imageLayer.setImage(null, null);</span>
+<span class="nc" id="L514">      imageLayer.setEnableDispOperations(false);</span>
+
+<span class="nc" id="L516">      setGraphicManager(new XmlGraphicModel());</span>
+<span class="nc" id="L517">      closeLens();</span>
+    } else {
+<span class="nc" id="L519">      E oldImage = imageLayer.getSourceImage();</span>
+<span class="nc bnc" id="L520" title="All 2 branches missed.">      if (!img.equals(oldImage)) {</span>
+<span class="nc" id="L521">        updateGraphics = true;</span>
+<span class="nc" id="L522">        Object oldUnit = actionsInView.get(ActionW.SPATIAL_UNIT.cmd());</span>
+<span class="nc bnc" id="L523" title="All 4 branches missed.">        if (oldUnit == null || Unit.PIXEL.equals(oldUnit)) {</span>
+<span class="nc" id="L524">          actionsInView.put(ActionW.SPATIAL_UNIT.cmd(), img.getPixelSpacingUnit());</span>
+        }
+<span class="nc bnc" id="L526" title="All 2 branches missed.">        if (eventManager.getSelectedViewPane() == this) {</span>
+<span class="nc" id="L527">          eventManager</span>
+<span class="nc" id="L528">              .getAction(ActionW.SPATIAL_UNIT)</span>
+<span class="nc" id="L529">              .ifPresent(</span>
+                  c -&gt;
+<span class="nc" id="L531">                      c.setSelectedItemWithoutTriggerAction(</span>
+<span class="nc" id="L532">                          actionsInView.get(ActionW.SPATIAL_UNIT.cmd())));</span>
+        }
+<span class="nc" id="L534">        actionsInView.put(ActionW.PREPROCESSING.cmd(), null);</span>
+
+<span class="nc" id="L536">        updateCanvas(img, false);</span>
+
+<span class="nc" id="L538">        imageLayer.fireOpEvent(</span>
+            new ImageOpEvent(ImageOpEvent.OpEvent.IMAGE_CHANGE, series, img, null));
+<span class="nc" id="L540">        resetZoom();</span>
+
+<span class="nc" id="L542">        imageLayer.setImage(img, (OpManager) actionsInView.get(ActionW.PREPROCESSING.cmd()));</span>
+
+<span class="nc bnc" id="L544" title="All 2 branches missed.">        if (AuditLog.LOGGER.isInfoEnabled()) {</span>
+<span class="nc" id="L545">          PlanarImage image = img.getImage();</span>
+<span class="nc bnc" id="L546" title="All 2 branches missed.">          if (image != null) {</span>
+<span class="nc" id="L547">            int elemSize = CvType.ELEM_SIZE(image.type());</span>
+<span class="nc" id="L548">            int channels = CvType.channels(image.type());</span>
+<span class="nc" id="L549">            int bpp = (elemSize * 8) / channels;</span>
+<span class="nc" id="L550">            String[] elements = new String[channels];</span>
+<span class="nc" id="L551">            Arrays.fill(elements, Integer.toString(bpp));</span>
+<span class="nc" id="L552">            String pixSize = String.join(&quot;,&quot;, elements);</span>
+
+<span class="nc" id="L554">            AuditLog.LOGGER.info(</span>
+<span class="nc" id="L555">                &quot;open:image size:{},{} depth:{}&quot;, image.width(), image.height(), pixSize);</span>
+          }
+        }
+      }
+      // Apply all image processing operation for visualization
+<span class="nc" id="L560">      imageLayer.setEnableDispOperations(true);</span>
+
+<span class="nc" id="L562">      updateGraphicManager(img, updateGraphics);</span>
+
+<span class="nc bnc" id="L564" title="All 2 branches missed.">      if (panner != null) {</span>
+<span class="nc" id="L565">        panner.updateImage();</span>
+      }
+<span class="nc bnc" id="L567" title="All 2 branches missed.">      if (lens != null) {</span>
+<span class="nc" id="L568">        lens.updateImage();</span>
+<span class="nc" id="L569">        lens.updateZoom();</span>
+      }
+    }
+<span class="nc" id="L572">  }</span>
+
+  public void updateGraphicManager(E img, boolean updateGraphics) {
+<span class="nc bnc" id="L575" title="All 2 branches missed.">    if (updateGraphics) {</span>
+<span class="nc" id="L576">      GraphicModel modelList = (GraphicModel) img.getTagValue(TagW.PresentationModel);</span>
+      // After getting a new image iterator, update the measurements
+<span class="nc bnc" id="L578" title="All 2 branches missed.">      if (modelList == null) {</span>
+<span class="nc" id="L579">        modelList = new XmlGraphicModel(img);</span>
+<span class="nc" id="L580">        img.setTag(TagW.PresentationModel, modelList);</span>
+      }
+<span class="nc" id="L582">      List&lt;GraphicSelectionListener&gt; gListeners =</span>
+<span class="nc" id="L583">          new ArrayList&lt;&gt;(graphicManager.getGraphicSelectionListeners());</span>
+<span class="nc" id="L584">      setGraphicManager(modelList);</span>
+<span class="nc" id="L585">      gListeners.forEach(l -&gt; graphicManager.addGraphicSelectionListener(l));</span>
+    }
+<span class="nc" id="L587">  }</span>
+
+  @Override
+  public void updateGraphicSelectionListener(ImageViewerPlugin&lt;E&gt; viewerPlugin) {
+<span class="nc bnc" id="L591" title="All 2 branches missed.">    if (viewerPlugin != null) {</span>
+<span class="nc" id="L592">      List&lt;DockableTool&gt; tools = viewerPlugin.getSeriesViewerUI().tools;</span>
+<span class="nc" id="L593">      synchronized (tools) {</span>
+<span class="nc bnc" id="L594" title="All 2 branches missed.">        for (DockableTool p : tools) {</span>
+<span class="nc bnc" id="L595" title="All 2 branches missed.">          if (p instanceof GraphicSelectionListener selectionListener) {</span>
+<span class="nc" id="L596">            graphicManager.addGraphicSelectionListener(selectionListener);</span>
+          }
+<span class="nc" id="L598">        }</span>
+<span class="nc" id="L599">      }</span>
+    }
+<span class="nc" id="L601">  }</span>
+
+  @Override
+  public double getBestFitViewScale() {
+<span class="nc" id="L605">    return adjustViewScale(super.getBestFitViewScale());</span>
+  }
+
+  @Override
+  public double getRealWorldViewScale() {
+<span class="nc" id="L610">    double viewScale = 0.0;</span>
+<span class="nc" id="L611">    E img = getImage();</span>
+<span class="nc bnc" id="L612" title="All 2 branches missed.">    if (img != null) {</span>
+<span class="nc" id="L613">      Window win = SwingUtilities.getWindowAncestor(this);</span>
+<span class="nc bnc" id="L614" title="All 2 branches missed.">      if (win != null) {</span>
+<span class="nc" id="L615">        GraphicsConfiguration config = win.getGraphicsConfiguration();</span>
+<span class="nc" id="L616">        Monitor monitor = MeasureTool.viewSetting.getMonitor(config.getDevice());</span>
+<span class="nc bnc" id="L617" title="All 2 branches missed.">        if (monitor != null) {</span>
+<span class="nc" id="L618">          double realFactor = monitor.getRealScaleFactor();</span>
+<span class="nc bnc" id="L619" title="All 2 branches missed.">          if (realFactor &gt; 0.0) {</span>
+<span class="nc" id="L620">            Unit imgUnit = img.getPixelSpacingUnit();</span>
+<span class="nc bnc" id="L621" title="All 2 branches missed.">            if (!Unit.PIXEL.equals(imgUnit)) {</span>
+<span class="nc" id="L622">              viewScale = imgUnit.getConvFactor() * img.getPixelSize() / realFactor;</span>
+<span class="nc" id="L623">              viewScale = -adjustViewScale(viewScale);</span>
+            }
+          }
+        }
+      }
+    }
+<span class="nc" id="L629">    return viewScale;</span>
+  }
+
+  public double adjustViewScale(double viewScale) {
+<span class="nc" id="L633">    double ratio = viewScale;</span>
+<span class="nc bnc" id="L634" title="All 2 branches missed.">    if (ratio &lt; DefaultViewModel.SCALE_MIN) {</span>
+<span class="nc" id="L635">      ratio = DefaultViewModel.SCALE_MIN;</span>
+<span class="nc bnc" id="L636" title="All 2 branches missed.">    } else if (ratio &gt; DefaultViewModel.SCALE_MAX) {</span>
+<span class="nc" id="L637">      ratio = DefaultViewModel.SCALE_MAX;</span>
+    }
+<span class="nc" id="L639">    return adjustViewScale(eventManager, ratio);</span>
+  }
+
+  @Override
+  public RenderedImageLayer&lt;E&gt; getImageLayer() {
+<span class="nc" id="L644">    return imageLayer;</span>
+  }
+
+  @Override
+  public MeasurableLayer getMeasurableLayer() {
+<span class="nc" id="L649">    return imageLayer;</span>
+  }
+
+  @Override
+  public LayerAnnotation getInfoLayer() {
+<span class="nc" id="L654">    return infoLayer;</span>
+  }
+
+  @Override
+  public int getTileOffset() {
+<span class="nc" id="L659">    return tileOffset;</span>
+  }
+
+  @Override
+  public void setTileOffset(int tileOffset) {
+<span class="nc" id="L664">    this.tileOffset = tileOffset;</span>
+<span class="nc" id="L665">  }</span>
+
+  @Override
+  public MediaSeries&lt;E&gt; getSeries() {
+<span class="nc" id="L669">    return series;</span>
+  }
+
+  @Override
+  public E getImage() {
+<span class="nc" id="L674">    return imageLayer.getSourceImage();</span>
+  }
+
+  @Override
+  public PlanarImage getSourceImage() {
+<span class="nc" id="L679">    E image = getImage();</span>
+<span class="nc bnc" id="L680" title="All 2 branches missed.">    return image == null ? null : getPreprocessedImage(image);</span>
+  }
+
+  @Override
+  public final void center() {
+<span class="nc" id="L685">    setCenter(0.0, 0.0);</span>
+<span class="nc" id="L686">  }</span>
+
+  @Override
+  public final void setCenter(Double modelOffsetX, Double modelOffsetY) {
+    // Only apply when the panel size is not zero.
+<span class="nc bnc" id="L691" title="All 4 branches missed.">    if (getWidth() != 0 &amp;&amp; getHeight() != 0) {</span>
+<span class="nc" id="L692">      getViewModel().setModelOffset(modelOffsetX, modelOffsetY);</span>
+<span class="nc" id="L693">      Optional.ofNullable(panner).ifPresent(Panner::updateImageSize);</span>
+<span class="nc" id="L694">      Optional.ofNullable(lens).ifPresent(ZoomWin::updateZoom);</span>
+<span class="nc" id="L695">      updateAffineTransform();</span>
+    }
+<span class="nc" id="L697">  }</span>
+
+  /** Provides panning */
+  public final void moveOrigin(double x, double y) {
+<span class="nc" id="L701">    setCenter(getViewModel().getModelOffsetX() + x, getViewModel().getModelOffsetY() + y);</span>
+<span class="nc" id="L702">  }</span>
+
+  @Override
+  public final void moveOrigin(PanPoint point) {
+<span class="nc bnc" id="L706" title="All 2 branches missed.">    if (point != null) {</span>
+<span class="nc bnc" id="L707" title="All 2 branches missed.">      if (PanPoint.State.CENTER.equals(point.getState())) {</span>
+<span class="nc" id="L708">        highlightedPosition.setHighlightedPosition(point.isHighlightedPosition());</span>
+<span class="nc" id="L709">        highlightedPosition.setLocation(point);</span>
+<span class="nc" id="L710">        Rectangle2D area = getViewModel().getModelArea();</span>
+<span class="nc" id="L711">        setCenter(area.getWidth() * 0.5 - point.getX(), area.getHeight() * 0.5 - point.getY());</span>
+<span class="nc bnc" id="L712" title="All 2 branches missed.">      } else if (PanPoint.State.MOVE.equals(point.getState())) {</span>
+<span class="nc" id="L713">        moveOrigin(point.getX(), point.getY());</span>
+<span class="nc bnc" id="L714" title="All 2 branches missed.">      } else if (PanPoint.State.DRAGSTART.equals(point.getState())) {</span>
+<span class="nc" id="L715">        startedDragPoint.setLocation(</span>
+<span class="nc" id="L716">            getViewModel().getModelOffsetX(), getViewModel().getModelOffsetY());</span>
+<span class="nc bnc" id="L717" title="All 2 branches missed.">      } else if (PanPoint.State.DRAGGING.equals(point.getState())) {</span>
+<span class="nc" id="L718">        setCenter(startedDragPoint.getX() + point.getX(), startedDragPoint.getY() + point.getY());</span>
+      }
+    }
+<span class="nc" id="L721">  }</span>
+
+  @Override
+  public Comparator&lt;E&gt; getCurrentSortComparator() {
+<span class="nc" id="L725">    SeriesComparator&lt;E&gt; sort = (SeriesComparator&lt;E&gt;) actionsInView.get(ActionW.SORT_STACK.cmd());</span>
+<span class="nc" id="L726">    Boolean reverse = (Boolean) actionsInView.get(ActionW.INVERSE_STACK.cmd());</span>
+<span class="nc bnc" id="L727" title="All 4 branches missed.">    return (reverse != null &amp;&amp; reverse) ? sort.getReversOrderComparator() : sort;</span>
+  }
+
+  @Override
+  public int getFrameIndex() {
+<span class="nc bnc" id="L732" title="All 2 branches missed.">    if (series instanceof Series) {</span>
+<span class="nc" id="L733">      return ((Series&lt;E&gt;) series)</span>
+<span class="nc" id="L734">          .getImageIndex(</span>
+<span class="nc" id="L735">              imageLayer.getSourceImage(),</span>
+<span class="nc" id="L736">              (Filter&lt;E&gt;) actionsInView.get(ActionW.FILTERED_SERIES.cmd()),</span>
+<span class="nc" id="L737">              getCurrentSortComparator());</span>
+    }
+<span class="nc" id="L739">    return -1;</span>
+  }
+
+  @Override
+  public void setActionsInView(String action, Object value) {
+<span class="nc" id="L744">    setActionsInView(action, value, false);</span>
+<span class="nc" id="L745">  }</span>
+
+  @Override
+  public void setActionsInView(String action, Object value, Boolean repaint) {
+<span class="nc bnc" id="L749" title="All 2 branches missed.">    if (action != null) {</span>
+<span class="nc" id="L750">      actionsInView.put(action, value);</span>
+<span class="nc bnc" id="L751" title="All 2 branches missed.">      if (repaint) {</span>
+<span class="nc" id="L752">        repaint();</span>
+      }
+    }
+<span class="nc" id="L755">  }</span>
+
+  @Override
+  public void setSelected(Boolean selected) {
+<span class="nc bnc" id="L759" title="All 2 branches missed.">    setBorder(selected ? focusBorder : viewBorder);</span>
+    // Remove the selection of graphics
+<span class="nc" id="L761">    graphicManager.setSelectedGraphic(null);</span>
+    // Throws to the tool listener the current graphic selection.
+<span class="nc" id="L763">    graphicManager.fireGraphicsSelectionChanged(imageLayer);</span>
+
+<span class="nc bnc" id="L765" title="All 4 branches missed.">    if (selected &amp;&amp; series != null) {</span>
+<span class="nc" id="L766">      AuditLog.LOGGER.info(&quot;select:series nb:{}&quot;, series.getSeriesNumber());</span>
+    }
+<span class="nc" id="L768">  }</span>
+
+  @Override
+  public Font getLayerFont() {
+<span class="nc" id="L772">    Font font = FontItem.DEFAULT_SEMIBOLD.getFont();</span>
+<span class="nc" id="L773">    return getLayerFont(getFontMetrics(font), getWidth());</span>
+  }
+
+  public static Font getLayerFont(FontMetrics fontMetrics, int width) {
+<span class="nc" id="L777">    int minSize = fontMetrics.stringWidth(&quot;Cannot read this media!&quot;); // NON-NLS</span>
+<span class="nc bnc" id="L778" title="All 2 branches missed.">    if (minSize * 6 &gt; width) {</span>
+<span class="nc" id="L779">      double ratio = (minSize * 6.0 - width) / minSize;</span>
+<span class="nc bnc" id="L780" title="All 2 branches missed.">      if (ratio &lt; 1) {</span>
+<span class="nc" id="L781">        return FontItem.SMALL_SEMIBOLD.getFont();</span>
+<span class="nc bnc" id="L782" title="All 2 branches missed.">      } else if (ratio &lt; 2) {</span>
+<span class="nc" id="L783">        return FontItem.MINI_SEMIBOLD.getFont();</span>
+      } else {
+<span class="nc" id="L785">        return FontItem.MICRO_SEMIBOLD.getFont();</span>
+      }
+    }
+<span class="nc" id="L788">    return fontMetrics.getFont();</span>
+  }
+
+  /** paint routine */
+  @Override
+  public void paintComponent(Graphics g) {
+<span class="nc bnc" id="L794" title="All 2 branches missed.">    if (g instanceof Graphics2D graphics2D) {</span>
+<span class="nc" id="L795">      draw(graphics2D);</span>
+    }
+<span class="nc" id="L797">  }</span>
+
+  protected void draw(Graphics2D g2d) {
+<span class="nc" id="L800">    Stroke oldStroke = g2d.getStroke();</span>
+<span class="nc" id="L801">    Paint oldColor = g2d.getPaint();</span>
+
+    // Paint the visible area
+    // Set font size for computing shared text areas that need to be repainted in different zoom
+    // magnitudes.
+<span class="nc" id="L806">    Font defaultFont = getFont();</span>
+<span class="nc" id="L807">    g2d.setFont(defaultFont);</span>
+
+<span class="nc" id="L809">    Point2D p = getClipViewCoordinatesOffset();</span>
+<span class="nc" id="L810">    g2d.translate(p.getX(), p.getY());</span>
+<span class="nc" id="L811">    imageLayer.drawImage(g2d);</span>
+<span class="nc" id="L812">    drawLayers(g2d, affineTransform, inverseTransform);</span>
+<span class="nc" id="L813">    g2d.translate(-p.getX(), -p.getY());</span>
+
+<span class="nc" id="L815">    drawPointer(g2d, pointerType);</span>
+<span class="nc" id="L816">    drawAffineInvariant(g2d);</span>
+<span class="nc bnc" id="L817" title="All 2 branches missed.">    if (infoLayer != null) {</span>
+<span class="nc" id="L818">      g2d.setFont(getLayerFont());</span>
+<span class="nc" id="L819">      infoLayer.paint(g2d);</span>
+    }
+<span class="nc" id="L821">    drawOnTop(g2d);</span>
+
+<span class="nc" id="L823">    g2d.setFont(defaultFont);</span>
+<span class="nc" id="L824">    g2d.setPaint(oldColor);</span>
+<span class="nc" id="L825">    g2d.setStroke(oldStroke);</span>
+<span class="nc" id="L826">  }</span>
+
+<span class="nc" id="L828">  private void drawAffineInvariant(Graphics2D g2d) {}</span>
+
+<span class="nc" id="L830">  protected void drawOnTop(Graphics2D g2d) {}</span>
+
+  public boolean requiredTextAntialiasing() {
+<span class="nc" id="L833">    Optional&lt;SliderCineListener&gt; cineAction = eventManager.getAction(ActionW.SCROLL_SERIES);</span>
+    // Prevent to slow down cine
+<span class="nc bnc" id="L835" title="All 2 branches missed.">    return cineAction.isEmpty()</span>
+<span class="nc bnc" id="L836" title="All 2 branches missed.">        || !cineAction.get().isActionEnabled()</span>
+<span class="nc bnc" id="L837" title="All 2 branches missed.">        || !cineAction.get().isCining();</span>
+  }
+
+  @Override
+  public void drawLayers(
+      Graphics2D g2d, AffineTransform transform, AffineTransform inverseTransform) {
+<span class="nc bnc" id="L843" title="All 2 branches missed.">    if (LangUtil.getNULLtoTrue((Boolean) actionsInView.get(ActionW.DRAWINGS.cmd()))) {</span>
+<span class="nc" id="L844">      Object[] oldRenderingHints =</span>
+<span class="nc" id="L845">          GuiUtils.setRenderingHints(g2d, true, false, requiredTextAntialiasing());</span>
+<span class="nc" id="L846">      graphicManager.draw(g2d, transform, inverseTransform, null);</span>
+<span class="nc" id="L847">      GuiUtils.resetRenderingHints(g2d, oldRenderingHints);</span>
+    }
+<span class="nc" id="L849">  }</span>
+
+  @Override
+  public void zoom(Double viewScale) {
+<span class="nc" id="L853">    double ratio = getZoomRatioFromType(viewScale);</span>
+<span class="nc" id="L854">    actionsInView.put(ActionW.ZOOM.cmd(), ratio);</span>
+<span class="nc" id="L855">    super.zoom(Math.abs(ratio));</span>
+<span class="nc bnc" id="L856" title="All 2 branches missed.">    if (MathUtil.isEqualToZero(viewScale)) {</span>
+      /*
+       * If the view has not been repainted once (the width and the height of the view is 0), it will be done
+       * later and the componentResized event will call again the zoom.
+       */
+<span class="nc" id="L861">      center();</span>
+    }
+<span class="nc" id="L863">    updateAffineTransform();</span>
+<span class="nc bnc" id="L864" title="All 2 branches missed.">    if (panner != null) {</span>
+<span class="nc" id="L865">      panner.updateImageSize();</span>
+    }
+<span class="nc" id="L867">  }</span>
+
+  protected void updateAffineTransform() {
+<span class="nc" id="L870">    ImageOpNode node = getDisplayOpManager().getNode(AffineTransformOp.OP_NAME);</span>
+<span class="nc" id="L871">    super.updateAffineTransform(this, node, imageLayer, 0.0);</span>
+<span class="nc" id="L872">  }</span>
+
+  @Override
+  public void setDrawingsVisibility(Boolean visible) {
+<span class="nc bnc" id="L876" title="All 2 branches missed.">    if (!Objects.equals(actionsInView.get(ActionW.DRAWINGS.cmd()), visible)) {</span>
+<span class="nc" id="L877">      actionsInView.put(ActionW.DRAWINGS.cmd(), visible);</span>
+<span class="nc" id="L878">      repaint();</span>
+    }
+<span class="nc" id="L880">  }</span>
+
+  @Override
+  public Object getLensActionValue(String action) {
+<span class="nc bnc" id="L884" title="All 2 branches missed.">    if (lens == null) {</span>
+<span class="nc" id="L885">      return null;</span>
+    }
+<span class="nc" id="L887">    return lens.getActionValue(action);</span>
+  }
+
+  @Override
+  public void changeZoomInterpolation(Interpolation interpolation) {
+<span class="nc" id="L892">    Interpolation val =</span>
+        (Interpolation)
+<span class="nc" id="L894">            getDisplayOpManager()</span>
+<span class="nc" id="L895">                .getParamValue(AffineTransformOp.OP_NAME, AffineTransformOp.P_INTERPOLATION);</span>
+<span class="nc bnc" id="L896" title="All 2 branches missed.">    boolean update = !Objects.equals(val, interpolation);</span>
+<span class="nc bnc" id="L897" title="All 2 branches missed.">    if (update) {</span>
+<span class="nc" id="L898">      getDisplayOpManager()</span>
+<span class="nc" id="L899">          .setParamValue(</span>
+              AffineTransformOp.OP_NAME, AffineTransformOp.P_INTERPOLATION, interpolation);
+<span class="nc bnc" id="L901" title="All 2 branches missed.">      if (lens != null) {</span>
+<span class="nc" id="L902">        lens.getDisplayOpManager()</span>
+<span class="nc" id="L903">            .setParamValue(</span>
+                AffineTransformOp.OP_NAME, AffineTransformOp.P_INTERPOLATION, interpolation);
+<span class="nc" id="L905">        lens.updateZoom();</span>
+      }
+<span class="nc" id="L907">      imageLayer.updateDisplayOperations();</span>
+    }
+<span class="nc" id="L909">  }</span>
+
+  @Override
+  public OpManager getDisplayOpManager() {
+<span class="nc" id="L913">    return imageLayer.getDisplayOpManager();</span>
+  }
+
+  public void propertyChange(SynchCineEvent synch) {
+<span class="nc" id="L917">    E imgElement = getImage();</span>
+<span class="nc" id="L918">    graphicManager.deleteByLayerType(LayerType.CROSSLINES);</span>
+
+<span class="nc bnc" id="L920" title="All 2 branches missed.">    if (synch.getView() == this) {</span>
+<span class="nc bnc" id="L921" title="All 2 branches missed.">      if (tileOffset != 0) {</span>
+        // Index could have changed when loading series.
+<span class="nc" id="L923">        imgElement =</span>
+<span class="nc" id="L924">            series.getMedia(</span>
+<span class="nc" id="L925">                synch.getSeriesIndex() + tileOffset,</span>
+<span class="nc" id="L926">                (Filter&lt;E&gt;) actionsInView.get(ActionW.FILTERED_SERIES.cmd()),</span>
+<span class="nc" id="L927">                getCurrentSortComparator());</span>
+<span class="nc bnc" id="L928" title="All 2 branches missed.">      } else if (synch.getMedia() instanceof ImageElement) {</span>
+<span class="nc" id="L929">        imgElement = (E) synch.getMedia();</span>
+      }
+<span class="nc bnc" id="L931" title="All 2 branches missed.">    } else if (synch.getLocation() != null) {</span>
+<span class="nc" id="L932">      Boolean cutlines = (Boolean) actionsInView.get(ActionW.SYNCH_CROSSLINE.cmd());</span>
+<span class="nc bnc" id="L933" title="All 4 branches missed.">      if (cutlines != null &amp;&amp; cutlines) {</span>
+<span class="nc bnc" id="L934" title="All 2 branches missed.">        if (LangUtil.getNULLtoTrue((Boolean) actionsInView.get(LayerType.CROSSLINES.name()))) {</span>
+          // Compute cutlines from the location of selected image
+<span class="nc" id="L936">          computeCrosslines(synch.getLocation().doubleValue());</span>
+        }
+      } else {
+<span class="nc" id="L939">        double location = synch.getLocation().doubleValue();</span>
+<span class="nc" id="L940">        imgElement =</span>
+<span class="nc" id="L941">            series.getNearestImage(</span>
+                location,
+                tileOffset,
+<span class="nc" id="L944">                (Filter&lt;E&gt;) actionsInView.get(ActionW.FILTERED_SERIES.cmd()),</span>
+<span class="nc" id="L945">                getCurrentSortComparator());</span>
+
+<span class="nc" id="L947">        AuditLog.LOGGER.info(&quot;synch:series nb:{}&quot;, series.getSeriesNumber());</span>
+      }
+<span class="nc" id="L949">    } else {</span>
+      // When no 3D information on the slice position
+<span class="nc" id="L951">      imgElement =</span>
+<span class="nc" id="L952">          series.getMedia(</span>
+<span class="nc" id="L953">              synch.getSeriesIndex() + tileOffset,</span>
+<span class="nc" id="L954">              (Filter&lt;E&gt;) actionsInView.get(ActionW.FILTERED_SERIES.cmd()),</span>
+<span class="nc" id="L955">              getCurrentSortComparator());</span>
+
+<span class="nc" id="L957">      AuditLog.LOGGER.info(&quot;synch:series nb:{}&quot;, series.getSeriesNumber());</span>
+    }
+
+<span class="nc" id="L960">    Double zoomFactor = (Double) actionsInView.get(ActionW.ZOOM.cmd());</span>
+    // Avoid resetting zoom when the mode is not best fit
+<span class="nc bnc" id="L962" title="All 4 branches missed.">    if (zoomFactor != null &amp;&amp; zoomFactor &gt;= 0.0) {</span>
+<span class="nc" id="L963">      Object zoomType = actionsInView.get(ViewCanvas.ZOOM_TYPE_CMD);</span>
+<span class="nc" id="L964">      actionsInView.put(ViewCanvas.ZOOM_TYPE_CMD, ZoomType.CURRENT);</span>
+<span class="nc" id="L965">      setImage(imgElement);</span>
+<span class="nc" id="L966">      actionsInView.put(ViewCanvas.ZOOM_TYPE_CMD, zoomType);</span>
+<span class="nc" id="L967">    } else {</span>
+<span class="nc" id="L968">      setImage(imgElement);</span>
+    }
+<span class="nc" id="L970">  }</span>
+
+  @Override
+  public void propertyChange(PropertyChangeEvent evt) {
+<span class="nc bnc" id="L974" title="All 2 branches missed.">    if (series == null) {</span>
+<span class="nc" id="L975">      return;</span>
+    }
+<span class="nc" id="L977">    PlanarImage dispImage = imageLayer.getDisplayImage();</span>
+<span class="nc" id="L978">    OpManager manager = imageLayer.getDisplayOpManager();</span>
+<span class="nc" id="L979">    final String command = evt.getPropertyName();</span>
+<span class="nc bnc" id="L980" title="All 2 branches missed.">    if (command.equals(ActionW.SYNCH.cmd())) {</span>
+<span class="nc" id="L981">      SynchEvent synch = (SynchEvent) evt.getNewValue();</span>
+<span class="nc bnc" id="L982" title="All 2 branches missed.">      if (synch instanceof SynchCineEvent cineEvent) {</span>
+<span class="nc" id="L983">        propertyChange(cineEvent);</span>
+      } else {
+<span class="nc" id="L985">        propertyChange(synch);</span>
+      }
+<span class="nc bnc" id="L987" title="All 2 branches missed.">    } else if (command.equals(ActionW.IMAGE_PIX_PADDING.cmd())) {</span>
+<span class="nc bnc" id="L988" title="All 2 branches missed.">      if (manager.setParamValue(WindowOp.OP_NAME, command, evt.getNewValue())) {</span>
+<span class="nc" id="L989">        imageLayer.updateDisplayOperations();</span>
+      }
+<span class="nc bnc" id="L991" title="All 2 branches missed.">    } else if (command.equals(ActionW.PROGRESSION.cmd())) {</span>
+<span class="nc" id="L992">      actionsInView.put(command, evt.getNewValue());</span>
+<span class="nc" id="L993">      imageLayer.updateDisplayOperations();</span>
+    }
+
+<span class="nc bnc" id="L996" title="All 4 branches missed.">    if (Objects.nonNull(lens) &amp;&amp; !Objects.equals(dispImage, imageLayer.getDisplayImage())) {</span>
+      /*
+       * Transmit to the lens the command in case the source image has been freeze (for updating rotation and flip
+       * =&gt; will keep consistent display)
+       */
+<span class="nc" id="L1001">      lens.setCommandFromParentView(command, evt.getNewValue());</span>
+<span class="nc" id="L1002">      lens.updateZoom();</span>
+    }
+<span class="nc" id="L1004">  }</span>
+
+  private void propertyChange(final SynchEvent synch) {
+<span class="nc" id="L1007">    SynchData synchData = (SynchData) actionsInView.get(ActionW.SYNCH_LINK.cmd());</span>
+<span class="nc bnc" id="L1008" title="All 4 branches missed.">    if (synchData != null &amp;&amp; Mode.NONE.equals(synchData.getMode())) {</span>
+<span class="nc" id="L1009">      return;</span>
+    }
+
+<span class="nc" id="L1012">    OpManager manager = imageLayer.getDisplayOpManager();</span>
+
+<span class="nc bnc" id="L1014" title="All 2 branches missed.">    for (Entry&lt;String, Object&gt; entry : synch.getEvents().entrySet()) {</span>
+<span class="nc" id="L1015">      String command = entry.getKey();</span>
+<span class="nc bnc" id="L1016" title="All 4 branches missed.">      if (synchData != null &amp;&amp; !synchData.isActionEnable(command)) {</span>
+<span class="nc" id="L1017">        continue;</span>
+      }
+<span class="nc bnc" id="L1019" title="All 4 branches missed.">      if (command.equals(ActionW.WINDOW.cmd()) || command.equals(ActionW.LEVEL.cmd())) {</span>
+<span class="nc bnc" id="L1020" title="All 2 branches missed.">        if (manager.setParamValue(</span>
+<span class="nc" id="L1021">            WindowOp.OP_NAME, command, ((Number) entry.getValue()).doubleValue())) {</span>
+<span class="nc" id="L1022">          imageLayer.updateDisplayOperations();</span>
+        }
+<span class="nc bnc" id="L1024" title="All 2 branches missed.">      } else if (command.equals(ActionW.ROTATION.cmd())) {</span>
+<span class="nc" id="L1025">        Object old = actionsInView.put(ActionW.ROTATION.cmd(), entry.getValue());</span>
+<span class="nc bnc" id="L1026" title="All 2 branches missed.">        if (!Objects.equals(old, entry.getValue())) {</span>
+<span class="nc" id="L1027">          updateAffineTransform();</span>
+        }
+<span class="nc bnc" id="L1029" title="All 2 branches missed.">      } else if (command.equals(ActionW.RESET.cmd())) {</span>
+<span class="nc" id="L1030">        reset();</span>
+<span class="nc bnc" id="L1031" title="All 2 branches missed.">      } else if (command.equals(ActionW.ZOOM.cmd())) {</span>
+<span class="nc" id="L1032">        double val = (Double) entry.getValue();</span>
+        // Special Cases: -200.0 =&gt; best fit, -100.0 =&gt; real world size
+<span class="nc bnc" id="L1034" title="All 4 branches missed.">        if (MathUtil.isDifferent(val, -200.0) &amp;&amp; MathUtil.isDifferent(val, -100.0)) {</span>
+<span class="nc" id="L1035">          zoom(val);</span>
+        } else {
+<span class="nc" id="L1037">          Object zoomType = actionsInView.get(ViewCanvas.ZOOM_TYPE_CMD);</span>
+<span class="nc" id="L1038">          actionsInView.put(</span>
+              ViewCanvas.ZOOM_TYPE_CMD,
+<span class="nc bnc" id="L1040" title="All 2 branches missed.">              MathUtil.isEqual(val, -100.0) ? ZoomType.REAL : ZoomType.BEST_FIT);</span>
+<span class="nc" id="L1041">          zoom(0.0);</span>
+<span class="nc" id="L1042">          actionsInView.put(ViewCanvas.ZOOM_TYPE_CMD, zoomType);</span>
+        }
+<span class="nc bnc" id="L1044" title="All 2 branches missed.">      } else if (command.equals(ActionW.LENS_ZOOM.cmd())) {</span>
+<span class="nc bnc" id="L1045" title="All 2 branches missed.">        if (lens != null) {</span>
+<span class="nc" id="L1046">          lens.setActionInView(ActionW.ZOOM.cmd(), entry.getValue());</span>
+<span class="nc" id="L1047">          lens.updateZoom();</span>
+        }
+<span class="nc bnc" id="L1049" title="All 2 branches missed.">      } else if (command.equals(ActionW.LENS.cmd())) {</span>
+<span class="nc" id="L1050">        Boolean showLens = (Boolean) entry.getValue();</span>
+<span class="nc" id="L1051">        actionsInView.put(command, showLens);</span>
+<span class="nc bnc" id="L1052" title="All 2 branches missed.">        if (showLens) {</span>
+<span class="nc bnc" id="L1053" title="All 2 branches missed.">          if (lens == null) {</span>
+<span class="nc" id="L1054">            lens = new ZoomWin&lt;&gt;(this);</span>
+          }
+          // resize if to big
+<span class="nc" id="L1057">          int maxWidth = getWidth() / 3;</span>
+<span class="nc" id="L1058">          int maxHeight = getHeight() / 3;</span>
+<span class="nc" id="L1059">          lens.setSize(Math.min(lens.getWidth(), maxWidth), Math.min(lens.getHeight(), maxHeight));</span>
+<span class="nc" id="L1060">          this.add(lens);</span>
+<span class="nc" id="L1061">          lens.showLens(true);</span>
+
+<span class="nc" id="L1063">        } else {</span>
+<span class="nc" id="L1064">          closeLens();</span>
+        }
+
+<span class="nc bnc" id="L1067" title="All 2 branches missed.">      } else if (command.equals(ActionW.PAN.cmd())) {</span>
+<span class="nc" id="L1068">        Object point = entry.getValue();</span>
+        // ImageViewerPlugin&lt;E&gt; view = eventManager.getSelectedView2dContainer();
+        // if (view != null) {
+        // if(!view.getSynchView().isActionEnable(ActionW.ROTATION)){
+        //
+        // }
+        // }
+<span class="nc bnc" id="L1075" title="All 2 branches missed.">        if (point instanceof PanPoint) {</span>
+<span class="nc" id="L1076">          moveOrigin((PanPoint) entry.getValue());</span>
+        }
+
+<span class="nc bnc" id="L1079" title="All 2 branches missed.">      } else if (command.equals(ActionW.FLIP.cmd())) {</span>
+        // Horizontal flip is applied after rotation (To be compliant with DICOM PR)
+<span class="nc" id="L1081">        Object old = actionsInView.put(ActionW.FLIP.cmd(), entry.getValue());</span>
+<span class="nc bnc" id="L1082" title="All 2 branches missed.">        if (!Objects.equals(old, entry.getValue())) {</span>
+<span class="nc" id="L1083">          updateAffineTransform();</span>
+        }
+<span class="nc bnc" id="L1085" title="All 2 branches missed.">      } else if (command.equals(ActionW.LUT.cmd())) {</span>
+<span class="nc bnc" id="L1086" title="All 2 branches missed.">        if (manager.setParamValue(PseudoColorOp.OP_NAME, PseudoColorOp.P_LUT, entry.getValue())) {</span>
+<span class="nc" id="L1087">          imageLayer.updateDisplayOperations();</span>
+        }
+<span class="nc bnc" id="L1089" title="All 2 branches missed.">      } else if (command.equals(ActionW.INVERT_LUT.cmd())) {</span>
+<span class="nc bnc" id="L1090" title="All 2 branches missed.">        if (manager.setParamValue(WindowOp.OP_NAME, command, entry.getValue())) {</span>
+<span class="nc" id="L1091">          manager.setParamValue(</span>
+<span class="nc" id="L1092">              PseudoColorOp.OP_NAME, PseudoColorOp.P_LUT_INVERSE, entry.getValue());</span>
+          // Update VOI LUT if pixel padding
+<span class="nc" id="L1094">          imageLayer.updateDisplayOperations();</span>
+        }
+<span class="nc bnc" id="L1096" title="All 2 branches missed.">      } else if (command.equals(ActionW.FILTER.cmd())) {</span>
+<span class="nc bnc" id="L1097" title="All 2 branches missed.">        if (manager.setParamValue(FilterOp.OP_NAME, FilterOp.P_KERNEL_DATA, entry.getValue())) {</span>
+<span class="nc" id="L1098">          imageLayer.updateDisplayOperations();</span>
+        }
+<span class="nc bnc" id="L1100" title="All 2 branches missed.">      } else if (command.equals(ActionW.SPATIAL_UNIT.cmd())) {</span>
+<span class="nc" id="L1101">        actionsInView.put(command, entry.getValue());</span>
+        // TODO update only measure and limit when selected view share graphics
+<span class="nc" id="L1103">        graphicManager.updateLabels(Boolean.TRUE, this);</span>
+      }
+<span class="nc" id="L1105">    }</span>
+<span class="nc" id="L1106">  }</span>
+
+<span class="nc" id="L1108">  protected void computeCrosslines(double location) {}</span>
+
+  @Override
+  public void disposeView() {
+<span class="nc" id="L1112">    disableMouseAndKeyListener();</span>
+<span class="nc" id="L1113">    removeFocusListener(this);</span>
+<span class="nc" id="L1114">    ToolTipManager.sharedInstance().unregisterComponent(this);</span>
+<span class="nc" id="L1115">    imageLayer.removeLayerChangeListener(this);</span>
+<span class="nc" id="L1116">    Optional.ofNullable(lens).ifPresent(l -&gt; l.showLens(false));</span>
+<span class="nc bnc" id="L1117" title="All 2 branches missed.">    if (series != null) {</span>
+<span class="nc" id="L1118">      setSeries(null);</span>
+    }
+<span class="nc" id="L1120">    super.disposeView();</span>
+<span class="nc" id="L1121">  }</span>
+
+  @Override
+  public synchronized void disableMouseAndKeyListener() {
+<span class="nc" id="L1125">    ViewCanvas.super.disableMouseAndKeyListener(this);</span>
+<span class="nc" id="L1126">    Optional.ofNullable(lens).ifPresent(ZoomWin::disableMouseAndKeyListener);</span>
+<span class="nc" id="L1127">  }</span>
+
+  @Override
+  public synchronized void iniDefaultMouseListener() {
+    // focus listener is always on
+<span class="nc" id="L1132">    this.addMouseListener(focusHandler);</span>
+<span class="nc" id="L1133">    this.addMouseMotionListener(focusHandler);</span>
+<span class="nc" id="L1134">  }</span>
+
+  @Override
+  public synchronized void iniDefaultKeyListener() {
+<span class="nc" id="L1138">    this.addKeyListener(this);</span>
+<span class="nc" id="L1139">  }</span>
+
+  @Override
+<span class="nc" id="L1142">  public void keyTyped(KeyEvent e) {}</span>
+
+  @Override
+<span class="nc" id="L1145">  public void keyReleased(KeyEvent e) {}</span>
+
+  @Override
+  public void keyPressed(KeyEvent e) {
+<span class="nc" id="L1149">    defaultKeyPressed(eventManager, e);</span>
+<span class="nc" id="L1150">  }</span>
+
+  @Override
+  public int getPointerType() {
+<span class="nc" id="L1154">    return pointerType;</span>
+  }
+
+  @Override
+  public void setPointerType(int pointerType) {
+<span class="nc" id="L1159">    this.pointerType = pointerType;</span>
+<span class="nc" id="L1160">  }</span>
+
+  @Override
+  public void addPointerType(int i) {
+<span class="nc" id="L1164">    this.pointerType |= i;</span>
+<span class="nc" id="L1165">  }</span>
+
+  @Override
+  public void resetPointerType(int i) {
+<span class="nc" id="L1169">    this.pointerType &amp;= ~i;</span>
+<span class="nc" id="L1170">  }</span>
+
+  @Override
+  public Point2D getHighlightedPosition() {
+<span class="nc" id="L1174">    return highlightedPosition;</span>
+  }
+
+  @Override
+<span class="nc" id="L1178">  public void focusGained(FocusEvent e) {}</span>
+
+  @Override
+<span class="nc" id="L1181">  public void focusLost(FocusEvent e) {}</span>
+
+  @Override
+  public List&lt;Action&gt; getExportActions() {
+<span class="nc" id="L1185">    List&lt;Action&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L1186">    DefaultAction exportAction =</span>
+        new DefaultAction(
+<span class="nc" id="L1188">            ActionW.EXPORT_VIEW.getTitle(),</span>
+<span class="nc" id="L1189">            ActionW.EXPORT_VIEW.getIcon(),</span>
+<span class="nc" id="L1190">            _ -&gt; ScreenshotDialog.showDialog(this));</span>
+<span class="nc" id="L1191">    list.add(exportAction);</span>
+<span class="nc" id="L1192">    return list;</span>
+  }
+
+  public static AffineTransform getAffineTransform(MouseEvent mouseevent) {
+<span class="nc bnc" id="L1196" title="All 4 branches missed.">    if (mouseevent != null &amp;&amp; mouseevent.getSource() instanceof Image2DViewer&lt;?&gt; viewer) {</span>
+<span class="nc" id="L1197">      return viewer.getAffineTransform();</span>
+    }
+<span class="nc" id="L1199">    return null;</span>
+  }
+
+  @Override
+  public void resetZoom() {
+<span class="nc" id="L1204">    ZoomType type = (ZoomType) actionsInView.get(ZOOM_TYPE_CMD);</span>
+<span class="nc bnc" id="L1205" title="All 2 branches missed.">    if (!ZoomType.CURRENT.equals(type)) {</span>
+<span class="nc" id="L1206">      zoom(0.0);</span>
+    }
+<span class="nc" id="L1208">  }</span>
+
+  @Override
+  public void resetPan() {
+<span class="nc" id="L1212">    center();</span>
+<span class="nc" id="L1213">  }</span>
+
+  @Override
+  public void reset() {
+<span class="nc" id="L1217">    imageLayer.setEnableDispOperations(false);</span>
+<span class="nc" id="L1218">    ImageViewerPlugin&lt;E&gt; pane = eventManager.getSelectedView2dContainer();</span>
+<span class="nc bnc" id="L1219" title="All 2 branches missed.">    if (pane != null) {</span>
+<span class="nc" id="L1220">      pane.resetMaximizedSelectedImagePane(this);</span>
+    }
+<span class="nc" id="L1222">    Object oldUnit = actionsInView.get(ActionW.SPATIAL_UNIT.cmd());</span>
+<span class="nc" id="L1223">    initActionWState();</span>
+<span class="nc" id="L1224">    imageLayer.fireOpEvent(</span>
+<span class="nc" id="L1225">        new ImageOpEvent(ImageOpEvent.OpEvent.RESET_DISPLAY, series, getImage(), null));</span>
+<span class="nc" id="L1226">    resetZoom();</span>
+    // Synch to zoom action
+<span class="nc bnc" id="L1228" title="All 2 branches missed.">    if (ZoomType.CURRENT.equals(actionsInView.get(ZOOM_TYPE_CMD))) {</span>
+<span class="nc" id="L1229">      zoom(0.0);</span>
+    }
+<span class="nc" id="L1231">    resetPan();</span>
+<span class="nc" id="L1232">    imageLayer.setEnableDispOperations(true);</span>
+<span class="nc" id="L1233">    eventManager.updateComponentsListener(this);</span>
+    // When pixel unit is reset
+<span class="nc bnc" id="L1235" title="All 2 branches missed.">    if (!Objects.equals(oldUnit, actionsInView.get(ActionW.SPATIAL_UNIT.cmd()))) {</span>
+<span class="nc" id="L1236">      graphicManager.updateLabels(Boolean.TRUE, this);</span>
+    }
+<span class="nc" id="L1238">  }</span>
+
+  @Override
+  public List&lt;ViewButton&gt; getViewButtons() {
+<span class="nc" id="L1242">    return viewButtons;</span>
+  }
+
+  protected void copyGraphicsFromClipboard() {
+<span class="nc" id="L1246">    List&lt;Graphic&gt; graphs = DefaultView2d.GRAPHIC_CLIPBOARD.getGraphics();</span>
+<span class="nc bnc" id="L1247" title="All 2 branches missed.">    if (graphs != null) {</span>
+<span class="nc" id="L1248">      Rectangle2D area = getViewModel().getModelArea();</span>
+<span class="nc bnc" id="L1249" title="All 4 branches missed.">      if (graphs.stream().anyMatch(g -&gt; !g.getBounds(null).intersects(area))) {</span>
+<span class="nc" id="L1250">        int option =</span>
+<span class="nc" id="L1251">            JOptionPane.showConfirmDialog(</span>
+                this,
+                &quot;At least one graphic is outside the image.\n Do you want to continue?&quot;); // NON-NLS
+<span class="nc bnc" id="L1254" title="All 2 branches missed.">        if (option != JOptionPane.YES_OPTION) {</span>
+<span class="nc" id="L1255">          return;</span>
+        }
+      }
+
+<span class="nc" id="L1259">      graphs.forEach(g -&gt; AbstractGraphicModel.addGraphicToModel(this, g.copy()));</span>
+
+      // Repaint all because labels are not drawn
+<span class="nc" id="L1262">      repaint();</span>
+    }
+<span class="nc" id="L1264">  }</span>
+
+  public static Cursor getNewCursor(int type) {
+<span class="nc" id="L1267">    return new Cursor(type);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

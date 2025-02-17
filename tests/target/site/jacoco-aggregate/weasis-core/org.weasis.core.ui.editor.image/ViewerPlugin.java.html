@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ViewerPlugin.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image</a> &gt; <span class="el_source">ViewerPlugin.java</span></div><h1>ViewerPlugin.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image;
+
+import bibliothek.gui.DockStation;
+import bibliothek.gui.Dockable;
+import bibliothek.gui.dock.action.view.ActionViewConverter;
+import bibliothek.gui.dock.action.view.ViewTarget;
+import bibliothek.gui.dock.common.CControl;
+import bibliothek.gui.dock.common.CLocation;
+import bibliothek.gui.dock.common.CWorkingArea;
+import bibliothek.gui.dock.common.DefaultSingleCDockable;
+import bibliothek.gui.dock.common.action.CAction;
+import bibliothek.gui.dock.common.action.CButton;
+import bibliothek.gui.dock.common.action.core.CommonSimpleButtonAction;
+import bibliothek.gui.dock.common.action.predefined.CCloseAction;
+import bibliothek.gui.dock.common.event.CVetoFocusListener;
+import bibliothek.gui.dock.common.intern.AbstractCDockable;
+import bibliothek.gui.dock.common.intern.CDockable;
+import bibliothek.gui.dock.common.intern.CommonDockable;
+import bibliothek.gui.dock.common.intern.DefaultCommonDockable;
+import bibliothek.gui.dock.common.mode.ExtendedMode;
+import bibliothek.gui.dock.control.focus.DefaultFocusRequest;
+import com.formdev.flatlaf.extras.FlatSVGIcon;
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.util.List;
+import java.util.UUID;
+import javax.swing.Icon;
+import javax.swing.JPanel;
+import org.weasis.core.Messages;
+import org.weasis.core.api.explorer.ObservableEvent;
+import org.weasis.core.api.gui.util.GuiExecutor;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.media.data.MediaElement;
+import org.weasis.core.api.media.data.MediaSeriesGroup;
+import org.weasis.core.ui.docking.DockableTool;
+import org.weasis.core.ui.editor.SeriesViewer;
+import org.weasis.core.ui.editor.SeriesViewerUI;
+import org.weasis.core.ui.editor.ViewerPluginBuilder;
+import org.weasis.core.ui.util.Toolbar;
+
+public abstract class ViewerPlugin&lt;E extends MediaElement&gt; extends JPanel
+    implements SeriesViewer&lt;E&gt; {
+
+  private final String dockableUID;
+  private MediaSeriesGroup groupID;
+  private String pluginName;
+  private final Icon icon;
+  private final String tooltips;
+  private final DefaultSingleCDockable dockable;
+
+  protected ViewerPlugin(String pluginName) {
+<span class="nc" id="L61">    this(null, pluginName, null, null);</span>
+<span class="nc" id="L62">  }</span>
+
+<span class="nc" id="L64">  protected ViewerPlugin(String uid, String pluginName, Icon icon, String tooltips) {</span>
+<span class="nc" id="L65">    setLayout(new BorderLayout());</span>
+<span class="nc" id="L66">    setName(pluginName);</span>
+<span class="nc" id="L67">    this.pluginName = pluginName;</span>
+<span class="nc" id="L68">    this.icon = icon;</span>
+<span class="nc" id="L69">    this.tooltips = tooltips;</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">    this.dockableUID = uid == null ? UUID.randomUUID().toString() : uid;</span>
+<span class="nc bnc" id="L71" title="All 2 branches missed.">    Icon titleIcon = icon instanceof FlatSVGIcon flatSVGIcon ? flatSVGIcon.derive(20, 20) : icon;</span>
+<span class="nc" id="L72">    this.dockable = new DefaultSingleCDockable(dockableUID, titleIcon, pluginName);</span>
+<span class="nc" id="L73">    this.dockable.setTitleText(pluginName);</span>
+<span class="nc" id="L74">    this.dockable.setTitleToolTip(tooltips);</span>
+<span class="nc" id="L75">    this.dockable.setTitleIcon(titleIcon);</span>
+<span class="nc" id="L76">    this.dockable.setFocusComponent(this);</span>
+<span class="nc" id="L77">    this.dockable.setStackable(true);</span>
+<span class="nc" id="L78">    this.dockable.setSingleTabShown(true);</span>
+<span class="nc" id="L79">    this.dockable.putAction(</span>
+        CDockable.ACTION_KEY_CLOSE,
+<span class="nc" id="L81">        new CCloseAction(GuiUtils.getUICore().getDockingControl()) {</span>
+          @Override
+          public void close(CDockable dockable) {
+<span class="nc" id="L84">            CControl control = GuiUtils.getUICore().getDockingControl();</span>
+<span class="nc" id="L85">            CVetoFocusListener vetoFocus = GuiUtils.getUICore().getDockingVetoFocus();</span>
+<span class="nc" id="L86">            control.addVetoFocusListener(vetoFocus);</span>
+<span class="nc" id="L87">            super.close(dockable);</span>
+<span class="nc" id="L88">            control.removeVetoFocusListener(vetoFocus);</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">            if (dockable.getFocusComponent() instanceof SeriesViewer&lt;?&gt; seriesViewer) {</span>
+<span class="nc" id="L90">              List&lt;DockableTool&gt; oldTool = seriesViewer.getSeriesViewerUI().tools;</span>
+<span class="nc bnc" id="L91" title="All 2 branches missed.">              for (DockableTool p : oldTool) {</span>
+<span class="nc" id="L92">                p.closeDockable();</span>
+<span class="nc" id="L93">              }</span>
+<span class="nc" id="L94">              seriesViewer.close();</span>
+            }
+<span class="nc" id="L96">            Dockable prevDockable =</span>
+                control
+<span class="nc" id="L98">                    .getController()</span>
+<span class="nc" id="L99">                    .getFocusHistory()</span>
+<span class="nc" id="L100">                    .getNewestOn(dockable.getWorkingArea().getStation());</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">            if (prevDockable == null) {</span>
+<span class="nc" id="L102">              handleFocusAfterClosing();</span>
+            } else {
+<span class="nc bnc" id="L104" title="All 2 branches missed.">              if (prevDockable instanceof DefaultCommonDockable defaultCommonDockable</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">                  &amp;&amp; defaultCommonDockable.getDockable()</span>
+<span class="nc" id="L106">                      instanceof AbstractCDockable abstractCDockable) {</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">                if (abstractCDockable.getFocusComponent() instanceof SeriesViewer&lt;?&gt; plugin) {</span>
+<span class="nc" id="L108">                  SeriesViewerUI.updateTools(null, plugin, true);</span>
+                }
+<span class="nc" id="L110">                abstractCDockable.toFront();</span>
+              }
+            }
+<span class="nc" id="L113">          }</span>
+        });
+<span class="nc" id="L115">    this.dockable.setCloseable(true);</span>
+<span class="nc" id="L116">    this.dockable.setMinimizable(false);</span>
+<span class="nc" id="L117">    this.dockable.setExternalizable(false);</span>
+<span class="nc" id="L118">    this.dockable.addAction(new CloseOthersAction(dockable, false));</span>
+<span class="nc" id="L119">    this.dockable.addAction(new CloseOthersAction(dockable, true));</span>
+<span class="nc" id="L120">  }</span>
+
+  @Override
+  public MediaSeriesGroup getGroupID() {
+<span class="nc" id="L124">    return groupID;</span>
+  }
+
+  public void setGroupID(MediaSeriesGroup groupID) {
+<span class="nc" id="L128">    this.groupID = groupID;</span>
+<span class="nc" id="L129">  }</span>
+
+  @Override
+  public String getPluginName() {
+<span class="nc" id="L133">    return pluginName;</span>
+  }
+
+  public Icon getIcon() {
+<span class="nc" id="L137">    return icon;</span>
+  }
+
+  public String getTooltips() {
+<span class="nc" id="L141">    return tooltips;</span>
+  }
+
+  @Override
+  public String getDockableUID() {
+<span class="nc" id="L146">    return dockableUID;</span>
+  }
+
+  public void setPluginName(String pluginName) {
+<span class="nc" id="L150">    this.pluginName = pluginName;</span>
+<span class="nc" id="L151">    this.dockable.setTitleText(pluginName);</span>
+<span class="nc" id="L152">  }</span>
+
+  public void setSelectedAndGetFocus() {
+<span class="nc" id="L155">    GuiUtils.getUICore()</span>
+<span class="nc" id="L156">        .getDockingControl()</span>
+<span class="nc" id="L157">        .getController()</span>
+<span class="nc" id="L158">        .setFocusedDockable(new DefaultFocusRequest(dockable.intern(), this, false, true, false));</span>
+<span class="nc" id="L159">  }</span>
+
+  public void handleFocusAfterClosing() {
+<span class="nc" id="L162">    List&lt;ViewerPlugin&lt;?&gt;&gt; viewerPlugins = GuiUtils.getUICore().getViewerPlugins();</span>
+<span class="nc" id="L163">    int size = viewerPlugins.size();</span>
+<span class="nc bnc" id="L164" title="All 2 branches missed.">    if (size &gt; 0) {</span>
+<span class="nc" id="L165">      ViewerPlugin&lt;?&gt; lp = viewerPlugins.get(size - 1);</span>
+<span class="nc bnc" id="L166" title="All 2 branches missed.">      if (lp != null) {</span>
+<span class="nc" id="L167">        lp.dockable.toFront();</span>
+      }
+<span class="nc" id="L169">    } else {</span>
+<span class="nc" id="L170">      ViewerPluginBuilder.DefaultDataModel.firePropertyChange(</span>
+          new ObservableEvent(
+              ObservableEvent.BasicAction.NULL_SELECTION,
+<span class="nc" id="L173">              ViewerPlugin.this.getSeriesViewerUI(),</span>
+              null,
+              null));
+    }
+<span class="nc" id="L177">  }</span>
+
+  @Override
+  public void close() {
+<span class="nc" id="L181">    GuiExecutor.execute(</span>
+        () -&gt; {
+<span class="nc" id="L183">          GuiUtils.getUICore().getViewerPlugins().remove(ViewerPlugin.this);</span>
+<span class="nc" id="L184">          GuiUtils.getUICore().getDockingControl().removeDockable(dockable);</span>
+<span class="nc" id="L185">        });</span>
+<span class="nc" id="L186">  }</span>
+
+  public Component getComponent() {
+<span class="nc" id="L189">    return this;</span>
+  }
+
+  public final DefaultSingleCDockable getDockable() {
+<span class="nc" id="L193">    return dockable;</span>
+  }
+
+  public void showDockable() {
+<span class="nc" id="L197">    GuiExecutor.execute(</span>
+        () -&gt; {
+<span class="nc bnc" id="L199" title="All 2 branches missed.">          if (!dockable.isVisible()) {</span>
+<span class="nc" id="L200">            List&lt;ViewerPlugin&lt;?&gt;&gt; viewerPlugins = GuiUtils.getUICore().getViewerPlugins();</span>
+<span class="nc bnc" id="L201" title="All 2 branches missed.">            if (!viewerPlugins.contains(ViewerPlugin.this)) {</span>
+<span class="nc" id="L202">              viewerPlugins.add(ViewerPlugin.this);</span>
+            }
+<span class="nc" id="L204">            dockable.add(getComponent());</span>
+<span class="nc" id="L205">            dockable.setFocusComponent(ViewerPlugin.this);</span>
+<span class="nc" id="L206">            CWorkingArea mainArea = GuiUtils.getUICore().getMainArea();</span>
+<span class="nc" id="L207">            mainArea.add(getDockable());</span>
+<span class="nc" id="L208">            dockable.setDefaultLocation(</span>
+<span class="nc" id="L209">                ExtendedMode.NORMALIZED, CLocation.working(mainArea).stack());</span>
+<span class="nc" id="L210">            CControl control = GuiUtils.getUICore().getDockingControl();</span>
+<span class="nc" id="L211">            CVetoFocusListener vetoFocus = GuiUtils.getUICore().getDockingVetoFocus();</span>
+<span class="nc" id="L212">            control.addVetoFocusListener(vetoFocus);</span>
+<span class="nc" id="L213">            dockable.setVisible(true);</span>
+<span class="nc" id="L214">            control.removeVetoFocusListener(vetoFocus);</span>
+<span class="nc" id="L215">            setSelectedAndGetFocus();</span>
+          }
+<span class="nc" id="L217">        });</span>
+<span class="nc" id="L218">  }</span>
+
+  public ViewerToolBar getViewerToolBar() {
+<span class="nc" id="L221">    List&lt;Toolbar&gt; bars = getSeriesViewerUI().toolBars;</span>
+<span class="nc" id="L222">    synchronized (bars) {</span>
+<span class="nc bnc" id="L223" title="All 2 branches missed.">      for (Toolbar t : bars) {</span>
+<span class="nc bnc" id="L224" title="All 2 branches missed.">        if (t instanceof ViewerToolBar viewerToolBar) {</span>
+<span class="nc" id="L225">          return viewerToolBar;</span>
+        }
+<span class="nc" id="L227">      }</span>
+<span class="nc" id="L228">    }</span>
+<span class="nc" id="L229">    return null;</span>
+  }
+
+  private static class CloseOthersAction extends CButton {
+    private final CDockable dockable;
+    private final boolean closeAll;
+
+    public CloseOthersAction(CDockable dockable, boolean closeAll) {
+      // prevent standard initialization of the action by calling the protected constructor
+<span class="nc" id="L238">      super(null);</span>
+      // initialize with a modified action
+<span class="nc" id="L240">      init(new MenuOnlySimpleAction(this));</span>
+<span class="nc" id="L241">      this.dockable = dockable;</span>
+<span class="nc" id="L242">      this.closeAll = closeAll;</span>
+<span class="nc" id="L243">      setText(</span>
+<span class="nc bnc" id="L244" title="All 2 branches missed.">          closeAll</span>
+<span class="nc" id="L245">              ? Messages.getString(&quot;ViewerPlugin.close_all&quot;)</span>
+<span class="nc" id="L246">              : Messages.getString(&quot;ViewerPlugin.close_other&quot;));</span>
+<span class="nc" id="L247">    }</span>
+
+    @Override
+    protected void action() {
+<span class="nc" id="L251">      super.action();</span>
+<span class="nc bnc" id="L252" title="All 2 branches missed.">      if (dockable.getFocusComponent() instanceof SeriesViewer&lt;?&gt; plugin) {</span>
+<span class="nc bnc" id="L253" title="All 2 branches missed.">        SeriesViewerUI.updateTools(plugin, closeAll ? null : plugin, true);</span>
+      }
+      // We need to access the Core API to find out which other Dockables exist.
+<span class="nc" id="L256">      DockStation parent = dockable.intern().getDockParent();</span>
+
+      // Because closing a Dockable may remove the parent DockStation, we first collect all the
+      // Dockables we may later close
+<span class="nc" id="L260">      Dockable[] children = new Dockable[parent.getDockableCount()];</span>
+<span class="nc bnc" id="L261" title="All 2 branches missed.">      for (int i = 0; i &lt; children.length; i++) {</span>
+<span class="nc" id="L262">        children[i] = parent.getDockable(i);</span>
+      }
+<span class="nc bnc" id="L264" title="All 2 branches missed.">      for (Dockable child : children) {</span>
+        // we are not interested in things like entire stacks, or our own Dockable. So let's do
+        // some checks before closing a Dockable
+<span class="nc bnc" id="L267" title="All 2 branches missed.">        if (child instanceof CommonDockable commonDockable) {</span>
+<span class="nc" id="L268">          CDockable cChild = commonDockable.getDockable();</span>
+<span class="nc bnc" id="L269" title="All 6 branches missed.">          if (cChild.isCloseable() &amp;&amp; (closeAll || cChild != dockable)) {</span>
+<span class="nc bnc" id="L270" title="All 2 branches missed.">            if (cChild.getFocusComponent() instanceof SeriesViewer&lt;?&gt; seriesViewer) {</span>
+<span class="nc" id="L271">              seriesViewer.close();</span>
+<span class="nc bnc" id="L272" title="All 2 branches missed.">              if (cChild.getFocusComponent() instanceof ViewerPlugin&lt;?&gt; viewerPlugin) {</span>
+<span class="nc" id="L273">                viewerPlugin.handleFocusAfterClosing();</span>
+              }
+            } else {
+<span class="nc" id="L276">              cChild.setVisible(false);</span>
+            }
+          }
+        }
+      }
+<span class="nc" id="L281">    }</span>
+  }
+
+  private static class MenuOnlySimpleAction extends CommonSimpleButtonAction {
+    public MenuOnlySimpleAction(CAction action) {
+<span class="nc" id="L286">      super(action);</span>
+<span class="nc" id="L287">    }</span>
+
+    @Override
+    public &lt;V&gt; V createView(
+        ViewTarget&lt;V&gt; target, ActionViewConverter converter, Dockable dockable) {
+      // This method creates the view (e.g. a JMenuItem) for this DockAction. Since we do not want
+      // to show it up everywhere, we just ignore some places (targets).
+<span class="nc bnc" id="L294" title="All 2 branches missed.">      if (ViewTarget.TITLE == target) {</span>
+<span class="nc" id="L295">        return null;</span>
+      }
+<span class="nc" id="L297">      return super.createView(target, converter, dockable);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

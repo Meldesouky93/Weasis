@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>PixelInfoGraphic.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.graphic.imp</a> &gt; <span class="el_source">PixelInfoGraphic.java</span></div><h1>PixelInfoGraphic.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.graphic.imp;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlType;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import javax.swing.Icon;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.GeomUtil;
+import org.weasis.core.api.image.measure.MeasurementsAdapter;
+import org.weasis.core.api.image.util.MeasurableLayer;
+import org.weasis.core.api.image.util.Unit;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.api.util.ResourceUtil.ActionIcon;
+import org.weasis.core.ui.editor.image.PixelInfo;
+import org.weasis.core.ui.editor.image.ViewCanvas;
+import org.weasis.core.ui.model.graphic.GraphicLabel;
+import org.weasis.core.ui.model.utils.bean.AdvancedShape;
+import org.weasis.core.ui.model.utils.bean.AdvancedShape.ScaleInvariantShape;
+import org.weasis.core.ui.model.utils.bean.MeasureItem;
+import org.weasis.core.ui.model.utils.bean.Measurement;
+import org.weasis.core.ui.util.MouseEventDouble;
+
+@XmlType(name = &quot;pixelInfo&quot;)
+@XmlRootElement(name = &quot;pixelInfo&quot;)
+public class PixelInfoGraphic extends AnnotationGraphic {
+
+<span class="nc" id="L43">  public static final Icon ICON = ResourceUtil.getIcon(ActionIcon.DRAW_PIXEL_INFO);</span>
+
+<span class="nc" id="L45">  public static final Measurement ANCHOR_POINT_X =</span>
+<span class="nc" id="L46">      new Measurement(Messages.getString(&quot;PixelInfoGraphic.x&quot;), 1, true, true, false);</span>
+<span class="nc" id="L47">  public static final Measurement ANCHOR_POINT_Y =</span>
+<span class="nc" id="L48">      new Measurement(Messages.getString(&quot;PixelInfoGraphic.y&quot;), 2, true, true, false);</span>
+
+  private PixelInfo pixelInfo;
+
+  public PixelInfoGraphic() {
+<span class="nc" id="L53">    super();</span>
+<span class="nc" id="L54">  }</span>
+
+  public PixelInfoGraphic(PixelInfoGraphic graphic) {
+<span class="nc" id="L57">    super(graphic);</span>
+<span class="nc" id="L58">  }</span>
+
+  public PixelInfo getPixelInfo() {
+<span class="nc" id="L61">    return pixelInfo;</span>
+  }
+
+  public void setPixelInfo(PixelInfo pixelInfo) {
+<span class="nc" id="L65">    this.pixelInfo = pixelInfo;</span>
+<span class="nc" id="L66">  }</span>
+
+  @Override
+  public PixelInfoGraphic copy() {
+<span class="nc" id="L70">    return new PixelInfoGraphic(this);</span>
+  }
+
+  @Override
+  public Icon getIcon() {
+<span class="nc" id="L75">    return ICON;</span>
+  }
+
+  @Override
+  public String getUIName() {
+<span class="nc" id="L80">    return Messages.getString(&quot;Tools.pixelInfo&quot;);</span>
+  }
+
+  @Override
+  public int getKeyCode() {
+<span class="nc" id="L85">    return 0;</span>
+  }
+
+  @Override
+  public void buildShape(MouseEventDouble mouseEvent) {
+<span class="nc" id="L90">    updateTool();</span>
+<span class="nc" id="L91">    AdvancedShape newShape = null;</span>
+<span class="nc" id="L92">    ViewCanvas&lt;?&gt; view2d = getDefaultView2d(mouseEvent);</span>
+
+<span class="nc bnc" id="L94" title="All 2 branches missed.">    if (ptBox != null) {</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">      if (labels == null) {</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">        if (view2d != null) {</span>
+<span class="nc" id="L97">          setLabel(null, view2d, ptBox);</span>
+          // call buildShape
+<span class="nc" id="L99">          return;</span>
+        }
+<span class="nc bnc" id="L101" title="All 4 branches missed.">        if (labelHeight == 0 || labelWidth == 0) {</span>
+          // This graphic cannot be displayed, remove it.
+<span class="nc" id="L103">          fireRemoveAction();</span>
+<span class="nc" id="L104">          return;</span>
+        }
+      }
+<span class="nc bnc" id="L107" title="All 4 branches missed.">      if (view2d != null &amp;&amp; ptAnchor != null) {</span>
+<span class="nc" id="L108">        setLabel(labels, view2d, ptBox);</span>
+        // call buildShape
+<span class="nc" id="L110">        return;</span>
+      }
+<span class="nc" id="L112">      newShape = new AdvancedShape(this, 2);</span>
+<span class="nc" id="L113">      Line2D line = null;</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">      if (lineABvalid) {</span>
+<span class="nc" id="L115">        line = new Line2D.Double(ptBox, ptAnchor);</span>
+      }
+<span class="nc" id="L117">      labelBounds = new Rectangle.Double();</span>
+<span class="nc" id="L118">      labelBounds.setFrameFromCenter(</span>
+<span class="nc" id="L119">          ptBox.getX(),</span>
+<span class="nc" id="L120">          ptBox.getY(),</span>
+<span class="nc" id="L121">          ptBox.getX() + labelWidth / 2.0 + GraphicLabel.GROWING_BOUND,</span>
+<span class="nc" id="L122">          ptBox.getY()</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">              + labelHeight * (labels == null ? 1 : labels.length) / 2.0</span>
+              + GraphicLabel.GROWING_BOUND);
+<span class="nc" id="L125">      GeomUtil.growRectangle(labelBounds, GraphicLabel.GROWING_BOUND);</span>
+<span class="nc bnc" id="L126" title="All 2 branches missed.">      if (line != null) {</span>
+<span class="nc" id="L127">        newShape.addLinkSegmentToInvariantShape(</span>
+<span class="nc" id="L128">            line, ptBox, labelBounds, getDashStroke(lineThickness), true);</span>
+
+<span class="nc" id="L130">        ScaleInvariantShape arrow =</span>
+<span class="nc" id="L131">            newShape.addScaleInvShape(</span>
+<span class="nc" id="L132">                GeomUtil.getArrowShape(ptAnchor, ptBox, 15, 8),</span>
+                ptAnchor,
+<span class="nc" id="L134">                getStroke(lineThickness),</span>
+                true);
+<span class="nc" id="L136">        arrow.setFilled(true);</span>
+      }
+<span class="nc" id="L138">      newShape.addAllInvShape(labelBounds, ptBox, getStroke(lineThickness), true);</span>
+    }
+<span class="nc" id="L140">    setShape(newShape, mouseEvent);</span>
+<span class="nc" id="L141">  }</span>
+
+  @Override
+  public void setLabel(String[] labels, ViewCanvas&lt;?&gt; view2d, Point2D pos) {
+<span class="nc" id="L145">    String[] lbs = null;</span>
+<span class="nc bnc" id="L146" title="All 4 branches missed.">    if (view2d != null &amp;&amp; ptAnchor != null) {</span>
+<span class="nc" id="L147">      pixelInfo =</span>
+<span class="nc" id="L148">          view2d.getPixelInfo(</span>
+<span class="nc" id="L149">              new Point((int) Math.floor(ptAnchor.getX()), (int) Math.floor(ptAnchor.getY())));</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">      if (pixelInfo != null) {</span>
+<span class="nc" id="L151">        lbs = new String[] {pixelInfo.getPixelValueText()};</span>
+      }
+    } else {
+<span class="nc" id="L154">      lbs = labels;</span>
+    }
+<span class="nc bnc" id="L156" title="All 2 branches missed.">    if (lbs == null) {</span>
+<span class="nc" id="L157">      lbs = new String[] {Messages.getString(&quot;PixelInfoGraphic.no_val&quot;)};</span>
+    }
+<span class="nc" id="L159">    super.setLabel(lbs, view2d, pos);</span>
+    // MeasurableLayer layer = view2d == null ? null : view2d.getMeasurableLayer();
+    // AbstractLayerModel model = (view2d != null) ? view2d.getLayerModel() : null;
+    // if (model != null) {
+    // ArrayList&lt;Graphic&gt; selectedGraphics = model.getSelectedGraphics();
+    // boolean isMultiSelection = selectedGraphics.size() &gt; 1;
+    // MeasureTool measureToolListener = null;
+    //
+    // if (selectedGraphics.size() == 1 &amp;&amp; selectedGraphics.get(0) == this) {
+    // GraphicsListener[] gfxListeners = model.getGraphicSelectionListeners();
+    // if (gfxListeners != null) {
+    // for (GraphicsListener listener : gfxListeners) {
+    // if (listener instanceof MeasureTool) {
+    // measureToolListener = (MeasureTool) listener;
+    // break;
+    // }
+    // }
+    // }
+    // }
+    //
+    // if (measureToolListener != null &amp;&amp; !isMultiSelection) {
+    // Unit displayUnit = (Unit) view2d.getActionValue(ActionW.SPATIAL_UNIT.cmd());
+    // List&lt;MeasureItem&gt; measList = computeMeasurements(layer, true, displayUnit);
+    // measureToolListener.updateMeasuredItems(measList);
+    // }
+    // }
+<span class="nc" id="L185">  }</span>
+
+  @Override
+  public List&lt;MeasureItem&gt; computeMeasurements(
+      MeasurableLayer layer, boolean releaseEvent, Unit displayUnit) {
+<span class="nc bnc" id="L190" title="All 6 branches missed.">    if (layer != null &amp;&amp; layer.hasContent() &amp;&amp; isShapeValid()) {</span>
+<span class="nc" id="L191">      MeasurementsAdapter adapter = layer.getMeasurementAdapter(displayUnit);</span>
+
+<span class="nc bnc" id="L193" title="All 2 branches missed.">      if (adapter != null) {</span>
+<span class="nc" id="L194">        ArrayList&lt;MeasureItem&gt; measVal = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L196" title="All 2 branches missed.">        if (ANCHOR_POINT_X.getComputed()) {</span>
+<span class="nc" id="L197">          measVal.add(</span>
+              new MeasureItem(
+<span class="nc" id="L199">                  ANCHOR_POINT_X, adapter.getXCalibratedValue(ptAnchor.getX()), adapter.getUnit()));</span>
+        }
+<span class="nc bnc" id="L201" title="All 2 branches missed.">        if (ANCHOR_POINT_Y.getComputed()) {</span>
+<span class="nc" id="L202">          measVal.add(</span>
+              new MeasureItem(
+<span class="nc" id="L204">                  ANCHOR_POINT_Y, adapter.getYCalibratedValue(ptAnchor.getY()), adapter.getUnit()));</span>
+        }
+<span class="nc" id="L206">        String unit = Unit.PIXEL.getAbbreviation();</span>
+<span class="nc bnc" id="L207" title="All 2 branches missed.">        if (!unit.equals(adapter.getUnit())) {</span>
+<span class="nc bnc" id="L208" title="All 2 branches missed.">          if (ANCHOR_POINT_X.getComputed()) {</span>
+<span class="nc" id="L209">            measVal.add(</span>
+<span class="nc" id="L210">                new MeasureItem(ANCHOR_POINT_X, ptAnchor.getX() + adapter.getOffsetX(), unit));</span>
+          }
+<span class="nc bnc" id="L212" title="All 2 branches missed.">          if (ANCHOR_POINT_Y.getComputed()) {</span>
+<span class="nc" id="L213">            measVal.add(</span>
+<span class="nc" id="L214">                new MeasureItem(ANCHOR_POINT_Y, ptAnchor.getY() + adapter.getOffsetY(), unit));</span>
+          }
+        }
+
+<span class="nc bnc" id="L218" title="All 2 branches missed.">        if (Objects.nonNull(pixelInfo)) {</span>
+<span class="nc" id="L219">          double[] values = pixelInfo.getValues();</span>
+<span class="nc" id="L220">          String[] channelNames = pixelInfo.getChannelNames();</span>
+<span class="nc bnc" id="L221" title="All 2 branches missed.">          if (Objects.nonNull(values)) {</span>
+<span class="nc bnc" id="L222" title="All 2 branches missed.">            for (int i = 0; i &lt; values.length; i++) {</span>
+<span class="nc" id="L223">              Measurement m =</span>
+                  new Measurement(
+<span class="nc bnc" id="L225" title="All 4 branches missed.">                      (channelNames == null || i &gt;= channelNames.length)</span>
+<span class="nc" id="L226">                          ? Messages.getString(&quot;PixelInfoGraphic.unknown&quot;)</span>
+<span class="nc" id="L227">                          : channelNames[i],</span>
+<span class="nc" id="L228">                      i + 2,</span>
+<span class="nc" id="L229">                      true,</span>
+<span class="nc" id="L230">                      true,</span>
+<span class="nc" id="L231">                      false);</span>
+<span class="nc" id="L232">              measVal.add(new MeasureItem(m, values[i], pixelInfo.getPixelValueUnit()));</span>
+            }
+          }
+        }
+<span class="nc" id="L236">        return measVal;</span>
+      }
+    }
+<span class="nc" id="L239">    return Collections.emptyList();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

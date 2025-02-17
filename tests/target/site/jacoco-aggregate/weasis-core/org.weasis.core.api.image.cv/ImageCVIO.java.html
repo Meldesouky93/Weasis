@@ -1,0 +1,440 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ImageCVIO.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.image.cv</a> &gt; <span class="el_source">ImageCVIO.java</span></div><h1>ImageCVIO.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.image.cv;
+
+import java.awt.image.BandedSampleModel;
+import java.awt.image.BufferedImage;
+import java.awt.image.IndexColorModel;
+import java.awt.image.PackedColorModel;
+import java.awt.image.RenderedImage;
+import java.io.File;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReadParam;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.FileImageInputStream;
+import javax.imageio.stream.ImageInputStream;
+import org.opencv.core.Core;
+import org.opencv.core.Core.MinMaxLocResult;
+import org.opencv.core.CvType;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.explorer.ObservableEvent;
+import org.weasis.core.api.explorer.model.AbstractFileModel;
+import org.weasis.core.api.explorer.model.DataExplorerModel;
+import org.weasis.core.api.gui.util.ActionW;
+import org.weasis.core.api.gui.util.AppProperties;
+import org.weasis.core.api.media.MimeInspector;
+import org.weasis.core.api.media.data.Codec;
+import org.weasis.core.api.media.data.FileCache;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.media.data.MediaElement;
+import org.weasis.core.api.media.data.MediaReader;
+import org.weasis.core.api.media.data.MediaSeries;
+import org.weasis.core.api.media.data.Series;
+import org.weasis.core.api.media.data.SeriesEvent;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.api.media.data.Thumbnail;
+import org.weasis.core.internal.cv.NativeOpenCVCodec;
+import org.weasis.core.util.FileUtil;
+import org.weasis.core.util.MathUtil;
+import org.weasis.core.util.StringUtil;
+import org.weasis.opencv.data.FileRawImage;
+import org.weasis.opencv.data.PlanarImage;
+import org.weasis.opencv.op.ImageConversion;
+import org.weasis.opencv.op.ImageProcessor;
+
+public class ImageCVIO implements MediaReader&lt;ImageElement&gt; {
+<span class="nc" id="L68">  private static final Logger LOGGER = LoggerFactory.getLogger(ImageCVIO.class);</span>
+
+  public static final int TILE_SIZE = 512;
+<span class="nc" id="L71">  public static final File CACHE_UNCOMPRESSED_DIR =</span>
+<span class="nc" id="L72">      AppProperties.buildAccessibleTempDirectory(</span>
+<span class="nc" id="L73">          AppProperties.FILE_CACHE_DIR.getName(), &quot;uncompressed&quot;); // NON-NLS</span>
+
+  private final URI uri;
+  private final String mimeType;
+
+  private final FileCache fileCache;
+  private final Codec codec;
+<span class="nc" id="L80">  private ImageElement image = null;</span>
+
+<span class="nc" id="L82">  public ImageCVIO(URI media, String mimeType, Codec codec) {</span>
+<span class="nc" id="L83">    this.uri = Objects.requireNonNull(media);</span>
+<span class="nc" id="L84">    this.fileCache = new FileCache(this);</span>
+<span class="nc" id="L85">    this.mimeType = Objects.requireNonNullElse(mimeType, MimeInspector.UNKNOWN_MIME_TYPE);</span>
+<span class="nc" id="L86">    this.codec = codec;</span>
+<span class="nc" id="L87">  }</span>
+
+  @Override
+  public PlanarImage getImageFragment(MediaElement media) throws Exception {
+<span class="nc" id="L91">    Objects.requireNonNull(media);</span>
+<span class="nc" id="L92">    FileCache cache = media.getFileCache();</span>
+
+<span class="nc" id="L94">    Path imgCachePath = null;</span>
+    File file;
+<span class="nc bnc" id="L96" title="All 2 branches missed.">    if (cache.isRequireTransformation()) {</span>
+<span class="nc" id="L97">      file = cache.getTransformedFile();</span>
+<span class="nc bnc" id="L98" title="All 2 branches missed.">      if (file == null) {</span>
+<span class="nc" id="L99">        String filename =</span>
+<span class="nc" id="L100">            StringUtil.bytesToMD5(media.getMediaURI().toString().getBytes(StandardCharsets.UTF_8));</span>
+<span class="nc" id="L101">        imgCachePath = CACHE_UNCOMPRESSED_DIR.toPath().resolve(filename + &quot;.wcv&quot;);</span>
+<span class="nc bnc" id="L102" title="All 2 branches missed.">        if (Files.isReadable(imgCachePath)) {</span>
+<span class="nc" id="L103">          file = imgCachePath.toFile();</span>
+<span class="nc" id="L104">          cache.setTransformedFile(file);</span>
+<span class="nc" id="L105">          imgCachePath = null;</span>
+        } else {
+<span class="nc" id="L107">          file = cache.getOriginalFile().orElse(null);</span>
+        }
+<span class="nc" id="L109">      }</span>
+    } else {
+<span class="nc" id="L111">      file = cache.getOriginalFile().orElse(null);</span>
+    }
+
+<span class="nc bnc" id="L114" title="All 2 branches missed.">    if (file != null) {</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">      PlanarImage img = readImage(file, imgCachePath == null);</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">      if (imgCachePath != null) {</span>
+<span class="nc" id="L117">        File rawFile = uncompress(imgCachePath, img, media);</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">        if (rawFile != null) {</span>
+<span class="nc" id="L119">          file = rawFile;</span>
+        }
+<span class="nc" id="L121">        cache.setTransformedFile(file);</span>
+<span class="nc" id="L122">        img = readImage(file, true);</span>
+      }
+<span class="nc" id="L124">      return img;</span>
+    }
+<span class="nc" id="L126">    return null;</span>
+  }
+
+  private static void applyExifTags(ImageElement img, List&lt;String&gt; exifTags) {
+<span class="nc bnc" id="L130" title="All 2 branches missed.">    if (exifTags.size() &gt;= Imgcodecs.POS_COPYRIGHT) {</span>
+<span class="nc" id="L131">      applyExifTag(img, TagW.ExifImageDescription, exifTags.get(Imgcodecs.POS_IMAGE_DESCRIPTION));</span>
+<span class="nc" id="L132">      applyExifTag(img, TagW.ExifMake, exifTags.get(Imgcodecs.POS_MAKE));</span>
+<span class="nc" id="L133">      applyExifTag(img, TagW.ExifModel, exifTags.get(Imgcodecs.POS_MODEL));</span>
+<span class="nc" id="L134">      applyExifTag(img, TagW.ExifOrientation, exifTags.get(Imgcodecs.POS_ORIENTATION));</span>
+<span class="nc" id="L135">      applyExifTag(img, TagW.ExifXResolution, exifTags.get(Imgcodecs.POS_XRESOLUTION));</span>
+<span class="nc" id="L136">      applyExifTag(img, TagW.ExifYResolution, exifTags.get(Imgcodecs.POS_YRESOLUTION));</span>
+<span class="nc" id="L137">      applyExifTag(img, TagW.ExifResolutionUnit, exifTags.get(Imgcodecs.POS_RESOLUTION_UNIT));</span>
+<span class="nc" id="L138">      applyExifTag(img, TagW.ExifSoftware, exifTags.get(Imgcodecs.POS_SOFTWARE));</span>
+<span class="nc" id="L139">      applyExifTag(img, TagW.ExifDateTime, exifTags.get(Imgcodecs.POS_DATE_TIME));</span>
+<span class="nc" id="L140">      applyExifTag(img, TagW.ExifCopyright, exifTags.get(Imgcodecs.POS_COPYRIGHT));</span>
+    }
+<span class="nc" id="L142">  }</span>
+
+  private static void applyExifTag(ImageElement img, TagW tagW, String val) {
+<span class="nc bnc" id="L145" title="All 2 branches missed.">    if (StringUtil.hasText(val)) {</span>
+<span class="nc" id="L146">      img.setTag(tagW, val);</span>
+    }
+<span class="nc" id="L148">  }</span>
+
+  private PlanarImage readImage(File file, boolean createTiledLayout) throws Exception {
+    PlanarImage img;
+<span class="nc bnc" id="L152" title="All 2 branches missed.">    if (file.getPath().endsWith(&quot;.wcv&quot;)) {</span>
+<span class="nc" id="L153">      img = new FileRawImage(file).read();</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">    } else if (codec instanceof NativeOpenCVCodec) {</span>
+<span class="nc" id="L155">      List&lt;String&gt; exifTags = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L156">      img = ImageProcessor.readImageWithCvException(file, exifTags);</span>
+<span class="nc" id="L157">      applyExifTags(image, exifTags);</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">      if (img == null) {</span>
+        // Try ImageIO
+<span class="nc" id="L160">        img = readImageIOImage(file);</span>
+      }
+<span class="nc" id="L162">    } else {</span>
+<span class="nc" id="L163">      img = readImageIOImage(file);</span>
+    }
+
+<span class="nc bnc" id="L166" title="All 4 branches missed.">    if (img != null &amp;&amp; image != null) {</span>
+<span class="nc" id="L167">      image.setTag(TagW.ImageWidth, img.width());</span>
+<span class="nc" id="L168">      image.setTag(TagW.ImageHeight, img.height());</span>
+    }
+<span class="nc" id="L170">    return img;</span>
+  }
+
+  private PlanarImage readImageIOImage(File file) throws IOException {
+<span class="nc" id="L174">    ImageReader reader = getDefaultReader(mimeType);</span>
+<span class="nc bnc" id="L175" title="All 2 branches missed.">    if (reader == null) {</span>
+<span class="nc" id="L176">      LOGGER.info(&quot;Cannot find a reader for the mime type: {}&quot;, mimeType);</span>
+<span class="nc" id="L177">      return null;</span>
+    }
+
+<span class="nc" id="L180">    ImageInputStream stream = new FileImageInputStream(new RandomAccessFile(file, &quot;r&quot;));</span>
+<span class="nc" id="L181">    ImageReadParam param = reader.getDefaultReadParam();</span>
+<span class="nc" id="L182">    reader.setInput(stream, true, true);</span>
+    RenderedImage bi;
+    try {
+<span class="nc" id="L185">      bi = reader.read(0, param);</span>
+    } finally {
+<span class="nc" id="L187">      reader.dispose();</span>
+<span class="nc" id="L188">      stream.close();</span>
+    }
+
+    // to avoid problem with alpha channel and png encoded in 24 and 32 bits
+<span class="nc" id="L192">    bi = getReadableImage(bi);</span>
+<span class="nc" id="L193">    return ImageConversion.toMat(bi);</span>
+  }
+
+  @Override
+  public URI getUri() {
+<span class="nc" id="L198">    return uri;</span>
+  }
+
+  @Override
+  public MediaElement getPreview() {
+<span class="nc" id="L203">    return getSingleImage();</span>
+  }
+
+  @Override
+  public boolean delegate(DataExplorerModel explorerModel) {
+<span class="nc" id="L208">    return false;</span>
+  }
+
+  @Override
+  public ImageElement[] getMediaElement() {
+<span class="nc" id="L213">    return new ImageElement[] {getSingleImage()};</span>
+  }
+
+  @Override
+  public MediaSeries&lt;ImageElement&gt; getMediaSeries() {
+    String sUID;
+<span class="nc" id="L219">    MediaElement element = getSingleImage();</span>
+<span class="nc" id="L220">    sUID = (String) element.getTagValue(TagW.get(&quot;SeriesInstanceUID&quot;));</span>
+<span class="nc bnc" id="L221" title="All 2 branches missed.">    if (sUID == null) {</span>
+<span class="nc" id="L222">      sUID = uri.toString();</span>
+    }
+<span class="nc" id="L224">    MediaSeries&lt;ImageElement&gt; series =</span>
+<span class="nc" id="L225">        new Series&lt;&gt;(TagW.SubseriesInstanceUID, sUID, AbstractFileModel.series.tagView()) {</span>
+
+          @Override
+          public String getMimeType() {
+<span class="nc bnc" id="L229" title="All 2 branches missed.">            if (!medias.isEmpty()) {</span>
+<span class="nc" id="L230">              synchronized (this) {</span>
+<span class="nc" id="L231">                MediaElement img = medias.get(0);</span>
+<span class="nc bnc" id="L232" title="All 2 branches missed.">                if (img != null) {</span>
+<span class="nc" id="L233">                  return img.getMimeType();</span>
+                }
+<span class="nc" id="L235">              }</span>
+            }
+<span class="nc" id="L237">            return null;</span>
+          }
+
+          @Override
+          public void addMedia(ImageElement media) {
+<span class="nc bnc" id="L242" title="All 2 branches missed.">            if (media != null) {</span>
+<span class="nc" id="L243">              this.add(media);</span>
+<span class="nc" id="L244">              DataExplorerModel model = (DataExplorerModel) getTagValue(TagW.ExplorerModel);</span>
+<span class="nc bnc" id="L245" title="All 2 branches missed.">              if (model != null) {</span>
+<span class="nc" id="L246">                model.firePropertyChange(</span>
+                    new ObservableEvent(
+                        ObservableEvent.BasicAction.ADD,
+                        model,
+                        null,
+                        new SeriesEvent(SeriesEvent.Action.ADD_IMAGE, this, media)));
+              }
+            }
+<span class="nc" id="L254">          }</span>
+
+          @Override
+          public MediaElement getFirstSpecialElement() {
+<span class="nc" id="L258">            return null;</span>
+          }
+        };
+
+<span class="nc" id="L262">    ImageElement img = getSingleImage();</span>
+<span class="nc" id="L263">    series.add(getSingleImage());</span>
+<span class="nc" id="L264">    series.setTag(TagW.FileName, img.getName());</span>
+<span class="nc" id="L265">    return series;</span>
+  }
+
+  @Override
+  public int getMediaElementNumber() {
+<span class="nc" id="L270">    return 1;</span>
+  }
+
+  private ImageElement getSingleImage() {
+<span class="nc" id="L274">    ImageElement img = image;</span>
+<span class="nc bnc" id="L275" title="All 2 branches missed.">    if (img == null) {</span>
+<span class="nc" id="L276">      img = new ImageElement(this, 0);</span>
+<span class="nc" id="L277">      image = img;</span>
+    }
+<span class="nc" id="L279">    return img;</span>
+  }
+
+  @Override
+  public String getMediaFragmentMimeType() {
+<span class="nc" id="L284">    return mimeType;</span>
+  }
+
+  @Override
+  public Map&lt;TagW, Object&gt; getMediaFragmentTags(Object key) {
+<span class="nc" id="L289">    return new HashMap&lt;&gt;();</span>
+  }
+
+  @Override
+  public void close() {
+    // Do nothing
+<span class="nc" id="L295">  }</span>
+
+  @Override
+  public Codec getCodec() {
+<span class="nc" id="L299">    return codec;</span>
+  }
+
+  @Override
+  public String[] getReaderDescription() {
+<span class="nc" id="L304">    return new String[] {</span>
+<span class="nc" id="L305">      &quot;Image Codec: &quot; + codec.getCodecName(), &quot;Version: &quot; + Core.VERSION // NON-NLS</span>
+    };
+  }
+
+  public ImageReader getDefaultReader(String mimeType) {
+<span class="nc bnc" id="L310" title="All 2 branches missed.">    if (mimeType != null) {</span>
+<span class="nc" id="L311">      Iterator&lt;ImageReader&gt; readers = ImageIO.getImageReadersByMIMEType(mimeType);</span>
+<span class="nc bnc" id="L312" title="All 2 branches missed.">      if (readers.hasNext()) {</span>
+<span class="nc" id="L313">        return readers.next();</span>
+      }
+    }
+<span class="nc" id="L316">    return null;</span>
+  }
+
+  @Override
+  public Object getTagValue(TagW tag) {
+<span class="nc" id="L321">    MediaElement element = getSingleImage();</span>
+<span class="nc bnc" id="L322" title="All 2 branches missed.">    if (tag != null) {</span>
+<span class="nc" id="L323">      return element.getTagValue(tag);</span>
+    }
+<span class="nc" id="L325">    return null;</span>
+  }
+
+  @Override
+  public void replaceURI(URI uri) {
+<span class="nc" id="L330">    throw new UnsupportedOperationException();</span>
+  }
+
+  @Override
+  public void setTag(TagW tag, Object value) {
+<span class="nc" id="L335">    throw new UnsupportedOperationException();</span>
+  }
+
+  @Override
+  public boolean containTagKey(TagW tag) {
+<span class="nc" id="L340">    return false;</span>
+  }
+
+  @Override
+  public void setTagNoNull(TagW tag, Object value) {
+<span class="nc" id="L345">    throw new UnsupportedOperationException();</span>
+  }
+
+  @Override
+  public Iterator&lt;Entry&lt;TagW, Object&gt;&gt; getTagEntrySetIterator() {
+<span class="nc" id="L350">    throw new UnsupportedOperationException();</span>
+  }
+
+  @Override
+  public FileCache getFileCache() {
+<span class="nc" id="L355">    return fileCache;</span>
+  }
+
+  private File uncompress(Path imgCachePath, PlanarImage img, MediaElement media) {
+    /*
+     * Make an image cache with its thumbnail when the image size is larger than a tile size and if not DICOM file
+     */
+<span class="nc bnc" id="L362" title="All 2 branches missed.">    if (img != null</span>
+<span class="nc bnc" id="L363" title="All 4 branches missed.">        &amp;&amp; (img.width() &gt; TILE_SIZE || img.height() &gt; TILE_SIZE)</span>
+<span class="nc bnc" id="L364" title="All 2 branches missed.">        &amp;&amp; !mimeType.contains(&quot;dicom&quot;)) { // NON-NLS</span>
+<span class="nc" id="L365">      File outFile = imgCachePath.toFile();</span>
+      try {
+<span class="nc" id="L367">        new FileRawImage(outFile).write(img);</span>
+<span class="nc" id="L368">        PlanarImage img8 = img;</span>
+<span class="nc bnc" id="L369" title="All 4 branches missed.">        if (CvType.depth(img.type()) &gt; CvType.CV_8S &amp;&amp; media instanceof ImageElement imgElement) {</span>
+<span class="nc" id="L370">          Map&lt;String, Object&gt; params = null;</span>
+<span class="nc bnc" id="L371" title="All 2 branches missed.">          if (!imgElement.isImageAvailable()) {</span>
+            // Ensure to load image before calling the preset that requires pixel min and max
+<span class="nc" id="L373">            params = new HashMap&lt;&gt;(2);</span>
+<span class="nc" id="L374">            double min = 0;</span>
+<span class="nc" id="L375">            double max = 65536;</span>
+<span class="nc" id="L376">            MinMaxLocResult val = ImageProcessor.findMinMaxValues(img.toMat());</span>
+<span class="nc bnc" id="L377" title="All 2 branches missed.">            if (val != null) {</span>
+<span class="nc" id="L378">              min = val.minVal;</span>
+<span class="nc" id="L379">              max = val.maxVal;</span>
+            }
+
+            // Handle special case when min and max are equal, ex. black image
+            // + 1 to max enables to display the correct value
+<span class="nc bnc" id="L384" title="All 2 branches missed.">            if (MathUtil.isEqual(min, max)) {</span>
+<span class="nc" id="L385">              max += 1.0;</span>
+            }
+
+<span class="nc" id="L388">            params.put(ActionW.WINDOW.cmd(), max - min);</span>
+<span class="nc" id="L389">            params.put(ActionW.LEVEL.cmd(), min + (max - min) / 2.0);</span>
+          }
+<span class="nc" id="L391">          img8 = imgElement.getRenderedImage(img, params);</span>
+        }
+<span class="nc" id="L393">        ImageProcessor.writeThumbnail(</span>
+<span class="nc" id="L394">            img8.toMat(), new File(changeExtension(outFile.getPath(), &quot;.jpg&quot;)), Thumbnail.MAX_SIZE);</span>
+<span class="nc" id="L395">        return outFile;</span>
+<span class="nc" id="L396">      } catch (Exception e) {</span>
+<span class="nc" id="L397">        FileUtil.delete(outFile);</span>
+<span class="nc" id="L398">        LOGGER.error(&quot;Uncompress temporary image&quot;, e);</span>
+      }
+    }
+<span class="nc" id="L401">    return null;</span>
+  }
+
+  @Override
+  public boolean buildFile(File output) {
+<span class="nc" id="L406">    return false;</span>
+  }
+
+  public static RenderedImage getReadableImage(RenderedImage source) {
+<span class="nc bnc" id="L410" title="All 4 branches missed.">    if (source != null &amp;&amp; source.getSampleModel() != null) {</span>
+<span class="nc" id="L411">      int numBands = source.getSampleModel().getNumBands();</span>
+<span class="nc bnc" id="L412" title="All 2 branches missed.">      if (ImageConversion.isBinary(source.getSampleModel())) {</span>
+<span class="nc" id="L413">        return ImageConversion.convertTo(source, BufferedImage.TYPE_BYTE_GRAY);</span>
+      }
+
+<span class="nc bnc" id="L416" title="All 2 branches missed.">      if (source.getColorModel() instanceof PackedColorModel</span>
+<span class="nc bnc" id="L417" title="All 6 branches missed.">          || source.getColorModel() instanceof IndexColorModel</span>
+          || numBands == 2
+          || numBands &gt; 3
+<span class="nc bnc" id="L420" title="All 4 branches missed.">          || (source.getSampleModel() instanceof BandedSampleModel &amp;&amp; numBands &gt; 1)) {</span>
+<span class="nc bnc" id="L421" title="All 2 branches missed.">        int imageType = numBands &gt;= 3 ? BufferedImage.TYPE_3BYTE_BGR : BufferedImage.TYPE_BYTE_GRAY;</span>
+<span class="nc" id="L422">        return ImageConversion.convertTo(source, imageType);</span>
+      }
+    }
+<span class="nc" id="L425">    return source;</span>
+  }
+
+  public static String changeExtension(String filename, String ext) {
+<span class="nc bnc" id="L429" title="All 2 branches missed.">    if (filename == null) {</span>
+<span class="nc" id="L430">      return &quot;&quot;;</span>
+    }
+    // replace extension after the last point
+<span class="nc" id="L433">    int pointPos = filename.lastIndexOf('.');</span>
+<span class="nc bnc" id="L434" title="All 2 branches missed.">    if (pointPos == -1) {</span>
+<span class="nc" id="L435">      pointPos = filename.length();</span>
+    }
+<span class="nc" id="L437">    return filename.substring(0, pointPos) + ext;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

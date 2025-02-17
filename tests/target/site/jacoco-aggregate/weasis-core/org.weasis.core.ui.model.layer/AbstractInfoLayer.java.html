@@ -1,0 +1,599 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AbstractInfoLayer.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.layer</a> &gt; <span class="el_source">AbstractInfoLayer.java</span></div><h1>AbstractInfoLayer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.layer;
+
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.Rectangle;
+import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
+import org.osgi.service.prefs.Preferences;
+import org.weasis.core.api.gui.util.DecFormatter;
+import org.weasis.core.api.image.OpManager;
+import org.weasis.core.api.image.WindowOp;
+import org.weasis.core.api.image.util.Unit;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.service.BundlePreferences;
+import org.weasis.core.api.util.FontTools;
+import org.weasis.core.ui.editor.image.DisplayByteLut;
+import org.weasis.core.ui.editor.image.HistogramData;
+import org.weasis.core.ui.editor.image.HistogramView;
+import org.weasis.core.ui.editor.image.PixelInfo;
+import org.weasis.core.ui.editor.image.ViewButton;
+import org.weasis.core.ui.editor.image.ViewCanvas;
+import org.weasis.core.ui.model.utils.imp.DefaultUUID;
+import org.weasis.core.ui.pref.ViewSetting;
+import org.weasis.core.util.StringUtil;
+import org.weasis.opencv.op.lut.ColorLut;
+import org.weasis.opencv.op.lut.WlParams;
+
+public abstract class AbstractInfoLayer&lt;E extends ImageElement&gt; extends DefaultUUID
+    implements LayerAnnotation {
+
+<span class="nc" id="L49">  protected static final Color highlight = new Color(255, 153, 153);</span>
+<span class="nc" id="L50">  public static final AtomicBoolean applyToAllView = new AtomicBoolean(true);</span>
+<span class="nc" id="L51">  protected static final Map&lt;LayerItem, Boolean&gt; defaultDisplayPreferences =</span>
+      new EnumMap&lt;&gt;(LayerItem.class);
+
+  static {
+<span class="nc bnc" id="L55" title="All 2 branches missed.">    for (LayerItem item : LayerItem.values()) {</span>
+<span class="nc" id="L56">      defaultDisplayPreferences.put(item, item.isVisible());</span>
+    }
+  }
+
+  protected static final int P_BORDER = 10;
+
+<span class="nc" id="L62">  public record ImageProperties(</span>
+      int width,
+      int height,
+      double pixelSize,
+      double rescaleX,
+      double rescaleY,
+      Unit pixelUnit,
+      String pixelDescription) {}
+
+<span class="nc" id="L71">  protected final Map&lt;LayerItem, Boolean&gt; displayPreferences = new EnumMap&lt;&gt;(LayerItem.class);</span>
+<span class="nc" id="L72">  protected boolean visible = true;</span>
+<span class="nc" id="L73">  protected static final Color color = Color.yellow;</span>
+  protected final ViewCanvas&lt;E&gt; view2DPane;
+<span class="nc" id="L75">  protected PixelInfo pixelInfo = null;</span>
+  protected final Rectangle pixelInfoBound;
+  protected final Rectangle preloadingProgressBound;
+<span class="nc" id="L78">  protected int border = P_BORDER;</span>
+<span class="nc" id="L79">  protected double thickLength = 15.0;</span>
+<span class="nc" id="L80">  protected boolean showBottomScale = true;</span>
+  protected String name;
+  protected boolean useGlobalPreferences;
+
+<span class="nc" id="L84">  private final Map&lt;Position, Point2D&gt; positions = new EnumMap&lt;&gt;(Position.class);</span>
+
+  protected AbstractInfoLayer(ViewCanvas&lt;E&gt; view2DPane) {
+<span class="nc" id="L87">    this(view2DPane, true);</span>
+<span class="nc" id="L88">  }</span>
+
+<span class="nc" id="L90">  protected AbstractInfoLayer(ViewCanvas&lt;E&gt; view2DPane, boolean useGlobalPreferences) {</span>
+<span class="nc" id="L91">    this.view2DPane = Objects.requireNonNull(view2DPane);</span>
+<span class="nc" id="L92">    this.pixelInfoBound = new Rectangle();</span>
+<span class="nc" id="L93">    this.preloadingProgressBound = new Rectangle();</span>
+<span class="nc" id="L94">    this.useGlobalPreferences = useGlobalPreferences;</span>
+<span class="nc" id="L95">    positions.put(Position.TopLeft, new Point2D.Double(0, 0));</span>
+<span class="nc" id="L96">    positions.put(Position.TopRight, new Point2D.Double(0, 0));</span>
+<span class="nc" id="L97">    positions.put(Position.BottomLeft, new Point2D.Double(0, 0));</span>
+<span class="nc" id="L98">    positions.put(Position.BottomRight, new Point2D.Double(0, 0));</span>
+<span class="nc" id="L99">  }</span>
+
+  @Override
+  public Point2D getPosition(Position position) {
+<span class="nc" id="L103">    return positions.get(position);</span>
+  }
+
+  @Override
+  public void setPosition(Position position, double x, double y) {
+<span class="nc" id="L108">    Point2D p = positions.get(position);</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">    if (p != null) {</span>
+<span class="nc" id="L110">      p.setLocation(x, y);</span>
+    }
+<span class="nc" id="L112">  }</span>
+
+  public ViewCanvas&lt;E&gt; getView2DPane() {
+<span class="nc" id="L115">    return view2DPane;</span>
+  }
+
+  protected void setLayerValue(Map&lt;LayerItem, Boolean&gt; prefMap, LayerItem item) {
+<span class="nc" id="L119">    prefMap.put(item, getDisplayPreferences(item));</span>
+<span class="nc" id="L120">  }</span>
+
+  public static Map&lt;LayerItem, Boolean&gt; getDefaultDisplayPreferences() {
+<span class="nc" id="L123">    return defaultDisplayPreferences;</span>
+  }
+
+  public static void applyPreferences(Preferences prefs) {
+<span class="nc bnc" id="L127" title="All 2 branches missed.">    if (prefs != null) {</span>
+<span class="nc" id="L128">      Preferences p = prefs.node(ViewSetting.PREFERENCE_NODE);</span>
+<span class="nc" id="L129">      Preferences pref = p.node(&quot;infolayer&quot;); // NON-NLS</span>
+<span class="nc" id="L130">      applyToAllView.set(pref.getBoolean(&quot;allViews&quot;, true));</span>
+
+<span class="nc bnc" id="L132" title="All 2 branches missed.">      for (Entry&lt;LayerItem, Boolean&gt; v : defaultDisplayPreferences.entrySet()) {</span>
+<span class="nc" id="L133">        v.setValue(pref.getBoolean(v.getKey().getKey(), v.getValue()));</span>
+<span class="nc" id="L134">      }</span>
+    }
+<span class="nc" id="L136">  }</span>
+
+  public static void savePreferences(Preferences prefs) {
+<span class="nc bnc" id="L139" title="All 2 branches missed.">    if (prefs != null) {</span>
+<span class="nc" id="L140">      Preferences p = prefs.node(ViewSetting.PREFERENCE_NODE);</span>
+<span class="nc" id="L141">      Preferences pref = p.node(&quot;infolayer&quot;); // NON-NLS</span>
+<span class="nc" id="L142">      BundlePreferences.putBooleanPreferences(pref, &quot;allViews&quot;, applyToAllView.get());</span>
+
+<span class="nc bnc" id="L144" title="All 2 branches missed.">      for (Entry&lt;LayerItem, Boolean&gt; v : defaultDisplayPreferences.entrySet()) {</span>
+<span class="nc" id="L145">        BundlePreferences.putBooleanPreferences(pref, v.getKey().getKey(), v.getValue());</span>
+<span class="nc" id="L146">      }</span>
+    }
+<span class="nc" id="L148">  }</span>
+
+  public static Boolean setDefaultDisplayPreferencesValue(LayerItem item, Boolean selected) {
+<span class="nc" id="L151">    Boolean selected2 =</span>
+<span class="nc" id="L152">        Optional.ofNullable(defaultDisplayPreferences.get(item)).orElse(Boolean.FALSE);</span>
+<span class="nc" id="L153">    defaultDisplayPreferences.put(item, selected);</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">    return !Objects.equals(selected, selected2);</span>
+  }
+
+  @Override
+  public void resetToDefault() {
+<span class="nc" id="L159">    displayPreferences.putAll(defaultDisplayPreferences);</span>
+<span class="nc" id="L160">  }</span>
+
+  @Override
+  public boolean isShowBottomScale() {
+<span class="nc" id="L164">    return showBottomScale;</span>
+  }
+
+  @Override
+  public void setShowBottomScale(Boolean showBottomScale) {
+<span class="nc" id="L169">    this.showBottomScale = showBottomScale;</span>
+<span class="nc" id="L170">  }</span>
+
+  @Override
+  public Boolean getVisible() {
+<span class="nc" id="L174">    return visible;</span>
+  }
+
+  @Override
+  public void setVisible(Boolean visible) {
+<span class="nc" id="L179">    this.visible = Optional.ofNullable(visible).orElse(getType().getVisible());</span>
+<span class="nc" id="L180">  }</span>
+
+  @Override
+  public Integer getLevel() {
+<span class="nc" id="L184">    return getType().getLevel();</span>
+  }
+
+  @Override
+  public void setLevel(Integer i) {
+    // Do nothing
+<span class="nc" id="L190">  }</span>
+
+  @Override
+  public int getBorder() {
+<span class="nc" id="L194">    return border;</span>
+  }
+
+  @Override
+  public void setBorder(int border) {
+<span class="nc" id="L199">    this.border = border;</span>
+<span class="nc" id="L200">  }</span>
+
+  @Override
+  public LayerType getType() {
+<span class="nc" id="L204">    return LayerType.IMAGE_ANNOTATION;</span>
+  }
+
+  @Override
+  public void setType(LayerType type) {
+    // Cannot change this type
+<span class="nc" id="L210">  }</span>
+
+  @Override
+  public void setName(String layerName) {
+<span class="nc" id="L214">    this.name = layerName;</span>
+<span class="nc" id="L215">  }</span>
+
+  @Override
+  public String getName() {
+<span class="nc" id="L219">    return name;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L224">    return Optional.ofNullable(getName()).orElse(getType().getDefaultName());</span>
+  }
+
+  @Override
+  public boolean getDisplayPreferences(LayerItem item) {
+<span class="nc bnc" id="L229" title="All 4 branches missed.">    if (useGlobalPreferences &amp;&amp; applyToAllView.get()) {</span>
+<span class="nc" id="L230">      return Optional.ofNullable(defaultDisplayPreferences.get(item)).orElse(Boolean.FALSE);</span>
+    }
+<span class="nc" id="L232">    return Optional.ofNullable(</span>
+<span class="nc" id="L233">            displayPreferences.getOrDefault(item, defaultDisplayPreferences.get(item)))</span>
+<span class="nc" id="L234">        .orElse(Boolean.FALSE);</span>
+  }
+
+  @Override
+  public boolean setDisplayPreferencesValue(LayerItem displayItem, boolean selected) {
+<span class="nc" id="L239">    Boolean selected2 = getDisplayPreferences(displayItem);</span>
+<span class="nc" id="L240">    displayPreferences.put(displayItem, selected);</span>
+<span class="nc bnc" id="L241" title="All 2 branches missed.">    return !Objects.equals(selected, selected2);</span>
+  }
+
+  @Override
+  public Rectangle getPreloadingProgressBound() {
+<span class="nc" id="L246">    return preloadingProgressBound;</span>
+  }
+
+  @Override
+  public Rectangle getPixelInfoBound() {
+<span class="nc" id="L251">    return pixelInfoBound;</span>
+  }
+
+  @Override
+  public void setPixelInfo(PixelInfo pixelInfo) {
+<span class="nc" id="L256">    this.pixelInfo = pixelInfo;</span>
+<span class="nc" id="L257">  }</span>
+
+  @Override
+  public PixelInfo getPixelInfo() {
+<span class="nc" id="L261">    return pixelInfo;</span>
+  }
+
+  public Rectangle2D getOutLine(Line2D l) {
+<span class="nc" id="L265">    Rectangle2D r = l.getBounds2D();</span>
+<span class="nc" id="L266">    r.setFrame(r.getX() - 1.0, r.getY() - 1.0, r.getWidth() + 2.0, r.getHeight() + 2.0);</span>
+<span class="nc" id="L267">    return r;</span>
+  }
+
+  protected double getPixelMin() {
+<span class="nc" id="L271">    E img = view2DPane.getImage();</span>
+<span class="nc bnc" id="L272" title="All 2 branches missed.">    if (img != null) {</span>
+<span class="nc" id="L273">      return img.getPixelMin();</span>
+    }
+<span class="nc" id="L275">    return 0.0;</span>
+  }
+
+  protected double getPixelMax() {
+<span class="nc" id="L279">    E img = view2DPane.getImage();</span>
+<span class="nc bnc" id="L280" title="All 2 branches missed.">    if (img != null) {</span>
+<span class="nc" id="L281">      return img.getPixelMax();</span>
+    }
+<span class="nc" id="L283">    return 0.0;</span>
+  }
+
+  public void drawLUT(Graphics2D g2, Rectangle bound, float midFontHeight) {
+<span class="nc" id="L287">    WlParams p = getWinLeveParameters();</span>
+<span class="nc bnc" id="L288" title="All 4 branches missed.">    if (p != null &amp;&amp; bound.height &gt; 350) {</span>
+<span class="nc" id="L289">      DisplayByteLut lut = getLut(p);</span>
+<span class="nc" id="L290">      byte[][] table = lut.getByteLut().lutTable();</span>
+<span class="nc" id="L291">      float length = table[0].length;</span>
+
+<span class="nc" id="L293">      int width = 0;</span>
+<span class="nc bnc" id="L294" title="All 2 branches missed.">      for (ViewButton b : view2DPane.getViewButtons()) {</span>
+<span class="nc bnc" id="L295" title="All 4 branches missed.">        if (b.isVisible() &amp;&amp; b.getPosition() == GridBagConstraints.EAST) {</span>
+<span class="nc" id="L296">          int w = b.getIcon().getIconWidth() + 5;</span>
+<span class="nc bnc" id="L297" title="All 2 branches missed.">          if (w &gt; width) {</span>
+<span class="nc" id="L298">            width = w;</span>
+          }
+        }
+<span class="nc" id="L301">      }</span>
+<span class="nc" id="L302">      float x = bound.width - 30f - width;</span>
+<span class="nc" id="L303">      float y = bound.height / 2f - length / 2f;</span>
+
+<span class="nc" id="L305">      g2.setPaint(Color.BLACK);</span>
+<span class="nc" id="L306">      Rectangle2D.Float rect = new Rectangle2D.Float(x - 11f, y - 2f, 12f, 2f);</span>
+<span class="nc" id="L307">      g2.draw(rect);</span>
+<span class="nc" id="L308">      int separation = 4;</span>
+<span class="nc" id="L309">      float step = length / separation;</span>
+<span class="nc bnc" id="L310" title="All 2 branches missed.">      for (int i = 1; i &lt; separation; i++) {</span>
+<span class="nc" id="L311">        float posY = y + i * step;</span>
+<span class="nc" id="L312">        rect.setRect(x - 6f, posY - 1f, 7f, 2f);</span>
+<span class="nc" id="L313">        g2.draw(rect);</span>
+      }
+<span class="nc" id="L315">      rect.setRect(x - 11f, y + length, 12f, 2f);</span>
+<span class="nc" id="L316">      g2.draw(rect);</span>
+<span class="nc" id="L317">      rect.setRect(x - 2f, y - 2f, 23f, length + 4f);</span>
+<span class="nc" id="L318">      g2.draw(rect);</span>
+
+<span class="nc" id="L320">      g2.setPaint(Color.WHITE);</span>
+
+<span class="nc" id="L322">      double pixMin = getPixelMin();</span>
+<span class="nc" id="L323">      double pixMax = getPixelMax();</span>
+<span class="nc" id="L324">      HistogramData data =</span>
+          new HistogramData(
+<span class="nc" id="L326">              new float[0], lut, 0, null, p, pixMin, pixMax, view2DPane.getMeasurableLayer());</span>
+<span class="nc" id="L327">      data.updateVoiLut(view2DPane);</span>
+<span class="nc" id="L328">      double binFactor = (pixMax - pixMin) / (length - 1);</span>
+<span class="nc" id="L329">      double stepWindow = (pixMax - pixMin) / separation;</span>
+
+<span class="nc" id="L331">      float shiftY = midFontHeight / 2f - g2.getFontMetrics().getDescent();</span>
+<span class="nc" id="L332">      Line2D.Float line = new Line2D.Float();</span>
+<span class="nc bnc" id="L333" title="All 2 branches missed.">      for (int i = 0; i &lt;= separation; i++) {</span>
+<span class="nc" id="L334">        float posY = y + i * step;</span>
+<span class="nc" id="L335">        line.setLine(x - 5f, posY, x - 1f, posY);</span>
+<span class="nc" id="L336">        g2.draw(line);</span>
+<span class="nc" id="L337">        double level = data.getLayer().pixelToRealValue((separation - i) * stepWindow + pixMin);</span>
+<span class="nc" id="L338">        String str = DecFormatter.allNumber(level);</span>
+<span class="nc" id="L339">        FontTools.paintFontOutline(</span>
+<span class="nc" id="L340">            g2, str, x - g2.getFontMetrics().stringWidth(str) - 7, posY + shiftY);</span>
+      }
+<span class="nc" id="L342">      rect.setRect(x - 1f, y - 1f, 21f, length + 2f);</span>
+<span class="nc" id="L343">      g2.draw(rect);</span>
+
+<span class="nc" id="L345">      int limit = table[0].length - 1;</span>
+<span class="nc bnc" id="L346" title="All 2 branches missed.">      for (int k = 0; k &lt;= limit; k++) {</span>
+<span class="nc" id="L347">        double level = data.getLayer().pixelToRealValue((limit - k) * binFactor + pixMin);</span>
+<span class="nc" id="L348">        Color cLut = data.getFinalVoiLutColor(level);</span>
+<span class="nc" id="L349">        g2.setPaint(cLut);</span>
+<span class="nc" id="L350">        rect.setRect(x, y + k, 19f, 1f);</span>
+<span class="nc" id="L351">        g2.draw(rect);</span>
+      }
+    }
+<span class="nc" id="L354">  }</span>
+
+  private WlParams getWinLeveParameters() {
+<span class="nc bnc" id="L357" title="All 2 branches missed.">    if (view2DPane != null) {</span>
+<span class="nc" id="L358">      OpManager dispOp = view2DPane.getDisplayOpManager();</span>
+<span class="nc" id="L359">      WindowOp wlOp = (WindowOp) dispOp.getNode(WindowOp.OP_NAME);</span>
+<span class="nc bnc" id="L360" title="All 2 branches missed.">      if (wlOp != null) {</span>
+<span class="nc" id="L361">        return wlOp.getWindLevelParameters();</span>
+      }
+    }
+<span class="nc" id="L364">    return null;</span>
+  }
+
+  private DisplayByteLut getLut(WlParams p) {
+<span class="nc" id="L368">    DisplayByteLut lut = null;</span>
+<span class="nc bnc" id="L369" title="All 2 branches missed.">    if (view2DPane != null) {</span>
+<span class="nc" id="L370">      int channels = view2DPane.getSourceImage().channels();</span>
+<span class="nc bnc" id="L371" title="All 2 branches missed.">      if (channels == 1) {</span>
+<span class="nc" id="L372">        DisplayByteLut disLut = HistogramView.buildDisplayByteLut(view2DPane);</span>
+<span class="nc bnc" id="L373" title="All 2 branches missed.">        if (disLut == null) {</span>
+<span class="nc" id="L374">          disLut = new DisplayByteLut(ColorLut.GRAY.getByteLut());</span>
+        }
+<span class="nc" id="L376">        disLut.setInvert(p.isInverseLut());</span>
+<span class="nc" id="L377">        lut = disLut;</span>
+      }
+    }
+
+<span class="nc bnc" id="L381" title="All 2 branches missed.">    if (lut == null) {</span>
+<span class="nc" id="L382">      lut = new DisplayByteLut(ColorLut.GRAY.getByteLut());</span>
+    }
+<span class="nc" id="L384">    return lut;</span>
+  }
+
+  public void drawScale(
+      Graphics2D g2d, Rectangle bound, float fontHeight, ImageProperties imgProps) {
+<span class="nc bnc" id="L389" title="All 2 branches missed.">    if (imgProps == null) {</span>
+<span class="nc" id="L390">      return;</span>
+    }
+
+<span class="nc" id="L393">    double zoomFactor = view2DPane.getViewModel().getViewScale();</span>
+
+<span class="nc" id="L395">    double scale = imgProps.pixelSize / zoomFactor;</span>
+<span class="nc" id="L396">    double scaleSizex =</span>
+<span class="nc" id="L397">        adjustShowScale(</span>
+            scale,
+<span class="nc" id="L399">            (int) Math.min(zoomFactor * imgProps.width * imgProps.rescaleX, bound.width / 2.0));</span>
+
+<span class="nc bnc" id="L401" title="All 4 branches missed.">    if (showBottomScale &amp;&amp; scaleSizex &gt; 50.0d) {</span>
+<span class="nc" id="L402">      Unit[] unit = {imgProps.pixelUnit};</span>
+<span class="nc" id="L403">      String str = adjustLengthDisplay(scaleSizex * scale, unit);</span>
+<span class="nc" id="L404">      g2d.setStroke(new BasicStroke(1.0F));</span>
+<span class="nc" id="L405">      g2d.setPaint(Color.BLACK);</span>
+
+<span class="nc" id="L407">      double posx = bound.width / 2.0 - scaleSizex / 2.0;</span>
+<span class="nc" id="L408">      double posy = bound.height - border - 1.5; // - 1.5 is for outline</span>
+<span class="nc" id="L409">      Line2D line = new Line2D.Double(posx, posy, posx + scaleSizex, posy);</span>
+<span class="nc" id="L410">      g2d.draw(getOutLine(line));</span>
+<span class="nc" id="L411">      line.setLine(posx, posy - thickLength, posx, posy);</span>
+<span class="nc" id="L412">      g2d.draw(getOutLine(line));</span>
+<span class="nc" id="L413">      line.setLine(posx + scaleSizex, posy - thickLength, posx + scaleSizex, posy);</span>
+<span class="nc" id="L414">      g2d.draw(getOutLine(line));</span>
+<span class="nc bnc" id="L415" title="All 4 branches missed.">      int divisor = !str.contains(&quot;5&quot;) ? !str.contains(&quot;2&quot;) ? 10 : 2 : 5;</span>
+<span class="nc" id="L416">      double midThick = thickLength * 2.0 / 3.0;</span>
+<span class="nc" id="L417">      double smallThick = thickLength / 3.0;</span>
+<span class="nc" id="L418">      double divSquare = scaleSizex / divisor;</span>
+<span class="nc bnc" id="L419" title="All 2 branches missed.">      for (int i = 1; i &lt; divisor; i++) {</span>
+<span class="nc" id="L420">        line.setLine(posx + divSquare * i, posy, posx + divSquare * i, posy - midThick);</span>
+<span class="nc" id="L421">        g2d.draw(getOutLine(line));</span>
+      }
+<span class="nc bnc" id="L423" title="All 2 branches missed.">      if (divSquare &gt; 90) {</span>
+<span class="nc" id="L424">        double secondSquare = divSquare / 10.0;</span>
+<span class="nc bnc" id="L425" title="All 2 branches missed.">        for (int i = 0; i &lt; divisor; i++) {</span>
+<span class="nc bnc" id="L426" title="All 2 branches missed.">          for (int k = 1; k &lt; 10; k++) {</span>
+<span class="nc" id="L427">            double secBar = posx + divSquare * i + secondSquare * k;</span>
+<span class="nc" id="L428">            line.setLine(secBar, posy, secBar, posy - smallThick);</span>
+<span class="nc" id="L429">            g2d.draw(getOutLine(line));</span>
+          }
+        }
+      }
+
+<span class="nc" id="L434">      g2d.setPaint(Color.white);</span>
+<span class="nc" id="L435">      line.setLine(posx, posy, posx + scaleSizex, posy);</span>
+<span class="nc" id="L436">      g2d.draw(line);</span>
+<span class="nc" id="L437">      line.setLine(posx, posy - thickLength, posx, posy);</span>
+<span class="nc" id="L438">      g2d.draw(line);</span>
+<span class="nc" id="L439">      line.setLine(posx + scaleSizex, posy - thickLength, posx + scaleSizex, posy);</span>
+<span class="nc" id="L440">      g2d.draw(line);</span>
+
+<span class="nc bnc" id="L442" title="All 2 branches missed.">      for (int i = 0; i &lt; divisor; i++) {</span>
+<span class="nc" id="L443">        line.setLine(posx + divSquare * i, posy, posx + divSquare * i, posy - midThick);</span>
+<span class="nc" id="L444">        g2d.draw(line);</span>
+      }
+<span class="nc bnc" id="L446" title="All 2 branches missed.">      if (divSquare &gt; 90) {</span>
+<span class="nc" id="L447">        double secondSquare = divSquare / 10.0;</span>
+<span class="nc bnc" id="L448" title="All 2 branches missed.">        for (int i = 0; i &lt; divisor; i++) {</span>
+<span class="nc bnc" id="L449" title="All 2 branches missed.">          for (int k = 1; k &lt; 10; k++) {</span>
+<span class="nc" id="L450">            double secBar = posx + divSquare * i + secondSquare * k;</span>
+<span class="nc" id="L451">            line.setLine(secBar, posy, secBar, posy - smallThick);</span>
+<span class="nc" id="L452">            g2d.draw(line);</span>
+          }
+        }
+      }
+<span class="nc bnc" id="L456" title="All 2 branches missed.">      if (StringUtil.hasText(imgProps.pixelDescription)) {</span>
+<span class="nc" id="L457">        FontTools.paintFontOutline(</span>
+            g2d,
+            imgProps.pixelDescription,
+            (float) (posx + scaleSizex + 5),
+            (float) posy - fontHeight);
+      }
+<span class="nc" id="L463">      str += &quot; &quot; + unit[0].getAbbreviation();</span>
+<span class="nc" id="L464">      FontTools.paintFontOutline(g2d, str, (float) (posx + scaleSizex + 5), (float) posy);</span>
+    }
+
+<span class="nc" id="L467">    double scaleSizeY =</span>
+<span class="nc" id="L468">        adjustShowScale(</span>
+            scale,
+<span class="nc" id="L470">            (int) Math.min(zoomFactor * imgProps.height * imgProps.rescaleY, bound.height / 2.0));</span>
+
+<span class="nc bnc" id="L472" title="All 2 branches missed.">    if (scaleSizeY &gt; 30.0d) {</span>
+<span class="nc" id="L473">      Unit[] unit = {imgProps.pixelUnit};</span>
+<span class="nc" id="L474">      String str = adjustLengthDisplay(scaleSizeY * scale, unit);</span>
+
+<span class="nc" id="L476">      float strokeWidth = g2d.getFont().getSize() / 15.0f;</span>
+<span class="nc" id="L477">      strokeWidth = Math.max(strokeWidth, 1.0f);</span>
+<span class="nc" id="L478">      g2d.setStroke(new BasicStroke(strokeWidth));</span>
+<span class="nc" id="L479">      g2d.setPaint(Color.black);</span>
+
+<span class="nc" id="L481">      double posx = border - 1.5f; // -1.5 for outline</span>
+<span class="nc" id="L482">      double posy = bound.height / 2.0 - scaleSizeY / 2.0;</span>
+<span class="nc" id="L483">      Line2D line = new Line2D.Double(posx, posy, posx, posy + scaleSizeY);</span>
+<span class="nc" id="L484">      g2d.draw(getOutLine(line));</span>
+<span class="nc" id="L485">      line.setLine(posx, posy, posx + thickLength, posy);</span>
+<span class="nc" id="L486">      g2d.draw(getOutLine(line));</span>
+<span class="nc" id="L487">      line.setLine(posx, posy + scaleSizeY, posx + thickLength, posy + scaleSizeY);</span>
+<span class="nc" id="L488">      g2d.draw(getOutLine(line));</span>
+<span class="nc bnc" id="L489" title="All 4 branches missed.">      int divisor = !str.contains(&quot;5&quot;) ? !str.contains(&quot;2&quot;) ? 10 : 2 : 5;</span>
+<span class="nc" id="L490">      double divSquare = scaleSizeY / divisor;</span>
+<span class="nc" id="L491">      double midThick = thickLength * 2.0 / 3.0;</span>
+<span class="nc" id="L492">      double smallThick = thickLength / 3.0;</span>
+<span class="nc bnc" id="L493" title="All 2 branches missed.">      for (int i = 0; i &lt; divisor; i++) {</span>
+<span class="nc" id="L494">        line.setLine(posx, posy + divSquare * i, posx + midThick, posy + divSquare * i);</span>
+<span class="nc" id="L495">        g2d.draw(getOutLine(line));</span>
+      }
+<span class="nc bnc" id="L497" title="All 2 branches missed.">      if (divSquare &gt; 90) {</span>
+<span class="nc" id="L498">        double secondSquare = divSquare / 10.0;</span>
+<span class="nc bnc" id="L499" title="All 2 branches missed.">        for (int i = 0; i &lt; divisor; i++) {</span>
+<span class="nc bnc" id="L500" title="All 2 branches missed.">          for (int k = 1; k &lt; 10; k++) {</span>
+<span class="nc" id="L501">            double secBar = posy + divSquare * i + secondSquare * k;</span>
+<span class="nc" id="L502">            line.setLine(posx, secBar, posx + smallThick, secBar);</span>
+<span class="nc" id="L503">            g2d.draw(getOutLine(line));</span>
+          }
+        }
+      }
+
+<span class="nc" id="L508">      g2d.setPaint(Color.WHITE);</span>
+<span class="nc" id="L509">      line.setLine(posx, posy, posx, posy + scaleSizeY);</span>
+<span class="nc" id="L510">      g2d.draw(line);</span>
+<span class="nc" id="L511">      line.setLine(posx, posy, posx + thickLength, posy);</span>
+<span class="nc" id="L512">      g2d.draw(line);</span>
+<span class="nc" id="L513">      line.setLine(posx, posy + scaleSizeY, posx + thickLength, posy + scaleSizeY);</span>
+<span class="nc" id="L514">      g2d.draw(line);</span>
+<span class="nc bnc" id="L515" title="All 2 branches missed.">      for (int i = 0; i &lt; divisor; i++) {</span>
+<span class="nc" id="L516">        line.setLine(posx, posy + divSquare * i, posx + midThick, posy + divSquare * i);</span>
+<span class="nc" id="L517">        g2d.draw(line);</span>
+      }
+<span class="nc bnc" id="L519" title="All 2 branches missed.">      if (divSquare &gt; 90) {</span>
+<span class="nc" id="L520">        double secondSquare = divSquare / 10.0;</span>
+<span class="nc bnc" id="L521" title="All 2 branches missed.">        for (int i = 0; i &lt; divisor; i++) {</span>
+<span class="nc bnc" id="L522" title="All 2 branches missed.">          for (int k = 1; k &lt; 10; k++) {</span>
+<span class="nc" id="L523">            double secBar = posy + divSquare * i + secondSquare * k;</span>
+<span class="nc" id="L524">            line.setLine(posx, secBar, posx + smallThick, secBar);</span>
+<span class="nc" id="L525">            g2d.draw(line);</span>
+          }
+        }
+      }
+
+<span class="nc" id="L530">      FontTools.paintFontOutline(</span>
+<span class="nc" id="L531">          g2d, str + &quot; &quot; + unit[0].getAbbreviation(), (int) posx, (int) (posy - 5 * strokeWidth));</span>
+    }
+<span class="nc" id="L533">  }</span>
+
+  public static double adjustShowScale(double ratio, int maxLength) {
+<span class="nc" id="L536">    int digits = (int) ((Math.log(maxLength * ratio) / Math.log(10)) + 1);</span>
+<span class="nc" id="L537">    double scaleLength = Math.pow(10, digits);</span>
+<span class="nc" id="L538">    double scaleSize = scaleLength / ratio;</span>
+
+<span class="nc" id="L540">    int loop = 0;</span>
+<span class="nc bnc" id="L541" title="All 2 branches missed.">    while ((int) scaleSize &gt; maxLength) {</span>
+<span class="nc" id="L542">      scaleLength /= findGeometricSuite(scaleLength);</span>
+<span class="nc" id="L543">      scaleSize = scaleLength / ratio;</span>
+<span class="nc" id="L544">      loop++;</span>
+<span class="nc bnc" id="L545" title="All 2 branches missed.">      if (loop &gt; 50) {</span>
+<span class="nc" id="L546">        return 0.0;</span>
+      }
+    }
+<span class="nc" id="L549">    return scaleSize;</span>
+  }
+
+  public static double findGeometricSuite(double length) {
+<span class="nc" id="L553">    int shift = (int) ((Math.log(length) / Math.log(10)) + 0.1);</span>
+<span class="nc" id="L554">    int firstDigit = (int) (length / Math.pow(10, shift) + 0.5);</span>
+<span class="nc bnc" id="L555" title="All 2 branches missed.">    if (firstDigit == 5) {</span>
+<span class="nc" id="L556">      return 2.5;</span>
+    }
+<span class="nc" id="L558">    return 2.0;</span>
+  }
+
+  public static String adjustLengthDisplay(double scaleLength, Unit[] unit) {
+<span class="nc" id="L562">    double adjustScaleLength = scaleLength;</span>
+
+<span class="nc" id="L564">    Unit adjustUnit = unit[0];</span>
+
+<span class="nc bnc" id="L566" title="All 2 branches missed.">    if (scaleLength &lt; 1.0) {</span>
+<span class="nc" id="L567">      Unit down = adjustUnit;</span>
+<span class="nc bnc" id="L568" title="All 2 branches missed.">      while ((down = down.getDownUnit()) != null) {</span>
+<span class="nc" id="L569">        double length = scaleLength * down.getConversionRatio(unit[0].getConvFactor());</span>
+<span class="nc bnc" id="L570" title="All 2 branches missed.">        if (length &gt; 1) {</span>
+<span class="nc" id="L571">          adjustUnit = down;</span>
+<span class="nc" id="L572">          adjustScaleLength = length;</span>
+<span class="nc" id="L573">          break;</span>
+        }
+<span class="nc" id="L575">      }</span>
+<span class="nc bnc" id="L576" title="All 2 branches missed.">    } else if (scaleLength &gt; 10.0) {</span>
+<span class="nc" id="L577">      Unit up = adjustUnit;</span>
+<span class="nc bnc" id="L578" title="All 2 branches missed.">      while ((up = up.getUpUnit()) != null) {</span>
+<span class="nc" id="L579">        double length = scaleLength * up.getConversionRatio(unit[0].getConvFactor());</span>
+<span class="nc bnc" id="L580" title="All 2 branches missed.">        if (length &lt; 1) {</span>
+<span class="nc" id="L581">          break;</span>
+        }
+<span class="nc" id="L583">        adjustUnit = up;</span>
+<span class="nc" id="L584">        adjustScaleLength = length;</span>
+<span class="nc" id="L585">      }</span>
+    }
+    // Trick to keep the value as a return parameter
+<span class="nc" id="L588">    unit[0] = adjustUnit;</span>
+<span class="nc bnc" id="L589" title="All 2 branches missed.">    if (adjustScaleLength &lt; 1.0) {</span>
+<span class="nc bnc" id="L590" title="All 2 branches missed.">      return adjustScaleLength &lt; 0.001</span>
+<span class="nc" id="L591">          ? DecFormatter.scientificFormat(adjustScaleLength)</span>
+<span class="nc" id="L592">          : DecFormatter.fourDecimal(adjustScaleLength);</span>
+    }
+<span class="nc bnc" id="L594" title="All 2 branches missed.">    return adjustScaleLength &gt; 50000.0</span>
+<span class="nc" id="L595">        ? DecFormatter.scientificFormat(adjustScaleLength)</span>
+<span class="nc" id="L596">        : DecFormatter.twoDecimal(adjustScaleLength);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

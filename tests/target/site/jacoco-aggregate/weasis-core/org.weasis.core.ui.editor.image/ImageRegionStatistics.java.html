@@ -1,0 +1,316 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ImageRegionStatistics.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image</a> &gt; <span class="el_source">ImageRegionStatistics.java</span></div><h1>ImageRegionStatistics.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image;
+
+import static org.weasis.core.ui.model.utils.ImageStatistics.IMAGE_ENTROPY;
+import static org.weasis.core.ui.model.utils.ImageStatistics.IMAGE_KURTOSIS;
+import static org.weasis.core.ui.model.utils.ImageStatistics.IMAGE_MAX;
+import static org.weasis.core.ui.model.utils.ImageStatistics.IMAGE_MEAN;
+import static org.weasis.core.ui.model.utils.ImageStatistics.IMAGE_MEDIAN;
+import static org.weasis.core.ui.model.utils.ImageStatistics.IMAGE_MIN;
+import static org.weasis.core.ui.model.utils.ImageStatistics.IMAGE_PIXELS;
+import static org.weasis.core.ui.model.utils.ImageStatistics.IMAGE_SKEW;
+import static org.weasis.core.ui.model.utils.ImageStatistics.IMAGE_STD;
+
+import java.awt.Point;
+import java.awt.Shape;
+import java.awt.geom.AffineTransform;
+import java.awt.image.DataBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import org.opencv.core.Mat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.image.util.MeasurableLayer;
+import org.weasis.core.api.image.util.Unit;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.ui.editor.image.HistogramData.Model;
+import org.weasis.core.ui.model.graphic.GraphicArea;
+import org.weasis.core.ui.model.utils.bean.MeasureItem;
+import org.weasis.core.ui.model.utils.bean.Measurement;
+import org.weasis.core.util.MathUtil;
+import org.weasis.opencv.data.PlanarImage;
+import org.weasis.opencv.op.ImageConversion;
+import org.weasis.opencv.op.ImageProcessor;
+import org.weasis.opencv.op.lut.ByteLut;
+
+public class ImageRegionStatistics {
+<span class="nc" id="L47">  private static final Logger LOGGER = LoggerFactory.getLogger(ImageRegionStatistics.class);</span>
+
+  private ImageRegionStatistics() {}
+
+  public static List&lt;Mat&gt; prepareInputImages(GraphicArea graphic, MeasurableLayer layer) {
+<span class="nc bnc" id="L52" title="All 4 branches missed.">    if (layer != null &amp;&amp; layer.hasContent()) {</span>
+<span class="nc" id="L53">      Shape shape = null;</span>
+<span class="nc bnc" id="L54" title="All 2 branches missed.">      if (graphic != null) {</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">        if (!graphic.isShapeValid()) {</span>
+<span class="nc" id="L56">          return Collections.emptyList();</span>
+        }
+<span class="nc" id="L58">        shape = graphic.getShape();</span>
+      }
+
+<span class="nc" id="L61">      PlanarImage image = layer.getSourceRenderedImage();</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">      if (image == null) {</span>
+<span class="nc" id="L63">        return Collections.emptyList();</span>
+      }
+
+<span class="nc" id="L66">      Shape roi = getShape(layer, shape);</span>
+
+      // Always apply pixel padding (deactivate in Display has no effect in statistics)
+<span class="nc" id="L69">      Integer paddingValue = (Integer) layer.getSourceTagValue(TagW.get(&quot;PixelPaddingValue&quot;));</span>
+<span class="nc" id="L70">      Integer paddingLimit = (Integer) layer.getSourceTagValue(TagW.get(&quot;PixelPaddingRangeLimit&quot;));</span>
+<span class="nc" id="L71">      return ImageProcessor.getMaskImage(image.toMat(), roi, paddingValue, paddingLimit);</span>
+    }
+<span class="nc" id="L73">    return Collections.emptyList();</span>
+  }
+
+  private static Shape getShape(MeasurableLayer layer, Shape shape) {
+<span class="nc" id="L77">    Shape roi = null;</span>
+<span class="nc bnc" id="L78" title="All 2 branches missed.">    if (shape != null) {</span>
+<span class="nc" id="L79">      AffineTransform transform = layer.getShapeTransform();</span>
+<span class="nc" id="L80">      Point offset = layer.getOffset();</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">      if (offset != null) {</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">        if (transform == null) {</span>
+<span class="nc" id="L83">          transform = AffineTransform.getTranslateInstance(-offset.getX(), -offset.getY());</span>
+        } else {
+<span class="nc" id="L85">          transform.translate(-offset.getX(), -offset.getY());</span>
+        }
+      }
+<span class="nc bnc" id="L88" title="All 2 branches missed.">      if (transform != null) {</span>
+        // Rescale ROI, if needed
+<span class="nc" id="L90">        roi = transform.createTransformedShape(shape);</span>
+      } else {
+<span class="nc" id="L92">        roi = shape;</span>
+      }
+    }
+<span class="nc" id="L95">    return roi;</span>
+  }
+
+  public static List&lt;MeasureItem&gt; getImageStatistics(MeasurableLayer layer) {
+<span class="nc" id="L99">    return getImageStatistics(null, layer, true);</span>
+  }
+
+  public static List&lt;HistogramData&gt; getHistogram(GraphicArea graphic, MeasurableLayer layer) {
+<span class="nc" id="L103">    List&lt;Mat&gt; imgPr = prepareInputImages(graphic, layer);</span>
+<span class="nc bnc" id="L104" title="All 8 branches missed.">    if (layer != null &amp;&amp; layer.hasContent() &amp;&amp; imgPr != null &amp;&amp; imgPr.size() == 2) {</span>
+<span class="nc" id="L105">      return getHistogram(imgPr.get(0), imgPr.get(1), layer);</span>
+    }
+<span class="nc" id="L107">    return Collections.emptyList();</span>
+  }
+
+  public static List&lt;HistogramData&gt; getHistogram(Mat srcImg, Mat mask, MeasurableLayer layer) {
+<span class="nc bnc" id="L111" title="All 6 branches missed.">    if (srcImg == null || layer == null || !layer.hasContent()) {</span>
+<span class="nc" id="L112">      return Collections.emptyList();</span>
+    }
+
+<span class="nc" id="L115">    double pixMin = layer.getPixelMin();</span>
+<span class="nc" id="L116">    double pixMax = layer.getPixelMax();</span>
+
+<span class="nc" id="L118">    int channels = srcImg.channels();</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">    Model colorModel = channels &gt; 1 ? Model.RGB : Model.GRAY;</span>
+<span class="nc" id="L120">    int[] selChannels = new int[channels];</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">    for (int i = 0; i &lt; selChannels.length; i++) {</span>
+<span class="nc" id="L122">      selChannels[i] = i;</span>
+    }
+
+<span class="nc" id="L125">    List&lt;HistogramData&gt; data = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L126">    int datatype = ImageConversion.convertToDataType(srcImg.type());</span>
+<span class="nc bnc" id="L127" title="All 4 branches missed.">    boolean intVal = datatype &gt;= DataBuffer.TYPE_BYTE &amp;&amp; datatype &lt; DataBuffer.TYPE_INT;</span>
+    try {
+<span class="nc bnc" id="L129" title="All 2 branches missed.">      int binCount = intVal ? (int) pixMax - (int) pixMin + 1 : 1024;</span>
+<span class="nc" id="L130">      List&lt;Mat&gt; histograms =</span>
+<span class="nc" id="L131">          HistogramData.computeHistogram(</span>
+              srcImg, mask, binCount, selChannels, colorModel, pixMin, pixMax);
+
+<span class="nc" id="L134">      ByteLut[] lut = colorModel.getByteLut();</span>
+<span class="nc" id="L135">      DisplayByteLut[] luts = new DisplayByteLut[lut.length];</span>
+
+<span class="nc bnc" id="L137" title="All 2 branches missed.">      for (int i = 0; i &lt; lut.length; i++) {</span>
+<span class="nc" id="L138">        luts[i] = new DisplayByteLut(lut[i]);</span>
+<span class="nc" id="L139">        Mat h = histograms.get(i);</span>
+<span class="nc" id="L140">        float[] histValues = new float[h.rows()];</span>
+<span class="nc" id="L141">        h.get(0, 0, histValues);</span>
+<span class="nc" id="L142">        data.add(</span>
+            new HistogramData(histValues, luts[i], i, colorModel, null, pixMin, pixMax, layer));
+      }
+<span class="nc" id="L145">    } catch (Exception e) {</span>
+<span class="nc" id="L146">      LOGGER.error(&quot;Build histogram&quot;, e);</span>
+<span class="nc" id="L147">    }</span>
+<span class="nc" id="L148">    return data;</span>
+  }
+
+  public static List&lt;MeasureItem&gt; getImageStatistics(
+      GraphicArea graphic, MeasurableLayer layer, boolean releaseEvent) {
+<span class="nc bnc" id="L153" title="All 4 branches missed.">    if (layer != null &amp;&amp; layer.hasContent()) {</span>
+<span class="nc" id="L154">      List&lt;MeasureItem&gt; measVal = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L155" title="All 4 branches missed.">      if (releaseEvent &amp;&amp; isOneComputed()) {</span>
+<span class="nc" id="L156">        List&lt;HistogramData&gt; hists = getHistogram(graphic, layer);</span>
+<span class="nc bnc" id="L157" title="All 2 branches missed.">        for (int i = 0; i &lt; hists.size(); i++) {</span>
+<span class="nc" id="L158">          HistogramData data = hists.get(i);</span>
+<span class="nc bnc" id="L159" title="All 2 branches missed.">          Integer bandIndex = hists.size() == 1 ? null : data.getBandIndex();</span>
+<span class="nc bnc" id="L160" title="All 2 branches missed.">          measVal.addAll(getStatistics(data, bandIndex, i == 0));</span>
+        }
+      }
+<span class="nc" id="L163">      return measVal;</span>
+    }
+
+<span class="nc" id="L166">    return Collections.emptyList();</span>
+  }
+
+  private static boolean isOneComputed() {
+<span class="nc bnc" id="L170" title="All 2 branches missed.">    return IMAGE_PIXELS.getComputed()</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">        || IMAGE_MIN.getComputed()</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">        || IMAGE_MAX.getComputed()</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">        || IMAGE_MEDIAN.getComputed()</span>
+<span class="nc bnc" id="L174" title="All 2 branches missed.">        || IMAGE_MEAN.getComputed()</span>
+<span class="nc bnc" id="L175" title="All 2 branches missed.">        || IMAGE_STD.getComputed()</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">        || IMAGE_SKEW.getComputed()</span>
+<span class="nc bnc" id="L177" title="All 2 branches missed.">        || IMAGE_KURTOSIS.getComputed()</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">        || IMAGE_ENTROPY.getComputed();</span>
+  }
+
+  private static void addMeasure(
+      List&lt;MeasureItem&gt; measVal,
+      Measurement measure,
+      Integer channelIndex,
+      Double val,
+      String unit) {
+<span class="nc bnc" id="L187" title="All 2 branches missed.">    if (measure.getComputed()) {</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">      if (channelIndex == null) {</span>
+<span class="nc" id="L189">        measVal.add(new MeasureItem(measure, val, unit));</span>
+      } else {
+<span class="nc" id="L191">        measVal.add(new MeasureItem(measure, &quot; &quot; + (channelIndex + 1), val, unit));</span>
+      }
+    }
+<span class="nc" id="L194">  }</span>
+
+  public static List&lt;MeasureItem&gt; getStatistics(
+      HistogramData data, Integer channelIndex, boolean imagePixels) {
+<span class="nc" id="L198">    MeasurableLayer layer = data.getLayer();</span>
+<span class="nc bnc" id="L199" title="All 4 branches missed.">    if (layer != null &amp;&amp; layer.hasContent()) {</span>
+<span class="nc" id="L200">      float[] bins = data.getHistValues();</span>
+<span class="nc" id="L201">      double offset = data.getPixMin();</span>
+<span class="nc" id="L202">      List&lt;MeasureItem&gt; measList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L203">      double sum = 0;</span>
+<span class="nc" id="L204">      double min = Float.MAX_VALUE;</span>
+<span class="nc" id="L205">      double max = -Float.MAX_VALUE;</span>
+<span class="nc" id="L206">      double mean = 0.0;</span>
+
+<span class="nc" id="L208">      double binFactor = (data.getPixMax() - offset) / (bins.length - 1);</span>
+
+<span class="nc bnc" id="L210" title="All 2 branches missed.">      for (int k = 0; k &lt; bins.length; k++) {</span>
+<span class="nc bnc" id="L211" title="All 4 branches missed.">        boolean valid = MathUtil.isDifferentFromZero(bins[k]) &amp;&amp; bins[k] &gt; 0.0f;</span>
+<span class="nc" id="L212">        float val = bins[k];</span>
+<span class="nc" id="L213">        double level = layer.pixelToRealValue(k * binFactor + offset);</span>
+<span class="nc bnc" id="L214" title="All 4 branches missed.">        if (valid &amp;&amp; level &lt; min) {</span>
+<span class="nc" id="L215">          min = level;</span>
+        }
+<span class="nc bnc" id="L217" title="All 4 branches missed.">        if (valid &amp;&amp; level &gt; max) {</span>
+<span class="nc" id="L218">          max = level;</span>
+        }
+<span class="nc" id="L220">        sum += val;</span>
+<span class="nc" id="L221">        mean += val * level;</span>
+      }
+
+<span class="nc" id="L224">      mean /= sum;</span>
+
+<span class="nc" id="L226">      double m2 = 0.0;</span>
+<span class="nc" id="L227">      double skew = 0.0;</span>
+<span class="nc" id="L228">      double kurtosis = 0.0;</span>
+<span class="nc" id="L229">      double entropy = 0.0;</span>
+<span class="nc" id="L230">      double log2 = Math.log(2.0);</span>
+<span class="nc bnc" id="L231" title="All 2 branches missed.">      for (int k = 0; k &lt; bins.length; k++) {</span>
+<span class="nc" id="L232">        double val = bins[k];</span>
+<span class="nc" id="L233">        double level = layer.pixelToRealValue(k * binFactor + offset) - mean;</span>
+<span class="nc" id="L234">        m2 += val * Math.pow(level, 2);</span>
+<span class="nc" id="L235">        skew += val * Math.pow(level, 3);</span>
+<span class="nc" id="L236">        kurtosis += val * Math.pow(level, 4);</span>
+<span class="nc" id="L237">        double h = val / sum;</span>
+<span class="nc bnc" id="L238" title="All 2 branches missed.">        if (MathUtil.isDifferentFromZero(h)) {</span>
+<span class="nc" id="L239">          entropy -= h * (Math.log(h) / log2);</span>
+        }
+      }
+
+<span class="nc" id="L243">      double variance = m2 / (sum - 1); // variance</span>
+<span class="nc" id="L244">      double stdev = Math.sqrt(variance);</span>
+
+<span class="nc bnc" id="L246" title="All 4 branches missed.">      if (bins.length &gt; 3 &amp;&amp; variance &gt; MathUtil.DOUBLE_EPSILON) {</span>
+<span class="nc" id="L247">        skew =</span>
+            (sum * skew)
+                / ((sum - 1) // NOSONAR the condition above should exclude the division by 0
+                    * (sum - 2)
+                    * stdev
+                    * variance);
+<span class="nc" id="L253">        kurtosis =</span>
+            (sum * (sum + 1) * kurtosis - 3 * m2 * m2 * (sum - 1))
+                / ((sum - 1) * (sum - 2) * (sum - 3) * variance * variance);
+      } else {
+<span class="nc" id="L257">        skew = 0.0;</span>
+<span class="nc" id="L258">        kurtosis = 0.0;</span>
+      }
+<span class="nc" id="L260">      String unit = layer.getPixelValueUnit();</span>
+<span class="nc bnc" id="L261" title="All 2 branches missed.">      if (imagePixels) {</span>
+<span class="nc" id="L262">        addMeasure(measList, IMAGE_PIXELS, channelIndex, sum, Unit.PIXEL.getAbbreviation());</span>
+      }
+<span class="nc" id="L264">      addMeasure(measList, IMAGE_MIN, channelIndex, min, unit);</span>
+<span class="nc" id="L265">      addMeasure(measList, IMAGE_MAX, channelIndex, max, unit);</span>
+<span class="nc" id="L266">      addMeasure(</span>
+          measList,
+          IMAGE_MEDIAN,
+          channelIndex,
+<span class="nc" id="L270">          layer.pixelToRealValue(medianBin(bins, sum / 2.0) * binFactor + offset),</span>
+          unit);
+<span class="nc" id="L272">      addMeasure(measList, IMAGE_MEAN, channelIndex, mean, unit);</span>
+<span class="nc" id="L273">      addMeasure(measList, IMAGE_STD, channelIndex, stdev, null);</span>
+<span class="nc" id="L274">      addMeasure(measList, IMAGE_SKEW, channelIndex, skew, null);</span>
+<span class="nc" id="L275">      addMeasure(measList, IMAGE_KURTOSIS, channelIndex, kurtosis, null);</span>
+<span class="nc" id="L276">      addMeasure(measList, IMAGE_ENTROPY, channelIndex, entropy, null);</span>
+
+<span class="nc" id="L278">      Double suv = (Double) layer.getSourceTagValue(TagW.SuvFactor);</span>
+<span class="nc bnc" id="L279" title="All 4 branches missed.">      if (channelIndex == null &amp;&amp; Objects.nonNull(suv)) {</span>
+<span class="nc" id="L280">        unit = &quot;SUVbw, g/ml&quot;; // NON-NLS</span>
+<span class="nc" id="L281">        addMeasure(measList, IMAGE_MIN, null, min * suv, unit);</span>
+<span class="nc" id="L282">        addMeasure(measList, IMAGE_MAX, null, max * suv, unit);</span>
+<span class="nc" id="L283">        addMeasure(measList, IMAGE_MEAN, null, mean * suv, unit);</span>
+      }
+
+<span class="nc" id="L286">      return measList;</span>
+    }
+
+<span class="nc" id="L289">    return Collections.emptyList();</span>
+  }
+
+  public static double medianBin(final float[] bin, double halfEntries) {
+<span class="nc bnc" id="L293" title="All 4 branches missed.">    if (bin == null || bin.length &lt; 1) {</span>
+<span class="nc" id="L294">      return 0.0;</span>
+    } else {
+<span class="nc" id="L296">      double sumBin = 0.0;</span>
+      double sum;
+<span class="nc bnc" id="L298" title="All 2 branches missed.">      for (int i = 0; i &lt; bin.length; i++) {</span>
+<span class="nc" id="L299">        sum = sumBin + bin[i];</span>
+        // Check if bin crosses halfTotal point
+<span class="nc bnc" id="L301" title="All 2 branches missed.">        if (sum &gt;= halfEntries) {</span>
+          // Scale linearly across the bin
+<span class="nc" id="L303">          double dif = halfEntries - sumBin;</span>
+<span class="nc" id="L304">          double frac = 0.0;</span>
+<span class="nc bnc" id="L305" title="All 2 branches missed.">          if (bin[i] &gt; 0) {</span>
+<span class="nc" id="L306">            frac = (dif) / bin[i];</span>
+          }
+<span class="nc" id="L308">          return (i + frac);</span>
+        }
+<span class="nc" id="L310">        sumBin = sum;</span>
+      }
+    }
+<span class="nc" id="L313">    return 0.0;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

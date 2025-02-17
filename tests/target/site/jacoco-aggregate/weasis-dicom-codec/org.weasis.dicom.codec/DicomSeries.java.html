@@ -1,0 +1,432 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>DicomSeries.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec</a> &gt; <span class="el_source">DicomSeries.java</span></div><h1>DicomSeries.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Set;
+import org.dcm4che3.data.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.explorer.ObservableEvent;
+import org.weasis.core.api.explorer.model.DataExplorerModel;
+import org.weasis.core.api.gui.util.Filter;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.image.cv.CvUtil;
+import org.weasis.core.api.media.data.Series;
+import org.weasis.core.api.media.data.SeriesEvent;
+import org.weasis.core.api.media.data.TagView;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.ui.editor.image.DefaultView2d;
+import org.weasis.core.util.FileUtil;
+import org.weasis.core.util.MathUtil;
+import org.weasis.core.util.StringUtil;
+import org.weasis.dicom.codec.TagD.Level;
+import org.weasis.dicom.codec.utils.SeriesInstanceList;
+
+public class DicomSeries extends Series&lt;DicomImageElement&gt; {
+<span class="nc" id="L37">  private static final Logger LOGGER = LoggerFactory.getLogger(DicomSeries.class);</span>
+
+<span class="nc" id="L39">  static final TagView defaultTagView =</span>
+<span class="nc" id="L40">      new TagView(TagD.getTagFromIDs(Tag.SeriesDescription, Tag.SeriesNumber, Tag.SeriesTime));</span>
+
+  private static PreloadingTask preloadingTask;
+
+  public DicomSeries(String subseriesInstanceUID) {
+<span class="nc" id="L45">    this(subseriesInstanceUID, null, defaultTagView);</span>
+<span class="nc" id="L46">  }</span>
+
+  public DicomSeries(String subseriesInstanceUID, List&lt;DicomImageElement&gt; c, TagView displayTag) {
+<span class="nc" id="L49">    super(</span>
+<span class="nc" id="L50">        TagD.getUID(Level.SERIES),</span>
+        subseriesInstanceUID,
+        displayTag,
+        c,
+        SortSeriesStack.instanceNumber);
+<span class="nc" id="L55">  }</span>
+
+  public boolean[] getImageInMemoryList() {
+    boolean[] list;
+<span class="nc" id="L59">    synchronized (this) {</span>
+<span class="nc" id="L60">      list = new boolean[medias.size()];</span>
+<span class="nc bnc" id="L61" title="All 2 branches missed.">      for (int i = 0; i &lt; medias.size(); i++) {</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        if (medias.get(i).isImageInCache()) {</span>
+<span class="nc" id="L63">          list[i] = true;</span>
+        }
+      }
+<span class="nc" id="L66">    }</span>
+<span class="nc" id="L67">    return list;</span>
+  }
+
+  @Override
+  public void addMedia(DicomImageElement media) {
+<span class="nc bnc" id="L72" title="All 4 branches missed.">    if (media != null &amp;&amp; media.getMediaReader() != null) {</span>
+      int insertIndex;
+<span class="nc" id="L74">      synchronized (this) {</span>
+        // add image or multi-frame sorted by Instance Number (0020,0013) order
+<span class="nc" id="L76">        int index = Collections.binarySearch(medias, media, SortSeriesStack.instanceNumber);</span>
+<span class="nc bnc" id="L77" title="All 2 branches missed.">        if (index &lt; 0) {</span>
+<span class="nc" id="L78">          insertIndex = -(index + 1);</span>
+        } else {
+          // Should not happen because the instance number must be unique
+<span class="nc" id="L81">          insertIndex = index + 1;</span>
+        }
+<span class="nc bnc" id="L83" title="All 4 branches missed.">        if (insertIndex &lt; 0 || insertIndex &gt; medias.size()) {</span>
+<span class="nc" id="L84">          insertIndex = medias.size();</span>
+        }
+<span class="nc" id="L86">        add(insertIndex, media);</span>
+<span class="nc" id="L87">      }</span>
+<span class="nc" id="L88">      DataExplorerModel model = (DataExplorerModel) getTagValue(TagW.ExplorerModel);</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">      if (model != null) {</span>
+<span class="nc" id="L90">        model.firePropertyChange(</span>
+            new ObservableEvent(
+                ObservableEvent.BasicAction.ADD,
+                model,
+                null,
+                new SeriesEvent(SeriesEvent.Action.ADD_IMAGE, this, media)));
+      }
+    }
+<span class="nc" id="L98">  }</span>
+
+  @Override
+  public String getToolTips() {
+<span class="nc" id="L102">    StringBuilder toolTips = getToolTips(this);</span>
+<span class="nc bnc" id="L103" title="All 2 branches missed.">    if (getFileSize() &gt; 0.0) {</span>
+<span class="nc" id="L104">      toolTips.append(Messages.getString(&quot;DicomSeries.size&quot;));</span>
+<span class="nc" id="L105">      toolTips.append(StringUtil.COLON_AND_SPACE);</span>
+<span class="nc" id="L106">      toolTips.append(FileUtil.humanReadableByte(getFileSize(), false));</span>
+<span class="nc" id="L107">      toolTips.append(GuiUtils.HTML_BR);</span>
+    }
+<span class="nc" id="L109">    toolTips.append(GuiUtils.HTML_END);</span>
+<span class="nc" id="L110">    return toolTips.toString();</span>
+  }
+
+  public static StringBuilder getToolTips(Series&lt;?&gt; series) {
+<span class="nc" id="L114">    StringBuilder toolTips = new StringBuilder(GuiUtils.HTML_START);</span>
+<span class="nc" id="L115">    series.addToolTipsElement(</span>
+<span class="nc" id="L116">        toolTips, Messages.getString(&quot;DicomSeries.pat&quot;), TagD.get(Tag.PatientName));</span>
+<span class="nc" id="L117">    series.addToolTipsElement(</span>
+<span class="nc" id="L118">        toolTips, Messages.getString(&quot;DicomSeries.mod&quot;), TagD.get(Tag.Modality));</span>
+<span class="nc" id="L119">    series.addToolTipsElement(</span>
+<span class="nc" id="L120">        toolTips, Messages.getString(&quot;DicomSeries.series_nb&quot;), TagD.get(Tag.SeriesNumber));</span>
+<span class="nc" id="L121">    series.addToolTipsElement(</span>
+<span class="nc" id="L122">        toolTips, Messages.getString(&quot;DicomSeries.study&quot;), TagD.get(Tag.StudyDescription));</span>
+<span class="nc" id="L123">    series.addToolTipsElement(</span>
+<span class="nc" id="L124">        toolTips, Messages.getString(&quot;DicomSeries.series&quot;), TagD.get(Tag.SeriesDescription));</span>
+<span class="nc" id="L125">    series.addToolTipsElement(</span>
+        toolTips,
+<span class="nc" id="L127">        Messages.getString(&quot;DicomSeries.date&quot;),</span>
+<span class="nc" id="L128">        TagD.get(Tag.SeriesDate),</span>
+<span class="nc" id="L129">        TagD.get(Tag.SeriesTime));</span>
+<span class="nc" id="L130">    return toolTips;</span>
+  }
+
+  @Override
+  public String getSeriesNumber() {
+<span class="nc" id="L135">    Integer splitNb = (Integer) getTagValue(TagW.SplitSeriesNumber);</span>
+<span class="nc" id="L136">    Integer val = TagD.getTagValue(this, Tag.SeriesNumber, Integer.class);</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">    String result = val == null ? &quot;&quot; : val.toString();</span>
+<span class="nc bnc" id="L138" title="All 2 branches missed.">    return splitNb == null ? result : result + &quot;-&quot; + splitNb;</span>
+  }
+
+  @Override
+  public String getMimeType() {
+<span class="nc" id="L143">    String modality = TagD.getTagValue(this, Tag.Modality, String.class);</span>
+<span class="nc" id="L144">    DicomSpecialElementFactory factory = DicomMediaIO.DCM_ELEMENT_FACTORIES.get(modality);</span>
+<span class="nc bnc" id="L145" title="All 2 branches missed.">    if (factory != null) {</span>
+<span class="nc" id="L146">      return factory.getSeriesMimeType();</span>
+    }
+    // Type for the default 2D viewer
+<span class="nc" id="L149">    return DicomMediaIO.SERIES_MIMETYPE;</span>
+  }
+
+  @Override
+  public synchronized void dispose() {
+<span class="nc" id="L154">    stopPreloading(this);</span>
+<span class="nc" id="L155">    String seriesUID = (String) getTagValue(getTagID());</span>
+<span class="nc" id="L156">    String modality = TagD.getTagValue(this, Tag.Modality, String.class);</span>
+<span class="nc bnc" id="L157" title="All 2 branches missed.">    if (DicomMediaIO.isHiddenModality(modality)) {</span>
+<span class="nc" id="L158">      HiddenSeriesManager manager = HiddenSeriesManager.getInstance();</span>
+<span class="nc" id="L159">      Set&lt;HiddenSpecialElement&gt; removed = manager.series2Elements.remove(seriesUID);</span>
+<span class="nc bnc" id="L160" title="All 4 branches missed.">      if (removed != null &amp;&amp; !removed.isEmpty()) {</span>
+<span class="nc" id="L161">        String patientPseudoUID =</span>
+<span class="nc" id="L162">            (String) removed.iterator().next().getTagValue(TagW.PatientPseudoUID);</span>
+<span class="nc bnc" id="L163" title="All 2 branches missed.">        if (patientPseudoUID != null) {</span>
+<span class="nc" id="L164">          Set&lt;String&gt; list = manager.patient2Series.get(patientPseudoUID);</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">          if (list != null) {</span>
+<span class="nc" id="L166">            list.remove(seriesUID);</span>
+<span class="nc bnc" id="L167" title="All 2 branches missed.">            if (list.isEmpty()) {</span>
+<span class="nc" id="L168">              manager.patient2Series.remove(patientPseudoUID);</span>
+            }
+          }
+        }
+      }
+    }
+<span class="nc" id="L174">    super.dispose();</span>
+<span class="nc" id="L175">  }</span>
+
+  @Override
+  public DicomImageElement getNearestImage(
+      double location,
+      int offset,
+      Filter&lt;DicomImageElement&gt; filter,
+      Comparator&lt;DicomImageElement&gt; sort) {
+<span class="nc" id="L183">    Iterable&lt;DicomImageElement&gt; mediaList = getMedias(filter, sort);</span>
+<span class="nc" id="L184">    DicomImageElement nearest = null;</span>
+<span class="nc" id="L185">    int index = 0;</span>
+<span class="nc" id="L186">    int bestIndex = -1;</span>
+<span class="nc" id="L187">    synchronized (this) {</span>
+<span class="nc" id="L188">      double bestDiff = Double.MAX_VALUE;</span>
+<span class="nc bnc" id="L189" title="All 2 branches missed.">      for (DicomImageElement dcm : mediaList) {</span>
+<span class="nc" id="L190">        double[] val = (double[]) dcm.getTagValue(TagW.SlicePosition);</span>
+<span class="nc bnc" id="L191" title="All 2 branches missed.">        if (val != null) {</span>
+<span class="nc" id="L192">          double diff = Math.abs(location - (val[0] + val[1] + val[2]));</span>
+<span class="nc bnc" id="L193" title="All 2 branches missed.">          if (diff &lt; bestDiff) {</span>
+<span class="nc" id="L194">            bestDiff = diff;</span>
+<span class="nc" id="L195">            nearest = dcm;</span>
+<span class="nc" id="L196">            bestIndex = index;</span>
+<span class="nc bnc" id="L197" title="All 2 branches missed.">            if (MathUtil.isEqualToZero(diff)) {</span>
+<span class="nc" id="L198">              break;</span>
+            }
+          }
+        }
+<span class="nc" id="L202">        index++;</span>
+<span class="nc" id="L203">      }</span>
+<span class="nc" id="L204">    }</span>
+<span class="nc bnc" id="L205" title="All 2 branches missed.">    if (offset &gt; 0) {</span>
+<span class="nc" id="L206">      return getMedia(bestIndex + offset, filter, sort);</span>
+    }
+<span class="nc" id="L208">    return nearest;</span>
+  }
+
+  @Override
+  public int getNearestImageIndex(
+      double location,
+      int offset,
+      Filter&lt;DicomImageElement&gt; filter,
+      Comparator&lt;DicomImageElement&gt; sort) {
+<span class="nc" id="L217">    Iterable&lt;DicomImageElement&gt; mediaList = getMedias(filter, sort);</span>
+<span class="nc" id="L218">    int index = 0;</span>
+<span class="nc" id="L219">    int bestIndex = -1;</span>
+<span class="nc" id="L220">    synchronized (this) {</span>
+<span class="nc" id="L221">      double bestDiff = Double.MAX_VALUE;</span>
+<span class="nc bnc" id="L222" title="All 2 branches missed.">      for (DicomImageElement dcm : mediaList) {</span>
+<span class="nc" id="L223">        double[] val = (double[]) dcm.getTagValue(TagW.SlicePosition);</span>
+<span class="nc bnc" id="L224" title="All 2 branches missed.">        if (val != null) {</span>
+<span class="nc" id="L225">          double diff = Math.abs(location - (val[0] + val[1] + val[2]));</span>
+<span class="nc bnc" id="L226" title="All 2 branches missed.">          if (diff &lt; bestDiff) {</span>
+<span class="nc" id="L227">            bestDiff = diff;</span>
+<span class="nc" id="L228">            bestIndex = index;</span>
+<span class="nc bnc" id="L229" title="All 2 branches missed.">            if (MathUtil.isEqualToZero(diff)) {</span>
+<span class="nc" id="L230">              break;</span>
+            }
+          }
+        }
+<span class="nc" id="L234">        index++;</span>
+<span class="nc" id="L235">      }</span>
+<span class="nc" id="L236">    }</span>
+
+<span class="nc bnc" id="L238" title="All 2 branches missed.">    return (offset &gt; 0) ? (bestIndex + offset) : bestIndex;</span>
+  }
+
+  @Override
+  public boolean hasMediaContains(TagW tag, Object val) {
+<span class="nc bnc" id="L243" title="All 2 branches missed.">    if (val != null) {</span>
+<span class="nc" id="L244">      synchronized (this) {</span>
+<span class="nc bnc" id="L245" title="All 2 branches missed.">        for (DicomImageElement media : medias) {</span>
+<span class="nc" id="L246">          Object val2 = media.getTagValue(tag);</span>
+<span class="nc bnc" id="L247" title="All 2 branches missed.">          if (val.equals(val2)) {</span>
+<span class="nc" id="L248">            return true;</span>
+          }
+<span class="nc" id="L250">        }</span>
+<span class="nc" id="L251">      }</span>
+<span class="nc bnc" id="L252" title="All 2 branches missed.">      if (medias.isEmpty()) {</span>
+<span class="nc" id="L253">        List&lt;? extends DicomSpecialElement&gt; list = getAllDicomSpecialElement();</span>
+<span class="nc bnc" id="L254" title="All 2 branches missed.">        if (list != null) {</span>
+<span class="nc bnc" id="L255" title="All 2 branches missed.">          for (DicomSpecialElement specialElement : list) {</span>
+<span class="nc" id="L256">            Object val2 = specialElement.getTagValue(tag);</span>
+<span class="nc bnc" id="L257" title="All 2 branches missed.">            if (val.equals(val2)) {</span>
+<span class="nc" id="L258">              return true;</span>
+            }
+<span class="nc" id="L260">          }</span>
+        }
+      }
+    }
+<span class="nc" id="L264">    return false;</span>
+  }
+
+  public List&lt;DicomSpecialElement&gt; getAllDicomSpecialElement() {
+<span class="nc" id="L268">    List&lt;DicomSpecialElement&gt; specialElements =</span>
+<span class="nc" id="L269">        (List&lt;DicomSpecialElement&gt;) getTagValue(TagW.DicomSpecialElementList);</span>
+<span class="nc bnc" id="L270" title="All 2 branches missed.">    if (specialElements != null) {</span>
+<span class="nc" id="L271">      return specialElements;</span>
+    }
+
+<span class="nc" id="L274">    String seriesUID = (String) getTagValue(getTagID());</span>
+    Set&lt;HiddenSpecialElement&gt; list =
+<span class="nc" id="L276">        HiddenSeriesManager.getInstance().series2Elements.get(seriesUID);</span>
+<span class="nc bnc" id="L277" title="All 4 branches missed.">    if (list != null &amp;&amp; !list.isEmpty()) {</span>
+<span class="nc" id="L278">      return new ArrayList&lt;&gt;(list);</span>
+    }
+<span class="nc" id="L280">    return Collections.emptyList();</span>
+  }
+
+  @Override
+  public DicomSpecialElement getFirstSpecialElement() {
+<span class="nc" id="L285">    List&lt;DicomSpecialElement&gt; specialElements =</span>
+<span class="nc" id="L286">        (List&lt;DicomSpecialElement&gt;) getTagValue(TagW.DicomSpecialElementList);</span>
+<span class="nc bnc" id="L287" title="All 4 branches missed.">    if (specialElements != null &amp;&amp; !specialElements.isEmpty()) {</span>
+<span class="nc" id="L288">      return specialElements.getFirst();</span>
+    }
+<span class="nc" id="L290">    return null;</span>
+  }
+
+  @Override
+  public boolean isSuitableFor3d() {
+<span class="nc" id="L295">    SeriesInstanceList seriesInstanceList =</span>
+<span class="nc" id="L296">        (SeriesInstanceList) getTagValue(TagW.WadoInstanceReferenceList);</span>
+<span class="nc bnc" id="L297" title="All 2 branches missed.">    if (seriesInstanceList != null) {</span>
+<span class="nc bnc" id="L298" title="All 2 branches missed.">      return seriesInstanceList.size() &gt;= DefaultView2d.MINIMAL_IMAGES_FOR_3D;</span>
+    }
+<span class="nc bnc" id="L300" title="All 2 branches missed.">    return size(null) &gt;= DefaultView2d.MINIMAL_IMAGES_FOR_3D;</span>
+  }
+
+  public static synchronized void startPreloading(
+      DicomSeries series, List&lt;DicomImageElement&gt; imageList, int currentIndex) {
+<span class="nc bnc" id="L305" title="All 4 branches missed.">    if (series != null &amp;&amp; imageList != null) {</span>
+<span class="nc bnc" id="L306" title="All 2 branches missed.">      if (preloadingTask != null) {</span>
+<span class="nc bnc" id="L307" title="All 2 branches missed.">        if (preloadingTask.getSeries() == series) {</span>
+<span class="nc" id="L308">          return;</span>
+        }
+<span class="nc" id="L310">        stopPreloading(preloadingTask.getSeries());</span>
+      }
+<span class="nc" id="L312">      preloadingTask = new PreloadingTask(series, imageList, currentIndex);</span>
+<span class="nc" id="L313">      preloadingTask.start();</span>
+    }
+<span class="nc" id="L315">  }</span>
+
+  public static synchronized void stopPreloading(DicomSeries series) {
+<span class="nc bnc" id="L318" title="All 4 branches missed.">    if (preloadingTask != null &amp;&amp; preloadingTask.getSeries() == series) {</span>
+<span class="nc" id="L319">      PreloadingTask moribund = preloadingTask;</span>
+<span class="nc" id="L320">      preloadingTask = null;</span>
+<span class="nc" id="L321">      moribund.setPreloading(false);</span>
+<span class="nc" id="L322">      moribund.interrupt();</span>
+    }
+<span class="nc" id="L324">  }</span>
+
+  static class PreloadingTask extends Thread {
+<span class="nc" id="L327">    private volatile boolean preloading = true;</span>
+    private final int index;
+    private final List&lt;DicomImageElement&gt; imageList;
+    private final DicomSeries series;
+
+<span class="nc" id="L332">    public PreloadingTask(DicomSeries series, List&lt;DicomImageElement&gt; imageList, int currentIndex) {</span>
+<span class="nc" id="L333">      this.series = series;</span>
+<span class="nc" id="L334">      this.imageList = imageList;</span>
+<span class="nc" id="L335">      this.index = currentIndex;</span>
+<span class="nc" id="L336">    }</span>
+
+    public synchronized boolean isPreloading() {
+<span class="nc" id="L339">      return preloading;</span>
+    }
+
+    public DicomSeries getSeries() {
+<span class="nc" id="L343">      return series;</span>
+    }
+
+    public List&lt;DicomImageElement&gt; getImageList() {
+<span class="nc" id="L347">      return imageList;</span>
+    }
+
+    public synchronized void setPreloading(boolean preloading) {
+<span class="nc" id="L351">      this.preloading = preloading;</span>
+<span class="nc" id="L352">    }</span>
+
+    private static long evaluateImageSize(DicomImageElement image) {
+<span class="nc" id="L355">      Integer allocated = TagD.getTagValue(image, Tag.BitsAllocated, Integer.class);</span>
+<span class="nc" id="L356">      Integer sample = TagD.getTagValue(image, Tag.SamplesPerPixel, Integer.class);</span>
+<span class="nc" id="L357">      Integer rows = TagD.getTagValue(image, Tag.Rows, Integer.class);</span>
+<span class="nc" id="L358">      Integer columns = TagD.getTagValue(image, Tag.Columns, Integer.class);</span>
+<span class="nc bnc" id="L359" title="All 8 branches missed.">      if (allocated != null &amp;&amp; sample != null &amp;&amp; rows != null &amp;&amp; columns != null) {</span>
+<span class="nc" id="L360">        return ((long) rows * columns * sample * allocated) / 8L;</span>
+      }
+<span class="nc" id="L362">      return 0L;</span>
+    }
+
+    private void loadArrays(DicomImageElement img, DataExplorerModel model) {
+      // Do not load an image if another process already loading it
+<span class="nc bnc" id="L367" title="All 4 branches missed.">      if (preloading &amp;&amp; !img.isLoading()) {</span>
+<span class="nc" id="L368">        Boolean cache = (Boolean) img.getTagValue(TagW.ImageCache);</span>
+<span class="nc bnc" id="L369" title="All 4 branches missed.">        if (cache == null || !cache) {</span>
+<span class="nc" id="L370">          long start = System.currentTimeMillis();</span>
+          try {
+<span class="nc" id="L372">            img.getImage();</span>
+<span class="nc" id="L373">          } catch (OutOfMemoryError e) {</span>
+<span class="nc" id="L374">            LOGGER.error(&quot;Out of memory when loading image: {}&quot;, img, e);</span>
+<span class="nc" id="L375">            CvUtil.runGarbageCollectorAndWait(50);</span>
+<span class="nc" id="L376">            return;</span>
+<span class="nc" id="L377">          }</span>
+<span class="nc" id="L378">          long stop = System.currentTimeMillis();</span>
+<span class="nc" id="L379">          LOGGER.debug(&quot;Reading time: {} ms of image: {}&quot;, stop - start, img);</span>
+<span class="nc bnc" id="L380" title="All 2 branches missed.">          if (model != null) {</span>
+<span class="nc" id="L381">            model.firePropertyChange(</span>
+                new ObservableEvent(
+                    ObservableEvent.BasicAction.ADD,
+                    model,
+                    null,
+                    new SeriesEvent(SeriesEvent.Action.PRELOADING, series, img)));
+          }
+        }
+      }
+<span class="nc" id="L390">    }</span>
+
+    @Override
+    public void run() {
+<span class="nc bnc" id="L394" title="All 2 branches missed.">      if (imageList != null) {</span>
+<span class="nc" id="L395">        DataExplorerModel model = (DataExplorerModel) series.getTagValue(TagW.ExplorerModel);</span>
+<span class="nc" id="L396">        int size = imageList.size();</span>
+<span class="nc bnc" id="L397" title="All 6 branches missed.">        if (model == null || index &lt; 0 || index &gt;= size) {</span>
+<span class="nc" id="L398">          return;</span>
+        }
+<span class="nc" id="L400">        long imgSize = evaluateImageSize(imageList.get(index)) * size + 5000;</span>
+<span class="nc" id="L401">        long heapSize = Runtime.getRuntime().totalMemory();</span>
+<span class="nc" id="L402">        long heapFreeSize = Runtime.getRuntime().freeMemory();</span>
+<span class="nc bnc" id="L403" title="All 2 branches missed.">        if (imgSize &gt; heapSize / 3) {</span>
+<span class="nc bnc" id="L404" title="All 2 branches missed.">          if (imgSize &gt; heapFreeSize) {</span>
+<span class="nc" id="L405">            CvUtil.runGarbageCollectorAndWait(50);</span>
+          }
+<span class="nc" id="L407">          double val = (double) heapFreeSize / imgSize;</span>
+<span class="nc" id="L408">          int adjustSize = (int) (size * val) / 2;</span>
+<span class="nc" id="L409">          int start = index - adjustSize;</span>
+<span class="nc bnc" id="L410" title="All 2 branches missed.">          if (start &lt; 0) {</span>
+<span class="nc" id="L411">            adjustSize -= start;</span>
+<span class="nc" id="L412">            start = 0;</span>
+          }
+<span class="nc bnc" id="L414" title="All 2 branches missed.">          if (adjustSize &gt; size) {</span>
+<span class="nc" id="L415">            adjustSize = size;</span>
+          }
+<span class="nc bnc" id="L417" title="All 2 branches missed.">          for (int i = start; i &lt; adjustSize; i++) {</span>
+<span class="nc" id="L418">            loadArrays(imageList.get(i), model);</span>
+          }
+<span class="nc" id="L420">        } else {</span>
+<span class="nc bnc" id="L421" title="All 2 branches missed.">          if (imgSize &gt; heapFreeSize) {</span>
+<span class="nc" id="L422">            CvUtil.runGarbageCollectorAndWait(50);</span>
+          }
+<span class="nc bnc" id="L424" title="All 2 branches missed.">          for (DicomImageElement img : imageList) {</span>
+<span class="nc" id="L425">            loadArrays(img, model);</span>
+<span class="nc" id="L426">          }</span>
+        }
+      }
+<span class="nc" id="L429">    }</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

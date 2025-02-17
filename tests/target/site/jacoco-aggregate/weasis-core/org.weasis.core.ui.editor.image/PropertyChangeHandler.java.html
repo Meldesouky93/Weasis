@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>PropertyChangeHandler.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image</a> &gt; <span class="el_source">PropertyChangeHandler.java</span></div><h1>PropertyChangeHandler.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2023 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image;
+
+import java.awt.Rectangle;
+import java.awt.Shape;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Rectangle2D;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import org.weasis.core.api.gui.util.GeomUtil;
+import org.weasis.core.ui.model.GraphicModel;
+import org.weasis.core.ui.model.graphic.Graphic;
+import org.weasis.core.ui.model.utils.imp.DefaultGraphicLabel;
+
+public class PropertyChangeHandler implements PropertyChangeListener {
+  private final Canvas canvas;
+
+<span class="nc" id="L29">  public PropertyChangeHandler(Canvas canvas) {</span>
+<span class="nc" id="L30">    this.canvas = Objects.requireNonNull(canvas);</span>
+<span class="nc" id="L31">  }</span>
+
+  // This method is called when a property is changed (fired from a graphic)
+  @Override
+  public void propertyChange(PropertyChangeEvent propertychangeevent) {
+<span class="nc" id="L36">    Object obj = propertychangeevent.getSource();</span>
+<span class="nc" id="L37">    String s = propertychangeevent.getPropertyName();</span>
+<span class="nc bnc" id="L38" title="All 2 branches missed.">    if (obj instanceof Graphic graph) {</span>
+<span class="nc bnc" id="L39" title="All 2 branches missed.">      if (&quot;bounds&quot;.equals(s)) {</span>
+<span class="nc" id="L40">        graphicBoundsChanged(</span>
+            graph,
+<span class="nc" id="L42">            (Shape) propertychangeevent.getOldValue(),</span>
+<span class="nc" id="L43">            (Shape) propertychangeevent.getNewValue(),</span>
+<span class="nc" id="L44">            canvas.getAffineTransform());</span>
+<span class="nc bnc" id="L45" title="All 2 branches missed.">      } else if (&quot;graphicLabel&quot;.equals(s)) {</span>
+<span class="nc" id="L46">        labelBoundsChanged(</span>
+            graph,
+<span class="nc" id="L48">            (DefaultGraphicLabel) propertychangeevent.getOldValue(),</span>
+<span class="nc" id="L49">            (DefaultGraphicLabel) propertychangeevent.getNewValue(),</span>
+<span class="nc" id="L50">            canvas.getAffineTransform());</span>
+<span class="nc bnc" id="L51" title="All 2 branches missed.">      } else if (&quot;remove&quot;.equals(s)) {</span>
+<span class="nc" id="L52">        removeGraphic(graph);</span>
+<span class="nc bnc" id="L53" title="All 2 branches missed.">      } else if (&quot;remove.repaint&quot;.equals(s)) {</span>
+<span class="nc" id="L54">        removeGraphicAndRepaint(graph);</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">      } else if (&quot;toFront&quot;.equals(s)) {</span>
+<span class="nc" id="L56">        toFront(graph);</span>
+<span class="nc bnc" id="L57" title="All 2 branches missed.">      } else if (&quot;toBack&quot;.equals(s)) {</span>
+<span class="nc" id="L58">        toBack(graph);</span>
+      }
+    }
+<span class="nc" id="L61">  }</span>
+
+  public void toFront(Graphic graphic) {
+<span class="nc" id="L64">    GraphicModel graphicManager = canvas.getGraphicManager();</span>
+<span class="nc" id="L65">    List&lt;Graphic&gt; list = graphicManager.getModels();</span>
+<span class="nc" id="L66">    synchronized (list) {</span>
+<span class="nc bnc" id="L67" title="All 2 branches missed.">      for (int i = 0; i &lt; list.size(); i++) {</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">        if (list.get(i).equals(graphic)) {</span>
+<span class="nc" id="L69">          Collections.rotate(list.subList(i, list.size()), -1);</span>
+<span class="nc" id="L70">          break;</span>
+        }
+      }
+<span class="nc" id="L73">    }</span>
+<span class="nc" id="L74">    canvas.getJComponent().repaint();</span>
+<span class="nc" id="L75">  }</span>
+
+  public void toBack(Graphic graphic) {
+<span class="nc" id="L78">    GraphicModel graphicManager = canvas.getGraphicManager();</span>
+<span class="nc" id="L79">    List&lt;Graphic&gt; list = graphicManager.getModels();</span>
+<span class="nc" id="L80">    synchronized (list) {</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">      for (int i = 0; i &lt; list.size(); i++) {</span>
+<span class="nc bnc" id="L82" title="All 2 branches missed.">        if (list.get(i).equals(graphic)) {</span>
+<span class="nc" id="L83">          Collections.rotate(list.subList(0, i + 1), 1);</span>
+<span class="nc" id="L84">          break;</span>
+        }
+      }
+<span class="nc" id="L87">    }</span>
+<span class="nc" id="L88">    canvas.getJComponent().repaint();</span>
+<span class="nc" id="L89">  }</span>
+
+  public void removeGraphicAndRepaint(Graphic graphic) {
+<span class="nc" id="L92">    removeGraphic(graphic);</span>
+<span class="nc" id="L93">    GraphicsPane.repaint(</span>
+<span class="nc" id="L94">        canvas, graphic.getTransformedBounds(graphic.getShape(), canvas.getAffineTransform()));</span>
+<span class="nc" id="L95">  }</span>
+
+  public void removeGraphic(Graphic graphic) {
+<span class="nc" id="L98">    GraphicModel graphicManager = canvas.getGraphicManager();</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">    if (graphicManager != null) {</span>
+<span class="nc" id="L100">      graphicManager.removeGraphic(graphic);</span>
+    }
+<span class="nc" id="L102">    graphic.removePropertyChangeListener(this);</span>
+<span class="nc" id="L103">  }</span>
+
+  protected Rectangle rectangleUnion(Rectangle rectangle, Rectangle rectangle1) {
+<span class="nc bnc" id="L106" title="All 2 branches missed.">    if (rectangle == null) {</span>
+<span class="nc" id="L107">      return rectangle1;</span>
+    }
+<span class="nc bnc" id="L109" title="All 2 branches missed.">    return rectangle1 == null ? rectangle : rectangle.union(rectangle1);</span>
+  }
+
+  protected void graphicBoundsChanged(
+      Graphic graphic, Shape oldShape, Shape shape, AffineTransform transform) {
+<span class="nc bnc" id="L114" title="All 2 branches missed.">    if (graphic != null) {</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">      if (oldShape == null) {</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">        if (shape != null) {</span>
+<span class="nc" id="L117">          Rectangle rect = graphic.getTransformedBounds(shape, transform);</span>
+<span class="nc" id="L118">          GraphicsPane.repaint(canvas, rect);</span>
+<span class="nc" id="L119">        }</span>
+      } else {
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        if (shape == null) {</span>
+<span class="nc" id="L122">          Rectangle rect = graphic.getTransformedBounds(oldShape, transform);</span>
+<span class="nc" id="L123">          GraphicsPane.repaint(canvas, rect);</span>
+<span class="nc" id="L124">        } else {</span>
+<span class="nc" id="L125">          Rectangle rect =</span>
+<span class="nc" id="L126">              rectangleUnion(</span>
+<span class="nc" id="L127">                  graphic.getTransformedBounds(oldShape, transform),</span>
+<span class="nc" id="L128">                  graphic.getTransformedBounds(shape, transform));</span>
+<span class="nc" id="L129">          GraphicsPane.repaint(canvas, rect);</span>
+        }
+      }
+    }
+<span class="nc" id="L133">  }</span>
+
+  protected void labelBoundsChanged(
+      Graphic graphic,
+      DefaultGraphicLabel oldLabel,
+      DefaultGraphicLabel newLabel,
+      AffineTransform transform) {
+
+<span class="nc bnc" id="L141" title="All 2 branches missed.">    if (graphic != null) {</span>
+<span class="nc bnc" id="L142" title="All 4 branches missed.">      boolean oldNull = oldLabel == null || oldLabel.getLabels() == null;</span>
+<span class="nc bnc" id="L143" title="All 4 branches missed.">      boolean newNull = newLabel == null || newLabel.getLabels() == null;</span>
+<span class="nc bnc" id="L144" title="All 2 branches missed.">      if (oldNull) {</span>
+<span class="nc bnc" id="L145" title="All 2 branches missed.">        if (!newNull) {</span>
+<span class="nc" id="L146">          Rectangle2D rect = graphic.getTransformedBounds(newLabel, transform);</span>
+<span class="nc" id="L147">          GeomUtil.growRectangle(rect, 2);</span>
+<span class="nc" id="L148">          GraphicsPane.repaint(canvas, rect.getBounds());</span>
+<span class="nc" id="L149">        }</span>
+      } else {
+<span class="nc bnc" id="L151" title="All 2 branches missed.">        if (newNull) {</span>
+<span class="nc" id="L152">          Rectangle2D rect = graphic.getTransformedBounds(oldLabel, transform);</span>
+<span class="nc" id="L153">          GeomUtil.growRectangle(rect, 2);</span>
+<span class="nc" id="L154">          GraphicsPane.repaint(canvas, rect.getBounds());</span>
+<span class="nc" id="L155">        } else {</span>
+<span class="nc" id="L156">          Rectangle2D newRect = graphic.getTransformedBounds(newLabel, transform);</span>
+<span class="nc" id="L157">          GeomUtil.growRectangle(newRect, 2);</span>
+
+<span class="nc" id="L159">          Rectangle2D oldRect = graphic.getTransformedBounds(oldLabel, transform);</span>
+<span class="nc" id="L160">          GeomUtil.growRectangle(oldRect, 2);</span>
+
+<span class="nc" id="L162">          Rectangle rect = rectangleUnion(oldRect.getBounds(), newRect.getBounds());</span>
+<span class="nc" id="L163">          GraphicsPane.repaint(canvas, rect);</span>
+        }
+      }
+    }
+<span class="nc" id="L167">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

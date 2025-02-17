@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AcquireMetadataTableModel.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer.gui.central.meta.model</a> &gt; <span class="el_source">AcquireMetadataTableModel.java</span></div><h1>AcquireMetadataTableModel.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer.gui.central.meta.model;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import javax.swing.table.AbstractTableModel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.acquire.explorer.AcquireManager;
+import org.weasis.acquire.explorer.Messages;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.media.data.TagReadable;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.api.media.data.Taggable;
+import org.weasis.core.util.StringUtil;
+import org.weasis.dicom.codec.TagD;
+
+public abstract class AcquireMetadataTableModel extends AbstractTableModel {
+<span class="nc" id="L29">  private static final Logger LOGGER = LoggerFactory.getLogger(AcquireMetadataTableModel.class);</span>
+
+<span class="nc" id="L31">  protected String[] headers = {</span>
+<span class="nc" id="L32">    Messages.getString(&quot;AcquireMetadataTableModel.tag&quot;),</span>
+<span class="nc" id="L33">    Messages.getString(&quot;AcquireMetadataTableModel.val&quot;)</span>
+  };
+  protected Optional&lt;Taggable&gt; taggable;
+  private final TagW[] tagsToDisplay;
+  private final TagW[] tagsEditable;
+  private final TagW[] tagsToPublish;
+
+  protected AcquireMetadataTableModel(
+<span class="nc" id="L41">      Taggable taggable, TagW[] tagsToDisplay, TagW[] tagsEditable, TagW[] tagsToPublish) {</span>
+<span class="nc" id="L42">    this.taggable = Optional.ofNullable(taggable);</span>
+<span class="nc bnc" id="L43" title="All 2 branches missed.">    this.tagsToPublish = tagsToPublish == null ? new TagW[0] : tagsToPublish;</span>
+
+<span class="nc" id="L45">    List&lt;TagW&gt; addTags = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L46" title="All 2 branches missed.">    for (TagW tag : this.tagsToPublish) {</span>
+<span class="nc bnc" id="L47" title="All 4 branches missed.">      if (taggable == null || taggable.getTagValue(tag) == null) {</span>
+<span class="nc bnc" id="L48" title="All 4 branches missed.">        if (tagsToDisplay == null || Arrays.stream(tagsToDisplay).noneMatch(t -&gt; t.equals(tag))) {</span>
+<span class="nc" id="L49">          addTags.add(tag);</span>
+        }
+      }
+    }
+<span class="nc" id="L53">    this.tagsToDisplay = getMoreTags(tagsToDisplay, addTags);</span>
+<span class="nc" id="L54">    this.tagsEditable = getMoreTags(tagsEditable, addTags);</span>
+<span class="nc" id="L55">  }</span>
+
+  private static TagW[] getMoreTags(TagW[] tags, List&lt;TagW&gt; addTags) {
+<span class="nc bnc" id="L58" title="All 2 branches missed.">    if (addTags.isEmpty()) {</span>
+<span class="nc bnc" id="L59" title="All 2 branches missed.">      return tags == null ? new TagW[0] : tags;</span>
+    }
+<span class="nc" id="L61">    addTags.addAll(Arrays.asList(tags));</span>
+<span class="nc" id="L62">    return addTags.toArray(new TagW[0]);</span>
+  }
+
+  public static boolean hasNonNullValues(TagW[] tags, TagReadable tagMaps) {
+<span class="nc bnc" id="L66" title="All 2 branches missed.">    if (tags != null) {</span>
+<span class="nc bnc" id="L67" title="All 2 branches missed.">      for (TagW t : tags) {</span>
+<span class="nc" id="L68">        Object val = tagMaps.getTagValue(t);</span>
+<span class="nc bnc" id="L69" title="All 2 branches missed.">        if (val == null) {</span>
+<span class="nc" id="L70">          return false;</span>
+        }
+<span class="nc bnc" id="L72" title="All 4 branches missed.">        if (val instanceof String str &amp;&amp; !StringUtil.hasText(str)) {</span>
+<span class="nc" id="L73">          return false;</span>
+        }
+      }
+    }
+<span class="nc" id="L77">    return true;</span>
+  }
+
+  protected TagW[] tagsToDisplay() {
+<span class="nc" id="L81">    return tagsToDisplay;</span>
+  }
+
+  protected TagW[] tagsEditable() {
+<span class="nc bnc" id="L85" title="All 2 branches missed.">    return AcquireManager.GLOBAL.isAllowFullEdition() ? tagsToDisplay() : tagsEditable;</span>
+  }
+
+  protected TagW[] tagsToPublish() {
+<span class="nc" id="L89">    return tagsToPublish;</span>
+  }
+
+  @Override
+  public int getRowCount() {
+<span class="nc" id="L94">    return tagsToDisplay().length;</span>
+  }
+
+  @Override
+  public int getColumnCount() {
+<span class="nc" id="L99">    return headers.length;</span>
+  }
+
+  @Override
+  public String getColumnName(int column) {
+<span class="nc" id="L104">    return headers[column];</span>
+  }
+
+  @Override
+  public Object getValueAt(int rowIndex, int columnIndex) {
+<span class="nc" id="L109">    TagW tag = tagsToDisplay()[rowIndex];</span>
+<span class="nc bnc" id="L110" title="All 3 branches missed.">    return switch (columnIndex) {</span>
+<span class="nc" id="L111">      case 0 -&gt; tag;</span>
+<span class="nc" id="L112">      case 1 -&gt; taggable.map(value -&gt; value.getTagValue(tag)).orElse(null);</span>
+<span class="nc" id="L113">      default -&gt; null;</span>
+    };
+  }
+
+  public boolean isValueRequired(int rowIndex) {
+<span class="nc" id="L118">    TagW tag = tagsToDisplay()[rowIndex];</span>
+<span class="nc" id="L119">    return Arrays.asList(tagsToPublish()).contains(tag);</span>
+  }
+
+  @Override
+  public boolean isCellEditable(int rowIndex, int columnIndex) {
+<span class="nc" id="L124">    TagW tag = tagsToDisplay()[rowIndex];</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">    if (columnIndex == 1) {</span>
+<span class="nc" id="L126">      return Arrays.asList(tagsEditable()).contains(tag);</span>
+    }
+<span class="nc" id="L128">    return false;</span>
+  }
+
+  @Override
+  public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
+<span class="nc bnc" id="L133" title="All 2 branches missed.">    if (columnIndex == 1) {</span>
+<span class="nc" id="L134">      TagW tag = tagsToDisplay()[rowIndex];</span>
+<span class="nc" id="L135">      taggable.ifPresent(</span>
+          t -&gt; {
+<span class="nc" id="L137">            t.setTag(tag, aValue);</span>
+<span class="nc" id="L138">            fireTableCellUpdated(rowIndex, columnIndex);</span>
+<span class="nc" id="L139">          });</span>
+    }
+<span class="nc" id="L141">  }</span>
+
+  public static TagW[] getTags(String property, String defaultValues) {
+    String values =
+<span class="nc" id="L145">        GuiUtils.getUICore().getSystemPreferences().getProperty(property, defaultValues);</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">    if (values == null) {</span>
+<span class="nc" id="L147">      return new TagW[0];</span>
+    }
+<span class="nc" id="L149">    String[] val = values.split(&quot;,&quot;);</span>
+<span class="nc" id="L150">    List&lt;TagW&gt; list = new ArrayList&lt;&gt;(val.length);</span>
+<span class="nc bnc" id="L151" title="All 2 branches missed.">    for (String s : val) {</span>
+<span class="nc" id="L152">      TagW tag = TagD.get(s.trim());</span>
+<span class="nc bnc" id="L153" title="All 2 branches missed.">      if (tag != null) {</span>
+<span class="nc" id="L154">        list.add(tag);</span>
+<span class="nc bnc" id="L155" title="All 2 branches missed.">      } else if (StringUtil.hasText(s)) {</span>
+<span class="nc" id="L156">        LOGGER.warn(&quot;Cannot find the tag named {}&quot;, s);</span>
+      }
+    }
+<span class="nc" id="L159">    return list.toArray(new TagW[0]);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

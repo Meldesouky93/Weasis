@@ -1,0 +1,495 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ZoomWin.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image</a> &gt; <span class="el_source">ZoomWin.java</span></div><h1>ZoomWin.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image;
+
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Paint;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.Shape;
+import java.awt.Stroke;
+import java.awt.event.InputEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.awt.geom.RectangularShape;
+import java.util.HashMap;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
+import javax.swing.UIManager;
+import org.weasis.core.api.gui.util.ActionW;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.image.AffineTransformOp;
+import org.weasis.core.api.image.ImageOpEvent;
+import org.weasis.core.api.image.ImageOpNode;
+import org.weasis.core.api.image.ImageOpNode.Param;
+import org.weasis.core.api.image.OpManager;
+import org.weasis.core.api.image.SimpleOpManager;
+import org.weasis.core.api.image.ZoomOp.Interpolation;
+import org.weasis.core.api.image.util.ImageLayer;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.ui.editor.image.SynchData.Mode;
+import org.weasis.core.ui.editor.image.dockable.MeasureTool;
+import org.weasis.core.ui.model.layer.imp.RenderedImageLayer;
+import org.weasis.core.ui.model.utils.ImageLayerChangeListener;
+import org.weasis.core.ui.pref.ZoomSetting;
+import org.weasis.core.util.LangUtil;
+import org.weasis.opencv.data.PlanarImage;
+
+/**
+ * The Class ZoomWin.
+ *
+ * @author Nicolas Roduit
+ */
+public class ZoomWin&lt;E extends ImageElement&gt; extends GraphicsPane
+    implements ImageLayerChangeListener&lt;E&gt; {
+
+  public static final String SYNCH_CMD = &quot;synchronize&quot;; // NON-NLS
+  public static final String FREEZE_CMD = &quot;freeze&quot;; // NON-NLS
+
+<span class="nc" id="L65">  public enum SyncType {</span>
+<span class="nc" id="L66">    NONE,</span>
+<span class="nc" id="L67">    PARENT_IMAGE,</span>
+<span class="nc" id="L68">    PARENT_PARAMETERS</span>
+  }
+
+  private final DefaultView2d&lt;E&gt; view2d;
+  private RectangularShape shape;
+<span class="nc" id="L73">  private int borderOffset = 2;</span>
+  private Color lineColor;
+  private Color backgroundColor;
+  private Stroke stroke;
+
+  private final PopUpMenuOnZoom popup;
+  private final RenderedImageLayer&lt;E&gt; imageLayer;
+  private final MouseHandler mouseHandler;
+  private SimpleOpManager freezeOperations;
+<span class="nc" id="L82">  private final HashMap&lt;String, Object&gt; freezeActionsInView = new HashMap&lt;&gt;();</span>
+
+  public ZoomWin(DefaultView2d&lt;E&gt; view2d) {
+<span class="nc" id="L85">    super(null);</span>
+<span class="nc" id="L86">    this.view2d = view2d;</span>
+<span class="nc" id="L87">    this.setOpaque(false);</span>
+<span class="nc" id="L88">    ImageViewerEventManager&lt;E&gt; manager = view2d.getEventManager();</span>
+<span class="nc" id="L89">    this.imageLayer = new RenderedImageLayer&lt;&gt;();</span>
+<span class="nc" id="L90">    SimpleOpManager operations = imageLayer.getDisplayOpManager();</span>
+<span class="nc" id="L91">    operations.addImageOperationAction(new AffineTransformOp());</span>
+
+<span class="nc" id="L93">    manager</span>
+<span class="nc" id="L94">        .getAction(ActionW.LENS_ZOOM)</span>
+<span class="nc" id="L95">        .ifPresent(c -&gt; actionsInView.put(ActionW.ZOOM.cmd(), c.getRealValue()));</span>
+
+<span class="nc" id="L97">    this.popup = new PopUpMenuOnZoom(this);</span>
+<span class="nc" id="L98">    this.popup.setInvoker(this);</span>
+<span class="nc" id="L99">    this.setCursor(DefaultView2d.MOVE_CURSOR);</span>
+
+<span class="nc" id="L101">    ZoomSetting z = manager.getZoomSetting();</span>
+<span class="nc" id="L102">    OpManager disOp = getDisplayOpManager();</span>
+
+<span class="nc" id="L104">    disOp.setParamValue(</span>
+        AffineTransformOp.OP_NAME,
+        AffineTransformOp.P_INTERPOLATION,
+<span class="nc" id="L107">        Interpolation.getInterpolation(z.getInterpolation()));</span>
+<span class="nc" id="L108">    disOp.setParamValue(AffineTransformOp.OP_NAME, AffineTransformOp.P_AFFINE_MATRIX, null);</span>
+
+<span class="nc" id="L110">    actionsInView.put(SYNCH_CMD, z.isLensSynchronize());</span>
+<span class="nc" id="L111">    actionsInView.put(ActionW.DRAWINGS.cmd(), z.isLensShowDrawings());</span>
+<span class="nc" id="L112">    actionsInView.put(FREEZE_CMD, SyncType.NONE);</span>
+
+<span class="nc" id="L114">    Color bckColor = UIManager.getColor(&quot;Panel.background&quot;);</span>
+<span class="nc" id="L115">    this.setLensDecoration(z.getLensLineWidth(), z.getLensLineColor(), bckColor, z.isLensRound());</span>
+<span class="nc" id="L116">    this.setSize(z.getLensWidth(), z.getLensHeight());</span>
+<span class="nc" id="L117">    this.setLocation(-1, -1);</span>
+<span class="nc" id="L118">    this.imageLayer.addLayerChangeListener(this);</span>
+<span class="nc" id="L119">    this.mouseHandler = new MouseHandler();</span>
+<span class="nc" id="L120">  }</span>
+
+  public void setActionInView(String action, Object value) {
+<span class="nc" id="L123">    Optional.ofNullable(action).ifPresent(a -&gt; actionsInView.put(a, value));</span>
+<span class="nc" id="L124">  }</span>
+
+  private void refreshZoomWin() {
+<span class="nc" id="L127">    Point loc = getLocation();</span>
+<span class="nc bnc" id="L128" title="All 4 branches missed.">    if (loc.x == -1 &amp;&amp; loc.y == -1) {</span>
+<span class="nc" id="L129">      centerZoomWin();</span>
+<span class="nc" id="L130">      return;</span>
+    }
+<span class="nc" id="L132">    Rectangle rect = view2d.getBounds();</span>
+<span class="nc" id="L133">    rect.x = 0;</span>
+<span class="nc" id="L134">    rect.y = 0;</span>
+<span class="nc" id="L135">    Rectangle2D r = rect.createIntersection(getBounds());</span>
+<span class="nc bnc" id="L136" title="All 4 branches missed.">    if (r.getWidth() &lt; 25.0 || r.getHeight() &lt; 25.0) {</span>
+<span class="nc" id="L137">      centerZoomWin();</span>
+    }
+<span class="nc" id="L139">  }</span>
+
+  public void updateImage() {
+<span class="nc" id="L142">    view2d.graphicManager.addGraphicChangeHandler(graphicsChangeHandler);</span>
+<span class="nc" id="L143">    imageLayer.setImage(</span>
+<span class="nc" id="L144">        view2d.getImage(), (OpManager) actionsInView.get(ActionW.PREPROCESSING.cmd()));</span>
+<span class="nc" id="L145">    getViewModel().setModelArea(view2d.getViewModel().getModelArea());</span>
+<span class="nc" id="L146">    SyncType type = (SyncType) actionsInView.get(ZoomWin.FREEZE_CMD);</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">    if (SyncType.PARENT_PARAMETERS.equals(type)) {</span>
+<span class="nc" id="L148">      freezeOperations.setFirstNode(imageLayer.getSourceRenderedImage());</span>
+<span class="nc" id="L149">      freezeOperations.handleImageOpEvent(</span>
+          new ImageOpEvent(
+<span class="nc" id="L151">              ImageOpEvent.OpEvent.IMAGE_CHANGE, view2d.getSeries(), view2d.getImage(), null));</span>
+<span class="nc" id="L152">      freezeOperations.process();</span>
+    }
+<span class="nc" id="L154">  }</span>
+
+  public void showLens(boolean val) {
+<span class="nc bnc" id="L157" title="All 2 branches missed.">    if (val) {</span>
+<span class="nc" id="L158">      updateImage();</span>
+<span class="nc" id="L159">      refreshZoomWin();</span>
+<span class="nc" id="L160">      updateZoom();</span>
+<span class="nc" id="L161">      enableMouseListener();</span>
+<span class="nc" id="L162">      setVisible(true);</span>
+    } else {
+<span class="nc" id="L164">      setVisible(false);</span>
+<span class="nc" id="L165">      view2d.graphicManager.removeGraphicChangeHandler(graphicsChangeHandler);</span>
+<span class="nc" id="L166">      disableMouseAndKeyListener();</span>
+    }
+<span class="nc" id="L168">  }</span>
+
+  public void centerZoomWin() {
+<span class="nc" id="L171">    int magPosx = (view2d.getWidth() / 2) - (getWidth() / 2);</span>
+<span class="nc" id="L172">    int magPosy = (view2d.getHeight() / 2) - (getHeight() / 2);</span>
+<span class="nc" id="L173">    setLocation(magPosx, magPosy);</span>
+<span class="nc" id="L174">  }</span>
+
+  public void hideZoom() {
+<span class="nc bnc" id="L177" title="All 2 branches missed.">    if (Objects.equals(view2d.getEventManager().getSelectedViewPane(), view2d)) {</span>
+<span class="nc" id="L178">      view2d.getEventManager().getAction(ActionW.LENS).ifPresent(b -&gt; b.setSelected(false));</span>
+    }
+<span class="nc" id="L180">  }</span>
+
+  @Override
+  public void paintComponent(Graphics g) {
+<span class="nc bnc" id="L184" title="All 2 branches missed.">    if (g instanceof Graphics2D graphics2D) {</span>
+<span class="nc" id="L185">      draw(graphics2D);</span>
+    }
+<span class="nc" id="L187">  }</span>
+
+  protected void draw(Graphics2D g2d) {
+<span class="nc" id="L190">    Stroke oldStroke = g2d.getStroke();</span>
+<span class="nc" id="L191">    Paint oldColor = g2d.getPaint();</span>
+<span class="nc" id="L192">    Shape oldClip = g2d.getClip();</span>
+<span class="nc" id="L193">    g2d.clip(shape);</span>
+<span class="nc" id="L194">    g2d.setBackground(backgroundColor);</span>
+<span class="nc" id="L195">    drawBackground(g2d);</span>
+
+    // Set font size according to the view size
+<span class="nc" id="L198">    g2d.setFont(MeasureTool.viewSetting.getFont());</span>
+
+    // Paint the visible area
+<span class="nc" id="L201">    Point2D p = getClipViewCoordinatesOffset();</span>
+<span class="nc" id="L202">    g2d.translate(p.getX(), p.getY());</span>
+<span class="nc" id="L203">    imageLayer.drawImage(g2d);</span>
+<span class="nc" id="L204">    drawLayers(g2d, affineTransform, inverseTransform);</span>
+<span class="nc" id="L205">    g2d.translate(-p.getX(), -p.getY());</span>
+
+<span class="nc" id="L207">    g2d.setClip(oldClip);</span>
+<span class="nc" id="L208">    g2d.setStroke(stroke);</span>
+<span class="nc" id="L209">    g2d.setPaint(lineColor);</span>
+<span class="nc" id="L210">    Rectangle bound = getBounds();</span>
+<span class="nc" id="L211">    int size = GuiUtils.getScaleLength(12);</span>
+<span class="nc" id="L212">    g2d.drawRect(bound.width - size - borderOffset, bound.height - size - borderOffset, size, size);</span>
+<span class="nc" id="L213">    g2d.draw(shape);</span>
+<span class="nc" id="L214">    g2d.setPaint(oldColor);</span>
+<span class="nc" id="L215">    g2d.setStroke(oldStroke);</span>
+<span class="nc" id="L216">  }</span>
+
+  public void drawLayers(
+      Graphics2D g2d, AffineTransform transform, AffineTransform inverseTransform) {
+<span class="nc bnc" id="L220" title="All 2 branches missed.">    if (LangUtil.getNULLtoTrue((Boolean) actionsInView.get(ActionW.DRAWINGS.cmd()))) {</span>
+<span class="nc" id="L221">      Object[] oldRenderingHints =</span>
+<span class="nc" id="L222">          GuiUtils.setRenderingHints(g2d, true, false, view2d.requiredTextAntialiasing());</span>
+<span class="nc" id="L223">      Rectangle2D b = new Rectangle2D.Double(0.0, 0.0, getWidth(), getHeight());</span>
+<span class="nc" id="L224">      view2d.getGraphicManager().draw(g2d, transform, inverseTransform, b);</span>
+<span class="nc" id="L225">      GuiUtils.resetRenderingHints(g2d, oldRenderingHints);</span>
+    }
+<span class="nc" id="L227">  }</span>
+
+  private void drawBackground(Graphics2D g2d) {
+<span class="nc" id="L230">    g2d.clearRect(0, 0, getWidth(), getHeight());</span>
+<span class="nc" id="L231">  }</span>
+
+  protected void updateAffineTransform() {
+    // Set the position from the center of the image
+<span class="nc" id="L235">    getViewModel().setModelOffset(getOffsetCenterX(), getOffsetCenterY());</span>
+
+<span class="nc" id="L237">    ImageOpNode node = getDisplayOpManager().getNode(AffineTransformOp.OP_NAME);</span>
+<span class="nc" id="L238">    super.updateAffineTransform(view2d, node, imageLayer, -2.0);</span>
+<span class="nc" id="L239">  }</span>
+
+  public void setLensDecoration(
+      int lineWidth, Color lineColor, Color backgroundColor, boolean roundShape) {
+<span class="nc" id="L243">    this.borderOffset = lineWidth / 2 + 1;</span>
+<span class="nc" id="L244">    this.stroke = new BasicStroke(lineWidth);</span>
+<span class="nc" id="L245">    this.lineColor = lineColor;</span>
+<span class="nc" id="L246">    this.backgroundColor = backgroundColor;</span>
+<span class="nc" id="L247">    this.setBackground(backgroundColor);</span>
+<span class="nc" id="L248">    upateShape(roundShape);</span>
+<span class="nc" id="L249">  }</span>
+
+  @Override
+  public void setSize(int width, int height) {
+<span class="nc" id="L253">    shape.setFrame(</span>
+        borderOffset, borderOffset, width - (double) borderOffset, height - (double) borderOffset);
+<span class="nc" id="L255">    super.setSize(width + borderOffset, height + borderOffset);</span>
+<span class="nc" id="L256">  }</span>
+
+  private void upateShape(boolean round) {
+<span class="nc bnc" id="L259" title="All 2 branches missed.">    if (round) {</span>
+<span class="nc" id="L260">      shape = new java.awt.geom.Ellipse2D.Double(getX(), getY(), getWidth(), getHeight());</span>
+    } else {
+<span class="nc" id="L262">      shape = new java.awt.geom.Rectangle2D.Double(getX(), getY(), getWidth(), getHeight());</span>
+    }
+<span class="nc" id="L264">  }</span>
+
+  public double getOffsetCenterX() {
+<span class="nc" id="L267">    double magPosx = (getX() + getWidth() * 0.5) - view2d.getWidth() * 0.5;</span>
+<span class="nc" id="L268">    return view2d.viewToModelLength(magPosx) + view2d.getViewModel().getModelOffsetX();</span>
+  }
+
+  public double getOffsetCenterY() {
+<span class="nc" id="L272">    double magPosy = (getY() + getHeight() * 0.5) - view2d.getHeight() * 0.5;</span>
+<span class="nc" id="L273">    return view2d.viewToModelLength(magPosy) + view2d.getViewModel().getModelOffsetY();</span>
+  }
+
+  @Override
+  public void zoom(Double viewScale) {
+<span class="nc" id="L278">    E img = imageLayer.getSourceImage();</span>
+<span class="nc" id="L279">    ImageOpNode node = imageLayer.getDisplayOpManager().getNode(AffineTransformOp.OP_NAME);</span>
+<span class="nc bnc" id="L280" title="All 4 branches missed.">    if (img != null &amp;&amp; node != null) {</span>
+<span class="nc" id="L281">      node.setParam(Param.INPUT_IMG, getSourceImage());</span>
+<span class="nc" id="L282">      actionsInView.put(ActionW.ZOOM.cmd(), viewScale);</span>
+<span class="nc" id="L283">      super.zoom(Math.abs(viewScale));</span>
+<span class="nc" id="L284">      updateAffineTransform();</span>
+    }
+<span class="nc" id="L286">  }</span>
+
+  @Override
+  public double getRealWorldViewScale() {
+<span class="nc" id="L290">    return view2d.getRealWorldViewScale();</span>
+  }
+
+  @Override
+  public double adjustViewScale(double viewScale) {
+<span class="nc" id="L295">    return view2d.adjustViewScale(viewScale);</span>
+  }
+
+  public void updateZoom() {
+    double zoomFactor =
+<span class="nc bnc" id="L300" title="All 2 branches missed.">        (Boolean) actionsInView.get(SYNCH_CMD)</span>
+<span class="nc" id="L301">            ? view2d.getViewModel().getViewScale()</span>
+<span class="nc" id="L302">            : (Double) actionsInView.get(ActionW.ZOOM.cmd());</span>
+<span class="nc" id="L303">    zoom(zoomFactor);</span>
+<span class="nc" id="L304">  }</span>
+
+  protected PlanarImage getSourceImage() {
+<span class="nc" id="L307">    SyncType type = (SyncType) actionsInView.get(ZoomWin.FREEZE_CMD);</span>
+<span class="nc bnc" id="L308" title="All 4 branches missed.">    if (SyncType.PARENT_PARAMETERS.equals(type) || SyncType.PARENT_IMAGE.equals(type)) {</span>
+<span class="nc" id="L309">      return freezeOperations.getLastNodeOutputImage();</span>
+    }
+
+    // return the image before the zoom operation from the parent view
+<span class="nc" id="L313">    ImageOpNode node =</span>
+<span class="nc" id="L314">        view2d.getImageLayer().getDisplayOpManager().getNode(AffineTransformOp.OP_NAME);</span>
+<span class="nc bnc" id="L315" title="All 2 branches missed.">    if (node != null) {</span>
+<span class="nc" id="L316">      return (PlanarImage) node.getParam(Param.INPUT_IMG);</span>
+    }
+<span class="nc" id="L318">    return view2d.getImageLayer().getDisplayOpManager().getLastNodeOutputImage();</span>
+  }
+
+  public void setFreezeImage(SyncType type) {
+<span class="nc" id="L322">    actionsInView.put(ZoomWin.FREEZE_CMD, type);</span>
+<span class="nc bnc" id="L323" title="All 4 branches missed.">    if (Objects.isNull(type) || SyncType.NONE.equals(type)) {</span>
+<span class="nc" id="L324">      freezeActionsInView.clear();</span>
+<span class="nc" id="L325">      freezeOperations = null;</span>
+<span class="nc" id="L326">      actionsInView.put(ZoomWin.FREEZE_CMD, SyncType.NONE);</span>
+    } else {
+<span class="nc" id="L328">      freezeParentParameters();</span>
+    }
+<span class="nc" id="L330">    imageLayer.updateDisplayOperations();</span>
+<span class="nc" id="L331">    updateZoom();</span>
+<span class="nc" id="L332">  }</span>
+
+  void freezeParentParameters() {
+<span class="nc" id="L335">    SimpleOpManager pManager = view2d.getImageLayer().getDisplayOpManager();</span>
+<span class="nc" id="L336">    freezeActionsInView.clear();</span>
+<span class="nc" id="L337">    view2d.copyActionWState(freezeActionsInView);</span>
+
+<span class="nc" id="L339">    freezeOperations = new SimpleOpManager();</span>
+<span class="nc bnc" id="L340" title="All 2 branches missed.">    for (ImageOpNode op : pManager.getOperations()) {</span>
+<span class="nc bnc" id="L341" title="All 2 branches missed.">      if (AffineTransformOp.OP_NAME.equals(op.getParam(Param.NAME))) {</span>
+<span class="nc" id="L342">        break;</span>
+      }
+<span class="nc" id="L344">      ImageOpNode operation = op.copy();</span>
+<span class="nc" id="L345">      freezeOperations.addImageOperationAction(operation);</span>
+<span class="nc" id="L346">    }</span>
+
+<span class="nc" id="L348">    freezeOperations.setFirstNode(imageLayer.getSourceRenderedImage());</span>
+<span class="nc" id="L349">    freezeOperations.process();</span>
+<span class="nc" id="L350">  }</span>
+
+<span class="nc" id="L352">  class MouseHandler extends MouseAdapter {</span>
+<span class="nc" id="L353">    private Point pickPoint = null;</span>
+    private int pickWidth;
+    private int pickHeight;
+    private int cursor;
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+<span class="nc" id="L360">      ImageViewerPlugin&lt;E&gt; pane = view2d.getEventManager().getSelectedView2dContainer();</span>
+<span class="nc bnc" id="L361" title="All 2 branches missed.">      if (pane == null) {</span>
+<span class="nc" id="L362">        return;</span>
+      }
+<span class="nc bnc" id="L364" title="All 2 branches missed.">      if (pane.isContainingView(view2d)) {</span>
+<span class="nc" id="L365">        pane.setSelectedImagePane(view2d);</span>
+      }
+<span class="nc bnc" id="L367" title="All 2 branches missed.">      if (e.isPopupTrigger()) {</span>
+<span class="nc" id="L368">        popup.enableMenuItem();</span>
+<span class="nc" id="L369">        popup.show(e.getComponent(), e.getX(), e.getY());</span>
+      }
+<span class="nc" id="L371">      pickPoint = e.getPoint();</span>
+<span class="nc" id="L372">      pickWidth = getWidth();</span>
+<span class="nc" id="L373">      pickHeight = getHeight();</span>
+<span class="nc" id="L374">      cursor = getCursor(e);</span>
+<span class="nc" id="L375">    }</span>
+
+    @Override
+    public void mouseReleased(MouseEvent mouseevent) {
+<span class="nc" id="L379">      pickPoint = null;</span>
+<span class="nc bnc" id="L380" title="All 2 branches missed.">      if (mouseevent.isPopupTrigger()) {</span>
+<span class="nc" id="L381">        popup.enableMenuItem();</span>
+<span class="nc" id="L382">        popup.show(mouseevent.getComponent(), mouseevent.getX(), mouseevent.getY());</span>
+<span class="nc bnc" id="L383" title="All 2 branches missed.">      } else if (mouseevent.getClickCount() == 2) {</span>
+<span class="nc" id="L384">        ImageViewerEventManager&lt;E&gt; manager = view2d.getEventManager();</span>
+<span class="nc" id="L385">        manager</span>
+<span class="nc" id="L386">            .getAction(ActionW.LENS_ZOOM)</span>
+<span class="nc" id="L387">            .ifPresent(c -&gt; c.setRealValue(view2d.getViewModel().getViewScale()));</span>
+      }
+<span class="nc" id="L389">    }</span>
+
+    @Override
+    public void mouseDragged(MouseEvent e) {
+<span class="nc" id="L393">      int mods = e.getModifiers();</span>
+<span class="nc bnc" id="L394" title="All 4 branches missed.">      if (pickPoint != null &amp;&amp; (mods &amp; InputEvent.BUTTON1_MASK) != 0) {</span>
+<span class="nc" id="L395">        Point p = e.getPoint();</span>
+<span class="nc" id="L396">        int dx = p.x - pickPoint.x;</span>
+<span class="nc" id="L397">        int dy = p.y - pickPoint.y;</span>
+
+<span class="nc bnc" id="L399" title="All 2 branches missed.">        if (cursor == Cursor.SE_RESIZE_CURSOR) {</span>
+<span class="nc" id="L400">          int nw = pickWidth + dx;</span>
+<span class="nc" id="L401">          int nh = pickHeight + dy;</span>
+<span class="nc bnc" id="L402" title="All 2 branches missed.">          nw = nw &lt; 50 ? 50 : Math.min(nw, 500);</span>
+<span class="nc bnc" id="L403" title="All 2 branches missed.">          nh = nh &lt; 50 ? 50 : Math.min(nh, 500);</span>
+<span class="nc" id="L404">          setSize(nw, nh);</span>
+<span class="nc" id="L405">          updateAffineTransform();</span>
+<span class="nc" id="L406">        } else {</span>
+<span class="nc" id="L407">          setLocation(getX() + dx, getY() + dy);</span>
+<span class="nc" id="L408">          updateAffineTransform();</span>
+        }
+<span class="nc" id="L410">        setCursor(Cursor.getPredefinedCursor(cursor));</span>
+      }
+<span class="nc" id="L412">    }</span>
+
+    @Override
+    public void mouseMoved(MouseEvent me) {
+<span class="nc" id="L416">      setCursor(Cursor.getPredefinedCursor(getCursor(me)));</span>
+<span class="nc" id="L417">    }</span>
+
+    @Override
+    public void mouseExited(MouseEvent mouseEvent) {
+<span class="nc" id="L421">      setCursor(Cursor.getDefaultCursor());</span>
+<span class="nc" id="L422">    }</span>
+
+    public int getCursor(MouseEvent me) {
+<span class="nc" id="L425">      Component c = me.getComponent();</span>
+<span class="nc" id="L426">      int w = c.getWidth();</span>
+<span class="nc" id="L427">      int h = c.getHeight();</span>
+<span class="nc" id="L428">      int size = GuiUtils.getScaleLength(12);</span>
+<span class="nc" id="L429">      Rectangle rect = new Rectangle(w - size - borderOffset, h - size - borderOffset, size, size);</span>
+<span class="nc bnc" id="L430" title="All 2 branches missed.">      if (rect.contains(me.getPoint())) {</span>
+<span class="nc" id="L431">        return Cursor.SE_RESIZE_CURSOR;</span>
+      }
+
+<span class="nc" id="L434">      return Cursor.MOVE_CURSOR;</span>
+    }
+  }
+
+  public void disableMouseAndKeyListener() {
+<span class="nc" id="L439">    this.removeMouseListener(mouseHandler);</span>
+<span class="nc" id="L440">    this.removeMouseMotionListener(mouseHandler);</span>
+<span class="nc" id="L441">    this.removeMouseWheelListener(</span>
+<span class="nc" id="L442">        view2d.getEventManager().getAction(ActionW.LENS_ZOOM).orElse(null));</span>
+<span class="nc" id="L443">  }</span>
+
+  public void enableMouseListener() {
+<span class="nc" id="L446">    disableMouseAndKeyListener();</span>
+<span class="nc" id="L447">    this.addMouseListener(mouseHandler);</span>
+<span class="nc" id="L448">    this.addMouseMotionListener(mouseHandler);</span>
+<span class="nc" id="L449">    this.addMouseWheelListener(view2d.getEventManager().getAction(ActionW.LENS_ZOOM).orElse(null));</span>
+<span class="nc" id="L450">  }</span>
+
+  public ViewCanvas&lt;E&gt; getView2d() {
+<span class="nc" id="L453">    return view2d;</span>
+  }
+
+  @Override
+  public void handleLayerChanged(ImageLayer layer) {
+<span class="nc" id="L458">    repaint();</span>
+<span class="nc" id="L459">  }</span>
+
+  public void setCommandFromParentView(String command, Object value) {
+<span class="nc" id="L462">    String cmd = null;</span>
+<span class="nc bnc" id="L463" title="All 4 branches missed.">    if (ActionW.SYNCH.cmd().equals(command) &amp;&amp; value instanceof SynchEvent synchEvent) {</span>
+<span class="nc bnc" id="L464" title="All 2 branches missed.">      if (!(value instanceof SynchCineEvent)) {</span>
+<span class="nc" id="L465">        SynchData synchData = (SynchData) view2d.getActionValue(ActionW.SYNCH_LINK.cmd());</span>
+<span class="nc bnc" id="L466" title="All 4 branches missed.">        if (synchData != null &amp;&amp; Mode.NONE.equals(synchData.getMode())) {</span>
+<span class="nc" id="L467">          return;</span>
+        }
+
+<span class="nc bnc" id="L470" title="All 2 branches missed.">        for (Entry&lt;String, Object&gt; entry : synchEvent.getEvents().entrySet()) {</span>
+<span class="nc bnc" id="L471" title="All 4 branches missed.">          if (synchData != null &amp;&amp; !synchData.isActionEnable(entry.getKey())) {</span>
+<span class="nc" id="L472">            continue;</span>
+          }
+<span class="nc" id="L474">          cmd = entry.getKey();</span>
+<span class="nc" id="L475">          break;</span>
+        }
+<span class="nc" id="L477">      }</span>
+    } else {
+<span class="nc" id="L479">      cmd = command;</span>
+    }
+
+<span class="nc bnc" id="L482" title="All 2 branches missed.">    if (cmd != null) {</span>
+<span class="nc bnc" id="L483" title="All 2 branches missed.">      if (command.equals(ActionW.PROGRESSION.cmd())) {</span>
+<span class="nc" id="L484">        updateImage();</span>
+<span class="nc bnc" id="L485" title="All 4 branches missed.">      } else if (command.equals(ActionW.ROTATION.cmd()) || command.equals(ActionW.FLIP.cmd())) {</span>
+<span class="nc" id="L486">        refreshZoomWin();</span>
+      }
+    }
+<span class="nc" id="L489">  }</span>
+
+  public OpManager getDisplayOpManager() {
+<span class="nc" id="L492">    return imageLayer.getDisplayOpManager();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

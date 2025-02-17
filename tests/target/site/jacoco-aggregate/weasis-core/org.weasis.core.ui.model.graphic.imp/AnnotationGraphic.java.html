@@ -1,0 +1,360 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AnnotationGraphic.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.graphic.imp</a> &gt; <span class="el_source">AnnotationGraphic.java</span></div><h1>AnnotationGraphic.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.graphic.imp;
+
+import jakarta.xml.bind.annotation.XmlAccessType;
+import jakarta.xml.bind.annotation.XmlAccessorType;
+import jakarta.xml.bind.annotation.XmlAttribute;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlElementWrapper;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.Paint;
+import java.awt.Rectangle;
+import java.awt.event.KeyEvent;
+import java.awt.font.FontRenderContext;
+import java.awt.font.TextLayout;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Area;
+import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import javax.swing.Icon;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.GeomUtil;
+import org.weasis.core.api.util.FontTools;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.api.util.ResourceUtil.ActionIcon;
+import org.weasis.core.ui.editor.image.ViewCanvas;
+import org.weasis.core.ui.model.graphic.AbstractDragGraphic;
+import org.weasis.core.ui.model.graphic.Graphic;
+import org.weasis.core.ui.model.graphic.GraphicLabel;
+import org.weasis.core.ui.model.utils.bean.AdvancedShape;
+import org.weasis.core.ui.model.utils.bean.AdvancedShape.BasicShape;
+import org.weasis.core.ui.model.utils.bean.AdvancedShape.ScaleInvariantShape;
+import org.weasis.core.ui.model.utils.exceptions.InvalidShapeException;
+import org.weasis.core.ui.serialize.RectangleAdapter;
+import org.weasis.core.ui.util.MouseEventDouble;
+import org.weasis.core.util.StringUtil;
+
+@XmlType(name = &quot;annotation&quot;)
+@XmlRootElement(name = &quot;annotation&quot;)
+@XmlAccessorType(XmlAccessType.NONE)
+public class AnnotationGraphic extends AbstractDragGraphic {
+
+<span class="nc" id="L59">  public static final Integer POINTS_NUMBER = 2;</span>
+<span class="nc" id="L60">  public static final Icon ICON = ResourceUtil.getIcon(ActionIcon.DRAW_TEXT);</span>
+
+  protected Point2D ptBox;
+  protected Point2D ptAnchor; // Let AB be a simple a line segment
+  protected String[] labels;
+  protected Boolean lineABvalid; // estimate if line segment is valid or not
+  protected Rectangle2D labelBounds;
+  protected Double labelWidth;
+  protected Double labelHeight;
+
+  public AnnotationGraphic() {
+<span class="nc" id="L71">    super(POINTS_NUMBER);</span>
+<span class="nc" id="L72">  }</span>
+
+  public AnnotationGraphic(AnnotationGraphic annotationGraphic) {
+<span class="nc" id="L75">    super(annotationGraphic);</span>
+<span class="nc" id="L76">  }</span>
+
+  @Override
+  protected void initCopy(Graphic graphic) {
+<span class="nc" id="L80">    super.initCopy(graphic);</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">    if (graphic instanceof AnnotationGraphic annotationGraphic) {</span>
+<span class="nc" id="L82">      labels = Optional.ofNullable(annotationGraphic.labels).map(String[]::clone).orElse(null);</span>
+<span class="nc" id="L83">      labelBounds =</span>
+<span class="nc" id="L84">          Optional.ofNullable(annotationGraphic.labelBounds)</span>
+<span class="nc" id="L85">              .map(Rectangle2D::getBounds2D)</span>
+<span class="nc" id="L86">              .orElse(null);</span>
+<span class="nc" id="L87">      labelWidth = annotationGraphic.labelWidth;</span>
+<span class="nc" id="L88">      labelHeight = annotationGraphic.labelHeight;</span>
+    }
+<span class="nc" id="L90">  }</span>
+
+  @Override
+  public AnnotationGraphic copy() {
+<span class="nc" id="L94">    return new AnnotationGraphic(this);</span>
+  }
+
+  @Override
+  protected void prepareShape() throws InvalidShapeException {
+<span class="nc bnc" id="L99" title="All 2 branches missed.">    if (!isShapeValid()) {</span>
+<span class="nc" id="L100">      throw new InvalidShapeException(&quot;This shape cannot be drawn&quot;);</span>
+    }
+    // Do not build shape as labelBounds can be initialized only by the method setLabel()
+<span class="nc" id="L103">  }</span>
+
+  protected void setHandlePointList(Point2D ptAnchor, Point2D ptBox) {
+<span class="nc bnc" id="L106" title="All 4 branches missed.">    Point2D pt2 = (ptBox == null &amp;&amp; ptAnchor != null) ? ptAnchor : ptBox;</span>
+<span class="nc bnc" id="L107" title="All 4 branches missed.">    Point2D pt1 = (pt2 != null &amp;&amp; pt2.equals(ptAnchor)) ? null : ptAnchor;</span>
+
+<span class="nc bnc" id="L109" title="All 2 branches missed.">    setHandlePoint(0, pt1 == null ? null : (Point2D) pt1.clone());</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">    setHandlePoint(1, pt2 == null ? null : (Point2D) pt2.clone());</span>
+<span class="nc" id="L111">    buildShape(null);</span>
+<span class="nc" id="L112">  }</span>
+
+  @Override
+  public Icon getIcon() {
+<span class="nc" id="L116">    return ICON;</span>
+  }
+
+  @Override
+  public String getUIName() {
+<span class="nc" id="L121">    return Messages.getString(&quot;Tools.Anno&quot;);</span>
+  }
+
+  @XmlElementWrapper(name = &quot;labels&quot;)
+  @XmlElement(name = &quot;label&quot;)
+  public String[] getLabels() {
+<span class="nc" id="L127">    return labels;</span>
+  }
+
+  public void setLabels(String[] labels) {
+<span class="nc" id="L131">    this.labels = labels;</span>
+<span class="nc" id="L132">  }</span>
+
+  @XmlElement(name = &quot;labelBounds&quot;)
+  @XmlJavaTypeAdapter(RectangleAdapter.Rectangle2DAdapter.class)
+  public Rectangle2D getLabelBounds() {
+<span class="nc" id="L137">    return labelBounds;</span>
+  }
+
+  public void setLabelBounds(Rectangle2D labelBounds) {
+<span class="nc" id="L141">    this.labelBounds = labelBounds;</span>
+<span class="nc" id="L142">  }</span>
+
+  @XmlAttribute(name = &quot;labelWidth&quot;)
+  public Double getLabelWidth() {
+<span class="nc" id="L146">    return labelWidth;</span>
+  }
+
+  public void setLabelWidth(Double labelWidth) {
+<span class="nc" id="L150">    this.labelWidth = labelWidth;</span>
+<span class="nc" id="L151">  }</span>
+
+  @XmlAttribute(name = &quot;labelHeight&quot;)
+  public Double getLabelHeight() {
+<span class="nc" id="L155">    return labelHeight;</span>
+  }
+
+  public void setLabelHeight(Double labelHeight) {
+<span class="nc" id="L159">    this.labelHeight = labelHeight;</span>
+<span class="nc" id="L160">  }</span>
+
+  @Override
+  public void updateLabel(ViewCanvas&lt;?&gt; view2d, Point2D pos, boolean releasedEvent) {
+<span class="nc" id="L164">    setLabel(labels, view2d, pos);</span>
+<span class="nc" id="L165">  }</span>
+
+  @Override
+  public void updateLabel(Object source, ViewCanvas&lt;?&gt; view2d) {
+<span class="nc" id="L169">    setLabel(labels, view2d);</span>
+<span class="nc" id="L170">  }</span>
+
+  @Override
+  public void buildShape(MouseEventDouble mouseEvent) {
+<span class="nc" id="L174">    updateTool();</span>
+<span class="nc" id="L175">    AdvancedShape newShape = null;</span>
+
+<span class="nc bnc" id="L177" title="All 2 branches missed.">    if (ptBox != null) {</span>
+<span class="nc" id="L178">      ViewCanvas&lt;?&gt; view = getDefaultView2d(mouseEvent);</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">      if (labels == null) {</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">        if (view != null) {</span>
+<span class="nc" id="L181">          setLabel(new String[] {getInitialText(view)}, view, ptBox);</span>
+          // call buildShape
+<span class="nc" id="L183">          return;</span>
+        }
+<span class="nc bnc" id="L185" title="All 4 branches missed.">        if (labelHeight == 0 || labelWidth == 0) {</span>
+          // This graphic cannot be displayed, remove it.
+<span class="nc" id="L187">          fireRemoveAction();</span>
+<span class="nc" id="L188">          return;</span>
+        }
+      }
+<span class="nc" id="L191">      newShape = new AdvancedShape(this, 2);</span>
+<span class="nc" id="L192">      Line2D line = null;</span>
+<span class="nc bnc" id="L193" title="All 2 branches missed.">      if (lineABvalid) {</span>
+<span class="nc" id="L194">        line = new Line2D.Double(ptBox, ptAnchor);</span>
+      }
+<span class="nc" id="L196">      labelBounds = new Rectangle.Double();</span>
+<span class="nc" id="L197">      labelBounds.setFrameFromCenter(</span>
+<span class="nc" id="L198">          ptBox.getX(),</span>
+<span class="nc" id="L199">          ptBox.getY(),</span>
+<span class="nc" id="L200">          ptBox.getX() + labelWidth / 2.0 + GraphicLabel.GROWING_BOUND,</span>
+<span class="nc" id="L201">          ptBox.getY()</span>
+<span class="nc bnc" id="L202" title="All 2 branches missed.">              + labelHeight * (labels == null ? 1 : labels.length) / 2.0</span>
+              + GraphicLabel.GROWING_BOUND);
+<span class="nc" id="L204">      GeomUtil.growRectangle(labelBounds, GraphicLabel.GROWING_BOUND);</span>
+<span class="nc bnc" id="L205" title="All 2 branches missed.">      if (line != null) {</span>
+<span class="nc" id="L206">        newShape.addLinkSegmentToInvariantShape(</span>
+<span class="nc" id="L207">            line, ptBox, labelBounds, getDashStroke(lineThickness), false);</span>
+
+<span class="nc" id="L209">        ScaleInvariantShape arrow =</span>
+<span class="nc" id="L210">            newShape.addScaleInvShape(</span>
+<span class="nc" id="L211">                GeomUtil.getArrowShape(ptAnchor, ptBox, 15, 8),</span>
+                ptAnchor,
+<span class="nc" id="L213">                getStroke(lineThickness),</span>
+                false);
+<span class="nc" id="L215">        arrow.setFilled(true);</span>
+      }
+<span class="nc" id="L217">      newShape.addAllInvShape(labelBounds, ptBox, getStroke(lineThickness), false);</span>
+    }
+
+<span class="nc" id="L220">    setShape(newShape, mouseEvent);</span>
+<span class="nc" id="L221">  }</span>
+
+  @Override
+  public int getKeyCode() {
+<span class="nc" id="L225">    return KeyEvent.VK_B;</span>
+  }
+
+  @Override
+  public int getModifier() {
+<span class="nc" id="L230">    return 0;</span>
+  }
+
+  protected void updateTool() {
+<span class="nc" id="L234">    ptAnchor = getHandlePoint(0);</span>
+<span class="nc" id="L235">    ptBox = getHandlePoint(1);</span>
+
+<span class="nc bnc" id="L237" title="All 4 branches missed.">    lineABvalid = ptAnchor != null &amp;&amp; !ptAnchor.equals(ptBox);</span>
+<span class="nc" id="L238">  }</span>
+
+  protected String getInitialText(ViewCanvas&lt;?&gt; view) {
+<span class="nc" id="L241">    return Messages.getString(&quot;AnnotationGraphic.text_box&quot;);</span>
+  }
+
+  @Override
+  public void paintLabel(Graphics2D g2d, AffineTransform transform) {
+<span class="nc bnc" id="L246" title="All 6 branches missed.">    if (labelVisible &amp;&amp; labels != null &amp;&amp; labelBounds != null) {</span>
+<span class="nc" id="L247">      Paint oldPaint = g2d.getPaint();</span>
+
+<span class="nc" id="L249">      Rectangle2D rect = labelBounds;</span>
+<span class="nc" id="L250">      Point2D pt = new Point2D.Double(rect.getCenterX(), rect.getCenterY());</span>
+<span class="nc bnc" id="L251" title="All 2 branches missed.">      if (transform != null) {</span>
+<span class="nc" id="L252">        transform.transform(pt, pt);</span>
+      }
+
+<span class="nc" id="L255">      float px = (float) (pt.getX() - rect.getWidth() / 2 + GraphicLabel.GROWING_BOUND);</span>
+<span class="nc" id="L256">      float py = (float) (pt.getY() - rect.getHeight() / 2 + GraphicLabel.GROWING_BOUND);</span>
+<span class="nc" id="L257">      float height = labelHeight.floatValue();</span>
+
+<span class="nc bnc" id="L259" title="All 2 branches missed.">      for (String label : labels) {</span>
+<span class="nc bnc" id="L260" title="All 2 branches missed.">        if (StringUtil.hasText(label)) {</span>
+<span class="nc" id="L261">          py += height;</span>
+<span class="nc" id="L262">          FontTools.paintColorFontOutline(g2d, label, px, py, Color.WHITE);</span>
+        }
+      }
+<span class="nc" id="L265">      g2d.setPaint(oldPaint);</span>
+    }
+<span class="nc" id="L267">  }</span>
+
+  @Override
+  public Area getArea(AffineTransform transform) {
+<span class="nc bnc" id="L271" title="All 2 branches missed.">    if (shape == null) {</span>
+<span class="nc" id="L272">      return new Area();</span>
+    }
+<span class="nc bnc" id="L274" title="All 2 branches missed.">    if (shape instanceof AdvancedShape s) {</span>
+<span class="nc" id="L275">      Area area = s.getArea(transform);</span>
+<span class="nc" id="L276">      List&lt;BasicShape&gt; list = s.getShapeList();</span>
+<span class="nc bnc" id="L277" title="All 2 branches missed.">      if (!list.isEmpty()) {</span>
+<span class="nc" id="L278">        BasicShape b = list.get(list.size() - 1);</span>
+        // Allow moving inside the box, not only around stroke.
+<span class="nc" id="L280">        area.add(new Area(b.getRealShape()));</span>
+      }
+
+<span class="nc" id="L283">      return area;</span>
+    } else {
+<span class="nc" id="L285">      return super.getArea(transform);</span>
+    }
+  }
+
+  public Point2D getAnchorPoint() {
+<span class="nc" id="L290">    updateTool();</span>
+<span class="nc bnc" id="L291" title="All 2 branches missed.">    return ptAnchor == null ? null : (Point2D) ptAnchor.clone();</span>
+  }
+
+  public Point2D getBoxPoint() {
+<span class="nc" id="L295">    updateTool();</span>
+<span class="nc bnc" id="L296" title="All 2 branches missed.">    return ptBox == null ? null : (Point2D) ptBox.clone();</span>
+  }
+
+  protected void reset() {
+<span class="nc" id="L300">    labels = null;</span>
+<span class="nc" id="L301">    labelBounds = null;</span>
+<span class="nc" id="L302">    labelHeight = labelWidth = 0d;</span>
+<span class="nc" id="L303">  }</span>
+
+  @Override
+  public void setLabel(String[] labels, ViewCanvas&lt;?&gt; view2d) {
+<span class="nc" id="L307">    Point2D pt = getBoxPoint();</span>
+<span class="nc bnc" id="L308" title="All 2 branches missed.">    if (pt == null) {</span>
+<span class="nc" id="L309">      pt = getAnchorPoint();</span>
+    }
+<span class="nc bnc" id="L311" title="All 2 branches missed.">    if (pt != null) {</span>
+<span class="nc" id="L312">      this.setLabel(labels, view2d, pt);</span>
+    }
+<span class="nc" id="L314">  }</span>
+
+  @Override
+  public void setLabel(String[] labels, ViewCanvas&lt;?&gt; view2d, Point2D pos) {
+<span class="nc bnc" id="L318" title="All 8 branches missed.">    if (view2d == null || labels == null || labels.length == 0 || pos == null) {</span>
+<span class="nc" id="L319">      reset();</span>
+    } else {
+<span class="nc" id="L321">      this.labels = labels;</span>
+<span class="nc" id="L322">      Font defaultFont = view2d.getFont();</span>
+<span class="nc" id="L323">      Graphics2D g2d = (Graphics2D) view2d.getJComponent().getGraphics();</span>
+      FontRenderContext fontRenderContext =
+<span class="nc bnc" id="L325" title="All 2 branches missed.">          g2d == null ? new FontRenderContext(null, false, false) : g2d.getFontRenderContext();</span>
+<span class="nc" id="L326">      updateBoundsSize(defaultFont, fontRenderContext);</span>
+
+<span class="nc" id="L328">      labelBounds = new Rectangle.Double();</span>
+<span class="nc" id="L329">      labelBounds.setFrameFromCenter(</span>
+<span class="nc" id="L330">          pos.getX(),</span>
+<span class="nc" id="L331">          pos.getY(),</span>
+<span class="nc" id="L332">          ptBox.getX() + labelWidth / 2.0 + GraphicLabel.GROWING_BOUND,</span>
+<span class="nc" id="L333">          ptBox.getY() + labelHeight * this.labels.length / 2.0 + GraphicLabel.GROWING_BOUND);</span>
+<span class="nc" id="L334">      GeomUtil.growRectangle(labelBounds, GraphicLabel.GROWING_BOUND);</span>
+    }
+<span class="nc" id="L336">    buildShape(null);</span>
+<span class="nc" id="L337">  }</span>
+
+  protected void updateBoundsSize(Font defaultFont, FontRenderContext fontRenderContext) {
+<span class="nc" id="L340">    Objects.requireNonNull(defaultFont);</span>
+<span class="nc" id="L341">    Objects.requireNonNull(fontRenderContext);</span>
+
+<span class="nc bnc" id="L343" title="All 4 branches missed.">    if (labels == null || labels.length == 0) {</span>
+<span class="nc" id="L344">      reset();</span>
+    } else {
+<span class="nc" id="L346">      double maxWidth = 0;</span>
+<span class="nc bnc" id="L347" title="All 2 branches missed.">      for (String label : labels) {</span>
+<span class="nc bnc" id="L348" title="All 2 branches missed.">        if (StringUtil.hasText(label)) {</span>
+<span class="nc" id="L349">          TextLayout layout = new TextLayout(label, defaultFont, fontRenderContext);</span>
+<span class="nc" id="L350">          maxWidth = Math.max(layout.getBounds().getWidth(), maxWidth);</span>
+        }
+      }
+<span class="nc" id="L353">      labelHeight =</span>
+<span class="nc" id="L354">          new TextLayout(&quot;Tg&quot;, defaultFont, fontRenderContext).getBounds().getHeight() // NON-NLS</span>
+              + 2;
+<span class="nc" id="L356">      labelWidth = maxWidth;</span>
+    }
+<span class="nc" id="L358">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

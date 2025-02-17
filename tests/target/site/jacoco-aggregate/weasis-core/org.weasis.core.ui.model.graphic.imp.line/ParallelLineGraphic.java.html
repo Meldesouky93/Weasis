@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ParallelLineGraphic.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.graphic.imp.line</a> &gt; <span class="el_source">ParallelLineGraphic.java</span></div><h1>ParallelLineGraphic.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.graphic.imp.line;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlType;
+import java.awt.Shape;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Line2D;
+import java.awt.geom.Path2D;
+import java.awt.geom.Point2D;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import javax.swing.Icon;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.GeomUtil;
+import org.weasis.core.api.image.measure.MeasurementsAdapter;
+import org.weasis.core.api.image.util.MeasurableLayer;
+import org.weasis.core.api.image.util.Unit;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.api.util.ResourceUtil.ActionIcon;
+import org.weasis.core.ui.model.graphic.AbstractDragGraphic;
+import org.weasis.core.ui.model.utils.bean.MeasureItem;
+import org.weasis.core.ui.model.utils.bean.Measurement;
+import org.weasis.core.ui.model.utils.exceptions.InvalidShapeException;
+import org.weasis.core.ui.util.MouseEventDouble;
+import org.weasis.core.util.MathUtil;
+
+@XmlType(name = &quot;parallelLine&quot;)
+@XmlRootElement(name = &quot;parallelLine&quot;)
+public class ParallelLineGraphic extends AbstractDragGraphic {
+
+<span class="nc" id="L42">  public static final Integer POINTS_NUMBER = 6;</span>
+
+<span class="nc" id="L44">  public static final Icon ICON = ResourceUtil.getIcon(ActionIcon.DRAW_PARALLEL);</span>
+
+<span class="nc" id="L46">  public static final Measurement DISTANCE =</span>
+<span class="nc" id="L47">      new Measurement(Messages.getString(&quot;measure.distance&quot;), 1, true, true, true);</span>
+<span class="nc" id="L48">  public static final Measurement ORIENTATION =</span>
+<span class="nc" id="L49">      new Measurement(Messages.getString(&quot;measure.orientation&quot;), 2, true, true, false);</span>
+<span class="nc" id="L50">  public static final Measurement AZIMUTH =</span>
+<span class="nc" id="L51">      new Measurement(Messages.getString(&quot;measure.azimuth&quot;), 3, true, true, false);</span>
+
+<span class="nc" id="L53">  protected static final List&lt;Measurement&gt; MEASUREMENT_LIST = new ArrayList&lt;&gt;();</span>
+
+  static {
+<span class="nc" id="L56">    MEASUREMENT_LIST.add(DISTANCE);</span>
+<span class="nc" id="L57">    MEASUREMENT_LIST.add(ORIENTATION);</span>
+<span class="nc" id="L58">    MEASUREMENT_LIST.add(AZIMUTH);</span>
+<span class="nc" id="L59">  }</span>
+
+  // Let AB &amp; CD two parallel line segments
+  protected Point2D ptA;
+  protected Point2D ptB;
+  protected Point2D ptC;
+  protected Point2D ptD;
+
+  // Let E,F middle points of AB &amp; CD
+  protected Point2D ptE;
+  protected Point2D ptF;
+
+  // estimate if line segments are valid or not
+  protected Boolean lineABvalid;
+  protected Boolean lineCDvalid;
+
+  public ParallelLineGraphic() {
+<span class="nc" id="L76">    super(POINTS_NUMBER);</span>
+<span class="nc" id="L77">  }</span>
+
+  public ParallelLineGraphic(ParallelLineGraphic graphic) {
+<span class="nc" id="L80">    super(graphic);</span>
+<span class="nc" id="L81">  }</span>
+
+  @Override
+  public ParallelLineGraphic copy() {
+<span class="nc" id="L85">    return new ParallelLineGraphic(this);</span>
+  }
+
+  @Override
+  public Icon getIcon() {
+<span class="nc" id="L90">    return ICON;</span>
+  }
+
+  @Override
+  public String getUIName() {
+<span class="nc" id="L95">    return Messages.getString(&quot;measure.parallel&quot;);</span>
+  }
+
+  @Override
+  protected void prepareShape() throws InvalidShapeException {
+<span class="nc bnc" id="L100" title="All 2 branches missed.">    if (!isShapeValid()) {</span>
+<span class="nc" id="L101">      throw new InvalidShapeException(&quot;This shape cannot be drawn&quot;);</span>
+    }
+<span class="nc" id="L103">    buildShape(null);</span>
+<span class="nc" id="L104">  }</span>
+
+  @Override
+  public Integer moveAndResizeOnDrawing(
+      Integer handlePointIndex, Double deltaX, Double deltaY, MouseEventDouble mouseEvent) {
+
+<span class="nc" id="L110">    handlePointIndex = super.moveAndResizeOnDrawing(handlePointIndex, deltaX, deltaY, mouseEvent);</span>
+
+<span class="nc bnc" id="L112" title="All 4 branches missed.">    if (handlePointIndex &gt;= 0 &amp;&amp; handlePointIndex &lt; getHandlePointListSize()) {</span>
+<span class="nc" id="L113">      updateTool();</span>
+
+<span class="nc bnc" id="L115" title="All 4 branches missed.">      if (lineABvalid &amp;&amp; lineCDvalid) {</span>
+
+<span class="nc bnc" id="L117" title="All 4 branches missed.">        if (handlePointIndex == 0 || handlePointIndex == 1) {</span>
+          // drag point is A or B
+
+<span class="nc bnc" id="L120" title="All 2 branches missed.">          Point2D anchor = (handlePointIndex == 0) ? ptB : ptA;</span>
+<span class="nc" id="L121">          double theta =</span>
+<span class="nc" id="L122">              GeomUtil.getSmallestAngleRad(</span>
+<span class="nc" id="L123">                  GeomUtil.getAngleRad(ptC, ptD) - GeomUtil.getAngleRad(ptA, ptB));</span>
+
+          // rotation angle around anchor point
+<span class="nc" id="L126">          AffineTransform rotate =</span>
+<span class="nc" id="L127">              AffineTransform.getRotateInstance(theta, anchor.getX(), anchor.getY());</span>
+
+<span class="nc" id="L129">          rotate.transform(ptC, ptC);</span>
+<span class="nc" id="L130">          rotate.transform(ptD, ptD);</span>
+
+<span class="nc" id="L132">          setHandlePoint(2, ptC);</span>
+<span class="nc" id="L133">          setHandlePoint(3, ptD);</span>
+
+<span class="nc bnc" id="L135" title="All 4 branches missed.">        } else if (handlePointIndex == 2 || handlePointIndex == 3) {</span>
+          // drag point is C or D
+
+<span class="nc bnc" id="L138" title="All 2 branches missed.">          Point2D pt1 = (handlePointIndex == 2) ? ptC : ptD;</span>
+<span class="nc bnc" id="L139" title="All 2 branches missed.">          Point2D pt2 = (handlePointIndex == 2) ? ptD : ptC;</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">          int hIndex = (handlePointIndex == 2) ? 3 : 2;</span>
+
+<span class="nc" id="L142">          Point2D ptI = GeomUtil.getPerpendicularPointToLine(ptA, ptB, pt1);</span>
+<span class="nc" id="L143">          Point2D ptJ = GeomUtil.getPerpendicularPointToLine(ptA, ptB, pt2);</span>
+
+<span class="nc" id="L145">          double transX = (pt1.getX() - ptI.getX()) - (pt2.getX() - ptJ.getX());</span>
+<span class="nc" id="L146">          double transY = (pt1.getY() - ptI.getY()) - (pt2.getY() - ptJ.getY());</span>
+
+<span class="nc" id="L148">          AffineTransform translate = AffineTransform.getTranslateInstance(transX, transY);</span>
+<span class="nc" id="L149">          translate.transform(pt2, pt2);</span>
+
+<span class="nc" id="L151">          setHandlePoint(hIndex, pt2);</span>
+
+<span class="nc bnc" id="L153" title="All 4 branches missed.">        } else if (handlePointIndex == 4 || handlePointIndex == 5) {</span>
+          // drag point is E middle of AB or F middle of CD
+<span class="nc bnc" id="L155" title="All 2 branches missed.">          Point2D pt0 = (handlePointIndex == 4) ? ptE : ptF;</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">          Point2D pt1 = (handlePointIndex == 4) ? ptA : ptC;</span>
+<span class="nc bnc" id="L157" title="All 2 branches missed.">          Point2D pt2 = (handlePointIndex == 4) ? ptB : ptD;</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">          int hIndex1 = (handlePointIndex == 4) ? 0 : 2;</span>
+<span class="nc bnc" id="L159" title="All 2 branches missed.">          int hIndex2 = (handlePointIndex == 4) ? 1 : 3;</span>
+
+<span class="nc bnc" id="L161" title="All 2 branches missed.">          if (Objects.nonNull(pt0)) {</span>
+<span class="nc" id="L162">            Point2D ptI = GeomUtil.getPerpendicularPointToLine(pt1, pt2, pt0);</span>
+
+<span class="nc" id="L164">            AffineTransform translate =</span>
+<span class="nc" id="L165">                AffineTransform.getTranslateInstance(</span>
+<span class="nc" id="L166">                    pt0.getX() - ptI.getX(), pt0.getY() - ptI.getY());</span>
+<span class="nc" id="L167">            translate.transform(pt1, pt1);</span>
+<span class="nc" id="L168">            translate.transform(pt2, pt2);</span>
+
+<span class="nc" id="L170">            setHandlePoint(hIndex1, pt1);</span>
+<span class="nc" id="L171">            setHandlePoint(hIndex2, pt2);</span>
+          }
+        }
+
+<span class="nc" id="L175">        setHandlePoint(4, GeomUtil.getMidPoint(ptA, ptB));</span>
+<span class="nc" id="L176">        setHandlePoint(5, GeomUtil.getMidPoint(ptC, ptD));</span>
+      }
+    }
+<span class="nc" id="L179">    return handlePointIndex;</span>
+  }
+
+  @Override
+  public void buildShape(MouseEventDouble mouseEvent) {
+
+<span class="nc" id="L185">    updateTool();</span>
+
+<span class="nc" id="L187">    Shape newShape = null;</span>
+<span class="nc" id="L188">    Path2D path = new Path2D.Double(Path2D.WIND_NON_ZERO, 2);</span>
+
+<span class="nc bnc" id="L190" title="All 2 branches missed.">    if (lineABvalid) {</span>
+<span class="nc" id="L191">      path.append(new Line2D.Double(ptA, ptB), false);</span>
+    }
+
+<span class="nc bnc" id="L194" title="All 2 branches missed.">    if (lineCDvalid) {</span>
+<span class="nc" id="L195">      path.append(new Line2D.Double(ptC, ptD), false);</span>
+    }
+
+<span class="nc bnc" id="L198" title="All 2 branches missed.">    if (path.getCurrentPoint() != null) {</span>
+<span class="nc" id="L199">      newShape = path;</span>
+    }
+
+<span class="nc" id="L202">    setShape(newShape, mouseEvent);</span>
+<span class="nc" id="L203">    updateLabel(mouseEvent, getDefaultView2d(mouseEvent));</span>
+<span class="nc" id="L204">  }</span>
+
+  @Override
+  public List&lt;MeasureItem&gt; computeMeasurements(
+      MeasurableLayer layer, boolean releaseEvent, Unit displayUnit) {
+
+<span class="nc bnc" id="L210" title="All 6 branches missed.">    if (layer != null &amp;&amp; layer.hasContent() &amp;&amp; isShapeValid()) {</span>
+<span class="nc" id="L211">      MeasurementsAdapter adapter = layer.getMeasurementAdapter(displayUnit);</span>
+
+<span class="nc bnc" id="L213" title="All 2 branches missed.">      if (adapter != null) {</span>
+<span class="nc" id="L214">        ArrayList&lt;MeasureItem&gt; measVal = new ArrayList&lt;&gt;(3);</span>
+
+<span class="nc bnc" id="L216" title="All 2 branches missed.">        if (DISTANCE.getComputed()) {</span>
+<span class="nc" id="L217">          Double val =</span>
+<span class="nc" id="L218">              ptC.distance(GeomUtil.getPerpendicularPointToLine(ptA, ptB, ptC))</span>
+<span class="nc" id="L219">                  * adapter.getCalibRatio();</span>
+<span class="nc" id="L220">          measVal.add(new MeasureItem(DISTANCE, val, adapter.getUnit()));</span>
+        }
+<span class="nc bnc" id="L222" title="All 2 branches missed.">        if (ORIENTATION.getComputed()) {</span>
+<span class="nc" id="L223">          measVal.add(</span>
+              new MeasureItem(
+                  ORIENTATION,
+<span class="nc" id="L226">                  MathUtil.getOrientation(ptA, ptB),</span>
+<span class="nc" id="L227">                  Messages.getString(&quot;measure.deg&quot;)));</span>
+        }
+<span class="nc bnc" id="L229" title="All 2 branches missed.">        if (AZIMUTH.getComputed()) {</span>
+<span class="nc" id="L230">          measVal.add(</span>
+              new MeasureItem(
+<span class="nc" id="L232">                  AZIMUTH, MathUtil.getAzimuth(ptA, ptB), Messages.getString(&quot;measure.deg&quot;)));</span>
+        }
+<span class="nc" id="L234">        return measVal;</span>
+      }
+    }
+<span class="nc" id="L237">    return Collections.emptyList();</span>
+  }
+
+  @Override
+  public boolean isShapeValid() {
+<span class="nc" id="L242">    updateTool();</span>
+<span class="nc bnc" id="L243" title="All 4 branches missed.">    return lineABvalid &amp;&amp; lineCDvalid;</span>
+  }
+
+  // /////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  protected void updateTool() {
+<span class="nc" id="L249">    ptA = getHandlePoint(0);</span>
+<span class="nc" id="L250">    ptB = getHandlePoint(1);</span>
+<span class="nc" id="L251">    ptC = getHandlePoint(2);</span>
+<span class="nc" id="L252">    ptD = getHandlePoint(3);</span>
+<span class="nc" id="L253">    ptE = getHandlePoint(4);</span>
+<span class="nc" id="L254">    ptF = getHandlePoint(5);</span>
+
+<span class="nc bnc" id="L256" title="All 6 branches missed.">    lineABvalid = ptA != null &amp;&amp; ptB != null &amp;&amp; !ptB.equals(ptA);</span>
+<span class="nc bnc" id="L257" title="All 6 branches missed.">    lineCDvalid = ptC != null &amp;&amp; ptD != null &amp;&amp; !ptC.equals(ptD);</span>
+<span class="nc" id="L258">  }</span>
+
+  @Override
+  public List&lt;Measurement&gt; getMeasurementList() {
+<span class="nc" id="L262">    return MEASUREMENT_LIST;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

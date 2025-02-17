@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>JScrollPopupMenu.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.gui.util</a> &gt; <span class="el_source">JScrollPopupMenu.java</span></div><h1>JScrollPopupMenu.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.gui.util;
+
+import java.awt.Adjustable;
+import java.awt.Component;
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Insets;
+import java.awt.LayoutManager;
+import java.awt.event.MouseWheelEvent;
+import javax.swing.JPopupMenu;
+import javax.swing.JScrollBar;
+
+public class JScrollPopupMenu extends JPopupMenu {
+
+<span class="nc" id="L25">  protected int maximumVisibleRows = 10;</span>
+  private JScrollBar popupScrollBar;
+
+  public JScrollPopupMenu() {
+<span class="nc" id="L29">    this(null);</span>
+<span class="nc" id="L30">  }</span>
+
+  public JScrollPopupMenu(String label) {
+<span class="nc" id="L33">    super(label);</span>
+<span class="nc" id="L34">    setLayout(new ScrollPopupMenuLayout());</span>
+
+<span class="nc" id="L36">    super.add(getScrollBar());</span>
+<span class="nc" id="L37">    addMouseWheelListener(</span>
+        event -&gt; {
+<span class="nc" id="L39">          JScrollBar scrollBar = getScrollBar();</span>
+          int amount =
+<span class="nc bnc" id="L41" title="All 2 branches missed.">              (event.getScrollType() == MouseWheelEvent.WHEEL_UNIT_SCROLL)</span>
+<span class="nc" id="L42">                  ? event.getUnitsToScroll() * scrollBar.getUnitIncrement()</span>
+<span class="nc bnc" id="L43" title="All 2 branches missed.">                  : (event.getWheelRotation() &lt; 0 ? -1 : 1) * scrollBar.getBlockIncrement();</span>
+
+<span class="nc" id="L45">          scrollBar.setValue(scrollBar.getValue() + amount);</span>
+<span class="nc" id="L46">          event.consume();</span>
+<span class="nc" id="L47">        });</span>
+<span class="nc" id="L48">  }</span>
+
+  protected JScrollBar getScrollBar() {
+<span class="nc bnc" id="L51" title="All 2 branches missed.">    if (popupScrollBar == null) {</span>
+<span class="nc" id="L52">      popupScrollBar = new JScrollBar(Adjustable.VERTICAL);</span>
+<span class="nc" id="L53">      popupScrollBar.addAdjustmentListener(</span>
+          e -&gt; {
+<span class="nc" id="L55">            doLayout();</span>
+<span class="nc" id="L56">            repaint();</span>
+<span class="nc" id="L57">          });</span>
+
+<span class="nc" id="L59">      popupScrollBar.setVisible(false);</span>
+    }
+
+<span class="nc" id="L62">    return popupScrollBar;</span>
+  }
+
+  public int getMaximumVisibleRows() {
+<span class="nc" id="L66">    return maximumVisibleRows;</span>
+  }
+
+  public void setMaximumVisibleRows(int maximumVisibleRows) {
+<span class="nc" id="L70">    this.maximumVisibleRows = maximumVisibleRows;</span>
+<span class="nc" id="L71">  }</span>
+
+  @Override
+  public void paintChildren(Graphics g) {
+<span class="nc" id="L75">    Insets insets = getInsets();</span>
+<span class="nc" id="L76">    g.clipRect(insets.left, insets.top, getWidth(), getHeight() - insets.top - insets.bottom);</span>
+<span class="nc" id="L77">    super.paintChildren(g);</span>
+<span class="nc" id="L78">  }</span>
+
+  @Override
+  protected void addImpl(Component comp, Object constraints, int index) {
+<span class="nc" id="L82">    super.addImpl(comp, constraints, index);</span>
+
+<span class="nc bnc" id="L84" title="All 2 branches missed.">    if (maximumVisibleRows &lt; getComponentCount() - 1) {</span>
+<span class="nc" id="L85">      getScrollBar().setVisible(true);</span>
+    }
+<span class="nc" id="L87">  }</span>
+
+  @Override
+  public void remove(int index) {
+    // can't remove the scrollbar
+<span class="nc" id="L92">    ++index;</span>
+
+<span class="nc" id="L94">    super.remove(index);</span>
+
+<span class="nc bnc" id="L96" title="All 2 branches missed.">    if (maximumVisibleRows &gt;= getComponentCount() - 1) {</span>
+<span class="nc" id="L97">      getScrollBar().setVisible(false);</span>
+    }
+<span class="nc" id="L99">  }</span>
+
+  @Override
+  public void show(Component invoker, int x, int y) {
+<span class="nc" id="L103">    JScrollBar scrollBar = getScrollBar();</span>
+<span class="nc bnc" id="L104" title="All 2 branches missed.">    if (scrollBar.isVisible()) {</span>
+<span class="nc" id="L105">      int extent = 0;</span>
+<span class="nc" id="L106">      int max = 0;</span>
+<span class="nc" id="L107">      int i = 0;</span>
+<span class="nc" id="L108">      int unit = -1;</span>
+<span class="nc" id="L109">      int width = 0;</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">      for (Component comp : getComponents()) {</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">        if (!(comp instanceof JScrollBar)) {</span>
+<span class="nc" id="L112">          Dimension preferredSize = comp.getPreferredSize();</span>
+<span class="nc" id="L113">          width = Math.max(width, preferredSize.width);</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">          if (unit &lt; 0) {</span>
+<span class="nc" id="L115">            unit = preferredSize.height;</span>
+          }
+<span class="nc bnc" id="L117" title="All 2 branches missed.">          if (i++ &lt; maximumVisibleRows) {</span>
+<span class="nc" id="L118">            extent += preferredSize.height;</span>
+          }
+<span class="nc" id="L120">          max += preferredSize.height;</span>
+        }
+      }
+
+<span class="nc" id="L124">      Insets insets = getInsets();</span>
+<span class="nc" id="L125">      int widthMargin = insets.left + insets.right;</span>
+<span class="nc" id="L126">      int heightMargin = insets.top + insets.bottom;</span>
+<span class="nc" id="L127">      scrollBar.setUnitIncrement(unit);</span>
+<span class="nc" id="L128">      scrollBar.setBlockIncrement(extent);</span>
+<span class="nc" id="L129">      scrollBar.setValues(0, heightMargin + extent, 0, heightMargin + max);</span>
+
+<span class="nc" id="L131">      width += scrollBar.getPreferredSize().width + widthMargin;</span>
+<span class="nc" id="L132">      int height = heightMargin + extent;</span>
+
+<span class="nc" id="L134">      setPopupSize(new Dimension(width, height));</span>
+    }
+
+<span class="nc" id="L137">    super.show(invoker, x, y);</span>
+<span class="nc" id="L138">  }</span>
+
+<span class="nc" id="L140">  protected static class ScrollPopupMenuLayout implements LayoutManager {</span>
+    @Override
+    public void addLayoutComponent(String name, Component comp) {
+      // Not implemented
+<span class="nc" id="L144">    }</span>
+
+    @Override
+    public void removeLayoutComponent(Component comp) {
+      // Not implemented
+<span class="nc" id="L149">    }</span>
+
+    @Override
+    public Dimension preferredLayoutSize(Container parent) {
+<span class="nc" id="L153">      int visibleAmount = Integer.MAX_VALUE;</span>
+<span class="nc" id="L154">      Dimension dim = new Dimension();</span>
+<span class="nc bnc" id="L155" title="All 2 branches missed.">      for (Component comp : parent.getComponents()) {</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">        if (comp.isVisible()) {</span>
+<span class="nc bnc" id="L157" title="All 2 branches missed.">          if (comp instanceof JScrollBar scrollBar) {</span>
+<span class="nc" id="L158">            visibleAmount = scrollBar.getVisibleAmount();</span>
+          } else {
+<span class="nc" id="L160">            Dimension pref = comp.getPreferredSize();</span>
+<span class="nc" id="L161">            dim.width = Math.max(dim.width, pref.width);</span>
+<span class="nc" id="L162">            dim.height += pref.height;</span>
+          }
+        }
+      }
+
+<span class="nc" id="L167">      Insets insets = parent.getInsets();</span>
+<span class="nc" id="L168">      dim.height = Math.min(dim.height + insets.top + insets.bottom, visibleAmount);</span>
+
+<span class="nc" id="L170">      return dim;</span>
+    }
+
+    @Override
+    public Dimension minimumLayoutSize(Container parent) {
+<span class="nc" id="L175">      int visibleAmount = Integer.MAX_VALUE;</span>
+<span class="nc" id="L176">      Dimension dim = new Dimension();</span>
+<span class="nc bnc" id="L177" title="All 2 branches missed.">      for (Component comp : parent.getComponents()) {</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">        if (comp.isVisible()) {</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">          if (comp instanceof JScrollBar scrollBar) {</span>
+<span class="nc" id="L180">            visibleAmount = scrollBar.getVisibleAmount();</span>
+          } else {
+<span class="nc" id="L182">            Dimension min = comp.getMinimumSize();</span>
+<span class="nc" id="L183">            dim.width = Math.max(dim.width, min.width);</span>
+<span class="nc" id="L184">            dim.height += min.height;</span>
+          }
+        }
+      }
+
+<span class="nc" id="L189">      Insets insets = parent.getInsets();</span>
+<span class="nc" id="L190">      dim.height = Math.min(dim.height + insets.top + insets.bottom, visibleAmount);</span>
+
+<span class="nc" id="L192">      return dim;</span>
+    }
+
+    @Override
+    public void layoutContainer(Container parent) {
+<span class="nc" id="L197">      Insets insets = parent.getInsets();</span>
+
+<span class="nc" id="L199">      int width = parent.getWidth() - insets.left - insets.right;</span>
+<span class="nc" id="L200">      int height = parent.getHeight() - insets.top - insets.bottom;</span>
+
+<span class="nc" id="L202">      int x = insets.left;</span>
+<span class="nc" id="L203">      int y = insets.top;</span>
+<span class="nc" id="L204">      int position = 0;</span>
+
+<span class="nc bnc" id="L206" title="All 2 branches missed.">      for (Component comp : parent.getComponents()) {</span>
+<span class="nc bnc" id="L207" title="All 4 branches missed.">        if ((comp instanceof JScrollBar scrollBar) &amp;&amp; comp.isVisible()) {</span>
+<span class="nc" id="L208">          Dimension dim = scrollBar.getPreferredSize();</span>
+<span class="nc" id="L209">          scrollBar.setBounds(x + width - dim.width, y, dim.width, height);</span>
+<span class="nc" id="L210">          width -= dim.width;</span>
+<span class="nc" id="L211">          position = scrollBar.getValue();</span>
+        }
+      }
+
+<span class="nc" id="L215">      y -= position;</span>
+<span class="nc bnc" id="L216" title="All 2 branches missed.">      for (Component comp : parent.getComponents()) {</span>
+<span class="nc bnc" id="L217" title="All 4 branches missed.">        if (!(comp instanceof JScrollBar) &amp;&amp; comp.isVisible()) {</span>
+<span class="nc" id="L218">          Dimension pref = comp.getPreferredSize();</span>
+<span class="nc" id="L219">          comp.setBounds(x, y, width, pref.height);</span>
+<span class="nc" id="L220">          y += pref.height;</span>
+        }
+      }
+<span class="nc" id="L223">    }</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

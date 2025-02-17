@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>HistogramData.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image</a> &gt; <span class="el_source">HistogramData.java</span></div><h1>HistogramData.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image;
+
+import java.awt.Color;
+import java.awt.image.DataBuffer;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfFloat;
+import org.opencv.core.MatOfInt;
+import org.opencv.imgproc.Imgproc;
+import org.weasis.core.Messages;
+import org.weasis.core.api.image.util.MeasurableLayer;
+import org.weasis.core.api.image.util.WindLevelParameters;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.opencv.data.ImageCV;
+import org.weasis.opencv.data.LookupTableCV;
+import org.weasis.opencv.data.PlanarImage;
+import org.weasis.opencv.op.ImageConversion;
+import org.weasis.opencv.op.lut.ByteLut;
+import org.weasis.opencv.op.lut.ColorLut;
+import org.weasis.opencv.op.lut.PresentationStateLut;
+import org.weasis.opencv.op.lut.WlParams;
+
+public class HistogramData {
+  private final float[] histValues;
+  private final MeasurableLayer layer;
+  private final int bandIndex;
+  private final double pixMin;
+  private final double pixMax;
+  private final Model colorModel;
+  private WlParams windLevel;
+  private DisplayByteLut lut;
+  private LookupTableCV voiLut;
+
+<span class="nc" id="L51">  public enum Model {</span>
+<span class="nc" id="L52">    GRAY(Messages.getString(&quot;HistogramData.lum&quot;), buildLut(ColorLut.GRAY)),</span>
+
+<span class="nc" id="L54">    RGB(</span>
+<span class="nc" id="L55">        Messages.getString(&quot;HistogramData.rgb&quot;),</span>
+<span class="nc" id="L56">        buildLut(ColorLut.RED),</span>
+<span class="nc" id="L57">        buildLut(ColorLut.GREEN),</span>
+<span class="nc" id="L58">        buildLut(ColorLut.BLUE)),</span>
+<span class="nc" id="L59">    HSV(</span>
+<span class="nc" id="L60">        Messages.getString(&quot;HistogramData.hsv&quot;),</span>
+<span class="nc" id="L61">        buildLut(ColorLut.HUE),</span>
+<span class="nc" id="L62">        buildLut(Messages.getString(&quot;HistogramData.saturation&quot;), ColorLut.GRAY),</span>
+<span class="nc" id="L63">        buildLut(Messages.getString(&quot;HistogramData.val&quot;), ColorLut.GRAY)),</span>
+<span class="nc" id="L64">    HLS(</span>
+<span class="nc" id="L65">        Messages.getString(&quot;HistogramData.hls&quot;),</span>
+<span class="nc" id="L66">        buildLut(ColorLut.HUE),</span>
+<span class="nc" id="L67">        buildLut(Messages.getString(&quot;HistogramData.lightness&quot;), ColorLut.GRAY),</span>
+<span class="nc" id="L68">        buildLut(Messages.getString(&quot;HistogramData.saturation&quot;), ColorLut.GRAY));</span>
+
+    private final ByteLut[] byteLut;
+    private final String title;
+
+<span class="nc" id="L73">    Model(String name, ByteLut... luts) {</span>
+<span class="nc" id="L74">      this.title =</span>
+          name
+              + &quot; (&quot;
+<span class="nc" id="L77">              + Arrays.stream(luts).map(ByteLut::name).collect(Collectors.joining(&quot;,&quot;))</span>
+              + &quot;)&quot;;
+<span class="nc" id="L79">      this.byteLut = luts;</span>
+<span class="nc" id="L80">    }</span>
+
+    public ByteLut[] getByteLut() {
+<span class="nc" id="L83">      return byteLut;</span>
+    }
+
+    public String getTitle() {
+<span class="nc" id="L87">      return title;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L92">      return title;</span>
+    }
+
+    private static ByteLut buildLut(ColorLut lut) {
+<span class="nc" id="L96">      return buildLut(lut.getName(), lut);</span>
+    }
+
+    private static ByteLut buildLut(String name, ColorLut lut) {
+<span class="nc" id="L100">      return new ByteLut(name, lut.getByteLut().lutTable());</span>
+    }
+
+    private static ByteLut buildLut(String name, byte[][] slut) {
+<span class="nc" id="L104">      return new ByteLut(name, slut);</span>
+    }
+  }
+
+  public HistogramData(
+      float[] histValues,
+      DisplayByteLut lut,
+      int bandIndex,
+      Model colorModel,
+      WlParams windLevel,
+      double pixMin,
+      double pixMax,
+<span class="nc" id="L116">      MeasurableLayer layer) {</span>
+<span class="nc" id="L117">    this.histValues = Objects.requireNonNull(histValues);</span>
+<span class="nc" id="L118">    this.layer = Objects.requireNonNull(layer);</span>
+<span class="nc" id="L119">    this.colorModel = colorModel;</span>
+<span class="nc" id="L120">    this.lut = lut;</span>
+<span class="nc" id="L121">    this.windLevel = windLevel;</span>
+<span class="nc" id="L122">    this.bandIndex = bandIndex;</span>
+<span class="nc" id="L123">    this.pixMin = pixMin;</span>
+<span class="nc" id="L124">    this.pixMax = pixMax;</span>
+<span class="nc" id="L125">  }</span>
+
+  public float[] getHistValues() {
+<span class="nc" id="L128">    return histValues;</span>
+  }
+
+  public DisplayByteLut getLut() {
+<span class="nc" id="L132">    return lut;</span>
+  }
+
+  public Model getColorModel() {
+<span class="nc" id="L136">    return colorModel;</span>
+  }
+
+  public void setLut(DisplayByteLut lut) {
+<span class="nc" id="L140">    this.lut = lut;</span>
+<span class="nc" id="L141">  }</span>
+
+  public WlParams getWindLevel() {
+<span class="nc" id="L144">    return windLevel;</span>
+  }
+
+  public void setWindLevel(WindLevelParameters windLevel) {
+<span class="nc" id="L148">    this.windLevel = windLevel;</span>
+<span class="nc" id="L149">  }</span>
+
+  public MeasurableLayer getLayer() {
+<span class="nc" id="L152">    return layer;</span>
+  }
+
+  public LookupTableCV getVoiLut() {
+<span class="nc" id="L156">    return voiLut;</span>
+  }
+
+  public void setVoiLut(LookupTableCV voiLut) {
+<span class="nc" id="L160">    this.voiLut = voiLut;</span>
+<span class="nc" id="L161">  }</span>
+
+  public int getBandIndex() {
+<span class="nc" id="L164">    return bandIndex;</span>
+  }
+
+  public double getPixMin() {
+<span class="nc" id="L168">    return pixMin;</span>
+  }
+
+  public double getPixMax() {
+<span class="nc" id="L172">    return pixMax;</span>
+  }
+
+  public int getFinalVoiLutIndex(Number level) {
+<span class="nc bnc" id="L176" title="All 4 branches missed.">    if (lut == null || windLevel == null) return 0;</span>
+<span class="nc" id="L177">    Integer index = null;</span>
+<span class="nc" id="L178">    int dynamic = lut.getByteLut().lutTable()[0].length - 1;</span>
+
+<span class="nc" id="L180">    int datatype = ImageConversion.convertToDataType(layer.getSourceRenderedImage().type());</span>
+<span class="nc bnc" id="L181" title="All 4 branches missed.">    if (datatype &gt;= DataBuffer.TYPE_BYTE &amp;&amp; datatype &lt; DataBuffer.TYPE_INT) {</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">      if (voiLut != null) {</span>
+<span class="nc bnc" id="L183" title="All 2 branches missed.">        int b = voiLut.getNumBands() &lt;= bandIndex ? 0 : bandIndex;</span>
+<span class="nc" id="L184">        index = voiLut.lookup(b, level.intValue());</span>
+      }
+<span class="nc" id="L186">      PresentationStateLut pr = windLevel.getPresentationState();</span>
+<span class="nc bnc" id="L187" title="All 2 branches missed.">      if (pr != null) {</span>
+<span class="nc" id="L188">        Optional&lt;LookupTableCV&gt; prLutData = pr.getPrLut();</span>
+<span class="nc bnc" id="L189" title="All 2 branches missed.">        if (prLutData.isPresent()) {</span>
+<span class="nc bnc" id="L190" title="All 2 branches missed.">          int val = index == null ? level.intValue() : index;</span>
+<span class="nc bnc" id="L191" title="All 2 branches missed.">          int b = prLutData.get().getNumBands() &lt;= bandIndex ? 0 : bandIndex;</span>
+<span class="nc" id="L192">          index = prLutData.get().lookup(b, val);</span>
+        }
+      }
+    }
+
+<span class="nc bnc" id="L197" title="All 2 branches missed.">    if (index == null) {</span>
+<span class="nc" id="L198">      double low = windLevel.getLevel() - windLevel.getWindow() / 2.0;</span>
+<span class="nc" id="L199">      double high = windLevel.getLevel() + windLevel.getWindow() / 2.0;</span>
+<span class="nc" id="L200">      double range = high - low;</span>
+<span class="nc bnc" id="L201" title="All 4 branches missed.">      if (range &lt; 1.0 &amp;&amp; datatype == DataBuffer.TYPE_INT) {</span>
+<span class="nc" id="L202">        range = 1.0;</span>
+      }
+<span class="nc" id="L204">      double slope = 255.0 / range;</span>
+<span class="nc" id="L205">      double yint = 255.0 - slope * high;</span>
+<span class="nc" id="L206">      index = (int) Math.round(level.doubleValue() * slope + yint);</span>
+    }
+<span class="nc bnc" id="L208" title="All 2 branches missed.">    if (index &lt; 0) {</span>
+<span class="nc" id="L209">      index = 0;</span>
+    }
+<span class="nc bnc" id="L211" title="All 2 branches missed.">    if (index &gt; dynamic) {</span>
+<span class="nc" id="L212">      index = dynamic;</span>
+    }
+
+<span class="nc bnc" id="L215" title="All 2 branches missed.">    if (lut.isInvert()) {</span>
+<span class="nc" id="L216">      index = dynamic - index;</span>
+    }
+<span class="nc" id="L218">    return index;</span>
+  }
+
+  public Color getFinalVoiLutColor(Number level) {
+<span class="nc bnc" id="L222" title="All 2 branches missed.">    if (lut == null) return Color.BLACK;</span>
+<span class="nc" id="L223">    int index = getFinalVoiLutIndex(level);</span>
+<span class="nc" id="L224">    byte[][] table = lut.getByteLut().lutTable();</span>
+<span class="nc" id="L225">    return new Color((table[2][index] &amp; 0xff), (table[1][index] &amp; 0xff), (table[0][index] &amp; 0xff));</span>
+  }
+
+  public void updateVoiLut(ViewCanvas&lt;? extends ImageElement&gt; view2DPane) {
+<span class="nc bnc" id="L229" title="All 2 branches missed.">    if (windLevel != null) {</span>
+<span class="nc" id="L230">      ImageElement img = view2DPane.getImage();</span>
+<span class="nc" id="L231">      PlanarImage imageSource = view2DPane.getSourceImage();</span>
+<span class="nc" id="L232">      int datatype = ImageConversion.convertToDataType(imageSource.type());</span>
+<span class="nc bnc" id="L233" title="All 4 branches missed.">      if (datatype &gt;= DataBuffer.TYPE_BYTE &amp;&amp; datatype &lt; DataBuffer.TYPE_INT) {</span>
+<span class="nc" id="L234">        Optional&lt;LookupTableCV&gt; prLutData = Optional.empty();</span>
+<span class="nc" id="L235">        PresentationStateLut pr = windLevel.getPresentationState();</span>
+<span class="nc bnc" id="L236" title="All 2 branches missed.">        if (pr != null) {</span>
+<span class="nc" id="L237">          prLutData = pr.getPrLut();</span>
+        }
+<span class="nc bnc" id="L239" title="All 4 branches missed.">        if (prLutData.isEmpty() || windLevel.getLutShape().getLookup() != null) {</span>
+<span class="nc" id="L240">          setVoiLut(img.getVOILookup(windLevel));</span>
+        }
+      }
+    }
+<span class="nc" id="L244">  }</span>
+
+  public static List&lt;Mat&gt; computeHistogram(
+      Mat imageSource,
+      Mat mask,
+      int nbBins,
+      int[] selChannels,
+      Model model,
+      double pixMin,
+      double pixMax) {
+<span class="nc bnc" id="L254" title="All 2 branches missed.">    if (selChannels.length == 0) {</span>
+<span class="nc" id="L255">      return Collections.emptyList();</span>
+    }
+    // Number of histogram bins
+<span class="nc" id="L258">    MatOfInt histSize = new MatOfInt(nbBins);</span>
+<span class="nc" id="L259">    MatOfFloat histRange = new MatOfFloat((float) pixMin, (float) pixMax + 1.0f);</span>
+    Mat img;
+<span class="nc" id="L261">    int cvType = CvType.depth(imageSource.type());</span>
+<span class="nc bnc" id="L262" title="All 4 branches missed.">    if (cvType == CvType.CV_16S || cvType == CvType.CV_32S) {</span>
+<span class="nc" id="L263">      Mat floatImage = new Mat(imageSource.height(), imageSource.width(), CvType.CV_32F);</span>
+<span class="nc" id="L264">      imageSource.convertTo(floatImage, CvType.CV_32F);</span>
+<span class="nc" id="L265">      img = floatImage;</span>
+<span class="nc" id="L266">    } else {</span>
+<span class="nc" id="L267">      img = imageSource;</span>
+    }
+
+<span class="nc" id="L270">    List&lt;Mat&gt; channels = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L271" title="All 2 branches missed.">    if (selChannels.length == 1) {</span>
+<span class="nc" id="L272">      channels.add(img);</span>
+    } else {
+<span class="nc bnc" id="L274" title="All 2 branches missed.">      if (Model.RGB == model) {</span>
+<span class="nc" id="L275">        Core.split(img, channels);</span>
+<span class="nc" id="L276">        Collections.reverse(channels);</span>
+      } else {
+<span class="nc" id="L278">        ImageCV dstImg = new ImageCV();</span>
+        int code;
+<span class="nc bnc" id="L280" title="All 2 branches missed.">        if (Model.HSV == model) {</span>
+<span class="nc" id="L281">          code = Imgproc.COLOR_BGR2HSV;</span>
+<span class="nc bnc" id="L282" title="All 2 branches missed.">        } else if (Model.HLS == model) {</span>
+<span class="nc" id="L283">          code = Imgproc.COLOR_BGR2HLS;</span>
+<span class="nc bnc" id="L284" title="All 2 branches missed.">        } else if (Model.GRAY == model) {</span>
+<span class="nc" id="L285">          code = Imgproc.COLOR_BGR2GRAY;</span>
+        } else {
+<span class="nc" id="L287">          code = Imgproc.COLOR_BGR2RGB;</span>
+        }
+<span class="nc" id="L289">        Imgproc.cvtColor(img, dstImg, code);</span>
+<span class="nc" id="L290">        Core.split(dstImg, channels);</span>
+      }
+    }
+
+<span class="nc bnc" id="L294" title="All 2 branches missed.">    Mat msk = mask == null ? new Mat() : mask;</span>
+
+<span class="nc bnc" id="L296" title="All 2 branches missed.">    if (channels.size() == 1) {</span>
+<span class="nc" id="L297">      Mat hist = new Mat();</span>
+<span class="nc" id="L298">      Imgproc.calcHist(channels, new MatOfInt(0), msk, hist, histSize, histRange, false);</span>
+<span class="nc" id="L299">      return Collections.singletonList(hist);</span>
+    }
+
+<span class="nc" id="L302">    List&lt;Mat&gt; histograms = new ArrayList&lt;&gt;(selChannels.length);</span>
+<span class="nc bnc" id="L303" title="All 2 branches missed.">    for (int selChannel : selChannels) {</span>
+<span class="nc" id="L304">      Mat hist = new Mat();</span>
+<span class="nc" id="L305">      Imgproc.calcHist(channels, new MatOfInt(selChannel), msk, hist, histSize, histRange, false);</span>
+<span class="nc" id="L306">      histograms.add(hist);</span>
+    }
+<span class="nc" id="L308">    return histograms;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

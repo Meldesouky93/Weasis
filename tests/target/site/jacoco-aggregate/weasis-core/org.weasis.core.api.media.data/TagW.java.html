@@ -1,0 +1,558 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>TagW.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.media.data</a> &gt; <span class="el_source">TagW.java</span></div><h1>TagW.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.media.data;
+
+import java.awt.Color;
+import java.lang.reflect.Array;
+import java.text.DecimalFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.temporal.TemporalAccessor;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.DoubleStream;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+import javax.xml.stream.XMLStreamReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.Messages;
+import org.weasis.core.util.StringUtil;
+
+/**
+ * Common DICOM tags used by the application. The role of these tags is to provide a high level
+ * accessibility of common tags (DICOM and non DICOM).
+ */
+public class TagW {
+<span class="nc" id="L39">  private static final Logger LOGGER = LoggerFactory.getLogger(TagW.class);</span>
+
+<span class="nc" id="L41">  private static final AtomicInteger idCounter = new AtomicInteger(Integer.MAX_VALUE);</span>
+
+<span class="nc" id="L43">  protected static final Map&lt;String, TagW&gt; tags = Collections.synchronizedMap(new HashMap&lt;&gt;());</span>
+
+  public static final String NO_VALUE = &quot;UNKNOWN&quot;;
+
+<span class="nc" id="L47">  public enum TagType {</span>
+    // Period is 3 digits followed by one of the characters 'D' (Day),'W' (Week), 'M' (Month) or 'Y'
+    // (Year)
+
+<span class="nc" id="L51">    STRING(String.class),</span>
+<span class="nc" id="L52">    TEXT(String.class),</span>
+<span class="nc" id="L53">    URI(String.class),</span>
+<span class="nc" id="L54">    DATE(LocalDate.class),</span>
+<span class="nc" id="L55">    DATETIME(LocalDateTime.class),</span>
+<span class="nc" id="L56">    TIME(LocalTime.class),</span>
+<span class="nc" id="L57">    BOOLEAN(Boolean.class),</span>
+<span class="nc" id="L58">    BYTE(Byte.class),</span>
+<span class="nc" id="L59">    INTEGER(Integer.class),</span>
+<span class="nc" id="L60">    FLOAT(Float.class),</span>
+<span class="nc" id="L61">    DOUBLE(Double.class),</span>
+<span class="nc" id="L62">    COLOR(Color.class),</span>
+<span class="nc" id="L63">    THUMBNAIL(Thumbnailable.class),</span>
+<span class="nc" id="L64">    LIST(List.class),</span>
+<span class="nc" id="L65">    OBJECT(Object.class),</span>
+<span class="nc" id="L66">    DICOM_DATE(LocalDate.class),</span>
+<span class="nc" id="L67">    DICOM_DATETIME(LocalDateTime.class),</span>
+<span class="nc" id="L68">    DICOM_TIME(LocalTime.class),</span>
+<span class="nc" id="L69">    DICOM_PERIOD(String.class),</span>
+<span class="nc" id="L70">    DICOM_PERSON_NAME(String.class),</span>
+<span class="nc" id="L71">    DICOM_SEQUENCE(Object.class),</span>
+<span class="nc" id="L72">    DICOM_SEX(String.class);</span>
+
+    private final Class&lt;?&gt; clazz;
+
+<span class="nc" id="L76">    TagType(Class&lt;?&gt; clazz) {</span>
+<span class="nc" id="L77">      this.clazz = clazz;</span>
+<span class="nc" id="L78">    }</span>
+
+    public Class&lt;?&gt; getClazz() {
+<span class="nc" id="L81">      return clazz;</span>
+    }
+
+    public boolean isInstanceOf(Object value) {
+<span class="nc bnc" id="L85" title="All 2 branches missed.">      if (value == null) {</span>
+<span class="nc" id="L86">        return true;</span>
+      }
+<span class="nc" id="L88">      return clazz.isAssignableFrom(value.getClass());</span>
+    }
+  }
+
+<span class="nc" id="L92">  public static final TagW UnknownTag =</span>
+      new TagW(0, &quot;UnknownTag&quot;, &quot;Unknown Tag&quot;, TagType.STRING); // NON-NLS
+
+<span class="nc" id="L95">  public static final TagW Group =</span>
+<span class="nc" id="L96">      new TagW(&quot;Group&quot;, Messages.getString(&quot;TagW.group&quot;), TagType.STRING); // NON-NLS</span>
+  // Pseudo unique identifier: as PatientID is not a unique identifier for the patient outside an
+  // institution, PatientPseudoUID tend to be unique (PatientID, PatientName and PatientBirthDate
+  // can be used simultaneously to enforce the unique behavior)
+<span class="nc" id="L100">  public static final TagW PatientPseudoUID =</span>
+<span class="nc" id="L101">      new TagW(&quot;PatientPseudoUID&quot;, Messages.getString(&quot;TagElement.pat_uid&quot;), TagType.STRING);</span>
+<span class="nc" id="L102">  public static final TagW SeriesLoading =</span>
+<span class="nc" id="L103">      new TagW(&quot;SeriesLoading&quot;, Messages.getString(&quot;TagElement.laod&quot;), TagType.INTEGER);</span>
+<span class="nc" id="L104">  public static final TagW Thumbnail =</span>
+<span class="nc" id="L105">      new TagW(&quot;Thumbnail&quot;, Messages.getString(&quot;TagElement.thumb&quot;), TagType.THUMBNAIL); // NON-NLS</span>
+<span class="nc" id="L106">  public static final TagW ThumbnailPath = new TagW(&quot;ThumbnailPath&quot;, TagType.STRING);</span>
+<span class="nc" id="L107">  public static final TagW ExplorerModel =</span>
+<span class="nc" id="L108">      new TagW(&quot;ExplorerModel&quot;, Messages.getString(&quot;TagElement.exp_model&quot;), TagType.OBJECT);</span>
+<span class="nc" id="L109">  public static final TagW PresentationModel = new TagW(&quot;PesentationModel&quot;, TagType.OBJECT);</span>
+<span class="nc" id="L110">  public static final TagW PresentationModelBirary =</span>
+      new TagW(&quot;PesentationModelBinary&quot;, TagType.BYTE);
+<span class="nc" id="L112">  public static final TagW SplitSeriesNumber =</span>
+<span class="nc" id="L113">      new TagW(&quot;SplitSeriesNumber&quot;, Messages.getString(&quot;TagElement.split_no&quot;), TagType.INTEGER);</span>
+<span class="nc" id="L114">  public static final TagW SeriesSelected =</span>
+<span class="nc" id="L115">      new TagW(&quot;SeriesSelected&quot;, Messages.getString(&quot;TagElement.select&quot;), TagType.BOOLEAN);</span>
+<span class="nc" id="L116">  public static final TagW SeriesOpen =</span>
+<span class="nc" id="L117">      new TagW(&quot;SeriesOpen&quot;, Messages.getString(&quot;TagElement.open&quot;), TagType.BOOLEAN);</span>
+<span class="nc" id="L118">  public static final TagW SeriesFocused = new TagW(&quot;SeriesFocused&quot;, TagType.BOOLEAN);</span>
+<span class="nc" id="L119">  public static final TagW ImageWidth =</span>
+<span class="nc" id="L120">      new TagW(&quot;ImageWidth&quot;, Messages.getString(&quot;TagElement.img_w&quot;), TagType.INTEGER);</span>
+<span class="nc" id="L121">  public static final TagW ImageHeight =</span>
+<span class="nc" id="L122">      new TagW(&quot;ImageHeight&quot;, Messages.getString(&quot;TagElement.img_h&quot;), TagType.INTEGER);</span>
+<span class="nc" id="L123">  public static final TagW ImageDepth =</span>
+<span class="nc" id="L124">      new TagW(&quot;ImageDepth&quot;, Messages.getString(&quot;TagElement.img_d&quot;), TagType.INTEGER);</span>
+<span class="nc" id="L125">  public static final TagW ImageOrientationPlane =</span>
+<span class="nc" id="L126">      new TagW(&quot;ImageOrientationPlane&quot;, Messages.getString(&quot;TagElement.img_or&quot;), TagType.STRING);</span>
+<span class="nc" id="L127">  public static final TagW ImageBitsPerPixel =</span>
+<span class="nc" id="L128">      new TagW(&quot;ImageBitsPerPixel&quot;, Messages.getString(&quot;TagElement.img_bpp&quot;), TagType.INTEGER);</span>
+<span class="nc" id="L129">  public static final TagW ImageCache = new TagW(&quot;ImageCache&quot;, TagType.BOOLEAN);</span>
+<span class="nc" id="L130">  public static final TagW ShutterFinalShape = new TagW(&quot;ShutterFinalShape&quot;, TagType.OBJECT);</span>
+<span class="nc" id="L131">  public static final TagW ShutterRGBColor = new TagW(&quot;ShutterRGBColor&quot;, TagType.COLOR);</span>
+<span class="nc" id="L132">  public static final TagW ShutterPSValue = new TagW(&quot;ShutterPSValue&quot;, TagType.INTEGER);</span>
+<span class="nc" id="L133">  public static final TagW ImageDescriptor = new TagW(&quot;ImageDescriptor&quot;, TagType.OBJECT);</span>
+<span class="nc" id="L134">  public static final TagW ObjectToSave = new TagW(&quot;ObjectToSave&quot;, TagType.BOOLEAN);</span>
+
+<span class="nc" id="L136">  public static final TagW WadoCompressionRate = new TagW(&quot;WadoCompressionRate&quot;, TagType.INTEGER);</span>
+<span class="nc" id="L137">  public static final TagW WadoTransferSyntaxUID =</span>
+      new TagW(&quot;WadoTransferSyntaxUID&quot;, TagType.STRING);
+<span class="nc" id="L139">  public static final TagW DirectDownloadFile = new TagW(&quot;DirectDownloadFile&quot;, TagType.STRING);</span>
+<span class="nc" id="L140">  public static final TagW DirectDownloadThumbnail =</span>
+      new TagW(&quot;DirectDownloadThumbnail&quot;, TagType.STRING);
+<span class="nc" id="L142">  public static final TagW ReadFromDicomdir = new TagW(&quot;ReadFromDicomdir&quot;, TagType.BOOLEAN);</span>
+
+<span class="nc" id="L144">  public static final TagW WadoParameters = new TagW(&quot;WadoParameters&quot;, TagType.OBJECT);</span>
+<span class="nc" id="L145">  public static final TagW WadoInstanceReferenceList =</span>
+      new TagW(&quot;WadoInstanceReferenceList&quot;, TagType.LIST);
+<span class="nc" id="L147">  public static final TagW DicomSpecialElementList =</span>
+      new TagW(&quot;DicomSpecialElementList&quot;, TagType.LIST);
+<span class="nc" id="L149">  public static final TagW SlicePosition = new TagW(&quot;SlicePosition&quot;, TagType.DOUBLE, 3, 3);</span>
+<span class="nc" id="L150">  public static final TagW SuvFactor = new TagW(&quot;SUVFactor&quot;, TagType.DOUBLE);</span>
+
+<span class="nc" id="L152">  public static final TagW RootElement = new TagW(&quot;RootElement&quot;, TagType.STRING);</span>
+<span class="nc" id="L153">  public static final TagW FilePath = new TagW(&quot;FilePath&quot;, TagType.STRING);</span>
+<span class="nc" id="L154">  public static final TagW FileName = new TagW(&quot;FileName&quot;, TagType.STRING);</span>
+<span class="nc" id="L155">  public static final TagW CurrentFolder =</span>
+<span class="nc" id="L156">      new TagW(&quot;CurrentFolder&quot;, Messages.getString(&quot;TagElement.cur_dir&quot;), TagType.STRING);</span>
+<span class="nc" id="L157">  public static final TagW Checked = new TagW(&quot;Checked&quot;, TagType.BOOLEAN); // NON-NLS</span>
+
+  /** DICOM common tags */
+<span class="nc" id="L160">  public static final TagW SubseriesInstanceUID = new TagW(&quot;SubseriesInstanceUID&quot;, TagType.STRING);</span>
+
+  // One or more Items shall be included in this sequence
+<span class="nc" id="L163">  public static final TagW VOILUTsExplanation =</span>
+      new TagW(&quot;VOILUTsExplanation&quot;, TagType.STRING, 1, Integer.MAX_VALUE);
+<span class="nc" id="L165">  public static final TagW VOILUTsData = new TagW(&quot;VOILUTsData&quot;, TagType.OBJECT);</span>
+
+  // Only a single Item shall be included in this sequence
+<span class="nc" id="L168">  public static final TagW ModalityLUTExplanation =</span>
+      new TagW(&quot;ModalityLUTExplanation&quot;, TagType.STRING);
+<span class="nc" id="L170">  public static final TagW ModalityLUTType = new TagW(&quot;ModalityLUTType&quot;, TagType.STRING);</span>
+<span class="nc" id="L171">  public static final TagW ModalityLUTData = new TagW(&quot;ModalityLUTData&quot;, TagType.OBJECT);</span>
+
+  // Only a single Item shall be included in this sequence
+<span class="nc" id="L174">  public static final TagW PRLUTsExplanation = new TagW(&quot;PRLUTsExplanation&quot;, TagType.STRING);</span>
+<span class="nc" id="L175">  public static final TagW PrDicomObject = new TagW(&quot;PrDicomObject&quot;, TagType.OBJECT);</span>
+
+<span class="nc" id="L177">  public static final TagW MonoChrome = new TagW(&quot;MonoChrome&quot;, TagType.BOOLEAN);</span>
+
+<span class="nc" id="L179">  public static TagW AnatomicRegion = new TagW(&quot;AnatomicRegion&quot;, TagType.OBJECT);</span>
+
+  /** Basic EXIF tags: https://www.media.mit.edu/pia/Research/deepview/exif.html */
+<span class="nc" id="L182">  public static final TagW ExifImageDescription = new TagW(&quot;ExifImageDescription&quot;, TagType.STRING);</span>
+
+<span class="nc" id="L184">  public static final TagW ExifMake = new TagW(&quot;ExifMake&quot;, TagType.STRING);</span>
+<span class="nc" id="L185">  public static final TagW ExifModel = new TagW(&quot;ExifModel&quot;, TagType.STRING);</span>
+<span class="nc" id="L186">  public static final TagW ExifOrientation = new TagW(&quot;ExifOrientation&quot;, TagType.STRING);</span>
+<span class="nc" id="L187">  public static final TagW ExifXResolution = new TagW(&quot;ExifXResolution&quot;, TagType.STRING);</span>
+<span class="nc" id="L188">  public static final TagW ExifYResolution = new TagW(&quot;ExifYResolution&quot;, TagType.STRING);</span>
+<span class="nc" id="L189">  public static final TagW ExifResolutionUnit = new TagW(&quot;ExifResolutionUnit&quot;, TagType.STRING);</span>
+<span class="nc" id="L190">  public static final TagW ExifSoftware = new TagW(&quot;ExifSoftware&quot;, TagType.STRING);</span>
+<span class="nc" id="L191">  public static final TagW ExifDateTime = new TagW(&quot;ExifDateTime&quot;, TagType.STRING);</span>
+<span class="nc" id="L192">  public static final TagW ExifCopyright = new TagW(&quot;ExifCopyright&quot;, TagType.STRING);</span>
+
+  static {
+<span class="nc" id="L195">    addTag(ImageBitsPerPixel);</span>
+<span class="nc" id="L196">    addTag(ImageCache);</span>
+<span class="nc" id="L197">    addTag(ImageDepth);</span>
+<span class="nc" id="L198">    addTag(ImageHeight);</span>
+<span class="nc" id="L199">    addTag(ImageOrientationPlane);</span>
+<span class="nc" id="L200">    addTag(ImageWidth);</span>
+<span class="nc" id="L201">    addTag(SeriesFocused);</span>
+<span class="nc" id="L202">    addTag(SeriesLoading);</span>
+<span class="nc" id="L203">    addTag(SeriesOpen);</span>
+<span class="nc" id="L204">    addTag(SeriesSelected);</span>
+<span class="nc" id="L205">    addTag(SlicePosition);</span>
+<span class="nc" id="L206">    addTag(SuvFactor);</span>
+<span class="nc" id="L207">    addTag(DirectDownloadFile);</span>
+<span class="nc" id="L208">    addTag(DirectDownloadThumbnail);</span>
+<span class="nc" id="L209">    addTag(RootElement);</span>
+<span class="nc" id="L210">    addTag(FileName);</span>
+<span class="nc" id="L211">    addTag(FilePath);</span>
+<span class="nc" id="L212">    addTag(CurrentFolder);</span>
+
+    // DICOM
+<span class="nc" id="L215">    addTag(SubseriesInstanceUID);</span>
+<span class="nc" id="L216">    addTag(VOILUTsExplanation);</span>
+<span class="nc" id="L217">    addTag(VOILUTsData);</span>
+<span class="nc" id="L218">    addTag(ModalityLUTExplanation);</span>
+<span class="nc" id="L219">    addTag(ModalityLUTType);</span>
+<span class="nc" id="L220">    addTag(ModalityLUTData);</span>
+<span class="nc" id="L221">    addTag(PRLUTsExplanation);</span>
+<span class="nc" id="L222">    addTag(PrDicomObject);</span>
+<span class="nc" id="L223">    addTag(MonoChrome);</span>
+<span class="nc" id="L224">    addTag(AnatomicRegion);</span>
+<span class="nc" id="L225">  }</span>
+
+  protected final int id;
+  protected final String keyword;
+  protected final String displayedName;
+  protected final TagType type;
+  protected int anonymizationType;
+  protected final int vmMin;
+  protected final int vmMax;
+  protected final transient Object defaultValue;
+
+  public TagW(
+      int id,
+      String keyword,
+      String displayedName,
+      TagType type,
+      int vmMin,
+      int vmMax,
+<span class="nc" id="L243">      Object defaultValue) {</span>
+<span class="nc" id="L244">    this.id = id;</span>
+<span class="nc" id="L245">    this.keyword = keyword;</span>
+<span class="nc" id="L246">    this.displayedName = displayedName;</span>
+<span class="nc bnc" id="L247" title="All 2 branches missed.">    this.type = type == null ? TagType.STRING : type;</span>
+<span class="nc" id="L248">    this.anonymizationType = 0;</span>
+<span class="nc" id="L249">    this.defaultValue = defaultValue;</span>
+<span class="nc" id="L250">    this.vmMax = Math.max(vmMax, 1);</span>
+<span class="nc" id="L251">    this.vmMin = Math.max(vmMin, 1);</span>
+
+<span class="nc bnc" id="L253" title="All 2 branches missed.">    if (!isTypeCompliant(defaultValue)) {</span>
+<span class="nc" id="L254">      throw new IllegalArgumentException(&quot;defaultValue is not compliant to the tag type&quot;);</span>
+    }
+<span class="nc" id="L256">  }</span>
+
+  public TagW(int id, String keyword, TagType type, int vmMin, int vmMax) {
+<span class="nc" id="L259">    this(id, keyword, null, type, vmMin, vmMax, null);</span>
+<span class="nc" id="L260">  }</span>
+
+  public TagW(int id, String keyword, String displayedName, TagType type) {
+<span class="nc" id="L263">    this(id, keyword, displayedName, type, 1, 1, null);</span>
+<span class="nc" id="L264">  }</span>
+
+  public TagW(int id, String keyword, TagType type) {
+<span class="nc" id="L267">    this(id, keyword, null, type, 1, 1, null);</span>
+<span class="nc" id="L268">  }</span>
+
+  public TagW(String name, TagType type, int vmMin, int vmMax) {
+<span class="nc" id="L271">    this(idCounter.getAndDecrement(), name, null, type, vmMin, vmMax, null);</span>
+<span class="nc" id="L272">  }</span>
+
+  public TagW(String keyword, String displayedName, TagType type) {
+<span class="nc" id="L275">    this(idCounter.getAndDecrement(), keyword, displayedName, type, 1, 1, null);</span>
+<span class="nc" id="L276">  }</span>
+
+  public TagW(String keyword, TagType type) {
+<span class="nc" id="L279">    this(idCounter.getAndDecrement(), keyword, null, type);</span>
+<span class="nc" id="L280">  }</span>
+
+  public int getId() {
+<span class="nc" id="L283">    return id;</span>
+  }
+
+  public String getKeyword() {
+<span class="nc" id="L287">    return keyword;</span>
+  }
+
+  public String getDisplayedName() {
+<span class="nc bnc" id="L291" title="All 2 branches missed.">    if (displayedName == null) {</span>
+<span class="nc" id="L292">      return StringUtil.splitCamelCaseString(getKeyword());</span>
+    }
+<span class="nc" id="L294">    return displayedName;</span>
+  }
+
+  public TagType getType() {
+<span class="nc" id="L298">    return type;</span>
+  }
+
+  public int getValueMultiplicity() {
+<span class="nc" id="L302">    return vmMax;</span>
+  }
+
+  public boolean isTypeCompliant(Object value) {
+<span class="nc bnc" id="L306" title="All 2 branches missed.">    if (value == null) {</span>
+<span class="nc" id="L307">      return true;</span>
+    }
+    Object clazz;
+<span class="nc bnc" id="L310" title="All 2 branches missed.">    if (value.getClass().isArray()) {</span>
+<span class="nc bnc" id="L311" title="All 2 branches missed.">      if (vmMax == 1) {</span>
+<span class="nc" id="L312">        return false;</span>
+      }
+<span class="nc" id="L314">      clazz = value.getClass().getComponentType();</span>
+
+      // Check the number of values
+<span class="nc" id="L317">      int vmValue = Array.getLength(value);</span>
+<span class="nc bnc" id="L318" title="All 4 branches missed.">      if (vmMax != Integer.MAX_VALUE &amp;&amp; vmMax != vmValue) {</span>
+<span class="nc" id="L319">        return false;</span>
+      } else {
+        // Fix in case of array type
+<span class="nc" id="L322">        return type.getClazz().isAssignableFrom((Class&lt;?&gt;) clazz);</span>
+      }
+    } else {
+<span class="nc" id="L325">      clazz = value;</span>
+    }
+
+<span class="nc" id="L328">    return type.isInstanceOf(clazz);</span>
+  }
+
+  public static int getValueMultiplicity(Object value) {
+<span class="nc bnc" id="L332" title="All 2 branches missed.">    if (value == null) {</span>
+<span class="nc" id="L333">      return 0;</span>
+    }
+
+<span class="nc bnc" id="L336" title="All 2 branches missed.">    if (value.getClass().isArray()) {</span>
+<span class="nc" id="L337">      return Array.getLength(value);</span>
+    }
+<span class="nc" id="L339">    return 1;</span>
+  }
+
+  public static Object getValueFromIndex(Object value, int index) {
+<span class="nc bnc" id="L343" title="All 4 branches missed.">    if (value == null || !value.getClass().isArray()) {</span>
+<span class="nc" id="L344">      return value;</span>
+    }
+
+<span class="nc bnc" id="L347" title="All 4 branches missed.">    if (index &gt;= 0 &amp;&amp; index &lt; Array.getLength(value)) {</span>
+<span class="nc" id="L348">      return Array.get(value, index);</span>
+    }
+<span class="nc" id="L350">    return null;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L355">    return getDisplayedName();</span>
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+<span class="nc bnc" id="L360" title="All 2 branches missed.">    if (this == obj) {</span>
+<span class="nc" id="L361">      return true;</span>
+    }
+<span class="nc bnc" id="L363" title="All 2 branches missed.">    if (obj == null) {</span>
+<span class="nc" id="L364">      return false;</span>
+    }
+<span class="nc bnc" id="L366" title="All 2 branches missed.">    if (getClass() != obj.getClass()) {</span>
+<span class="nc" id="L367">      return false;</span>
+    }
+<span class="nc" id="L369">    TagW other = (TagW) obj;</span>
+<span class="nc bnc" id="L370" title="All 2 branches missed.">    if (id != other.id) {</span>
+<span class="nc" id="L371">      return false;</span>
+    }
+<span class="nc bnc" id="L373" title="All 2 branches missed.">    if (keyword == null) {</span>
+<span class="nc bnc" id="L374" title="All 2 branches missed.">      return other.keyword == null;</span>
+<span class="nc" id="L375">    } else return keyword.equals(other.keyword);</span>
+  }
+
+  @Override
+  public int hashCode() {
+<span class="nc" id="L380">    final int prime = 31;</span>
+<span class="nc" id="L381">    int result = 1;</span>
+<span class="nc" id="L382">    result = prime * result + id;</span>
+<span class="nc bnc" id="L383" title="All 2 branches missed.">    result = prime * result + ((keyword == null) ? 0 : keyword.hashCode());</span>
+<span class="nc" id="L384">    return result;</span>
+  }
+
+  public void readValue(Object data, Taggable taggable) {
+<span class="nc" id="L388">    taggable.setTagNoNull(this, getValue(data));</span>
+<span class="nc" id="L389">  }</span>
+
+  public Object getValue(Object data) {
+<span class="nc" id="L392">    Object value = null;</span>
+<span class="nc bnc" id="L393" title="All 2 branches missed.">    if (data instanceof XMLStreamReader xmler) {</span>
+<span class="nc bnc" id="L394" title="All 2 branches missed.">      if (isStringFamilyType()) {</span>
+        value =
+<span class="nc bnc" id="L396" title="All 2 branches missed.">            vmMax &gt; 1</span>
+<span class="nc" id="L397">                ? TagUtil.getStringArrayTagAttribute(xmler, keyword, (String[]) defaultValue)</span>
+<span class="nc" id="L398">                : TagUtil.getTagAttribute(xmler, keyword, (String) defaultValue);</span>
+<span class="nc bnc" id="L399" title="All 2 branches missed.">      } else if (TagType.DATE.equals(type)</span>
+<span class="nc bnc" id="L400" title="All 2 branches missed.">          || TagType.TIME.equals(type)</span>
+<span class="nc bnc" id="L401" title="All 2 branches missed.">          || TagType.DATETIME.equals(type)) {</span>
+        value =
+<span class="nc bnc" id="L403" title="All 2 branches missed.">            vmMax &gt; 1</span>
+<span class="nc" id="L404">                ? TagUtil.getDatesFromElement(</span>
+                    xmler, keyword, type, (TemporalAccessor[]) defaultValue)
+<span class="nc" id="L406">                : TagUtil.getDateFromElement(xmler, keyword, type, (TemporalAccessor) defaultValue);</span>
+<span class="nc bnc" id="L407" title="All 2 branches missed.">      } else if (TagType.INTEGER.equals(type)) {</span>
+        value =
+<span class="nc bnc" id="L409" title="All 2 branches missed.">            vmMax &gt; 1</span>
+<span class="nc" id="L410">                ? TagUtil.getIntArrayTagAttribute(xmler, keyword, (int[]) defaultValue)</span>
+<span class="nc" id="L411">                : TagUtil.getIntegerTagAttribute(xmler, keyword, (Integer) defaultValue);</span>
+<span class="nc bnc" id="L412" title="All 2 branches missed.">      } else if (TagType.FLOAT.equals(type)) {</span>
+        value =
+<span class="nc bnc" id="L414" title="All 2 branches missed.">            vmMax &gt; 1</span>
+<span class="nc" id="L415">                ? TagUtil.getFloatArrayTagAttribute(xmler, keyword, (float[]) defaultValue)</span>
+<span class="nc" id="L416">                : TagUtil.getFloatTagAttribute(xmler, keyword, (Float) defaultValue);</span>
+<span class="nc bnc" id="L417" title="All 2 branches missed.">      } else if (TagType.DOUBLE.equals(type)) {</span>
+        value =
+<span class="nc bnc" id="L419" title="All 2 branches missed.">            vmMax &gt; 1</span>
+<span class="nc" id="L420">                ? TagUtil.getDoubleArrayTagAttribute(xmler, keyword, (double[]) defaultValue)</span>
+<span class="nc" id="L421">                : TagUtil.getDoubleTagAttribute(xmler, keyword, (Double) defaultValue);</span>
+      } else {
+        value =
+<span class="nc bnc" id="L424" title="All 2 branches missed.">            vmMax &gt; 1</span>
+<span class="nc" id="L425">                ? TagUtil.getStringArrayTagAttribute(xmler, keyword, (String[]) defaultValue)</span>
+<span class="nc" id="L426">                : TagUtil.getTagAttribute(xmler, keyword, (String) defaultValue);</span>
+      }
+    }
+<span class="nc" id="L429">    return value;</span>
+  }
+
+  public boolean isStringFamilyType() {
+<span class="nc bnc" id="L433" title="All 6 branches missed.">    return TagType.STRING.equals(type) || TagType.TEXT.equals(type) || TagType.URI.equals(type);</span>
+  }
+
+  public synchronized int getAnonymizationType() {
+<span class="nc" id="L437">    return anonymizationType;</span>
+  }
+
+  public synchronized void setAnonymizationType(int anonymizationType) {
+<span class="nc" id="L441">    this.anonymizationType = anonymizationType;</span>
+<span class="nc" id="L442">  }</span>
+
+  public String getFormattedTagValue(Object value, String format) {
+<span class="nc" id="L445">    return getFormattedText(value, format);</span>
+  }
+
+  protected static String getFormattedText(Object value, String format) {
+<span class="nc bnc" id="L449" title="All 2 branches missed.">    if (value == null) {</span>
+<span class="nc" id="L450">      return StringUtil.EMPTY_STRING;</span>
+    }
+
+    String str;
+
+<span class="nc bnc" id="L455" title="All 2 branches missed.">    if (value instanceof String val) {</span>
+<span class="nc" id="L456">      str = val;</span>
+<span class="nc bnc" id="L457" title="All 2 branches missed.">    } else if (value instanceof String[] stringArray) {</span>
+<span class="nc" id="L458">      str = String.join(&quot;\\&quot;, stringArray);</span>
+<span class="nc bnc" id="L459" title="All 2 branches missed.">    } else if (value instanceof TemporalAccessor temporalAccessor) {</span>
+<span class="nc" id="L460">      str = TagUtil.formatDateTime(temporalAccessor);</span>
+<span class="nc bnc" id="L461" title="All 2 branches missed.">    } else if (value instanceof TemporalAccessor[] temporalArray) {</span>
+<span class="nc" id="L462">      str = Stream.of(temporalArray).map(TagUtil::formatDateTime).collect(Collectors.joining(&quot;, &quot;));</span>
+<span class="nc bnc" id="L463" title="All 2 branches missed.">    } else if (value instanceof float[] floats) {</span>
+<span class="nc" id="L464">      str =</span>
+<span class="nc" id="L465">          IntStream.range(0, floats.length)</span>
+<span class="nc" id="L466">              .mapToObj(i -&gt; String.valueOf(floats[i]))</span>
+<span class="nc" id="L467">              .collect(Collectors.joining(&quot;, &quot;));</span>
+<span class="nc bnc" id="L468" title="All 2 branches missed.">    } else if (value instanceof double[] doubles) {</span>
+<span class="nc" id="L469">      str = DoubleStream.of(doubles).mapToObj(String::valueOf).collect(Collectors.joining(&quot;, &quot;));</span>
+<span class="nc bnc" id="L470" title="All 2 branches missed.">    } else if (value instanceof int[] ints) {</span>
+<span class="nc" id="L471">      str = IntStream.of(ints).mapToObj(String::valueOf).collect(Collectors.joining(&quot;, &quot;));</span>
+    } else {
+<span class="nc" id="L473">      str = value.toString();</span>
+    }
+
+<span class="nc bnc" id="L476" title="All 4 branches missed.">    if (StringUtil.hasText(format) &amp;&amp; !&quot;$V&quot;.equals(format.trim())) {</span>
+<span class="nc bnc" id="L477" title="All 4 branches missed.">      return formatValue(str, value instanceof Float || value instanceof Double, format);</span>
+    }
+
+<span class="nc bnc" id="L480" title="All 2 branches missed.">    return str == null ? StringUtil.EMPTY_STRING : str;</span>
+  }
+
+  protected static String formatValue(String value, boolean decimal, String format) {
+<span class="nc" id="L484">    String str = value;</span>
+<span class="nc" id="L485">    int index = format.indexOf(&quot;$V&quot;);</span>
+<span class="nc" id="L486">    int fmLength = 2;</span>
+<span class="nc bnc" id="L487" title="All 2 branches missed.">    if (index != -1) {</span>
+<span class="nc bnc" id="L488" title="All 2 branches missed.">      boolean suffix = format.length() &gt; index + fmLength;</span>
+      // If the value ($V) is followed by ':' that means a number formatter is used
+<span class="nc bnc" id="L490" title="All 4 branches missed.">      if (suffix &amp;&amp; format.charAt(index + fmLength) == ':') {</span>
+<span class="nc" id="L491">        fmLength++;</span>
+<span class="nc bnc" id="L492" title="All 4 branches missed.">        if (format.charAt(index + fmLength) == 'f' &amp;&amp; decimal) { // NON-NLS</span>
+<span class="nc" id="L493">          fmLength++;</span>
+<span class="nc" id="L494">          String pattern = getPattern(index + fmLength, format);</span>
+<span class="nc bnc" id="L495" title="All 2 branches missed.">          if (pattern != null) {</span>
+<span class="nc" id="L496">            fmLength += pattern.length() + 2;</span>
+            try {
+<span class="nc" id="L498">              str = new DecimalFormat(pattern).format(Double.parseDouble(str));</span>
+<span class="nc" id="L499">            } catch (NumberFormatException e) {</span>
+<span class="nc" id="L500">              LOGGER.warn(&quot;Cannot apply pattern to decimal value&quot;, e);</span>
+<span class="nc" id="L501">            }</span>
+          }
+<span class="nc bnc" id="L503" title="All 2 branches missed.">        } else if (format.charAt(index + fmLength) == 'l') { // NON-NLS</span>
+<span class="nc" id="L504">          fmLength++;</span>
+<span class="nc" id="L505">          String pattern = getPattern(index + fmLength, format);</span>
+<span class="nc bnc" id="L506" title="All 2 branches missed.">          if (pattern != null) {</span>
+<span class="nc" id="L507">            fmLength += pattern.length() + 2;</span>
+            try {
+<span class="nc" id="L509">              int limit = Integer.parseInt(pattern);</span>
+<span class="nc" id="L510">              int size = str.length();</span>
+<span class="nc bnc" id="L511" title="All 2 branches missed.">              if (size &gt; limit) {</span>
+<span class="nc" id="L512">                str = str.substring(0, limit) + &quot;...&quot;;</span>
+              }
+<span class="nc" id="L514">            } catch (NumberFormatException e) {</span>
+<span class="nc" id="L515">              LOGGER.warn(&quot;Cannot apply pattern to decimal value&quot;, e);</span>
+<span class="nc" id="L516">            }</span>
+          }
+        }
+      }
+<span class="nc" id="L520">      str = format.substring(0, index) + str;</span>
+<span class="nc bnc" id="L521" title="All 2 branches missed.">      if (format.length() &gt; index + fmLength) {</span>
+<span class="nc" id="L522">        str += format.substring(index + fmLength);</span>
+      }
+    }
+<span class="nc" id="L525">    return str;</span>
+  }
+
+  private static String getPattern(int startIndex, String format) {
+<span class="nc" id="L529">    int beginIndex = format.indexOf('$', startIndex);</span>
+<span class="nc" id="L530">    int endIndex = format.indexOf('$', startIndex + 2);</span>
+<span class="nc bnc" id="L531" title="All 4 branches missed.">    if (beginIndex == -1 || endIndex == -1) {</span>
+<span class="nc" id="L532">      return null;</span>
+    }
+<span class="nc" id="L534">    return format.substring(beginIndex + 1, endIndex);</span>
+  }
+
+  public static void addTag(TagW tag) {
+<span class="nc bnc" id="L538" title="All 2 branches missed.">    if (tag != null) {</span>
+<span class="nc" id="L539">      tags.put(tag.getKeyword(), tag);</span>
+    }
+<span class="nc" id="L541">  }</span>
+
+  public static TagW get(String keyword) {
+<span class="nc" id="L544">    return tags.get(keyword);</span>
+  }
+
+  public static &lt;T&gt; T getTagValue(TagReadable taggable, TagW tag, Class&lt;T&gt; type) {
+<span class="nc bnc" id="L548" title="All 4 branches missed.">    if (taggable != null &amp;&amp; tag != null) {</span>
+      try {
+<span class="nc" id="L550">        return type.cast(taggable.getTagValue(tag));</span>
+<span class="nc" id="L551">      } catch (ClassCastException e) {</span>
+<span class="nc" id="L552">        LOGGER.error(&quot;Cannot cast the value of \&quot;{}\&quot; into {}&quot;, tag.getKeyword(), type, e);</span>
+      }
+    }
+<span class="nc" id="L555">    return null;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

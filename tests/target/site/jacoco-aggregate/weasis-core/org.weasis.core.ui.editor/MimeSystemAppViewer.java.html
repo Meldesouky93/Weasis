@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>MimeSystemAppViewer.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor</a> &gt; <span class="el_source">MimeSystemAppViewer.java</span></div><h1>MimeSystemAppViewer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor;
+
+import java.awt.Desktop;
+import java.io.File;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import javax.swing.JMenu;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.media.data.MediaElement;
+import org.weasis.core.api.media.data.MediaSeries;
+import org.weasis.core.api.media.data.MediaSeriesGroup;
+
+<span class="nc" id="L24">public abstract class MimeSystemAppViewer implements SeriesViewer&lt;MediaElement&gt; {</span>
+
+<span class="nc" id="L26">  private static final Logger LOGGER = LoggerFactory.getLogger(MimeSystemAppViewer.class);</span>
+
+  private static final String ERROR_MSG =
+      &quot;Cannot open {} with the default system application&quot;; // NON-NLS
+
+  @Override
+<span class="nc" id="L32">  public void close() {}</span>
+
+  @Override
+  public List&lt;MediaSeries&lt;MediaElement&gt;&gt; getOpenSeries() {
+<span class="nc" id="L36">    return Collections.emptyList();</span>
+  }
+
+  public static void startAssociatedProgramFromLinux(File file) {
+<span class="nc bnc" id="L40" title="All 4 branches missed.">    if (file != null &amp;&amp; file.canRead()) {</span>
+      try {
+<span class="nc" id="L42">        String[] cmd = new String[] {&quot;xdg-open&quot;, file.getCanonicalPath()}; // NON-NLS</span>
+<span class="nc" id="L43">        Runtime.getRuntime().exec(cmd);</span>
+<span class="nc" id="L44">      } catch (IOException e) {</span>
+<span class="nc" id="L45">        LOGGER.error(ERROR_MSG, file, e);</span>
+<span class="nc" id="L46">      }</span>
+    }
+<span class="nc" id="L48">  }</span>
+
+  public static void startAssociatedProgramFromDesktop(final Desktop desktop, File file) {
+<span class="nc bnc" id="L51" title="All 4 branches missed.">    if (file != null &amp;&amp; file.canRead()) {</span>
+      try {
+<span class="nc" id="L53">        desktop.open(file);</span>
+<span class="nc" id="L54">      } catch (IOException e) {</span>
+<span class="nc" id="L55">        LOGGER.error(ERROR_MSG, file, e);</span>
+<span class="nc" id="L56">      }</span>
+    }
+<span class="nc" id="L58">  }</span>
+
+  @Override
+<span class="nc" id="L61">  public void removeSeries(MediaSeries&lt;MediaElement&gt; sequence) {}</span>
+
+  @Override
+  public JMenu fillSelectedPluginMenu(JMenu menu) {
+<span class="nc" id="L65">    return null;</span>
+  }
+
+  @Override
+<span class="nc" id="L69">  public void setSelected(boolean selected) {}</span>
+
+  @Override
+  public MediaSeriesGroup getGroupID() {
+<span class="nc" id="L73">    return null;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ForcedAcceptPrintService.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.util</a> &gt; <span class="el_source">ForcedAcceptPrintService.java</span></div><h1>ForcedAcceptPrintService.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.util;
+
+import java.awt.print.PrinterException;
+import java.awt.print.PrinterJob;
+import javax.print.DocFlavor;
+import javax.print.DocPrintJob;
+import javax.print.PrintService;
+import javax.print.ServiceUIFactory;
+import javax.print.attribute.Attribute;
+import javax.print.attribute.AttributeSet;
+import javax.print.attribute.PrintServiceAttribute;
+import javax.print.attribute.PrintServiceAttributeSet;
+import javax.print.attribute.standard.PrinterIsAcceptingJobs;
+import javax.print.event.PrintServiceAttributeListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.service.AuditLog;
+
+/**
+ * ForcedAcceptPrintService is a PrintService wrapper class that allows printing to be attempted
+ * even if Java thinks the 'Printer is not accepting job'. It is recommended to use this after
+ * prompting the user, so they will see that the printer is reporting as offline and can choose to
+ * &quot;force it&quot; to try printing anyway.
+ *
+ * &lt;p&gt;This hack gets around annoying 'Printer is not accepting job' errors in Java 5/6 that don't
+ * occur in Java 1.4. This was enough of a problem for our 1000+ users that it was the sole reason
+ * we could not move the product up from Java 1.4. Hence, the hack was invented as we had the
+ * problem with users whose printers were clearly online, and they could print from any non-Java
+ * application.
+ *
+ * &lt;p&gt;Turns out this hack is also useful for printing to the latest inkjet printers that have chips
+ * in the cartridges and stay in a 'No ink' status once empty. This is presumably to cause an
+ * inconvenience for cartridge refillers, but we're the ones who get the support calls from users
+ * that printing is not working, so it's an inconvenience to everyone except the printer
+ * manufacturer.
+ *
+ * &lt;p&gt;
+ */
+public class ForcedAcceptPrintService implements PrintService {
+<span class="nc" id="L49">  private static final Logger LOGGER = LoggerFactory.getLogger(ForcedAcceptPrintService.class);</span>
+
+  private final PrinterJob thePrintJob;
+  private final PrintService delegate;
+
+  /**
+   * Private constructor as this only works as a one-shot per print attempt. Use the static method
+   * above to hack a PrintJob, then tell it to print. The hack is gone by the time printing occurs
+   * and this instance will be garbage collected due to having no other references once the PrintJob
+   * is back to its original state.
+   *
+   * @param printJob the print job to affect
+   */
+<span class="nc" id="L62">  private ForcedAcceptPrintService(PrinterJob printJob) {</span>
+<span class="nc" id="L63">    this.thePrintJob = printJob;</span>
+<span class="nc" id="L64">    this.delegate = printJob.getPrintService();</span>
+
+    try {
+<span class="nc" id="L67">      thePrintJob.setPrintService(this);</span>
+      // replace the private PrintService field on the PrintJob instance with a reference
+      // to our replacement PrintService so that we can intercept calls to getAttributes().
+      // it is expected that the first thing the PrintJob will do is check it's PrintService's
+      // PrinterIsAcceptingJobs attribute, at which point we'll force it to think it is accepting
+      // jobs and restore the PrintService to the original instance to get out of the way.
+      // The only real requirement is that the PrintJob does not cast the PrintService
+      // to it's expected type until after it has checked the PrinterIsAcceptingJobs
+      // attribute.
+
+<span class="nc" id="L77">    } catch (PrinterException e) {</span>
+<span class="nc" id="L78">      AuditLog.logError(LOGGER, e, &quot;Set Print Service&quot;); // NON-NLS</span>
+<span class="nc" id="L79">    }</span>
+<span class="nc" id="L80">  }</span>
+
+  /**
+   * Tweak the PrintJob to think this class is it's PrintService, long enough to override the
+   * PrinterIsAcceptingJobs attribute. If it doesn't work out or the printer really is offline then
+   * it's no worse than if this hack was not used.
+   *
+   * @param printJob the print job to affect
+   */
+  public static void setupPrintJob(PrinterJob printJob) {
+<span class="nc" id="L90">    new ForcedAcceptPrintService(printJob);</span>
+<span class="nc" id="L91">  }</span>
+
+  /** Restore the PrintJob's PrintService to what it was originally. */
+  private void restoreServiceReference() {
+
+    try {
+<span class="nc" id="L97">      thePrintJob.setPrintService(delegate);</span>
+<span class="nc" id="L98">    } catch (PrinterException e) {</span>
+<span class="nc" id="L99">      AuditLog.logError(LOGGER, e, &quot;Restore Print Service&quot;); // NON-NLS</span>
+<span class="nc" id="L100">    }</span>
+<span class="nc" id="L101">  }</span>
+
+  /**
+   * getAttribute is the one PrintService method we want to intercept to override the
+   *
+   * &lt;p&gt;PrinterIsAcceptingJobs attribute.
+   */
+  @Override
+  public &lt;T extends PrintServiceAttribute&gt; T getAttribute(Class&lt;T&gt; category) {
+<span class="nc bnc" id="L110" title="All 2 branches missed.">    if (category.equals(PrinterIsAcceptingJobs.class)) {</span>
+      // once we've overridden the return value for the PrinterIsAcceptingJobs attribute we're done.
+      // put the PrintJob's PrintService back to what it was.
+<span class="nc" id="L113">      restoreServiceReference();</span>
+<span class="nc" id="L114">      return (T) PrinterIsAcceptingJobs.ACCEPTING_JOBS;</span>
+    }
+
+<span class="nc" id="L117">    return delegate.getAttribute(category);</span>
+  }
+
+  @Override
+  public DocPrintJob createPrintJob() {
+<span class="nc" id="L122">    return delegate.createPrintJob();</span>
+  }
+
+  @Override
+  public void addPrintServiceAttributeListener(PrintServiceAttributeListener listener) {
+<span class="nc" id="L127">    delegate.addPrintServiceAttributeListener(listener);</span>
+<span class="nc" id="L128">  }</span>
+
+  @Override
+  public PrintServiceAttributeSet getAttributes() {
+<span class="nc" id="L132">    return delegate.getAttributes();</span>
+  }
+
+  @Override
+  public Object getDefaultAttributeValue(Class&lt;? extends Attribute&gt; category) {
+<span class="nc" id="L137">    return delegate.getDefaultAttributeValue(category);</span>
+  }
+
+  @Override
+  public String getName() {
+<span class="nc" id="L142">    return delegate.getName();</span>
+  }
+
+  @Override
+  public ServiceUIFactory getServiceUIFactory() {
+<span class="nc" id="L147">    return delegate.getServiceUIFactory();</span>
+  }
+
+  @Override
+  public Class&lt;?&gt;[] getSupportedAttributeCategories() {
+<span class="nc" id="L152">    return delegate.getSupportedAttributeCategories();</span>
+  }
+
+  @Override
+  public Object getSupportedAttributeValues(
+      Class&lt;? extends Attribute&gt; category, DocFlavor flavor, AttributeSet attributes) {
+<span class="nc" id="L158">    return delegate.getSupportedAttributeValues(category, flavor, attributes);</span>
+  }
+
+  @Override
+  public DocFlavor[] getSupportedDocFlavors() {
+<span class="nc" id="L163">    return delegate.getSupportedDocFlavors();</span>
+  }
+
+  @Override
+  public AttributeSet getUnsupportedAttributes(DocFlavor flavor, AttributeSet attributes) {
+<span class="nc" id="L168">    return delegate.getUnsupportedAttributes(flavor, attributes);</span>
+  }
+
+  @Override
+  public boolean isAttributeCategorySupported(Class&lt;? extends Attribute&gt; category) {
+<span class="nc" id="L173">    return delegate.isAttributeCategorySupported(category);</span>
+  }
+
+  @Override
+  public boolean isAttributeValueSupported(
+      Attribute attrval, DocFlavor flavor, AttributeSet attributes) {
+<span class="nc" id="L179">    return delegate.isAttributeValueSupported(attrval, flavor, attributes);</span>
+  }
+
+  @Override
+  public boolean isDocFlavorSupported(DocFlavor flavor) {
+<span class="nc" id="L184">    return delegate.isDocFlavorSupported(flavor);</span>
+  }
+
+  @Override
+  public void removePrintServiceAttributeListener(PrintServiceAttributeListener listener) {
+<span class="nc" id="L189">    delegate.removePrintServiceAttributeListener(listener);</span>
+<span class="nc" id="L190">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>PannerListener.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image</a> &gt; <span class="el_source">PannerListener.java</span></div><h1>PannerListener.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image;
+
+import java.awt.Point;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.MouseEvent;
+import java.awt.geom.Point2D;
+import org.weasis.core.api.gui.util.ActionState;
+import org.weasis.core.api.gui.util.BasicActionState;
+import org.weasis.core.api.gui.util.Feature;
+import org.weasis.core.api.gui.util.MouseActionAdapter;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.service.AuditLog;
+import org.weasis.core.ui.model.utils.bean.PanPoint;
+
+public abstract class PannerListener extends MouseActionAdapter
+    implements ActionState, KeyListener {
+
+  private final BasicActionState basicState;
+<span class="nc" id="L30">  private final boolean triggerAction = true;</span>
+  protected Point pickPoint;
+
+  private Point2D point;
+
+<span class="nc" id="L35">  protected PannerListener(Feature&lt;? extends ActionState&gt; action, Point2D point) {</span>
+<span class="nc" id="L36">    this.basicState = new BasicActionState(action);</span>
+<span class="nc bnc" id="L37" title="All 2 branches missed.">    this.point = point == null ? new Point2D.Double() : point;</span>
+<span class="nc" id="L38">  }</span>
+
+  @Override
+  public void enableAction(boolean enabled) {
+<span class="nc" id="L42">    basicState.enableAction(enabled);</span>
+<span class="nc" id="L43">  }</span>
+
+  @Override
+  public boolean isActionEnabled() {
+<span class="nc" id="L47">    return basicState.isActionEnabled();</span>
+  }
+
+  @Override
+  public boolean registerActionState(Object c) {
+<span class="nc" id="L52">    return basicState.registerActionState(c);</span>
+  }
+
+  @Override
+  public void unregisterActionState(Object c) {
+<span class="nc" id="L57">    basicState.unregisterActionState(c);</span>
+<span class="nc" id="L58">  }</span>
+
+  public Point2D getPoint() {
+<span class="nc" id="L61">    return (Point2D) point.clone();</span>
+  }
+
+  public void setPoint(Point2D point) {
+<span class="nc bnc" id="L65" title="All 2 branches missed.">    if (point != null) {</span>
+<span class="nc" id="L66">      this.point = point;</span>
+<span class="nc" id="L67">      pointChanged(point);</span>
+<span class="nc" id="L68">      AuditLog.LOGGER.info(&quot;action:{} val:{},{}&quot;, getActionW().cmd(), point.getX(), point.getY());</span>
+    }
+<span class="nc" id="L70">  }</span>
+
+  public boolean isTriggerAction() {
+<span class="nc" id="L73">    return triggerAction;</span>
+  }
+
+  @Override
+  public Feature&lt;? extends ActionState&gt; getActionW() {
+<span class="nc" id="L78">    return basicState.getActionW();</span>
+  }
+
+  public String getValueToDisplay() {
+<span class="nc" id="L82">    return &quot;x:&quot; + point.getX() + &quot;, y:&quot; + point.getY(); // NON-NLS</span>
+  }
+
+  public abstract void pointChanged(Point2D point);
+
+  @Override
+  public String toString() {
+<span class="nc" id="L89">    return basicState.getActionW().getTitle();</span>
+  }
+
+  protected ViewCanvas&lt;? extends ImageElement&gt; getViewCanvas(InputEvent e) {
+<span class="nc" id="L93">    Object source = e.getSource();</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">    if (source instanceof ViewCanvas) {</span>
+<span class="nc" id="L95">      return (ViewCanvas&lt;?&gt;) source;</span>
+    }
+<span class="nc" id="L97">    return null;</span>
+  }
+
+  @Override
+  public void mousePressed(MouseEvent e) {
+<span class="nc" id="L102">    int buttonMask = getButtonMaskEx();</span>
+<span class="nc bnc" id="L103" title="All 2 branches missed.">    if ((e.getModifiersEx() &amp; buttonMask) != 0) {</span>
+<span class="nc" id="L104">      ViewCanvas&lt;?&gt; panner = getViewCanvas(e);</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">      if (panner != null) {</span>
+<span class="nc" id="L106">        pickPoint = e.getPoint();</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">        if (panner.getViewModel() != null) {</span>
+<span class="nc" id="L108">          double scale = panner.getViewModel().getViewScale();</span>
+<span class="nc" id="L109">          setPoint(</span>
+              new PanPoint(
+                  PanPoint.State.DRAGSTART,
+<span class="nc" id="L112">                  -(pickPoint.getX() / scale),</span>
+<span class="nc" id="L113">                  -(pickPoint.getY() / scale)));</span>
+        }
+      }
+    }
+<span class="nc" id="L117">  }</span>
+
+  @Override
+  public void mouseDragged(MouseEvent e) {
+<span class="nc" id="L121">    int buttonMask = getButtonMaskEx();</span>
+<span class="nc bnc" id="L122" title="All 4 branches missed.">    if (!e.isConsumed() &amp;&amp; (e.getModifiersEx() &amp; buttonMask) != 0) {</span>
+<span class="nc" id="L123">      ViewCanvas&lt;?&gt; panner = getViewCanvas(e);</span>
+<span class="nc bnc" id="L124" title="All 6 branches missed.">      if (panner != null &amp;&amp; pickPoint != null &amp;&amp; panner.getViewModel() != null) {</span>
+<span class="nc" id="L125">        double scale = panner.getViewModel().getViewScale();</span>
+<span class="nc" id="L126">        setPoint(</span>
+            new PanPoint(
+                PanPoint.State.DRAGGING,
+<span class="nc" id="L129">                -((e.getX() - pickPoint.getX()) / scale),</span>
+<span class="nc" id="L130">                -((e.getY() - pickPoint.getY()) / scale)));</span>
+<span class="nc" id="L131">        panner.addPointerType(ViewCanvas.CENTER_POINTER);</span>
+      }
+    }
+<span class="nc" id="L134">  }</span>
+
+  @Override
+  public void mouseReleased(MouseEvent e) {
+<span class="nc" id="L138">    int buttonMask = getButtonMask();</span>
+<span class="nc bnc" id="L139" title="All 4 branches missed.">    if (!e.isConsumed() &amp;&amp; (e.getModifiers() &amp; buttonMask) != 0) {</span>
+<span class="nc" id="L140">      ViewCanvas&lt;?&gt; panner = getViewCanvas(e);</span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">      if (panner != null) {</span>
+<span class="nc" id="L142">        panner.resetPointerType(ViewCanvas.CENTER_POINTER);</span>
+<span class="nc" id="L143">        panner.getJComponent().repaint();</span>
+      }
+    }
+<span class="nc" id="L146">  }</span>
+
+  public void reset() {
+<span class="nc" id="L149">    pickPoint = null;</span>
+<span class="nc" id="L150">  }</span>
+
+  @Override
+  public void keyPressed(KeyEvent e) {
+<span class="nc bnc" id="L154" title="All 2 branches missed.">    if (e.isAltDown()) {</span>
+<span class="nc bnc" id="L155" title="All 2 branches missed.">      int shift = e.isShiftDown() ? 10 : 5;</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">      if (e.getKeyCode() == KeyEvent.VK_LEFT) {</span>
+<span class="nc" id="L157">        setPoint(new PanPoint(PanPoint.State.MOVE, shift, 0));</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">      } else if (e.getKeyCode() == KeyEvent.VK_UP) {</span>
+<span class="nc" id="L159">        setPoint(new PanPoint(PanPoint.State.MOVE, 0, shift));</span>
+<span class="nc bnc" id="L160" title="All 2 branches missed.">      } else if (e.getKeyCode() == KeyEvent.VK_RIGHT) {</span>
+<span class="nc" id="L161">        setPoint(new PanPoint(PanPoint.State.MOVE, -shift, 0));</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">      } else if (e.getKeyCode() == KeyEvent.VK_DOWN) {</span>
+<span class="nc" id="L163">        setPoint(new PanPoint(PanPoint.State.MOVE, 0, -shift));</span>
+      }
+    }
+<span class="nc" id="L166">  }</span>
+
+  @Override
+<span class="nc" id="L169">  public void keyReleased(KeyEvent e) {}</span>
+
+  @Override
+<span class="nc" id="L172">  public void keyTyped(KeyEvent e) {}</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

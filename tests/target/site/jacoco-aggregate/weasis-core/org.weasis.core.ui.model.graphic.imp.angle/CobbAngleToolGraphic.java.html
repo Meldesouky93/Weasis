@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>CobbAngleToolGraphic.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.graphic.imp.angle</a> &gt; <span class="el_source">CobbAngleToolGraphic.java</span></div><h1>CobbAngleToolGraphic.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.graphic.imp.angle;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlType;
+import java.awt.Shape;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Arc2D;
+import java.awt.geom.Line2D;
+import java.awt.geom.Path2D;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
+import java.util.List;
+import javax.swing.Icon;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.GeomUtil;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.api.util.ResourceUtil.ActionIcon;
+import org.weasis.core.ui.model.utils.bean.AdvancedShape;
+import org.weasis.core.ui.model.utils.bean.Measurement;
+import org.weasis.core.ui.util.MouseEventDouble;
+
+@XmlType(name = &quot;cobbAngle&quot;)
+@XmlRootElement(name = &quot;cobbAngle&quot;)
+public class CobbAngleToolGraphic extends OpenAngleToolGraphic {
+
+<span class="nc" id="L36">  public static final Integer POINTS_NUMBER = 5;</span>
+
+<span class="nc" id="L38">  public static final Icon ICON = ResourceUtil.getIcon(ActionIcon.DRAW_COBB);</span>
+
+<span class="nc" id="L40">  public static final Measurement ANGLE =</span>
+<span class="nc" id="L41">      new Measurement(Messages.getString(&quot;measure.angle&quot;), 1, true);</span>
+<span class="nc" id="L42">  public static final Measurement COMPLEMENTARY_ANGLE =</span>
+<span class="nc" id="L43">      new Measurement(Messages.getString(&quot;measure.complement_angle&quot;), 2, true, true, false);</span>
+
+<span class="nc" id="L45">  protected static final List&lt;Measurement&gt; MEASUREMENT_LIST = new ArrayList&lt;&gt;();</span>
+
+  static {
+<span class="nc" id="L48">    MEASUREMENT_LIST.add(ANGLE);</span>
+<span class="nc" id="L49">    MEASUREMENT_LIST.add(COMPLEMENTARY_ANGLE);</span>
+<span class="nc" id="L50">  }</span>
+
+  // Let O be center of perpendicular projections in Cobb's angle
+  protected Point2D ptO;
+
+  public CobbAngleToolGraphic() {
+<span class="nc" id="L56">    super(POINTS_NUMBER);</span>
+<span class="nc" id="L57">  }</span>
+
+  public CobbAngleToolGraphic(CobbAngleToolGraphic graphic) {
+<span class="nc" id="L60">    super(graphic);</span>
+<span class="nc" id="L61">  }</span>
+
+  @Override
+  public CobbAngleToolGraphic copy() {
+<span class="nc" id="L65">    return new CobbAngleToolGraphic(this);</span>
+  }
+
+  @Override
+  public Icon getIcon() {
+<span class="nc" id="L70">    return ICON;</span>
+  }
+
+  @Override
+  public String getUIName() {
+<span class="nc" id="L75">    return Messages.getString(&quot;measure.coobs&quot;);</span>
+  }
+
+  @Override
+  public List&lt;Measurement&gt; getMeasurementList() {
+<span class="nc" id="L80">    return MEASUREMENT_LIST;</span>
+  }
+
+  @Override
+  public Integer moveAndResizeOnDrawing(
+      Integer handlePointIndex, Double deltaX, Double deltaY, MouseEventDouble mouseEvent) {
+<span class="nc" id="L86">    handlePointIndex = super.moveAndResizeOnDrawing(handlePointIndex, deltaX, deltaY, mouseEvent);</span>
+
+<span class="nc bnc" id="L88" title="All 4 branches missed.">    if (handlePointIndex != -1 &amp;&amp; pts.size() &gt;= 4) {</span>
+<span class="nc" id="L89">      updateTool();</span>
+
+<span class="nc bnc" id="L91" title="All 4 branches missed.">      if (lineABvalid &amp;&amp; lineCDvalid) {</span>
+        // Let MN be the bisector of the two line segments AB &amp; CD, if parallel MN is the median
+        // line
+        Line2D lineMN;
+
+<span class="nc bnc" id="L96" title="All 2 branches missed.">        if (linesParallel) {</span>
+<span class="nc" id="L97">          lineMN = GeomUtil.getMedianLine(ptA, ptB, ptC, ptD);</span>
+        } else {
+<span class="nc" id="L99">          AffineTransform rotate =</span>
+<span class="nc" id="L100">              AffineTransform.getRotateInstance(</span>
+<span class="nc" id="L101">                  -Math.toRadians(angleDeg) / 2, ptP.getX(), ptP.getY());</span>
+
+<span class="nc" id="L103">          Point2D ptM = (Point2D) lineABP[0].clone();</span>
+<span class="nc" id="L104">          rotate.transform(ptM, ptM);</span>
+<span class="nc" id="L105">          lineMN = new Line2D.Double(ptM, ptP);</span>
+        }
+
+<span class="nc bnc" id="L108" title="All 4 branches missed.">        if (handlePointIndex == 4 &amp;&amp; ptO != null) {</span>
+<span class="nc" id="L109">          ptO = GeomUtil.getPerpendicularPointToLine(lineMN, ptO);</span>
+        } else {
+<span class="nc bnc" id="L111" title="All 2 branches missed.">          if (linesParallel) {</span>
+<span class="nc" id="L112">            ptO = GeomUtil.getMidPoint(lineMN.getP1(), lineMN.getP1());</span>
+          } else {
+<span class="nc" id="L114">            Point2D h1 =</span>
+<span class="nc" id="L115">                GeomUtil.getMidPoint(lineABP[1], GeomUtil.getMidPoint(lineABP[0], lineABP[1]));</span>
+<span class="nc" id="L116">            Point2D h2 =</span>
+<span class="nc" id="L117">                GeomUtil.getMidPoint(lineCDP[1], GeomUtil.getMidPoint(lineCDP[0], lineCDP[1]));</span>
+
+<span class="nc" id="L119">            Point2D o1 = GeomUtil.getPerpendicularPointToLine(lineMN, h1);</span>
+<span class="nc" id="L120">            Point2D o2 = GeomUtil.getPerpendicularPointToLine(lineMN, h2);</span>
+
+<span class="nc" id="L122">            ptO = GeomUtil.getMidPoint(o1, o2);</span>
+          }
+        }
+<span class="nc" id="L125">      } else {</span>
+<span class="nc" id="L126">        ptO = null;</span>
+      }
+
+<span class="nc bnc" id="L129" title="All 2 branches missed.">      if (pts.size() &lt; 5) {</span>
+<span class="nc" id="L130">        pts.add(ptO);</span>
+      } else {
+<span class="nc" id="L132">        pts.set(4, ptO);</span>
+      }
+    }
+
+<span class="nc" id="L136">    return handlePointIndex;</span>
+  }
+
+  @Override
+  public void buildShape(MouseEventDouble mouseEvent) {
+<span class="nc" id="L141">    updateTool();</span>
+
+<span class="nc" id="L143">    Shape newShape = null;</span>
+<span class="nc" id="L144">    Path2D path = new Path2D.Double(Path2D.WIND_NON_ZERO, 6);</span>
+
+<span class="nc bnc" id="L146" title="All 2 branches missed.">    if (lineABvalid) {</span>
+<span class="nc" id="L147">      path.append(new Line2D.Double(ptA, ptB), false);</span>
+    }
+
+<span class="nc bnc" id="L150" title="All 2 branches missed.">    if (lineCDvalid) {</span>
+<span class="nc" id="L151">      path.append(new Line2D.Double(ptC, ptD), false);</span>
+    }
+
+<span class="nc bnc" id="L154" title="All 6 branches missed.">    if (lineABvalid &amp;&amp; lineCDvalid &amp;&amp; ptO != null) {</span>
+
+<span class="nc" id="L156">      AdvancedShape aShape = (AdvancedShape) (newShape = new AdvancedShape(this, 10));</span>
+<span class="nc" id="L157">      aShape.addShape(path);</span>
+
+<span class="nc" id="L159">      double ax = ptA.getX(), ay = ptA.getY();</span>
+<span class="nc" id="L160">      double bx = ptB.getX(), by = ptB.getY();</span>
+<span class="nc" id="L161">      double cx = ptC.getX(), cy = ptC.getY();</span>
+<span class="nc" id="L162">      double dx = ptD.getX(), dy = ptD.getY();</span>
+
+      // Let I be the perpendicular projection of O onto AB
+      // Let J be the perpendicular projection of O onto CD
+<span class="nc" id="L166">      double distAB2 = Point2D.distanceSq(ax, ay, bx, by);</span>
+<span class="nc" id="L167">      double distCD2 = Point2D.distanceSq(cx, cy, dx, dy);</span>
+
+<span class="nc" id="L169">      double r1 = ((ay - ptO.getY()) * (ay - by) + (ax - ptO.getX()) * (ax - bx)) / distAB2;</span>
+<span class="nc" id="L170">      double r2 = ((cy - ptO.getY()) * (cy - dy) + (cx - ptO.getX()) * (cx - dx)) / distCD2;</span>
+
+<span class="nc" id="L172">      final Point2D ptI = new Point2D.Double(ax + r1 * (bx - ax), ay + r1 * (by - ay));</span>
+<span class="nc" id="L173">      final Point2D ptJ = new Point2D.Double(cx + r2 * (dx - cx), cy + r2 * (dy - cy));</span>
+
+<span class="nc bnc" id="L175" title="All 4 branches missed.">      if (r1 &lt; 0 || r1 &gt; 1) {</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">        aShape.addShape(new Line2D.Double(r1 &gt; 1 ? ptB : ptA, ptI), getDashStroke(1.0f), true);</span>
+      }
+
+<span class="nc bnc" id="L179" title="All 4 branches missed.">      if (r2 &lt; 0 || r2 &gt; 1) {</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">        aShape.addShape(new Line2D.Double(r1 &gt; 1 ? ptD : ptC, ptJ), getDashStroke(1.0f), true);</span>
+      }
+
+<span class="nc" id="L183">      aShape.addShape(new Line2D.Double(ptO, ptI));</span>
+<span class="nc" id="L184">      aShape.addShape(new Line2D.Double(ptO, ptJ));</span>
+
+      // Add angle corners where I &amp; J lies on AB &amp; CD line segments
+<span class="nc" id="L187">      double cLength = 10;</span>
+
+<span class="nc" id="L189">      double cImax =</span>
+<span class="nc" id="L190">          (2.0 / 3.0) * Math.min(ptO.distance(ptI), Math.max(ptI.distance(ptA), ptI.distance(ptB)));</span>
+<span class="nc" id="L191">      aShape.addScaleInvShape(</span>
+<span class="nc" id="L192">          GeomUtil.getCornerShape(GeomUtil.getMidPoint(ptA, ptB), ptI, ptO, cLength),</span>
+          ptI,
+          cLength / cImax,
+<span class="nc" id="L195">          getStroke(1.0f),</span>
+          true);
+
+<span class="nc" id="L198">      double cJmax =</span>
+<span class="nc" id="L199">          (2.0 / 3.0) * Math.min(ptO.distance(ptJ), Math.max(ptJ.distance(ptC), ptJ.distance(ptD)));</span>
+<span class="nc" id="L200">      aShape.addScaleInvShape(</span>
+<span class="nc" id="L201">          GeomUtil.getCornerShape(GeomUtil.getMidPoint(ptC, ptD), ptJ, ptO, cLength),</span>
+          ptJ,
+          cLength / cJmax,
+<span class="nc" id="L204">          getStroke(1.0f),</span>
+          true);
+
+<span class="nc bnc" id="L207" title="All 2 branches missed.">      if (!linesParallel) {</span>
+
+        // Let K be the point on extension of IO segment
+        // Let L be the point on extension of JO segment
+<span class="nc" id="L211">        double extSegLength = 32;</span>
+
+<span class="nc" id="L213">        Point2D ptK =</span>
+<span class="nc" id="L214">            GeomUtil.getColinearPointWithLength(ptI, ptO, ptO.distance(ptI) + extSegLength);</span>
+<span class="nc" id="L215">        Point2D ptL =</span>
+<span class="nc" id="L216">            GeomUtil.getColinearPointWithLength(ptJ, ptO, ptO.distance(ptJ) + extSegLength);</span>
+
+<span class="nc" id="L218">        double distOKmax = (1.0 / 2.0) * ptO.distance(ptI);</span>
+<span class="nc" id="L219">        aShape.addScaleInvShape(new Line2D.Double(ptO, ptK), ptO, extSegLength / distOKmax, false);</span>
+
+<span class="nc" id="L221">        double distOLmax = (1.0 / 2.0) * ptO.distance(ptJ);</span>
+<span class="nc" id="L222">        aShape.addScaleInvShape(new Line2D.Double(ptO, ptL), ptO, extSegLength / distOLmax, false);</span>
+
+        // Let arcAngle be the partial section of the ellipse that represents the measured angle
+        double startingAngle =
+<span class="nc bnc" id="L226" title="All 2 branches missed.">            (ptK.getY() &gt; ptL.getY())</span>
+<span class="nc" id="L227">                ? GeomUtil.getAngleDeg(ptO, ptJ)</span>
+<span class="nc" id="L228">                : GeomUtil.getAngleDeg(ptO, ptI);</span>
+        double angularExtent =
+<span class="nc bnc" id="L230" title="All 2 branches missed.">            ptK.getY() &gt; ptL.getY()</span>
+<span class="nc" id="L231">                ? GeomUtil.getAngleDeg(ptJ, ptO, ptK)</span>
+<span class="nc" id="L232">                : GeomUtil.getAngleDeg(ptI, ptO, ptL);</span>
+<span class="nc" id="L233">        angularExtent = GeomUtil.getSmallestRotationAngleDeg(angularExtent);</span>
+
+<span class="nc" id="L235">        double radius = (2.0 / 3.0) * extSegLength;</span>
+<span class="nc" id="L236">        Rectangle2D arcAngleBounds =</span>
+            new Rectangle2D.Double(
+<span class="nc" id="L238">                ptO.getX() - radius, ptO.getY() - radius, 2 * radius, 2 * radius);</span>
+
+<span class="nc" id="L240">        Arc2D arcAngle = new Arc2D.Double(arcAngleBounds, startingAngle, angularExtent, Arc2D.OPEN);</span>
+
+<span class="nc bnc" id="L242" title="All 2 branches missed.">        double rMax = (ptK.getY() &gt; ptL.getY() ? distOKmax : distOLmax) * 2 / 3;</span>
+<span class="nc" id="L243">        aShape.addScaleInvShape(arcAngle, ptO, radius / rMax, false);</span>
+      }
+
+<span class="nc bnc" id="L246" title="All 2 branches missed.">    } else if (path.getCurrentPoint() != null) {</span>
+<span class="nc" id="L247">      newShape = path;</span>
+    }
+
+<span class="nc" id="L250">    setShape(newShape, mouseEvent);</span>
+<span class="nc" id="L251">    updateLabel(mouseEvent, getDefaultView2d(mouseEvent));</span>
+<span class="nc" id="L252">  }</span>
+
+  @Override
+  protected void updateTool() {
+<span class="nc" id="L256">    super.updateTool();</span>
+<span class="nc" id="L257">    ptO = getHandlePoint(4);</span>
+<span class="nc" id="L258">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

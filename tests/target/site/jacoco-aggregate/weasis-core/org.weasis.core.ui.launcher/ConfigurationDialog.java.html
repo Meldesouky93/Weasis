@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ConfigurationDialog.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.launcher</a> &gt; <span class="el_source">ConfigurationDialog.java</span></div><h1>ConfigurationDialog.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2024 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.launcher;
+
+import java.awt.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import javax.swing.*;
+import net.miginfocom.swing.MigLayout;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.ui.launcher.Launcher.ApplicationConfiguration;
+import org.weasis.core.ui.launcher.Launcher.Compatibility;
+import org.weasis.core.ui.launcher.Launcher.Configuration;
+import org.weasis.core.ui.launcher.Launcher.URIConfiguration;
+import org.weasis.core.util.StringUtil;
+
+public class ConfigurationDialog extends JDialog {
+
+<span class="nc" id="L29">  private final JTextField uriField = new JTextField(25);</span>
+<span class="nc" id="L30">  private final JTextField binaryPathField = new JTextField(25);</span>
+<span class="nc" id="L31">  private final JTextField workingDirectoryField = new JTextField(25);</span>
+<span class="nc" id="L32">  private final JTextArea parametersArea = new JTextArea(3, 25);</span>
+<span class="nc" id="L33">  private final JTextArea environmentVariablesArea = new JTextArea(3, 25);</span>
+<span class="nc" id="L34">  private final JComboBox&lt;Compatibility&gt; compatibilityField =</span>
+<span class="nc" id="L35">      new JComboBox&lt;&gt;(Compatibility.values());</span>
+<span class="nc" id="L36">  private final JRadioButton uriRadioButton = new JRadioButton(Messages.getString(&quot;uri&quot;));</span>
+<span class="nc" id="L37">  private final JRadioButton appRadioButton = new JRadioButton(Messages.getString(&quot;application&quot;));</span>
+  private final JPanel cardPanel;
+  private final Launcher launcher;
+
+  public ConfigurationDialog(Window parent, Launcher launcher, Launcher.Type type) {
+<span class="nc" id="L42">    super(parent, Messages.getString(&quot;launcher.type&quot;), ModalityType.APPLICATION_MODAL);</span>
+<span class="nc" id="L43">    setLayout(new MigLayout(&quot;insets 10lp 15lp 10lp 15lp&quot;, &quot;[][grow]&quot;, &quot;[][]&quot;)); // NON-NLS</span>
+
+<span class="nc" id="L45">    ButtonGroup group = new ButtonGroup();</span>
+<span class="nc" id="L46">    group.add(uriRadioButton);</span>
+<span class="nc" id="L47">    group.add(appRadioButton);</span>
+<span class="nc" id="L48">    uriRadioButton.setSelected(true);</span>
+
+<span class="nc" id="L50">    this.launcher = launcher;</span>
+<span class="nc" id="L51">    initialize(launcher);</span>
+
+<span class="nc" id="L53">    add(uriRadioButton, &quot;cell 0 0&quot;); // NON-NLS</span>
+<span class="nc" id="L54">    add(appRadioButton, &quot;cell 1 0&quot;); // NON-NLS</span>
+
+<span class="nc" id="L56">    cardPanel = new JPanel(new CardLayout());</span>
+<span class="nc" id="L57">    cardPanel.setBorder(BorderFactory.createTitledBorder(Messages.getString(&quot;configuration&quot;)));</span>
+
+<span class="nc" id="L59">    JPanel uriPanel = new JPanel(new MigLayout(&quot;insets 10&quot;, &quot;[][grow]&quot;, &quot;[]&quot;)); // NON-NLS</span>
+<span class="nc" id="L60">    uriPanel.add(new JLabel(Messages.getString(&quot;uri&quot;) + StringUtil.COLON), &quot;cell 0 0&quot;); // NON-NLS</span>
+<span class="nc" id="L61">    uriPanel.add(uriField, &quot;cell 1 0, growx&quot;); // NON-NLS</span>
+
+<span class="nc" id="L63">    JPanel appPanel = new JPanel(new MigLayout(&quot;insets 10&quot;, &quot;[][grow]&quot;, &quot;[][][][][]&quot;)); // NON-NLS</span>
+<span class="nc" id="L64">    appPanel.add(</span>
+<span class="nc" id="L65">        new JLabel(Messages.getString(&quot;binary.path&quot;) + StringUtil.COLON), &quot;cell 0 0&quot;); // NON-NLS</span>
+<span class="nc" id="L66">    appPanel.add(binaryPathField, &quot;cell 1 0, growx&quot;); // NON-NLS</span>
+
+<span class="nc" id="L68">    appPanel.add(</span>
+<span class="nc" id="L69">        new JLabel(Messages.getString(&quot;working.dir&quot;) + StringUtil.COLON), &quot;cell 0 1&quot;); // NON-NLS</span>
+<span class="nc" id="L70">    appPanel.add(workingDirectoryField, &quot;cell 1 1, growx&quot;); // NON-NLS</span>
+
+<span class="nc" id="L72">    appPanel.add(</span>
+<span class="nc" id="L73">        new JLabel(Messages.getString(&quot;parameters&quot;) + StringUtil.COLON), &quot;cell 0 2&quot;); // NON-NLS</span>
+<span class="nc" id="L74">    appPanel.add(new JScrollPane(parametersArea), &quot;cell 1 2, growx&quot;); // NON-NLS</span>
+
+<span class="nc" id="L76">    appPanel.add(</span>
+<span class="nc" id="L77">        new JLabel(Messages.getString(&quot;env.variables&quot;) + StringUtil.COLON), &quot;cell 0 3&quot;); // NON-NLS</span>
+<span class="nc" id="L78">    appPanel.add(new JScrollPane(environmentVariablesArea), &quot;cell 1 3, growx&quot;); // NON-NLS</span>
+
+<span class="nc" id="L80">    appPanel.add(</span>
+<span class="nc" id="L81">        new JLabel(Messages.getString(&quot;compatibility&quot;) + StringUtil.COLON), &quot;cell 0 4&quot;); // NON-NLS</span>
+<span class="nc" id="L82">    appPanel.add(compatibilityField, &quot;cell 1 4, growx&quot;); // NON-NLS</span>
+
+<span class="nc" id="L84">    cardPanel.add(uriPanel, uriRadioButton.getText());</span>
+<span class="nc" id="L85">    cardPanel.add(appPanel, appRadioButton.getText());</span>
+
+<span class="nc" id="L87">    add(cardPanel, &quot;cell 0 1 2 1, grow&quot;); // NON-NLS</span>
+
+<span class="nc" id="L89">    uriRadioButton.addActionListener(_ -&gt; showCard());</span>
+<span class="nc" id="L90">    appRadioButton.addActionListener(_ -&gt; showCard());</span>
+
+<span class="nc" id="L92">    JButton saveButton = new JButton(Messages.getString(&quot;save&quot;));</span>
+<span class="nc" id="L93">    saveButton.addActionListener(_ -&gt; saveConfiguration());</span>
+<span class="nc" id="L94">    JButton jButtonHelp = GuiUtils.createHelpButton(&quot;launcher-external&quot;); // NON-NLS</span>
+<span class="nc" id="L95">    add(jButtonHelp, &quot;cell 1 3, split 3, align right, gapright 15, gaptop 15&quot;); // NON-NLS</span>
+<span class="nc" id="L96">    add(saveButton, &quot;align right, gaptop 15&quot;); // NON-NLS</span>
+<span class="nc" id="L97">    JButton cancelButton = new JButton(Messages.getString(&quot;cancel&quot;));</span>
+<span class="nc" id="L98">    cancelButton.addActionListener(_ -&gt; dispose());</span>
+<span class="nc" id="L99">    add(cancelButton);</span>
+
+<span class="nc" id="L101">    showCard();</span>
+
+<span class="nc" id="L103">    pack();</span>
+<span class="nc" id="L104">    setLocationRelativeTo(parent);</span>
+<span class="nc" id="L105">  }</span>
+
+  private void initialize(Launcher launcher) {
+<span class="nc bnc" id="L108" title="All 2 branches missed.">    if (launcher != null) {</span>
+<span class="nc" id="L109">      Configuration config = launcher.getConfiguration();</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">      if (config instanceof Launcher.URIConfiguration uriConfig) {</span>
+<span class="nc" id="L111">        uriRadioButton.setSelected(true);</span>
+<span class="nc" id="L112">        uriField.setText(uriConfig.getUri());</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">      } else if (config instanceof Launcher.ApplicationConfiguration appConfig) {</span>
+<span class="nc" id="L114">        appRadioButton.setSelected(true);</span>
+<span class="nc" id="L115">        binaryPathField.setText(appConfig.getBinaryPath());</span>
+<span class="nc" id="L116">        workingDirectoryField.setText(appConfig.getWorkingDirectory());</span>
+<span class="nc" id="L117">        parametersArea.setText(String.join(&quot;\n&quot;, appConfig.getParameters()));</span>
+<span class="nc" id="L118">        environmentVariablesArea.setText(</span>
+<span class="nc" id="L119">            appConfig.getEnvironmentVariables().entrySet().stream()</span>
+<span class="nc" id="L120">                .map(e -&gt; e.getKey() + &quot;=&quot; + e.getValue())</span>
+<span class="nc" id="L121">                .reduce((a, b) -&gt; a + &quot;\n&quot; + b)</span>
+<span class="nc" id="L122">                .orElse(&quot;&quot;));</span>
+<span class="nc" id="L123">        compatibilityField.setSelectedItem(appConfig.getCompatibility());</span>
+      }
+    }
+<span class="nc" id="L126">  }</span>
+
+  private void showCard() {
+<span class="nc" id="L129">    CardLayout cl = (CardLayout) (cardPanel.getLayout());</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">    if (appRadioButton.isSelected()) cl.show(cardPanel, appRadioButton.getText());</span>
+<span class="nc" id="L131">    else cl.show(cardPanel, uriRadioButton.getText());</span>
+<span class="nc" id="L132">  }</span>
+
+  private void saveConfiguration() {
+<span class="nc" id="L135">    Configuration config = launcher.getConfiguration();</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">    if (appRadioButton.isSelected()) {</span>
+<span class="nc" id="L137">      config = setApplicationConfiguration(config);</span>
+    } else {
+<span class="nc" id="L139">      config = setUriConfiguration(config);</span>
+    }
+<span class="nc" id="L141">    launcher.setConfiguration(config);</span>
+
+<span class="nc bnc" id="L143" title="All 2 branches missed.">    if (!config.isValid()) {</span>
+<span class="nc" id="L144">      config.showInvalidField(this);</span>
+<span class="nc" id="L145">      return;</span>
+    }
+
+<span class="nc" id="L148">    dispose();</span>
+<span class="nc" id="L149">  }</span>
+
+  private ApplicationConfiguration setApplicationConfiguration(Configuration config) {
+    ApplicationConfiguration appConfig;
+<span class="nc bnc" id="L153" title="All 2 branches missed.">    if (config instanceof ApplicationConfiguration) {</span>
+<span class="nc" id="L154">      appConfig = (ApplicationConfiguration) config;</span>
+    } else {
+<span class="nc" id="L156">      appConfig = new ApplicationConfiguration();</span>
+    }
+<span class="nc" id="L158">    appConfig.setBinaryPath(binaryPathField.getText());</span>
+<span class="nc" id="L159">    appConfig.setWorkingDirectory(workingDirectoryField.getText());</span>
+<span class="nc" id="L160">    appConfig.setParameters(</span>
+        new ArrayList&lt;&gt;(
+<span class="nc" id="L162">            Arrays.stream(parametersArea.getText().split(&quot;\\n&quot;)) // NON-NLS</span>
+<span class="nc" id="L163">                .filter(StringUtil::hasText)</span>
+<span class="nc" id="L164">                .toList()));</span>
+<span class="nc" id="L165">    appConfig.setEnvironmentVariables(</span>
+<span class="nc" id="L166">        parseEnvironmentVariables(environmentVariablesArea.getText()));</span>
+<span class="nc" id="L167">    appConfig.setCompatibility((Compatibility) compatibilityField.getSelectedItem());</span>
+<span class="nc" id="L168">    return appConfig;</span>
+  }
+
+  private Map&lt;String, String&gt; parseEnvironmentVariables(String text) {
+<span class="nc" id="L172">    Map&lt;String, String&gt; env = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">    for (String line : text.split(&quot;\\n&quot;)) { // NON-NLS</span>
+<span class="nc" id="L174">      String[] parts = line.split(&quot;=&quot;);</span>
+<span class="nc bnc" id="L175" title="All 2 branches missed.">      if (parts.length == 2) {</span>
+<span class="nc" id="L176">        env.put(parts[0], parts[1]);</span>
+      }
+    }
+<span class="nc" id="L179">    return env;</span>
+  }
+
+  private URIConfiguration setUriConfiguration(Configuration config) {
+    URIConfiguration uriConfig;
+<span class="nc bnc" id="L184" title="All 2 branches missed.">    if (config instanceof URIConfiguration) {</span>
+<span class="nc" id="L185">      uriConfig = (URIConfiguration) config;</span>
+    } else {
+<span class="nc" id="L187">      uriConfig = new URIConfiguration();</span>
+    }
+<span class="nc" id="L189">    uriConfig.setUri(uriField.getText());</span>
+<span class="nc" id="L190">    return uriConfig;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

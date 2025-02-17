@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>SocketUtil.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.util</a> &gt; <span class="el_source">SocketUtil.java</span></div><h1>SocketUtil.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2021 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.util;
+
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.security.SecureRandom;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import javax.net.ServerSocketFactory;
+
+public class SocketUtil {
+
+  public static final int PORT_MIN = 1024;
+  public static final int PORT_MAX = 65535;
+<span class="nc" id="L23">  private static final SecureRandom random = new SecureRandom();</span>
+
+  private SocketUtil() {}
+
+  public static boolean isPortAvailable(int port) {
+    try {
+      ServerSocket socket =
+<span class="nc" id="L30">          ServerSocketFactory.getDefault()</span>
+<span class="nc" id="L31">              .createServerSocket(port, 1, InetAddress.getByName(&quot;localhost&quot;)); // NON-NLS</span>
+<span class="nc" id="L32">      socket.close();</span>
+<span class="nc" id="L33">      return true;</span>
+<span class="nc" id="L34">    } catch (Exception ex) {</span>
+<span class="nc" id="L35">      return false;</span>
+    }
+  }
+
+  public static SortedSet&lt;Integer&gt; findAvailablePorts(int numberOfPorts) {
+<span class="nc" id="L40">    SortedSet&lt;Integer&gt; availablePorts = new TreeSet&lt;&gt;();</span>
+<span class="nc" id="L41">    int attemptCount = 0;</span>
+<span class="nc bnc" id="L42" title="All 4 branches missed.">    while ((++attemptCount &lt;= numberOfPorts + 100) &amp;&amp; availablePorts.size() &lt; numberOfPorts) {</span>
+<span class="nc" id="L43">      availablePorts.add(findAvailablePort());</span>
+    }
+
+<span class="nc bnc" id="L46" title="All 2 branches missed.">    if (availablePorts.size() != numberOfPorts) {</span>
+<span class="nc" id="L47">      throw new IllegalStateException(</span>
+<span class="nc" id="L48">          String.format(</span>
+              &quot;Could not find %s TCP ports available in the range [%d, %d]&quot;,
+<span class="nc" id="L50">              numberOfPorts, PORT_MIN, PORT_MAX));</span>
+    }
+<span class="nc" id="L52">    return availablePorts;</span>
+  }
+
+  private static int findRandomPort() {
+<span class="nc" id="L56">    int portRange = PORT_MAX - PORT_MIN;</span>
+<span class="nc" id="L57">    return PORT_MIN + random.nextInt(portRange + 1);</span>
+  }
+
+  public static int findAvailablePort() {
+<span class="nc" id="L61">    int portRange = PORT_MAX - PORT_MIN;</span>
+    int port;
+<span class="nc" id="L63">    int count = 0;</span>
+    do {
+<span class="nc bnc" id="L65" title="All 2 branches missed.">      if (count &gt; portRange) {</span>
+<span class="nc" id="L66">        throw new IllegalStateException(</span>
+<span class="nc" id="L67">            String.format(</span>
+                &quot;Could not find an available TCP port in the range [%d, %d] after %d attempts&quot;,
+<span class="nc" id="L69">                PORT_MIN, PORT_MAX, count));</span>
+      }
+<span class="nc" id="L71">      port = findRandomPort();</span>
+<span class="nc" id="L72">      count++;</span>
+<span class="nc bnc" id="L73" title="All 2 branches missed.">    } while (!isPortAvailable(port));</span>
+
+<span class="nc" id="L75">    return port;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

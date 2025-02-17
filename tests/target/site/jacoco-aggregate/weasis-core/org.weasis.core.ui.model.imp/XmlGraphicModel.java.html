@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>XmlGraphicModel.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.imp</a> &gt; <span class="el_source">XmlGraphicModel.java</span></div><h1>XmlGraphicModel.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.imp;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.ui.model.AbstractGraphicModel;
+import org.weasis.core.ui.model.ReferencedImage;
+import org.weasis.core.ui.model.ReferencedSeries;
+
+@XmlRootElement(name = &quot;presentation&quot;)
+public class XmlGraphicModel extends AbstractGraphicModel {
+
+  public XmlGraphicModel() {
+<span class="nc" id="L26">    super();</span>
+<span class="nc" id="L27">  }</span>
+
+  public XmlGraphicModel(ImageElement img) {
+<span class="nc" id="L30">    super(buildReferences(img));</span>
+<span class="nc" id="L31">  }</span>
+
+  private static List&lt;ReferencedSeries&gt; buildReferences(ImageElement img) {
+<span class="nc" id="L34">    String seriesUUID = (String) img.getTagValue(TagW.get(&quot;SeriesInstanceUID&quot;));</span>
+<span class="nc bnc" id="L35" title="All 2 branches missed.">    if (seriesUUID == null) {</span>
+<span class="nc" id="L36">      seriesUUID = java.util.UUID.randomUUID().toString();</span>
+<span class="nc" id="L37">      img.setTag(TagW.get(&quot;SeriesInstanceUID&quot;), seriesUUID);</span>
+    }
+
+<span class="nc" id="L40">    String uid = (String) img.getTagValue(TagW.get(&quot;SOPInstanceUID&quot;));</span>
+<span class="nc bnc" id="L41" title="All 2 branches missed.">    if (uid == null) {</span>
+<span class="nc" id="L42">      uid = java.util.UUID.randomUUID().toString();</span>
+<span class="nc" id="L43">      img.setTag(TagW.get(&quot;SOPInstanceUID&quot;), uid);</span>
+    }
+
+<span class="nc" id="L46">    List&lt;Integer&gt; frameList = new ArrayList&lt;&gt;(1);</span>
+<span class="nc" id="L47">    int frames = img.getMediaReader().getMediaElementNumber();</span>
+<span class="nc bnc" id="L48" title="All 4 branches missed.">    if (frames &gt; 1 &amp;&amp; img.getKey() instanceof Integer intVal) {</span>
+<span class="nc" id="L49">      frameList.add(intVal);</span>
+    }
+
+<span class="nc" id="L52">    return Collections.singletonList(</span>
+        new ReferencedSeries(
+<span class="nc" id="L54">            seriesUUID, Collections.singletonList(new ReferencedImage(uid, frameList))));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

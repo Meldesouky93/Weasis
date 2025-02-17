@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>GroupRadioMenu.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.gui.util</a> &gt; <span class="el_source">GroupRadioMenu.java</span></div><h1>GroupRadioMenu.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.gui.util;
+
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import javax.swing.ButtonGroup;
+import javax.swing.ComboBoxModel;
+import javax.swing.DefaultComboBoxModel;
+import javax.swing.Icon;
+import javax.swing.JMenu;
+import javax.swing.JPopupMenu;
+import javax.swing.event.ListDataEvent;
+import org.weasis.opencv.op.lut.ByteLut;
+
+public class GroupRadioMenu&lt;T&gt; implements ActionListener, ComboBoxModelAdapter&lt;T&gt;, GroupPopup {
+
+  protected final List&lt;RadioMenuItem&gt; itemList;
+  protected final ButtonGroup group;
+  protected ComboBoxModel&lt;T&gt; dataModel;
+
+<span class="nc" id="L33">  public GroupRadioMenu() {</span>
+<span class="nc" id="L34">    this.itemList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L35">    this.group = new ButtonGroup();</span>
+<span class="nc" id="L36">  }</span>
+
+  protected void init() {
+<span class="nc bnc" id="L39" title="All 2 branches missed.">    for (RadioMenuItem item : itemList) {</span>
+<span class="nc" id="L40">      group.remove(item);</span>
+<span class="nc" id="L41">    }</span>
+<span class="nc" id="L42">    itemList.clear();</span>
+<span class="nc" id="L43">    Object selectedItem = dataModel.getSelectedItem();</span>
+
+<span class="nc bnc" id="L45" title="All 2 branches missed.">    for (int i = 0; i &lt; dataModel.getSize(); i++) {</span>
+<span class="nc" id="L46">      Object object = dataModel.getElementAt(i);</span>
+<span class="nc" id="L47">      RadioMenuItem radioMenuItem = new RadioMenuItem(object.toString(), object);</span>
+<span class="nc" id="L48">      Icon icon = null;</span>
+<span class="nc bnc" id="L49" title="All 2 branches missed.">      if (object instanceof GUIEntry entry) {</span>
+<span class="nc" id="L50">        icon = entry.getIcon();</span>
+<span class="nc bnc" id="L51" title="All 2 branches missed.">      } else if (object instanceof ByteLut lut) {</span>
+<span class="nc" id="L52">        icon = lut.getIcon(GuiUtils.getBigIconButtonSize(radioMenuItem).height);</span>
+      }
+<span class="nc" id="L54">      radioMenuItem.setIcon(icon);</span>
+<span class="nc" id="L55">      GuiUtils.applySelectedIconEffect(radioMenuItem);</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">      radioMenuItem.setSelected(object == selectedItem);</span>
+<span class="nc" id="L57">      group.add(radioMenuItem);</span>
+<span class="nc" id="L58">      itemList.add(radioMenuItem);</span>
+<span class="nc" id="L59">      radioMenuItem.addActionListener(this);</span>
+    }
+<span class="nc" id="L61">  }</span>
+
+  public List&lt;RadioMenuItem&gt; getRadioMenuItemListCopy() {
+<span class="nc" id="L64">    return new ArrayList&lt;&gt;(itemList);</span>
+  }
+
+  @Override
+  public JPopupMenu createJPopupMenu() {
+<span class="nc" id="L69">    JPopupMenu popupMouseButtons = new JPopupMenu();</span>
+<span class="nc bnc" id="L70" title="All 2 branches missed.">    for (RadioMenuItem radioMenuItem : itemList) {</span>
+<span class="nc" id="L71">      popupMouseButtons.add(radioMenuItem);</span>
+<span class="nc" id="L72">    }</span>
+<span class="nc" id="L73">    return popupMouseButtons;</span>
+  }
+
+  @Override
+  public JMenu createMenu(String title) {
+<span class="nc" id="L78">    return createMenu(title, null);</span>
+  }
+
+  public JMenu createMenu(String title, Icon icon) {
+<span class="nc" id="L82">    JMenu menu = new JMenu(title);</span>
+<span class="nc bnc" id="L83" title="All 2 branches missed.">    if (icon != null) {</span>
+<span class="nc" id="L84">      menu.setIcon(icon);</span>
+<span class="nc" id="L85">      GuiUtils.applySelectedIconEffect(menu);</span>
+    }
+<span class="nc bnc" id="L87" title="All 2 branches missed.">    for (RadioMenuItem radioMenuItem : itemList) {</span>
+<span class="nc" id="L88">      menu.add(radioMenuItem);</span>
+<span class="nc" id="L89">    }</span>
+<span class="nc" id="L90">    return menu;</span>
+  }
+
+  @Override
+  public void contentsChanged(ListDataEvent e) {
+<span class="nc" id="L95">    setSelected(dataModel.getSelectedItem());</span>
+<span class="nc" id="L96">  }</span>
+
+  @Override
+  public void intervalAdded(ListDataEvent e) {
+    // Do nothing
+
+<span class="nc" id="L102">  }</span>
+
+  @Override
+  public void intervalRemoved(ListDataEvent e) {
+    // Do nothing
+
+<span class="nc" id="L108">  }</span>
+
+  @Override
+  public void actionPerformed(ActionEvent e) {
+<span class="nc bnc" id="L112" title="All 4 branches missed.">    if (e.getSource() instanceof RadioMenuItem item &amp;&amp; item.isSelected()) {</span>
+<span class="nc" id="L113">      dataModel.setSelectedItem(item.getUserObject());</span>
+    }
+<span class="nc" id="L115">  }</span>
+
+  public void setSelected(Object selected) {
+<span class="nc bnc" id="L118" title="All 2 branches missed.">    if (selected == null) {</span>
+<span class="nc" id="L119">      group.clearSelection();</span>
+<span class="nc" id="L120">      dataModel.setSelectedItem(null);</span>
+    } else {
+<span class="nc bnc" id="L122" title="All 2 branches missed.">      for (RadioMenuItem item : itemList) {</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">        if (item.getUserObject() == selected) {</span>
+<span class="nc" id="L124">          item.setSelected(true); // Do not trigger actionPerformed</span>
+<span class="nc" id="L125">          dataModel.setSelectedItem(item.getUserObject());</span>
+<span class="nc" id="L126">          return;</span>
+        }
+<span class="nc" id="L128">      }</span>
+    }
+<span class="nc" id="L130">  }</span>
+
+  public int getSelectedIndex() {
+<span class="nc" id="L133">    Object sObject = dataModel.getSelectedItem();</span>
+
+<span class="nc bnc" id="L135" title="All 2 branches missed.">    for (int i = 0; i &lt; dataModel.getSize(); i++) {</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">      if (Objects.equals(dataModel.getElementAt(i), sObject)) {</span>
+<span class="nc" id="L137">        return i;</span>
+      }
+    }
+<span class="nc" id="L140">    return -1;</span>
+  }
+
+  @SuppressWarnings(&quot;unchecked&quot;)
+  public T getSelectedItem() {
+<span class="nc" id="L145">    return (T) dataModel.getSelectedItem();</span>
+  }
+
+  public ComboBoxModel&lt;T&gt; getModel() {
+<span class="nc" id="L149">    return dataModel;</span>
+  }
+
+  @Override
+  public void setModel(ComboBoxModel&lt;T&gt; dataModel) {
+<span class="nc bnc" id="L154" title="All 2 branches missed.">    if (this.dataModel != null) {</span>
+<span class="nc" id="L155">      this.dataModel.removeListDataListener(this);</span>
+    }
+<span class="nc bnc" id="L157" title="All 2 branches missed.">    if (dataModel != null) {</span>
+<span class="nc" id="L158">      dataModel.removeListDataListener(this);</span>
+    }
+<span class="nc" id="L160">    this.dataModel = Optional.ofNullable(dataModel).orElseGet(DefaultComboBoxModel::new);</span>
+<span class="nc" id="L161">    init();</span>
+<span class="nc" id="L162">    this.dataModel.addListDataListener(this);</span>
+<span class="nc" id="L163">  }</span>
+
+  @Override
+  public void setEnabled(boolean enabled) {
+<span class="nc bnc" id="L167" title="All 2 branches missed.">    for (RadioMenuItem radioMenuItem : itemList) {</span>
+<span class="nc" id="L168">      radioMenuItem.setEnabled(enabled);</span>
+<span class="nc" id="L169">    }</span>
+<span class="nc" id="L170">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

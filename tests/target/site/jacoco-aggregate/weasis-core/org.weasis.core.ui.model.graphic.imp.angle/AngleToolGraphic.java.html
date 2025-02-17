@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AngleToolGraphic.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.graphic.imp.angle</a> &gt; <span class="el_source">AngleToolGraphic.java</span></div><h1>AngleToolGraphic.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.graphic.imp.angle;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlType;
+import java.awt.Shape;
+import java.awt.event.KeyEvent;
+import java.awt.geom.Arc2D;
+import java.awt.geom.Line2D;
+import java.awt.geom.Path2D;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import javax.swing.Icon;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.GeomUtil;
+import org.weasis.core.api.image.measure.MeasurementsAdapter;
+import org.weasis.core.api.image.util.MeasurableLayer;
+import org.weasis.core.api.image.util.Unit;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.api.util.ResourceUtil.ActionIcon;
+import org.weasis.core.ui.model.graphic.AbstractDragGraphic;
+import org.weasis.core.ui.model.utils.bean.AdvancedShape;
+import org.weasis.core.ui.model.utils.bean.MeasureItem;
+import org.weasis.core.ui.model.utils.bean.Measurement;
+import org.weasis.core.ui.model.utils.exceptions.InvalidShapeException;
+import org.weasis.core.ui.util.MouseEventDouble;
+
+@XmlType(name = &quot;angle&quot;)
+@XmlRootElement(name = &quot;angle&quot;)
+public class AngleToolGraphic extends AbstractDragGraphic {
+
+<span class="nc" id="L43">  public static final Integer POINTS_NUMBER = 3;</span>
+
+<span class="nc" id="L45">  public static final Icon ICON = ResourceUtil.getIcon(ActionIcon.DRAW_ANGLE);</span>
+
+<span class="nc" id="L47">  public static final Measurement ANGLE =</span>
+<span class="nc" id="L48">      new Measurement(Messages.getString(&quot;measure.angle&quot;), 1, true);</span>
+<span class="nc" id="L49">  public static final Measurement COMPLEMENTARY_ANGLE =</span>
+<span class="nc" id="L50">      new Measurement(Messages.getString(&quot;measure.complement_angle&quot;), 2, true, true, false);</span>
+<span class="nc" id="L51">  public static final Measurement REFLEX_ANGLE =</span>
+<span class="nc" id="L52">      new Measurement(Messages.getString(&quot;AngleToolGraphic.reflex_angle&quot;), 3, true, true, false);</span>
+<span class="nc" id="L53">  protected static final List&lt;Measurement&gt; MEASUREMENT_LIST = new ArrayList&lt;&gt;();</span>
+
+  static {
+<span class="nc" id="L56">    MEASUREMENT_LIST.add(ANGLE);</span>
+<span class="nc" id="L57">    MEASUREMENT_LIST.add(COMPLEMENTARY_ANGLE);</span>
+<span class="nc" id="L58">    MEASUREMENT_LIST.add(REFLEX_ANGLE);</span>
+<span class="nc" id="L59">  }</span>
+
+  // Let AOB be the triangle that represents the measured angle, O being the intersection point
+  Point2D ptA;
+  Point2D ptO;
+  Point2D ptB;
+
+  // estimate if OA &amp; OB line segments are colinear not not
+  boolean lineColinear;
+
+  // estimate if line segments are valid or not
+  boolean lineOAvalid;
+  Boolean lineOBvalid;
+
+  // smallest angle in Degrees in the range of [-180 ; 180] between OA &amp; OB line segments
+  double angleDeg;
+
+  public AngleToolGraphic() {
+<span class="nc" id="L77">    super(POINTS_NUMBER);</span>
+<span class="nc" id="L78">  }</span>
+
+  public AngleToolGraphic(AngleToolGraphic graphic) {
+<span class="nc" id="L81">    super(graphic);</span>
+<span class="nc" id="L82">  }</span>
+
+  @Override
+  public AngleToolGraphic copy() {
+<span class="nc" id="L86">    return new AngleToolGraphic(this);</span>
+  }
+
+  protected void init() {
+<span class="nc" id="L90">    ptA = getHandlePoint(0);</span>
+<span class="nc" id="L91">    ptO = getHandlePoint(1);</span>
+<span class="nc" id="L92">    ptB = getHandlePoint(2);</span>
+
+<span class="nc" id="L94">    lineColinear = false;</span>
+<span class="nc" id="L95">    lineOAvalid = lineOBvalid = false;</span>
+
+<span class="nc" id="L97">    angleDeg = 0d;</span>
+<span class="nc" id="L98">  }</span>
+
+  @Override
+  protected void prepareShape() throws InvalidShapeException {
+<span class="nc bnc" id="L102" title="All 2 branches missed.">    if (!isShapeValid()) {</span>
+<span class="nc" id="L103">      throw new InvalidShapeException(&quot;This shape cannot be drawn&quot;);</span>
+    }
+<span class="nc" id="L105">    buildShape(null);</span>
+<span class="nc" id="L106">  }</span>
+
+  @Override
+  public boolean isShapeValid() {
+<span class="nc" id="L110">    updateTool();</span>
+<span class="nc" id="L111">    return super.isShapeValid();</span>
+  }
+
+  @Override
+  public void buildShape(MouseEventDouble mouseEvent) {
+<span class="nc" id="L116">    updateTool();</span>
+
+<span class="nc" id="L118">    Shape newShape = null;</span>
+<span class="nc" id="L119">    Path2D path = new Path2D.Double(Path2D.WIND_NON_ZERO, 2);</span>
+
+<span class="nc bnc" id="L121" title="All 2 branches missed.">    if (lineOAvalid) {</span>
+<span class="nc" id="L122">      path.append(new Line2D.Double(ptA, ptO), false);</span>
+    }
+
+<span class="nc bnc" id="L125" title="All 2 branches missed.">    if (lineOBvalid) {</span>
+<span class="nc" id="L126">      path.append(new Line2D.Double(ptO, ptB), false);</span>
+    }
+
+<span class="nc bnc" id="L129" title="All 6 branches missed.">    if (lineOAvalid &amp;&amp; lineOBvalid &amp;&amp; !lineColinear) {</span>
+<span class="nc" id="L130">      newShape = new AdvancedShape(this, 2);</span>
+<span class="nc" id="L131">      AdvancedShape aShape = (AdvancedShape) newShape;</span>
+<span class="nc" id="L132">      aShape.addShape(path);</span>
+
+      // Let arcAngle be the partial section of the ellipse that represents the measured angle
+<span class="nc" id="L135">      double startingAngle = GeomUtil.getAngleDeg(ptO, ptA);</span>
+
+<span class="nc" id="L137">      double radius = 32;</span>
+<span class="nc" id="L138">      Rectangle2D arcAngleBounds =</span>
+<span class="nc" id="L139">          new Rectangle2D.Double(ptO.getX() - radius, ptO.getY() - radius, 2 * radius, 2 * radius);</span>
+
+<span class="nc" id="L141">      Shape arcAngle = new Arc2D.Double(arcAngleBounds, startingAngle, angleDeg, Arc2D.OPEN);</span>
+
+<span class="nc" id="L143">      double rMax = Math.min(ptO.distance(ptA), ptO.distance(ptB)) * 2 / 3;</span>
+<span class="nc" id="L144">      double scalingMin = radius / rMax;</span>
+
+<span class="nc" id="L146">      aShape.addScaleInvShape(arcAngle, ptO, scalingMin, true);</span>
+
+<span class="nc bnc" id="L148" title="All 2 branches missed.">    } else if (path.getCurrentPoint() != null) {</span>
+<span class="nc" id="L149">      newShape = path;</span>
+    }
+
+<span class="nc" id="L152">    setShape(newShape, mouseEvent);</span>
+<span class="nc" id="L153">    updateLabel(mouseEvent, getDefaultView2d(mouseEvent));</span>
+<span class="nc" id="L154">  }</span>
+
+  @Override
+  public List&lt;MeasureItem&gt; computeMeasurements(
+      MeasurableLayer layer, boolean releaseEvent, Unit displayUnit) {
+<span class="nc bnc" id="L159" title="All 6 branches missed.">    if (layer != null &amp;&amp; layer.hasContent() &amp;&amp; isShapeValid()) {</span>
+<span class="nc" id="L160">      MeasurementsAdapter adapter = layer.getMeasurementAdapter(displayUnit);</span>
+
+<span class="nc bnc" id="L162" title="All 2 branches missed.">      if (adapter != null) {</span>
+<span class="nc" id="L163">        ArrayList&lt;MeasureItem&gt; measVal = new ArrayList&lt;&gt;();</span>
+
+<span class="nc" id="L165">        double positiveAngle = Math.abs(angleDeg);</span>
+
+<span class="nc bnc" id="L167" title="All 2 branches missed.">        if (ANGLE.getComputed()) {</span>
+<span class="nc" id="L168">          measVal.add(new MeasureItem(ANGLE, positiveAngle, Messages.getString(&quot;measure.deg&quot;)));</span>
+        }
+
+<span class="nc bnc" id="L171" title="All 2 branches missed.">        if (COMPLEMENTARY_ANGLE.getComputed()) {</span>
+<span class="nc" id="L172">          measVal.add(</span>
+              new MeasureItem(
+<span class="nc" id="L174">                  COMPLEMENTARY_ANGLE, 180.0 - positiveAngle, Messages.getString(&quot;measure.deg&quot;)));</span>
+        }
+<span class="nc bnc" id="L176" title="All 2 branches missed.">        if (REFLEX_ANGLE.getComputed()) {</span>
+<span class="nc" id="L177">          measVal.add(</span>
+              new MeasureItem(
+<span class="nc" id="L179">                  REFLEX_ANGLE, 360.0 - positiveAngle, Messages.getString(&quot;measure.deg&quot;)));</span>
+        }
+<span class="nc" id="L181">        return measVal;</span>
+      }
+    }
+<span class="nc" id="L184">    return Collections.emptyList();</span>
+  }
+
+  @Override
+  public List&lt;Measurement&gt; getMeasurementList() {
+<span class="nc" id="L189">    return MEASUREMENT_LIST;</span>
+  }
+
+  @Override
+  public Icon getIcon() {
+<span class="nc" id="L194">    return ICON;</span>
+  }
+
+  @Override
+  public String getUIName() {
+<span class="nc" id="L199">    return Messages.getString(&quot;measure.angle&quot;);</span>
+  }
+
+  @Override
+  public int getKeyCode() {
+<span class="nc" id="L204">    return KeyEvent.VK_A;</span>
+  }
+
+  @Override
+  public int getModifier() {
+<span class="nc" id="L209">    return 0;</span>
+  }
+
+  protected void updateTool() {
+<span class="nc" id="L213">    init();</span>
+
+<span class="nc bnc" id="L215" title="All 6 branches missed.">    lineOAvalid = (ptA != null &amp;&amp; ptO != null &amp;&amp; !ptO.equals(ptA));</span>
+<span class="nc bnc" id="L216" title="All 6 branches missed.">    lineOBvalid = (ptB != null &amp;&amp; ptO != null &amp;&amp; !ptO.equals(ptB));</span>
+
+<span class="nc bnc" id="L218" title="All 4 branches missed.">    if (lineOAvalid &amp;&amp; lineOBvalid) {</span>
+<span class="nc" id="L219">      angleDeg = GeomUtil.getSmallestRotationAngleDeg(GeomUtil.getAngleDeg(ptA, ptO, ptB));</span>
+<span class="nc" id="L220">      lineColinear = GeomUtil.lineColinear(ptO, ptA, ptO, ptB);</span>
+    }
+<span class="nc" id="L222">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

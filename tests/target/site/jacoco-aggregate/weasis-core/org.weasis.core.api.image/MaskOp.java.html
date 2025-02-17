@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>MaskOp.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.image</a> &gt; <span class="el_source">MaskOp.java</span></div><h1>MaskOp.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.image;
+
+import java.awt.Rectangle;
+import org.weasis.opencv.data.PlanarImage;
+import org.weasis.opencv.op.ImageProcessor;
+
+public class MaskOp extends AbstractOp {
+
+  public static final String OP_NAME = &quot;Mask&quot;; // NON-NLS
+
+  /**
+   * Set whether the shutter is applied (Required parameter).
+   *
+   * &lt;p&gt;Boolean value.
+   */
+  public static final String P_SHOW = &quot;show&quot;; // NON-NLS
+
+  public static final String P_SHAPE = &quot;shape&quot;; // NON-NLS
+  public static final String P_ALPHA = &quot;img.alpha&quot;;
+
+<span class="nc" id="L30">  public MaskOp() {</span>
+<span class="nc" id="L31">    setName(OP_NAME);</span>
+<span class="nc" id="L32">  }</span>
+
+  public MaskOp(MaskOp op) {
+<span class="nc" id="L35">    super(op);</span>
+<span class="nc" id="L36">  }</span>
+
+  @Override
+  public MaskOp copy() {
+<span class="nc" id="L40">    return new MaskOp(this);</span>
+  }
+
+  @Override
+  public void process() throws Exception {
+<span class="nc" id="L45">    PlanarImage source = (PlanarImage) params.get(Param.INPUT_IMG);</span>
+<span class="nc" id="L46">    PlanarImage result = source;</span>
+
+<span class="nc" id="L48">    Boolean mask = (Boolean) params.get(P_SHOW);</span>
+<span class="nc" id="L49">    Rectangle area = (Rectangle) params.get(P_SHAPE);</span>
+
+<span class="nc bnc" id="L51" title="All 2 branches missed.">    if (mask != null</span>
+<span class="nc bnc" id="L52" title="All 4 branches missed.">        &amp;&amp; mask</span>
+        &amp;&amp; area != null
+<span class="nc bnc" id="L54" title="All 2 branches missed.">        &amp;&amp; !area.equals(new Rectangle(0, 0, source.width(), source.height()))) {</span>
+<span class="nc" id="L55">      Double alpha = (Double) params.get(P_ALPHA);</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">      result = ImageProcessor.applyCropMask(source.toMat(), area, alpha == null ? 0.7 : alpha);</span>
+    }
+<span class="nc" id="L58">    params.put(Param.OUTPUT_IMG, result);</span>
+<span class="nc" id="L59">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

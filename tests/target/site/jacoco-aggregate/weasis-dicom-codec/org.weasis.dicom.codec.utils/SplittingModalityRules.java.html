@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>SplittingModalityRules.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec.utils</a> &gt; <span class="el_source">SplittingModalityRules.java</span></div><h1>SplittingModalityRules.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec.utils;
+
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.List;
+import org.weasis.core.api.media.data.MediaElement;
+import org.weasis.core.api.media.data.TagUtil;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.util.StringUtil;
+import org.weasis.dicom.codec.DicomMediaIO;
+import org.weasis.dicom.codec.TagD;
+import org.weasis.dicom.codec.TagD.Level;
+import org.weasis.dicom.codec.display.Modality;
+
+public class SplittingModalityRules {
+
+  private final Modality modality;
+  private final List&lt;Rule&gt; singleFrameTags;
+  private final List&lt;Rule&gt; multiFrameTags;
+
+  private final SplittingModalityRules extendRules;
+
+  public SplittingModalityRules(Modality modality) {
+<span class="nc" id="L33">    this(modality, null);</span>
+<span class="nc" id="L34">  }</span>
+
+<span class="nc" id="L36">  public SplittingModalityRules(Modality modality, SplittingModalityRules extendRules) {</span>
+<span class="nc" id="L37">    this.modality = modality;</span>
+<span class="nc" id="L38">    this.extendRules = extendRules;</span>
+<span class="nc" id="L39">    this.singleFrameTags =</span>
+<span class="nc bnc" id="L40" title="All 2 branches missed.">        extendRules == null</span>
+<span class="nc" id="L41">            ? new ArrayList&lt;&gt;()</span>
+<span class="nc" id="L42">            : new ArrayList&lt;&gt;(extendRules.getSingleFrameRules());</span>
+<span class="nc" id="L43">    this.multiFrameTags =</span>
+<span class="nc bnc" id="L44" title="All 2 branches missed.">        extendRules == null ? new ArrayList&lt;&gt;() : new ArrayList&lt;&gt;(extendRules.getMultiFrameRules());</span>
+<span class="nc" id="L45">  }</span>
+
+  public Modality getModality() {
+<span class="nc" id="L48">    return modality;</span>
+  }
+
+  public List&lt;Rule&gt; getSingleFrameRules() {
+<span class="nc" id="L52">    return singleFrameTags;</span>
+  }
+
+  public List&lt;Rule&gt; getMultiFrameRules() {
+<span class="nc" id="L56">    return multiFrameTags;</span>
+  }
+
+  public SplittingModalityRules getExtendRules() {
+<span class="nc" id="L60">    return extendRules;</span>
+  }
+
+  public void addSingleFrameTags(TagW tag, Condition condition) {
+<span class="nc bnc" id="L64" title="All 2 branches missed.">    if (tag != null) {</span>
+<span class="nc" id="L65">      singleFrameTags.add(new Rule(tag, condition));</span>
+<span class="nc" id="L66">      DicomMediaIO.tagManager.addTag(tag, Level.INSTANCE);</span>
+    }
+<span class="nc" id="L68">  }</span>
+
+  public void addMultiFrameTags(TagW tag, Condition condition) {
+<span class="nc bnc" id="L71" title="All 2 branches missed.">    if (tag != null) {</span>
+<span class="nc" id="L72">      multiFrameTags.add(new Rule(tag, condition));</span>
+<span class="nc" id="L73">      DicomMediaIO.tagManager.addTag(tag, Level.FRAME);</span>
+    }
+<span class="nc" id="L75">  }</span>
+
+  public void addSingleFrameTags(int tagID, Condition condition) {
+<span class="nc" id="L78">    addSingleFrameTags(TagD.getNullable(tagID), condition);</span>
+<span class="nc" id="L79">  }</span>
+
+  public void addMultiFrameTags(int tagID, Condition condition) {
+<span class="nc" id="L82">    addMultiFrameTags(TagD.getNullable(tagID), condition);</span>
+<span class="nc" id="L83">  }</span>
+
+  public static class Rule {
+    protected final TagW tag;
+    protected final Condition condition;
+
+<span class="nc" id="L89">    public Rule(TagW tag, Condition condition) {</span>
+<span class="nc" id="L90">      this.tag = tag;</span>
+<span class="nc" id="L91">      this.condition = condition;</span>
+<span class="nc" id="L92">    }</span>
+
+    public TagW getTag() {
+<span class="nc" id="L95">      return tag;</span>
+    }
+
+    public Condition getCondition() {
+<span class="nc" id="L99">      return condition;</span>
+    }
+
+    public boolean isTagValueMatching(MediaElement seriesMedia, MediaElement newMedia) {
+<span class="nc" id="L103">      Object val1 = seriesMedia.getTagValue(tag);</span>
+<span class="nc" id="L104">      Object val2 = newMedia.getTagValue(tag);</span>
+
+<span class="nc bnc" id="L106" title="All 2 branches missed.">      if (TagUtil.isEquals(val1, val2)) {</span>
+<span class="nc" id="L107">        return true;</span>
+      }
+
+<span class="nc bnc" id="L110" title="All 2 branches missed.">      if (condition != null) {</span>
+        // When all conditions match then the tag values not matching anymore (media goes into a
+        // new subseries)
+<span class="nc bnc" id="L113" title="All 2 branches missed.">        return !condition.match(newMedia);</span>
+      }
+<span class="nc" id="L115">      return false;</span>
+    }
+  }
+
+<span class="nc" id="L119">  public abstract static class Condition {</span>
+<span class="nc" id="L120">    public enum Type {</span>
+<span class="nc" id="L121">      equals,</span>
+<span class="nc" id="L122">      notEquals,</span>
+<span class="nc" id="L123">      equalsIgnoreCase,</span>
+<span class="nc" id="L124">      notEqualsIgnoreCase,</span>
+<span class="nc" id="L125">      contains,</span>
+<span class="nc" id="L126">      notContains,</span>
+<span class="nc" id="L127">      containsIgnoreCase,</span>
+<span class="nc" id="L128">      notContainsIgnoreCase</span>
+    }
+
+    protected boolean not;
+
+    public final Condition not() {
+<span class="nc bnc" id="L134" title="All 2 branches missed.">      this.not = !not;</span>
+<span class="nc" id="L135">      return this;</span>
+    }
+
+    public abstract boolean match(MediaElement media);
+
+    public void addChild(Condition child) {
+<span class="nc" id="L141">      throw new UnsupportedOperationException();</span>
+    }
+
+    public boolean isEmpty() {
+<span class="nc" id="L145">      return false;</span>
+    }
+  }
+
+<span class="nc" id="L149">  abstract static class CompositeCondition extends Condition {</span>
+<span class="nc" id="L150">    protected final ArrayList&lt;Condition&gt; childs = new ArrayList&lt;&gt;();</span>
+
+    @Override
+    public void addChild(Condition child) {
+<span class="nc" id="L154">      childs.add(child);</span>
+<span class="nc" id="L155">    }</span>
+
+    @Override
+    public boolean isEmpty() {
+<span class="nc" id="L159">      return childs.isEmpty();</span>
+    }
+  }
+
+<span class="nc" id="L163">  public static class And extends CompositeCondition {</span>
+    @Override
+    public boolean match(MediaElement media) {
+<span class="nc bnc" id="L166" title="All 2 branches missed.">      for (Condition child : childs) {</span>
+<span class="nc bnc" id="L167" title="All 2 branches missed.">        if (!child.match(media)) {</span>
+<span class="nc" id="L168">          return not;</span>
+        }
+<span class="nc" id="L170">      }</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">      return !not;</span>
+    }
+  }
+
+<span class="nc" id="L175">  public static class Or extends CompositeCondition {</span>
+    @Override
+    public boolean match(MediaElement media) {
+<span class="nc bnc" id="L178" title="All 2 branches missed.">      for (Condition child : childs) {</span>
+<span class="nc bnc" id="L179" title="All 2 branches missed.">        if (child.match(media)) {</span>
+<span class="nc bnc" id="L180" title="All 2 branches missed.">          return !not;</span>
+        }
+<span class="nc" id="L182">      }</span>
+<span class="nc" id="L183">      return not;</span>
+    }
+  }
+
+  public static class DefaultCondition extends Condition {
+    final TagW tag;
+    final Condition.Type type;
+    final Object object;
+
+<span class="nc" id="L192">    public DefaultCondition(TagW tag, Type type, String value) {</span>
+<span class="nc" id="L193">      this.tag = tag;</span>
+<span class="nc" id="L194">      this.type = type;</span>
+<span class="nc" id="L195">      this.object = readValue(value);</span>
+<span class="nc" id="L196">    }</span>
+
+    private Object readValue(String value) {
+<span class="nc bnc" id="L199" title="All 2 branches missed.">      if (!StringUtil.hasText(value)) {</span>
+<span class="nc" id="L200">        return null;</span>
+      }
+<span class="nc" id="L202">      return tag.getValue(value);</span>
+    }
+
+    @Override
+    public boolean match(MediaElement media) {
+<span class="nc" id="L207">      Object value = media.getTagValue(tag);</span>
+
+<span class="nc bnc" id="L209" title="All 2 branches missed.">      if (Type.equals.equals(type)) {</span>
+<span class="nc" id="L210">        return TagUtil.isEquals(value, object);</span>
+<span class="nc bnc" id="L211" title="All 2 branches missed.">      } else if (Type.notEquals.equals(type)) {</span>
+<span class="nc bnc" id="L212" title="All 2 branches missed.">        return !TagUtil.isEquals(value, object);</span>
+<span class="nc bnc" id="L213" title="All 2 branches missed.">      } else if (Type.equalsIgnoreCase.equals(type)) {</span>
+<span class="nc" id="L214">        return TagUtil.isEquals(value, object, true);</span>
+<span class="nc bnc" id="L215" title="All 2 branches missed.">      } else if (Type.notEqualsIgnoreCase.equals(type)) {</span>
+<span class="nc bnc" id="L216" title="All 2 branches missed.">        return !TagUtil.isEquals(value, object, true);</span>
+      }
+
+<span class="nc" id="L219">      String str = null;</span>
+<span class="nc bnc" id="L220" title="All 2 branches missed.">      if (object != null) {</span>
+<span class="nc bnc" id="L221" title="All 4 branches missed.">        if (object.getClass().isArray() &amp;&amp; Array.getLength(object) &gt; 0) {</span>
+<span class="nc" id="L222">          str = Array.get(object, 0).toString();</span>
+        } else {
+<span class="nc" id="L224">          str = object.toString();</span>
+        }
+      }
+
+<span class="nc bnc" id="L228" title="All 5 branches missed.">      switch (type) {</span>
+        case contains:
+<span class="nc" id="L230">          return TagUtil.isContaining(value, str, false);</span>
+        case notContains:
+<span class="nc bnc" id="L232" title="All 2 branches missed.">          return !TagUtil.isContaining(value, str, false);</span>
+        case containsIgnoreCase:
+<span class="nc" id="L234">          return TagUtil.isContaining(value, str, true);</span>
+        case notContainsIgnoreCase:
+<span class="nc bnc" id="L236" title="All 2 branches missed.">          return !TagUtil.isContaining(value, str, true);</span>
+        default:
+          break;
+      }
+<span class="nc" id="L240">      return false;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

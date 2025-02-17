@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ViewTransferHandler.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image</a> &gt; <span class="el_source">ViewTransferHandler.java</span></div><h1>ViewTransferHandler.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image;
+
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.Rectangle;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.Transferable;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.image.BufferedImage;
+import java.awt.image.RenderedImage;
+import javax.swing.JComponent;
+import javax.swing.TransferHandler;
+import org.weasis.core.api.gui.model.ViewModel;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.ui.model.layer.LayerItem;
+import org.weasis.core.ui.model.utils.imp.DefaultViewModel;
+import org.weasis.core.ui.util.ImagePrint;
+import org.weasis.opencv.op.ImageConversion;
+
+public class ViewTransferHandler extends TransferHandler implements Transferable {
+
+<span class="nc" id="L31">  private static final DataFlavor[] flavors = {DataFlavor.imageFlavor};</span>
+  private Image image;
+  private final boolean anonymize;
+
+<span class="nc" id="L35">  public ViewTransferHandler(boolean anonymize) {</span>
+<span class="nc" id="L36">    this.anonymize = anonymize;</span>
+<span class="nc" id="L37">  }</span>
+
+  @Override
+  public int getSourceActions(JComponent c) {
+<span class="nc" id="L41">    return TransferHandler.COPY;</span>
+  }
+
+  @Override
+  public boolean canImport(JComponent comp, DataFlavor[] flavor) {
+<span class="nc" id="L46">    return false;</span>
+  }
+
+  @Override
+  public Transferable createTransferable(JComponent comp) {
+    // Clear
+<span class="nc" id="L52">    image = null;</span>
+
+<span class="nc bnc" id="L54" title="All 2 branches missed.">    if (comp instanceof DefaultView2d&lt;?&gt; view2DPane) {</span>
+<span class="nc" id="L55">      RenderedImage imgP = createComponentImage(view2DPane, anonymize);</span>
+<span class="nc" id="L56">      image = ImageConversion.convertRenderedImage(imgP);</span>
+<span class="nc" id="L57">      return this;</span>
+    }
+<span class="nc" id="L59">    return null;</span>
+  }
+
+  @Override
+  public boolean importData(JComponent comp, Transferable t) {
+<span class="nc" id="L64">    return false;</span>
+  }
+
+  @Override
+  public Object getTransferData(DataFlavor flavor) throws UnsupportedFlavorException {
+<span class="nc bnc" id="L69" title="All 2 branches missed.">    if (isDataFlavorSupported(flavor)) {</span>
+<span class="nc" id="L70">      return image;</span>
+    }
+<span class="nc" id="L72">    throw new UnsupportedFlavorException(flavor);</span>
+  }
+
+  @Override
+  public DataFlavor[] getTransferDataFlavors() {
+<span class="nc" id="L77">    return flavors;</span>
+  }
+
+  @Override
+  public boolean isDataFlavorSupported(DataFlavor flavor) {
+<span class="nc" id="L82">    return flavor.equals(DataFlavor.imageFlavor);</span>
+  }
+
+  public static &lt;E extends ImageElement&gt; RenderedImage createComponentImage(
+      DefaultView2d&lt;E&gt; canvas, boolean anonymize) {
+<span class="nc" id="L87">    BufferedImage img =</span>
+<span class="nc" id="L88">        new BufferedImage(canvas.getWidth(), canvas.getHeight(), BufferedImage.TYPE_3BYTE_BGR);</span>
+<span class="nc" id="L89">    ExportImage&lt;E&gt; exportImage = new ExportImage&lt;&gt;(canvas);</span>
+    try {
+<span class="nc" id="L91">      exportImage</span>
+<span class="nc" id="L92">          .getInfoLayer()</span>
+<span class="nc" id="L93">          .setDisplayPreferencesValue(LayerItem.ANONYM_ANNOTATIONS, anonymize);</span>
+<span class="nc" id="L94">      exportImage.getInfoLayer().setBorder(3);</span>
+<span class="nc" id="L95">      Graphics2D g = img.createGraphics();</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">      if (g != null) {</span>
+<span class="nc" id="L97">        ViewModel originViewModel = canvas.getViewModel();</span>
+<span class="nc" id="L98">        ViewModel viewModel = exportImage.getViewModel();</span>
+<span class="nc" id="L99">        final Rectangle modelArea = exportImage.getImageBounds(exportImage.getImage());</span>
+<span class="nc" id="L100">        ((DefaultViewModel) viewModel)</span>
+<span class="nc" id="L101">            .adjustMinViewScaleFromImage(modelArea.width, modelArea.height);</span>
+<span class="nc" id="L102">        viewModel.setModelArea(originViewModel.getModelArea());</span>
+<span class="nc" id="L103">        viewModel.setModelOffset(</span>
+<span class="nc" id="L104">            originViewModel.getModelOffsetX(),</span>
+<span class="nc" id="L105">            originViewModel.getModelOffsetY(),</span>
+<span class="nc" id="L106">            originViewModel.getViewScale());</span>
+<span class="nc" id="L107">        exportImage.setBounds(canvas.getX(), canvas.getY(), canvas.getWidth(), canvas.getHeight());</span>
+<span class="nc" id="L108">        boolean wasBuffered = ImagePrint.disableDoubleBuffering(exportImage);</span>
+<span class="nc" id="L109">        exportImage.zoom(originViewModel.getViewScale());</span>
+<span class="nc" id="L110">        exportImage.draw(g);</span>
+<span class="nc" id="L111">        ImagePrint.restoreDoubleBuffering(exportImage, wasBuffered);</span>
+<span class="nc" id="L112">        g.dispose();</span>
+      }
+    } finally {
+<span class="nc" id="L115">      exportImage.disposeView();</span>
+    }
+<span class="nc" id="L117">    return img;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

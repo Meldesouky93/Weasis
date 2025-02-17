@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>FontItem.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.util</a> &gt; <span class="el_source">FontItem.java</span></div><h1>FontItem.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2022 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.util;
+
+import java.awt.Font;
+import javax.swing.UIManager;
+
+<span class="nc" id="L15">public enum FontItem {</span>
+<span class="nc" id="L16">  H1_SEMIBOLD(&quot;h1.font&quot;, &quot;H1 semibold&quot;), // NON-NLS</span>
+<span class="nc" id="L17">  H1(&quot;h1.regular.font&quot;, &quot;H1&quot;), // NON-NLS</span>
+<span class="nc" id="L18">  H2_SEMIBOLD(&quot;h2.font&quot;, &quot;H2 semibold&quot;), // NON-NLS</span>
+<span class="nc" id="L19">  H2(&quot;h2.regular.font&quot;, &quot;H2&quot;), // NON-NLS</span>
+<span class="nc" id="L20">  H3_SEMIBOLD(&quot;h3.font&quot;, &quot;H3 semibold&quot;), // NON-NLS</span>
+<span class="nc" id="L21">  H3(&quot;h3.regular.font&quot;, &quot;H3&quot;), // NON-NLS</span>
+<span class="nc" id="L22">  LARGE(&quot;large.font&quot;, &quot;Large&quot;), // NON-NLS</span>
+<span class="nc" id="L23">  DEFAULT_BOLD(&quot;h4.font&quot;, &quot;H4 (default bold)&quot;), // NON-NLS</span>
+<span class="nc" id="L24">  DEFAULT_SEMIBOLD(&quot;semibold.font&quot;, &quot;Default semibold&quot;), // NON-NLS</span>
+<span class="nc" id="L25">  DEFAULT(&quot;defaultFont&quot;, &quot;Default font&quot;), // NON-NLS</span>
+<span class="nc" id="L26">  DEFAULT_LIGHT(&quot;light.font&quot;, &quot;Default light font&quot;), // NON-NLS</span>
+<span class="nc" id="L27">  MONOSPACED(&quot;monospaced.font&quot;, &quot;Default monospaced font&quot;), // NON-NLS</span>
+<span class="nc" id="L28">  MEDIUM_SEMIBOLD(&quot;medium.semibold.font&quot;, &quot;Medium semibold&quot;), // NON-NLS</span>
+<span class="nc" id="L29">  MEDIUM(&quot;medium.font&quot;, &quot;Medium&quot;), // NON-NLS</span>
+<span class="nc" id="L30">  SMALL_SEMIBOLD(&quot;small.semibold.font&quot;, &quot;Small semibold&quot;), // NON-NLS</span>
+<span class="nc" id="L31">  SMALL(&quot;small.font&quot;, &quot;Small&quot;), // NON-NLS</span>
+<span class="nc" id="L32">  MINI_SEMIBOLD(&quot;mini.semibold.font&quot;, &quot;Mini semibold&quot;), // NON-NLS</span>
+<span class="nc" id="L33">  MINI(&quot;mini.font&quot;, &quot;Mini&quot;), // NON-NLS</span>
+<span class="nc" id="L34">  MICRO_SEMIBOLD(&quot;micro.semibold.font&quot;, &quot;Micro semibold&quot;), // NON-NLS</span>
+<span class="nc" id="L35">  MICRO(&quot;micro.font&quot;, &quot;Micro&quot;); // NON-NLS</span>
+
+  private final String key;
+  private final String name;
+
+<span class="nc" id="L40">  FontItem(String key, String name) {</span>
+<span class="nc" id="L41">    this.key = key;</span>
+<span class="nc" id="L42">    this.name = name;</span>
+<span class="nc" id="L43">  }</span>
+
+  public String getKey() {
+<span class="nc" id="L46">    return key;</span>
+  }
+
+  public String getName() {
+<span class="nc" id="L50">    return name;</span>
+  }
+
+  public Font getFont() {
+<span class="nc" id="L54">    return UIManager.getFont(key);</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L59">    return name;</span>
+  }
+
+  public static FontItem getFontItem(String key) {
+<span class="nc" id="L63">    return getFontItem(key, FontItem.DEFAULT);</span>
+  }
+
+  public static FontItem getFontItem(String key, FontItem defaultItem) {
+<span class="nc bnc" id="L67" title="All 2 branches missed.">    for (FontItem item : FontItem.values()) {</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">      if (item.key.equals(key)) {</span>
+<span class="nc" id="L69">        return item;</span>
+      }
+    }
+<span class="nc" id="L72">    return defaultItem;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

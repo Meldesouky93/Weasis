@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>Unit.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.image.util</a> &gt; <span class="el_source">Unit.java</span></div><h1>Unit.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.image.util;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.weasis.core.Messages;
+
+<span class="nc" id="L16">public enum Unit {</span>
+<span class="nc" id="L17">  PIXEL(-5, Messages.getString(&quot;Unit.pix&quot;), Messages.getString(&quot;Unit.pix_s&quot;), 1.0),</span>
+  /*
+   * The prefix &quot;nano&quot; means 1 x 10-9, so one nanometer = 0.000000001 meters. Alternatively, 1 meter contains
+   * 1,000,000,000 nanometers. Visible light contains wavelengths from roughly 300 to 800 nm. To convert this
+   * wavelength to energy.
+   */
+<span class="nc" id="L23">  NANOMETER(-2, Messages.getString(&quot;Unit.nano&quot;), Messages.getString(&quot;Unit.nano_S&quot;), 1.0E-09),</span>
+  /*
+   * Also known a micron. The prefix &quot;micro&quot; means 1 x 10-6, so one micrometer = 0.000001 meters. Alternatively, 1
+   * meter contains 1,000,000 micrometers. 1 micrometer = 10,000 Angstroms = 0.001 millimeters = 0.0009843 inches.
+   */
+<span class="nc" id="L28">  MICROMETER(-1, Messages.getString(&quot;Unit.micro&quot;), Messages.getString(&quot;Unit.micro_S&quot;), 1.0E-06),</span>
+  /*
+   * The prefix &quot;milli&quot; means 1/1000, so one millimeter = 0.001 meters. Alternatively, 1 meter contains 1000
+   * millimeters. 1 millimeter = 0.1 cm = 0.0394 inches.
+   */
+<span class="nc" id="L33">  MILLIMETER(0, Messages.getString(&quot;Unit.milli&quot;), Messages.getString(&quot;Unit.milli_s&quot;), 1.0E-03),</span>
+  /*
+   * The prefix &quot;centi&quot; means 1/100, so one centimeter = 0.01 meters. Alternatively, 1 meter contains 100 cm. 1 cm =
+   * 10 mm = 0.3937 inches.
+   */
+<span class="nc" id="L38">  CENTIMETER(1, Messages.getString(&quot;Unit.cent&quot;), Messages.getString(&quot;Unit.cent_s&quot;), 1.0E-02),</span>
+  /*
+   * Defined as the length of 1,650,763.73 wavelengths of the orange-red radiation of 86Kr in a vacuum, one meter
+   * contains 100 cm = 1000 mm. There are 1000 m in a kilometer. One meter = 39.37 inches = 3.28 feet = 1.09 yards.
+   */
+<span class="nc" id="L43">  METER(2, Messages.getString(&quot;Unit.meter&quot;), Messages.getString(&quot;Unit.meter_s&quot;), 1.0),</span>
+  /*
+   * The prefix &quot;kilo&quot; means 1000, so one kilometer = 1,000 meters. 1 kilometer = 3,280.84 feet = 1,093.6 yards =
+   * 0.6214 miles.
+   */
+<span class="nc" id="L48">  KILOMETER(3, Messages.getString(&quot;Unit.kilo&quot;), Messages.getString(&quot;Unit.kilo_s&quot;), 1.0E+03),</span>
+
+  // micro and mili iches are not official units because micro and mili comes from metric unit
+<span class="nc" id="L51">  MICROINCH(9, Messages.getString(&quot;Unit.minch&quot;), Messages.getString(&quot;Unit.minch_s&quot;), 2.54E-08),</span>
+
+<span class="nc" id="L53">  MILLIINCH(10, Messages.getString(&quot;Unit.mil_inch&quot;), Messages.getString(&quot;Unit.mil&quot;), 2.54E-05),</span>
+
+<span class="nc" id="L55">  INCH(11, Messages.getString(&quot;Unit.inch&quot;), Messages.getString(&quot;Unit.inch_s&quot;), 2.54E-02),</span>
+
+<span class="nc" id="L57">  FEET(12, Messages.getString(&quot;Unit.feet&quot;), Messages.getString(&quot;Unit.feet_s&quot;), 3.048E-01),</span>
+
+<span class="nc" id="L59">  YARD(13, Messages.getString(&quot;Unit.yard&quot;), Messages.getString(&quot;Unit.yard_s&quot;), 9.144E-01),</span>
+
+<span class="nc" id="L61">  MILE(14, Messages.getString(&quot;Unit.mile&quot;), Messages.getString(&quot;Unit.mile_s&quot;), 1.609344E+03);</span>
+
+  private final int id;
+  private final String fullName;
+  private final String abbreviation;
+  private final double convFactor;
+
+<span class="nc" id="L68">  Unit(int id, String fullName, String abbreviation, double convFactor) {</span>
+<span class="nc" id="L69">    this.id = id;</span>
+<span class="nc" id="L70">    this.fullName = fullName;</span>
+<span class="nc" id="L71">    this.abbreviation = abbreviation;</span>
+<span class="nc" id="L72">    this.convFactor = convFactor;</span>
+<span class="nc" id="L73">  }</span>
+
+  public int getId() {
+<span class="nc" id="L76">    return id;</span>
+  }
+
+  public String getFullName() {
+<span class="nc" id="L80">    return fullName;</span>
+  }
+
+  public double getConvFactor() {
+<span class="nc" id="L84">    return convFactor;</span>
+  }
+
+  public String getAbbreviation() {
+<span class="nc" id="L88">    return abbreviation;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L93">    return fullName;</span>
+  }
+
+  public double getConversionRatio(double calibRatio) {
+<span class="nc" id="L97">    return calibRatio / convFactor;</span>
+  }
+
+  public static List&lt;AbbreviationUnit&gt; getAbbreviationUnits() {
+<span class="nc" id="L101">    ArrayList&lt;AbbreviationUnit&gt; units = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L102" title="All 2 branches missed.">    for (Unit u : Unit.values()) {</span>
+<span class="nc bnc" id="L103" title="All 2 branches missed.">      if (u.getId() != Unit.PIXEL.getId()) {</span>
+<span class="nc" id="L104">        units.add(new AbbreviationUnit(u));</span>
+      }
+    }
+<span class="nc" id="L107">    return units;</span>
+  }
+
+  public static Unit getCurrentIdUnit(int id) {
+<span class="nc bnc" id="L111" title="All 2 branches missed.">    for (Unit u : Unit.values()) {</span>
+<span class="nc bnc" id="L112" title="All 2 branches missed.">      if (id == u.getId()) {</span>
+<span class="nc" id="L113">        return u;</span>
+      }
+    }
+<span class="nc" id="L116">    return Unit.PIXEL;</span>
+  }
+
+  public static List&lt;String&gt; getUnitsName() {
+<span class="nc" id="L120">    ArrayList&lt;String&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">    for (Unit u : Unit.values()) {</span>
+<span class="nc" id="L122">      list.add(u.getFullName());</span>
+    }
+<span class="nc" id="L124">    return list;</span>
+  }
+
+  public Unit getUpUnit() {
+<span class="nc bnc" id="L128" title="All 2 branches missed.">    for (Unit u : Unit.values()) {</span>
+<span class="nc bnc" id="L129" title="All 2 branches missed.">      if (u.getId() - getId() == 1) {</span>
+<span class="nc" id="L130">        return u;</span>
+      }
+    }
+<span class="nc" id="L133">    return null;</span>
+  }
+
+  public Unit getDownUnit() {
+<span class="nc bnc" id="L137" title="All 2 branches missed.">    for (Unit u : Unit.values()) {</span>
+<span class="nc bnc" id="L138" title="All 2 branches missed.">      if (getId() - u.getId() == 1) {</span>
+<span class="nc" id="L139">        return u;</span>
+      }
+    }
+<span class="nc" id="L142">    return null;</span>
+  }
+
+  public static List&lt;Unit&gt; getUnitExceptPixel() {
+<span class="nc" id="L146">    ArrayList&lt;Unit&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">    for (Unit u : Unit.values()) {</span>
+<span class="nc bnc" id="L148" title="All 2 branches missed.">      if (u.getId() != Unit.PIXEL.getId()) {</span>
+<span class="nc" id="L149">        list.add(u);</span>
+      }
+    }
+<span class="nc" id="L152">    return list;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

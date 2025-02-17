@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>Canvas.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image</a> &gt; <span class="el_source">Canvas.java</span></div><h1>Canvas.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image;
+
+import static org.weasis.core.ui.editor.image.ViewCanvas.ZOOM_TYPE_CMD;
+
+import java.awt.Point;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.beans.PropertyChangeListener;
+import java.util.Map;
+import java.util.Optional;
+import javax.swing.JComponent;
+import org.weasis.core.api.gui.model.ViewModel;
+import org.weasis.core.api.gui.util.ActionW;
+import org.weasis.core.api.gui.util.SliderChangeListener;
+import org.weasis.core.ui.editor.image.DefaultView2d.ZoomType;
+import org.weasis.core.ui.model.GraphicModel;
+import org.weasis.core.ui.model.layer.GraphicModelChangeListener;
+import org.weasis.core.util.MathUtil;
+
+public interface Canvas {
+
+  JComponent getJComponent();
+
+  AffineTransform getAffineTransform();
+
+  AffineTransform getInverseTransform();
+
+  void disposeView();
+
+  /**
+   * Gets the view model.
+   *
+   * @return the view model, never null
+   */
+  ViewModel getViewModel();
+
+  /**
+   * Sets the view model.
+   *
+   * @param viewModel the view model, never null
+   */
+  void setViewModel(ViewModel viewModel);
+
+  Object getActionValue(String action);
+
+  Map&lt;String, Object&gt; getActionsInView();
+
+  /**
+   * Zoom from the center of the canvas
+   *
+   * @param viewScale the scale factor (1.0 is the actual pixel size)
+   */
+  void zoom(Double viewScale);
+
+  double getRealWorldViewScale();
+
+  /**
+   * Get the image scale factor witch matches to the dimension of the view
+   *
+   * @return the best fit ratio
+   */
+  double getBestFitViewScale();
+
+  Point2D viewToModel(Double viewX, Double viewY);
+
+  double viewToModelLength(Double viewLength);
+
+  Point2D modelToView(Double modelX, Double modelY);
+
+  double modelToViewLength(Double modelLength);
+
+  Point2D getImageCoordinatesFromMouse(Integer x, Integer y);
+
+  Point getMouseCoordinatesFromImage(Double x, Double y);
+
+  void setGraphicManager(GraphicModel graphicManager);
+
+  GraphicModel getGraphicManager();
+
+  PropertyChangeListener getGraphicsChangeHandler();
+
+  Point2D getClipViewCoordinatesOffset();
+
+  Point2D getViewCoordinatesOffset();
+
+  Rectangle2D getImageViewBounds();
+
+  Rectangle2D getImageViewBounds(double viewportWidth, double viewportHeight);
+
+  DrawingsKeyListeners getDrawingsKeyListeners();
+
+  double adjustViewScale(double viewScale);
+
+  default double adjustViewScale(ImageViewerEventManager&lt;?&gt; eventManager, double viewScale) {
+<span class="nc" id="L105">    double ratio = viewScale;</span>
+<span class="nc" id="L106">    Optional&lt;SliderChangeListener&gt; zoom = eventManager.getAction(ActionW.ZOOM);</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">    if (zoom.isPresent()) {</span>
+<span class="nc" id="L108">      SliderChangeListener z = zoom.get();</span>
+      // Adjust the best fit value according to the possible range of the model zoom action.
+<span class="nc bnc" id="L110" title="All 2 branches missed.">      if (eventManager.getSelectedViewPane() == this) {</span>
+        // Set back the value to UI components as this value cannot be computed early.
+<span class="nc" id="L112">        z.setRealValue(ratio, false);</span>
+<span class="nc" id="L113">        ratio = z.getRealValue();</span>
+      } else {
+<span class="nc" id="L115">        ratio = z.toModelValue(z.toSliderValue(ratio));</span>
+      }
+    }
+<span class="nc" id="L118">    return ratio;</span>
+  }
+
+  default void removeGraphicManager(
+      GraphicModel graphicManager, GraphicModelChangeListener layerModelHandler) {
+<span class="nc bnc" id="L123" title="All 2 branches missed.">    if (graphicManager != null) {</span>
+<span class="nc" id="L124">      graphicManager.removeChangeListener(layerModelHandler);</span>
+<span class="nc" id="L125">      graphicManager.removeGraphicChangeHandler(getGraphicsChangeHandler());</span>
+<span class="nc" id="L126">      graphicManager.deleteNonSerializableGraphics();</span>
+    }
+<span class="nc" id="L128">  }</span>
+
+  default double getZoomRatioFromType(Double viewScale) {
+<span class="nc" id="L131">    boolean defSize = MathUtil.isEqualToZero(viewScale);</span>
+<span class="nc" id="L132">    double ratio = viewScale;</span>
+<span class="nc bnc" id="L133" title="All 2 branches missed.">    if (defSize) {</span>
+<span class="nc" id="L134">      ZoomType type = (ZoomType) getActionsInView().get(ZOOM_TYPE_CMD);</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">      if (ZoomType.BEST_FIT.equals(type)) {</span>
+<span class="nc" id="L136">        ratio = -getBestFitViewScale();</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">      } else if (ZoomType.REAL.equals(type)) {</span>
+<span class="nc" id="L138">        ratio = -getRealWorldViewScale();</span>
+      }
+
+<span class="nc bnc" id="L141" title="All 2 branches missed.">      if (MathUtil.isEqualToZero(ratio)) {</span>
+<span class="nc" id="L142">        ratio = -adjustViewScale(1.0);</span>
+      }
+    }
+<span class="nc" id="L145">    return ratio;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

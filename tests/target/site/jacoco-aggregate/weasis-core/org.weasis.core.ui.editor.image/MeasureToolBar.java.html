@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>MeasureToolBar.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image</a> &gt; <span class="el_source">MeasureToolBar.java</span></div><h1>MeasureToolBar.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image;
+
+import com.formdev.flatlaf.extras.FlatSVGIcon;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import javax.swing.Icon;
+import javax.swing.JButton;
+import javax.swing.JPopupMenu;
+import javax.swing.KeyStroke;
+import javax.swing.event.ListDataEvent;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.ActionState;
+import org.weasis.core.api.gui.util.ActionW;
+import org.weasis.core.api.gui.util.ComboItemListener;
+import org.weasis.core.api.gui.util.DropDownButton;
+import org.weasis.core.api.gui.util.Feature;
+import org.weasis.core.api.gui.util.GroupRadioMenu;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.gui.util.RadioMenuItem;
+import org.weasis.core.api.service.WProperties;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.api.util.ResourceUtil.ActionIcon;
+import org.weasis.core.ui.editor.image.dockable.MeasureTool;
+import org.weasis.core.ui.model.GraphicModel;
+import org.weasis.core.ui.model.graphic.DragGraphic;
+import org.weasis.core.ui.model.graphic.Graphic;
+import org.weasis.core.ui.model.graphic.imp.AnnotationGraphic;
+import org.weasis.core.ui.model.graphic.imp.PixelInfoGraphic;
+import org.weasis.core.ui.model.graphic.imp.angle.AngleToolGraphic;
+import org.weasis.core.ui.model.graphic.imp.angle.CobbAngleToolGraphic;
+import org.weasis.core.ui.model.graphic.imp.angle.FourPointsAngleToolGraphic;
+import org.weasis.core.ui.model.graphic.imp.angle.OpenAngleToolGraphic;
+import org.weasis.core.ui.model.graphic.imp.area.EllipseGraphic;
+import org.weasis.core.ui.model.graphic.imp.area.ObliqueRectangleGraphic;
+import org.weasis.core.ui.model.graphic.imp.area.PolygonGraphic;
+import org.weasis.core.ui.model.graphic.imp.area.SelectGraphic;
+import org.weasis.core.ui.model.graphic.imp.area.ThreePointsCircleGraphic;
+import org.weasis.core.ui.model.graphic.imp.line.LineGraphic;
+import org.weasis.core.ui.model.graphic.imp.line.ParallelLineGraphic;
+import org.weasis.core.ui.model.graphic.imp.line.PerpendicularLineGraphic;
+import org.weasis.core.ui.model.graphic.imp.line.PolylineGraphic;
+import org.weasis.core.ui.model.layer.LayerType;
+import org.weasis.core.ui.pref.ViewSetting;
+import org.weasis.core.ui.util.WtoolBar;
+
+public class MeasureToolBar extends WtoolBar {
+
+<span class="nc" id="L59">  public static final SelectGraphic selectionGraphic = new SelectGraphic();</span>
+
+<span class="nc" id="L61">  private static final List&lt;Graphic&gt; measureGraphicList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L62">  private static final List&lt;Graphic&gt; drawGraphicList = new ArrayList&lt;&gt;();</span>
+
+  static {
+<span class="nc" id="L65">    WProperties p = GuiUtils.getUICore().getSystemPreferences();</span>
+<span class="nc bnc" id="L66" title="All 2 branches missed.">    if (p.getBooleanProperty(&quot;weasis.measure.selection&quot;, true)) {</span>
+<span class="nc" id="L67">      measureGraphicList.add(selectionGraphic);</span>
+    }
+<span class="nc bnc" id="L69" title="All 2 branches missed.">    if (p.getBooleanProperty(&quot;weasis.measure.line&quot;, true)) {</span>
+<span class="nc" id="L70">      measureGraphicList.add(new LineGraphic());</span>
+    }
+<span class="nc bnc" id="L72" title="All 2 branches missed.">    if (p.getBooleanProperty(&quot;weasis.measure.polyline&quot;, true)) {</span>
+<span class="nc" id="L73">      measureGraphicList.add(new PolylineGraphic());</span>
+    }
+<span class="nc bnc" id="L75" title="All 2 branches missed.">    if (p.getBooleanProperty(&quot;weasis.measure.rectangle&quot;, true)) {</span>
+<span class="nc" id="L76">      measureGraphicList.add(new ObliqueRectangleGraphic());</span>
+    }
+<span class="nc bnc" id="L78" title="All 2 branches missed.">    if (p.getBooleanProperty(&quot;weasis.measure.ellipse&quot;, true)) {</span>
+<span class="nc" id="L79">      measureGraphicList.add(new EllipseGraphic());</span>
+    }
+<span class="nc bnc" id="L81" title="All 2 branches missed.">    if (p.getBooleanProperty(&quot;weasis.measure.threeptcircle&quot;, true)) {</span>
+<span class="nc" id="L82">      measureGraphicList.add(new ThreePointsCircleGraphic());</span>
+    }
+<span class="nc bnc" id="L84" title="All 2 branches missed.">    if (p.getBooleanProperty(&quot;weasis.measure.polygon&quot;, true)) {</span>
+<span class="nc" id="L85">      measureGraphicList.add(new PolygonGraphic());</span>
+    }
+<span class="nc bnc" id="L87" title="All 2 branches missed.">    if (p.getBooleanProperty(&quot;weasis.measure.perpendicular&quot;, true)) {</span>
+<span class="nc" id="L88">      measureGraphicList.add(new PerpendicularLineGraphic());</span>
+    }
+<span class="nc bnc" id="L90" title="All 2 branches missed.">    if (p.getBooleanProperty(&quot;weasis.measure.parallele&quot;, true)) {</span>
+<span class="nc" id="L91">      measureGraphicList.add(new ParallelLineGraphic());</span>
+    }
+<span class="nc bnc" id="L93" title="All 2 branches missed.">    if (p.getBooleanProperty(&quot;weasis.measure.angle&quot;, true)) {</span>
+<span class="nc" id="L94">      measureGraphicList.add(new AngleToolGraphic());</span>
+    }
+<span class="nc bnc" id="L96" title="All 2 branches missed.">    if (p.getBooleanProperty(&quot;weasis.measure.openangle&quot;, true)) {</span>
+<span class="nc" id="L97">      measureGraphicList.add(new OpenAngleToolGraphic());</span>
+    }
+<span class="nc bnc" id="L99" title="All 2 branches missed.">    if (p.getBooleanProperty(&quot;weasis.measure.fourptangle&quot;, true)) {</span>
+<span class="nc" id="L100">      measureGraphicList.add(new FourPointsAngleToolGraphic());</span>
+    }
+<span class="nc bnc" id="L102" title="All 2 branches missed.">    if (p.getBooleanProperty(&quot;weasis.measure.cobbangle&quot;, true)) {</span>
+<span class="nc" id="L103">      measureGraphicList.add(new CobbAngleToolGraphic());</span>
+    }
+<span class="nc bnc" id="L105" title="All 2 branches missed.">    if (p.getBooleanProperty(&quot;weasis.measure.pixelinfo&quot;, true)) {</span>
+<span class="nc" id="L106">      measureGraphicList.add(new PixelInfoGraphic());</span>
+    }
+<span class="nc" id="L108">    measureGraphicList.forEach(g -&gt; g.setLayerType(LayerType.MEASURE));</span>
+
+<span class="nc bnc" id="L110" title="All 2 branches missed.">    if (p.getBooleanProperty(&quot;weasis.draw.selection&quot;, true)) {</span>
+<span class="nc" id="L111">      drawGraphicList.add(selectionGraphic);</span>
+    }
+<span class="nc bnc" id="L113" title="All 2 branches missed.">    if (p.getBooleanProperty(&quot;weasis.draw.line&quot;, true)) {</span>
+<span class="nc" id="L114">      drawGraphicList.add(</span>
+<span class="nc" id="L115">          new LineGraphic() {</span>
+            @Override
+            public int getKeyCode() {
+<span class="nc" id="L118">              return 0;</span>
+            }
+          });
+    }
+<span class="nc bnc" id="L122" title="All 2 branches missed.">    if (p.getBooleanProperty(&quot;weasis.draw.polyline&quot;, true)) {</span>
+<span class="nc" id="L123">      drawGraphicList.add(new PolylineGraphic());</span>
+    }
+<span class="nc bnc" id="L125" title="All 2 branches missed.">    if (p.getBooleanProperty(&quot;weasis.draw.rectangle&quot;, true)) {</span>
+<span class="nc" id="L126">      drawGraphicList.add(new ObliqueRectangleGraphic());</span>
+    }
+<span class="nc bnc" id="L128" title="All 2 branches missed.">    if (p.getBooleanProperty(&quot;weasis.draw.ellipse&quot;, true)) {</span>
+<span class="nc" id="L129">      drawGraphicList.add(new EllipseGraphic());</span>
+    }
+<span class="nc bnc" id="L131" title="All 2 branches missed.">    if (p.getBooleanProperty(&quot;weasis.draw.threeptcircle&quot;, true)) {</span>
+<span class="nc" id="L132">      drawGraphicList.add(new ThreePointsCircleGraphic());</span>
+    }
+<span class="nc bnc" id="L134" title="All 2 branches missed.">    if (p.getBooleanProperty(&quot;weasis.draw.polygon&quot;, true)) {</span>
+<span class="nc" id="L135">      drawGraphicList.add(</span>
+<span class="nc" id="L136">          new PolygonGraphic() {</span>
+            @Override
+            public int getKeyCode() {
+<span class="nc" id="L139">              return 0;</span>
+            }
+          });
+    }
+<span class="nc" id="L143">    drawGraphicList.forEach(</span>
+        g -&gt; {
+<span class="nc" id="L145">          g.setLayerType(LayerType.DRAW);</span>
+<span class="nc" id="L146">          g.setLabelVisible(false);</span>
+<span class="nc" id="L147">        });</span>
+
+<span class="nc bnc" id="L149" title="All 2 branches missed.">    if (p.getBooleanProperty(&quot;weasis.draw.textGrahic&quot;, true)) {</span>
+<span class="nc" id="L150">      Graphic graphic = new AnnotationGraphic();</span>
+<span class="nc" id="L151">      graphic.setLayerType(LayerType.ANNOTATION);</span>
+<span class="nc" id="L152">      drawGraphicList.add(graphic);</span>
+    }
+
+<span class="nc" id="L155">    selectionGraphic.setFilled(false);</span>
+<span class="nc" id="L156">    selectionGraphic.setLabelVisible(false);</span>
+<span class="nc" id="L157">    selectionGraphic.setLayerType(LayerType.TEMP_DRAW);</span>
+<span class="nc" id="L158">  }</span>
+
+<span class="nc" id="L160">  protected final JButton deleteButton = new JButton();</span>
+  protected final ImageViewerEventManager&lt;?&gt; eventManager;
+
+  public MeasureToolBar(final ImageViewerEventManager&lt;?&gt; eventManager, int index) {
+<span class="nc" id="L164">    super(Messages.getString(&quot;MeasureToolBar.drawing_tools&quot;), index);</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">    if (eventManager == null) {</span>
+<span class="nc" id="L166">      throw new IllegalArgumentException(&quot;EventManager cannot be null&quot;);</span>
+    }
+<span class="nc" id="L168">    this.eventManager = eventManager;</span>
+<span class="nc" id="L169">    MeasureTool.updateMeasureProperties();</span>
+
+<span class="nc" id="L171">    Optional&lt;ComboItemListener&lt;Graphic&gt;&gt; measure = eventManager.getAction(ActionW.DRAW_MEASURE);</span>
+<span class="nc" id="L172">    measure.ifPresent(comboItemListener -&gt; add(buildButton(comboItemListener)));</span>
+<span class="nc" id="L173">    Optional&lt;ComboItemListener&lt;Graphic&gt;&gt; draw = eventManager.getAction(ActionW.DRAW_GRAPHICS);</span>
+<span class="nc" id="L174">    draw.ifPresent(comboItemListener -&gt; add(buildButton(comboItemListener)));</span>
+
+<span class="nc bnc" id="L176" title="All 4 branches missed.">    if (measure.isPresent() || draw.isPresent()) {</span>
+<span class="nc" id="L177">      deleteButton.setToolTipText(Messages.getString(&quot;MeasureToolBar.del&quot;));</span>
+<span class="nc" id="L178">      deleteButton.setIcon(ResourceUtil.getToolBarIcon(ActionIcon.SELECTION_DELETE));</span>
+<span class="nc" id="L179">      deleteButton.addActionListener(</span>
+          e -&gt; {
+<span class="nc" id="L181">            GraphicModel gm = eventManager.getSelectedViewPane().getGraphicManager();</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">            if (gm.getSelectedGraphics().isEmpty()) {</span>
+<span class="nc" id="L183">              gm.setSelectedAllGraphics();</span>
+            }
+<span class="nc" id="L185">            gm.deleteSelectedGraphics(eventManager.getSelectedViewPane(), Boolean.TRUE);</span>
+<span class="nc" id="L186">          });</span>
+<span class="nc bnc" id="L187" title="All 2 branches missed.">      if (measure.isPresent()) {</span>
+<span class="nc" id="L188">        measure.get().registerActionState(deleteButton);</span>
+      } else
+<span class="nc" id="L190">        draw.ifPresent(comboItemListener -&gt; comboItemListener.registerActionState(deleteButton));</span>
+<span class="nc" id="L191">      add(deleteButton);</span>
+    }
+<span class="nc" id="L193">  }</span>
+
+  public static List&lt;Graphic&gt; getDrawGraphicList() {
+<span class="nc" id="L196">    return drawGraphicList;</span>
+  }
+
+  public static List&lt;Graphic&gt; getMeasureGraphicList() {
+<span class="nc" id="L200">    return measureGraphicList;</span>
+  }
+
+  public static void applyDefaultSetting(ViewSetting setting, Graphic graphic) {
+<span class="nc bnc" id="L204" title="All 2 branches missed.">    if (graphic instanceof DragGraphic g) {</span>
+<span class="nc" id="L205">      g.setLineThickness((float) setting.getLineWidth());</span>
+<span class="nc" id="L206">      g.setPaint(setting.getLineColor());</span>
+<span class="nc" id="L207">      g.setFilled(setting.isFilled());</span>
+<span class="nc" id="L208">      g.setFillOpacity(setting.getFillOpacity());</span>
+    }
+<span class="nc" id="L210">  }</span>
+
+  private DropDownButton buildButton(ComboItemListener&lt;?&gt; action) {
+<span class="nc bnc" id="L213" title="All 2 branches missed.">    boolean draw = action.getActionW() == ActionW.DRAW_GRAPHICS;</span>
+
+<span class="nc" id="L215">    MeasureGroupMenu menu = new MeasureGroupMenu(action.getActionW());</span>
+<span class="nc" id="L216">    action.registerActionState(menu);</span>
+
+<span class="nc bnc" id="L218" title="All 2 branches missed.">    for (RadioMenuItem item : menu.getRadioMenuItemListCopy()) {</span>
+<span class="nc bnc" id="L219" title="All 4 branches missed.">      if (item.getUserObject() instanceof Graphic g &amp;&amp; g.getKeyCode() != 0) {</span>
+<span class="nc" id="L220">        item.setAccelerator(KeyStroke.getKeyStroke(g.getKeyCode(), g.getModifier()));</span>
+      }
+<span class="nc" id="L222">    }</span>
+
+<span class="nc" id="L224">    DropDownButton dropDownButton =</span>
+        new DropDownButton(
+<span class="nc" id="L226">            action.getActionW().cmd(),</span>
+<span class="nc" id="L227">            buildIcon(</span>
+                selectionGraphic,
+<span class="nc bnc" id="L229" title="All 2 branches missed.">                draw</span>
+<span class="nc" id="L230">                    ? ResourceUtil.getToolBarIcon(ActionIcon.DRAW_TOP_LEFT)</span>
+<span class="nc" id="L231">                    : ResourceUtil.getToolBarIcon(ActionIcon.MEASURE_TOP_LEFT)),</span>
+<span class="nc" id="L232">            menu) {</span>
+          @Override
+          protected JPopupMenu getPopupMenu() {
+            JPopupMenu m =
+<span class="nc bnc" id="L236" title="All 2 branches missed.">                (getMenuModel() == null) ? new JPopupMenu() : getMenuModel().createJPopupMenu();</span>
+<span class="nc" id="L237">            m.setInvoker(this);</span>
+<span class="nc" id="L238">            return m;</span>
+          }
+        };
+<span class="nc" id="L241">    menu.setButton(dropDownButton);</span>
+<span class="nc" id="L242">    action.registerActionState(dropDownButton);</span>
+
+<span class="nc" id="L244">    dropDownButton.setToolTipText(</span>
+<span class="nc bnc" id="L245" title="All 2 branches missed.">        draw</span>
+<span class="nc" id="L246">            ? Messages.getString(&quot;MeasureToolBar.drawing_tools&quot;)</span>
+<span class="nc" id="L247">            : Messages.getString(&quot;MeasureToolBar.tools&quot;));</span>
+
+    // when user press the measure icon, set the action to measure
+<span class="nc" id="L250">    dropDownButton.addActionListener(</span>
+        e -&gt; {
+<span class="nc" id="L252">          ImageViewerPlugin&lt;?&gt; view = eventManager.getSelectedView2dContainer();</span>
+<span class="nc bnc" id="L253" title="All 2 branches missed.">          if (view != null) {</span>
+            @SuppressWarnings(&quot;rawtypes&quot;)
+<span class="nc" id="L255">            final ViewerToolBar toolBar = view.getViewerToolBar();</span>
+<span class="nc bnc" id="L256" title="All 2 branches missed.">            if (toolBar != null) {</span>
+<span class="nc bnc" id="L257" title="All 2 branches missed.">              String cmd = draw ? ActionW.DRAW.cmd() : ActionW.MEASURE.cmd();</span>
+<span class="nc bnc" id="L258" title="All 2 branches missed.">              if (!toolBar.isCommandActive(cmd)) {</span>
+<span class="nc" id="L259">                MouseActions mouseActions = eventManager.getMouseActions();</span>
+<span class="nc" id="L260">                mouseActions.setAction(MouseActions.T_LEFT, cmd);</span>
+<span class="nc" id="L261">                view.setMouseActions(mouseActions);</span>
+<span class="nc" id="L262">                toolBar.changeButtonState(MouseActions.T_LEFT, cmd);</span>
+              }
+            }
+          }
+<span class="nc" id="L266">        });</span>
+<span class="nc" id="L267">    return dropDownButton;</span>
+  }
+
+  public static Icon buildIcon(final Graphic graphic, Icon bckIcon) {
+    final Icon smallIcon;
+<span class="nc bnc" id="L272" title="All 2 branches missed.">    if (graphic == null) {</span>
+<span class="nc" id="L273">      smallIcon = null;</span>
+    } else {
+<span class="nc bnc" id="L275" title="All 2 branches missed.">      if (graphic.getIcon() instanceof FlatSVGIcon flatSVGIcon) {</span>
+<span class="nc" id="L276">        smallIcon = flatSVGIcon.derive(18, 18);</span>
+      } else {
+<span class="nc" id="L278">        smallIcon = graphic.getIcon();</span>
+      }
+    }
+<span class="nc" id="L281">    return ViewerToolBar.getDopButtonIcon(bckIcon, smallIcon);</span>
+  }
+
+  static class MeasureGroupMenu extends GroupRadioMenu&lt;Graphic&gt; {
+    private final Feature&lt;? extends ActionState&gt; action;
+    private JButton button;
+
+<span class="nc" id="L288">    public MeasureGroupMenu(Feature&lt;? extends ActionState&gt; action) {</span>
+<span class="nc" id="L289">      this.action = Objects.requireNonNull(action);</span>
+<span class="nc" id="L290">    }</span>
+
+    @Override
+    public void contentsChanged(ListDataEvent e) {
+<span class="nc" id="L294">      super.contentsChanged(e);</span>
+<span class="nc" id="L295">      changeButtonState();</span>
+<span class="nc" id="L296">    }</span>
+
+    public void changeButtonState() {
+<span class="nc" id="L299">      Object sel = dataModel.getSelectedItem();</span>
+<span class="nc bnc" id="L300" title="All 4 branches missed.">      if (button != null &amp;&amp; sel instanceof Graphic graphic) {</span>
+        FlatSVGIcon drawIcon =
+<span class="nc bnc" id="L302" title="All 2 branches missed.">            action == ActionW.DRAW_GRAPHICS</span>
+<span class="nc" id="L303">                ? ResourceUtil.getToolBarIcon(ActionIcon.DRAW_TOP_LEFT)</span>
+<span class="nc" id="L304">                : ResourceUtil.getToolBarIcon(ActionIcon.MEASURE_TOP_LEFT);</span>
+<span class="nc" id="L305">        Icon icon = buildIcon(graphic, drawIcon);</span>
+<span class="nc" id="L306">        button.setIcon(icon);</span>
+<span class="nc" id="L307">        button.setActionCommand(sel.toString());</span>
+      }
+<span class="nc" id="L309">    }</span>
+
+    public JButton getButton() {
+<span class="nc" id="L312">      return button;</span>
+    }
+
+    public void setButton(JButton button) {
+<span class="nc" id="L316">      this.button = button;</span>
+<span class="nc" id="L317">    }</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

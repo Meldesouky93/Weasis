@@ -1,0 +1,260 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AcquireTabPanel.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer.gui.central</a> &gt; <span class="el_source">AcquireTabPanel.java</span></div><h1>AcquireTabPanel.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer.gui.central;
+
+import java.awt.BorderLayout;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
+import javax.swing.ButtonGroup;
+import javax.swing.JPanel;
+import org.dcm4che3.data.Tag;
+import org.weasis.acquire.explorer.AcquireImageInfo;
+import org.weasis.acquire.explorer.AcquireManager;
+import org.weasis.acquire.explorer.core.bean.SeriesGroup;
+import org.weasis.acquire.explorer.gui.control.AcquirePublishPanel;
+import org.weasis.base.explorer.JIThumbnailCache;
+import org.weasis.dicom.codec.TagD;
+
+public class AcquireTabPanel extends JPanel {
+
+<span class="nc" id="L38">  private final Map&lt;SeriesGroup, List&lt;AcquireImageInfo&gt;&gt; btnMap = new HashMap&lt;&gt;();</span>
+
+  private final SerieButtonList seriesList;
+  private final ButtonGroup btnGrp;
+  private final AcquireCentralImagePanel imageList;
+
+  private SeriesButton selected;
+
+<span class="nc" id="L46">  public AcquireTabPanel(JIThumbnailCache thumbCache) {</span>
+<span class="nc" id="L47">    setLayout(new BorderLayout());</span>
+<span class="nc" id="L48">    btnGrp = new ButtonGroup();</span>
+
+<span class="nc" id="L50">    seriesList = new SerieButtonList();</span>
+<span class="nc" id="L51">    imageList = new AcquireCentralImagePanel(this, thumbCache);</span>
+<span class="nc" id="L52">    JPanel seriesPanel = new JPanel(new BorderLayout());</span>
+<span class="nc" id="L53">    seriesPanel.add(seriesList, BorderLayout.CENTER);</span>
+<span class="nc" id="L54">    seriesPanel.add(new AcquirePublishPanel(), BorderLayout.SOUTH);</span>
+
+<span class="nc" id="L56">    add(seriesPanel, BorderLayout.WEST);</span>
+<span class="nc" id="L57">    add(imageList, BorderLayout.CENTER);</span>
+<span class="nc" id="L58">  }</span>
+
+  public void setSelected(SeriesButton btn) {
+<span class="nc" id="L61">    selected = btn;</span>
+<span class="nc" id="L62">    SeriesGroup seriesGroup = getSeriesGroup();</span>
+<span class="nc bnc" id="L63" title="All 2 branches missed.">    imageList.setSeriesGroup(seriesGroup, seriesGroup == null ? null : btnMap.get(seriesGroup));</span>
+<span class="nc" id="L64">    imageList.refreshGUI();</span>
+<span class="nc" id="L65">  }</span>
+
+  public void updateSeries(SeriesGroup seriesGroup, List&lt;AcquireImageInfo&gt; imageInfos) {
+<span class="nc bnc" id="L68" title="All 2 branches missed.">    if (imageInfos == null) {</span>
+<span class="nc" id="L69">      return;</span>
+    }
+
+<span class="nc bnc" id="L72" title="All 2 branches missed.">    if (btnMap.containsKey(seriesGroup)) {</span>
+      // update series list
+<span class="nc" id="L74">      btnMap.put(seriesGroup, imageInfos);</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">      if (seriesGroup.equals(getSeriesGroup())) {</span>
+<span class="nc" id="L76">        setSelected(selected);</span>
+      }
+    } else {
+<span class="nc" id="L79">      createSeriesList(seriesGroup, imageInfos);</span>
+    }
+<span class="nc" id="L81">  }</span>
+
+  public void addSeriesElement(SeriesGroup seriesGroup, List&lt;AcquireImageInfo&gt; imageInfos) {
+<span class="nc bnc" id="L84" title="All 2 branches missed.">    if (imageInfos == null) {</span>
+<span class="nc" id="L85">      return;</span>
+    }
+
+<span class="nc bnc" id="L88" title="All 2 branches missed.">    if (btnMap.containsKey(seriesGroup)) {</span>
+<span class="nc" id="L89">      btnMap.get(seriesGroup).addAll(imageInfos);</span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">      if (seriesGroup.equals(getSeriesGroup())) {</span>
+<span class="nc" id="L91">        setSelected(selected);</span>
+      }
+    } else {
+<span class="nc" id="L94">      createSeriesList(seriesGroup, imageInfos);</span>
+    }
+<span class="nc" id="L96">  }</span>
+
+  private void createSeriesList(SeriesGroup seriesGroup, List&lt;AcquireImageInfo&gt; imageInfos) {
+<span class="nc" id="L99">    btnMap.put(seriesGroup, imageInfos);</span>
+
+<span class="nc" id="L101">    SeriesButton btn = new SeriesButton(seriesGroup, this);</span>
+<span class="nc" id="L102">    btnGrp.add(btn);</span>
+<span class="nc" id="L103">    seriesList.addButton(btn);</span>
+
+<span class="nc bnc" id="L105" title="All 2 branches missed.">    if (selected == null) {</span>
+<span class="nc" id="L106">      btnGrp.setSelected(btn.getModel(), true);</span>
+<span class="nc" id="L107">      setSelected(btn);</span>
+    }
+<span class="nc" id="L109">  }</span>
+
+  public Set&lt;SeriesGroup&gt; getSeries() {
+<span class="nc" id="L112">    return new TreeSet&lt;&gt;(btnMap.keySet());</span>
+  }
+
+  private SeriesGroup getSeriesGroup() {
+<span class="nc bnc" id="L116" title="All 2 branches missed.">    return selected == null ? null : selected.getSeries();</span>
+  }
+
+  private void removeSeries(SeriesGroup seriesGroup) {
+
+<span class="nc" id="L121">    btnMap.remove(seriesGroup);</span>
+
+<span class="nc" id="L123">    seriesList.getButton(seriesGroup).ifPresent(btnGrp::remove);</span>
+<span class="nc" id="L124">    seriesList.removeBySerie(seriesGroup);</span>
+<span class="nc" id="L125">    Optional&lt;SeriesButton&gt; nextBtn = seriesList.getFirstSerieButton();</span>
+
+<span class="nc bnc" id="L127" title="All 2 branches missed.">    if (nextBtn.isPresent()) {</span>
+<span class="nc" id="L128">      btnGrp.setSelected(nextBtn.get().getModel(), true);</span>
+<span class="nc" id="L129">      setSelected(nextBtn.get());</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">    } else if (btnMap.isEmpty()) {</span>
+<span class="nc" id="L131">      setSelected(null);</span>
+    }
+<span class="nc" id="L133">  }</span>
+
+  public SeriesButton getSelected() {
+<span class="nc" id="L136">    return selected;</span>
+  }
+
+  public void removeImage(AcquireImageInfo imageInfo) {
+<span class="nc" id="L140">    btnMap.entrySet().stream()</span>
+<span class="nc" id="L141">        .filter(e -&gt; e.getValue().contains(imageInfo))</span>
+<span class="nc" id="L142">        .findFirst()</span>
+<span class="nc" id="L143">        .ifPresent(e -&gt; removeImage(e.getKey(), imageInfo));</span>
+<span class="nc" id="L144">  }</span>
+
+  public void removeImages(Collection&lt;AcquireImageInfo&gt; images) {
+<span class="nc" id="L147">    Map&lt;SeriesGroup, List&lt;AcquireImageInfo&gt;&gt; imagesToRemove = new HashMap&lt;&gt;();</span>
+
+<span class="nc bnc" id="L149" title="All 2 branches missed.">    for (Entry&lt;SeriesGroup, List&lt;AcquireImageInfo&gt;&gt; e : btnMap.entrySet()) {</span>
+<span class="nc" id="L150">      List&lt;AcquireImageInfo&gt; newList = null;</span>
+<span class="nc" id="L151">      Iterator&lt;AcquireImageInfo&gt; it = images.iterator();</span>
+<span class="nc bnc" id="L152" title="All 2 branches missed.">      while (it.hasNext()) {</span>
+<span class="nc" id="L153">        AcquireImageInfo image = it.next();</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">        if (e.getValue().contains(image)) {</span>
+<span class="nc" id="L155">          it.remove();</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">          if (newList == null) {</span>
+<span class="nc" id="L157">            newList = new ArrayList&lt;&gt;();</span>
+          }
+<span class="nc" id="L159">          newList.add(image);</span>
+        }
+<span class="nc" id="L161">      }</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">      if (newList != null) {</span>
+<span class="nc" id="L163">        imagesToRemove.put(e.getKey(), newList);</span>
+      }
+<span class="nc" id="L165">    }</span>
+
+<span class="nc" id="L167">    imagesToRemove.forEach(this::removeImages);</span>
+<span class="nc" id="L168">  }</span>
+
+  private void removeImage(SeriesGroup seriesGroup, AcquireImageInfo imageInfo) {
+<span class="nc" id="L171">    List&lt;AcquireImageInfo&gt; imageInfos = btnMap.get(seriesGroup);</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">    if (Objects.nonNull(imageInfos)) {</span>
+<span class="nc" id="L173">      imageInfos.remove(imageInfo);</span>
+
+<span class="nc bnc" id="L175" title="All 2 branches missed.">      if (imageInfos.isEmpty()) {</span>
+<span class="nc" id="L176">        removeSeries(seriesGroup);</span>
+<span class="nc" id="L177">        seriesList.refreshGUI();</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">      } else if (seriesGroup.equals(getSeriesGroup())) {</span>
+<span class="nc" id="L179">        setSelected(selected);</span>
+      }
+    }
+<span class="nc" id="L182">  }</span>
+
+  private void removeImages(SeriesGroup seriesGroup, List&lt;AcquireImageInfo&gt; images) {
+<span class="nc" id="L185">    List&lt;AcquireImageInfo&gt; imagePane = btnMap.get(seriesGroup);</span>
+<span class="nc bnc" id="L186" title="All 2 branches missed.">    if (Objects.nonNull(imagePane)) {</span>
+<span class="nc" id="L187">      imagePane.removeAll(images);</span>
+<span class="nc bnc" id="L188" title="All 2 branches missed.">      if (seriesGroup.equals(getSeriesGroup())) {</span>
+<span class="nc" id="L189">        setSelected(selected);</span>
+      }
+
+<span class="nc bnc" id="L192" title="All 2 branches missed.">      if (imagePane.isEmpty()) {</span>
+<span class="nc" id="L193">        removeSeries(seriesGroup);</span>
+<span class="nc" id="L194">        seriesList.refreshGUI();</span>
+<span class="nc bnc" id="L195" title="All 2 branches missed.">      } else if (seriesGroup.equals(getSeriesGroup())) {</span>
+<span class="nc" id="L196">        setSelected(selected);</span>
+      }
+    }
+<span class="nc" id="L199">  }</span>
+
+  public void clearUnusedSeries(List&lt;SeriesGroup&gt; usedSeries) {
+<span class="nc" id="L202">    List&lt;SeriesGroup&gt; seriesToRemove =</span>
+<span class="nc bnc" id="L203" title="All 2 branches missed.">        btnMap.keySet().stream().filter(s -&gt; !usedSeries.contains(s)).toList();</span>
+<span class="nc" id="L204">    seriesToRemove.forEach(this::removeSeries);</span>
+<span class="nc" id="L205">    seriesList.refreshGUI();</span>
+<span class="nc" id="L206">  }</span>
+
+  public void clearAll() {
+<span class="nc bnc" id="L209" title="All 2 branches missed.">    for (SeriesGroup seriesGroup : btnMap.keySet()) {</span>
+<span class="nc" id="L210">      seriesList.getButton(seriesGroup).ifPresent(btnGrp::remove);</span>
+<span class="nc" id="L211">      seriesList.removeBySerie(seriesGroup);</span>
+<span class="nc" id="L212">    }</span>
+<span class="nc" id="L213">    btnMap.clear();</span>
+
+<span class="nc" id="L215">    setSelected(null);</span>
+<span class="nc" id="L216">    refreshGUI();</span>
+<span class="nc" id="L217">  }</span>
+
+  public void refreshGUI() {
+<span class="nc" id="L220">    imageList.refreshGUI();</span>
+<span class="nc" id="L221">    seriesList.refreshGUI();</span>
+<span class="nc" id="L222">  }</span>
+
+  public void refreshInfoGUI() {
+<span class="nc" id="L225">    imageList.refreshInfoGUI();</span>
+<span class="nc" id="L226">  }</span>
+
+  public void moveElements(SeriesGroup seriesGroup, List&lt;AcquireImageInfo&gt; medias) {
+<span class="nc" id="L229">    removeImages(selected.getSeries(), medias);</span>
+
+<span class="nc" id="L231">    medias.forEach(m -&gt; m.setSeries(seriesGroup));</span>
+<span class="nc" id="L232">    updateSeries(seriesGroup, AcquireManager.findBySeries(seriesGroup));</span>
+<span class="nc" id="L233">  }</span>
+
+  public void updateSeriesFromGlobalTags() {
+<span class="nc" id="L236">    btnMap.keySet().forEach(SeriesGroup::updateDicomTags);</span>
+<span class="nc" id="L237">  }</span>
+
+  public void moveElementsByDate(List&lt;AcquireImageInfo&gt; medias) {
+<span class="nc" id="L240">    removeImages(selected.getSeries(), medias);</span>
+
+<span class="nc" id="L242">    Set&lt;SeriesGroup&gt; seriesGroups = new HashSet&lt;&gt;();</span>
+<span class="nc" id="L243">    medias.forEach(</span>
+        m -&gt; {
+<span class="nc" id="L245">          LocalDateTime date = TagD.dateTime(Tag.ContentDate, Tag.ContentTime, m.getImage());</span>
+<span class="nc" id="L246">          SeriesGroup seriesGroup = AcquireManager.getSeries(new SeriesGroup(date));</span>
+<span class="nc" id="L247">          seriesGroups.add(seriesGroup);</span>
+<span class="nc" id="L248">          m.setSeries(seriesGroup);</span>
+<span class="nc" id="L249">        });</span>
+
+<span class="nc" id="L251">    AcquireManager.groupBySeries()</span>
+<span class="nc" id="L252">        .forEach(</span>
+            (k, v) -&gt; {
+<span class="nc bnc" id="L254" title="All 2 branches missed.">              if (seriesGroups.contains(k)) {</span>
+<span class="nc" id="L255">                updateSeries(k, v);</span>
+              }
+<span class="nc" id="L257">            });</span>
+<span class="nc" id="L258">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

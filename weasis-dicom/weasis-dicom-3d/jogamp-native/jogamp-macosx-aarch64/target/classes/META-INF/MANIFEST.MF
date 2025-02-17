@@ -1,0 +1,24 @@
+Manifest-Version: 1.0
+Bundle-License: "EPL-2.0 OR Apache-2.0";link="https://github.com/nrodu
+ it/Weasis/blob/master/LICENSE"
+Bundle-ManifestVersion: 2
+Bundle-Name: JOGL - MacOSX aarch64 [jogamp-macosx-aarch64]
+Bundle-NativeCode: natives/macosx-universal/libgluegen_rt.dylib; nativ
+ es/macosx-universal/libjocl.dylib; natives/macosx-universal/libnative
+ window_awt.dylib; natives/macosx-universal/libnativewindow_macosx.dyl
+ ib; natives/macosx-universal/libnewt_head.dylib; natives/macosx-unive
+ rsal/libjogl_mobile.dylib; natives/macosx-universal/libjogl_desktop.d
+ ylib; processor=aarch64; osname=MacOSX
+Bundle-SymbolicName: jogamp-macosx-aarch64
+Bundle-Version: 2.5.0
+Fragment-Host: jogamp;bundle-version="2.5.0"
+Implementation-Title: Java Bindings for OpenGL Runtime Environment
+Implementation-Version: 2.5.0
+Private-Package: jogamp.nativetag.common.macosx.universal,jogamp.nativ
+ etag.opencl.macosx.universal,jogamp.nativetag.opengl.macosx.universal
+ ,natives.macosx-universal
+Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=1.8))"
+Specification-Title: Java Bindings for OpenGL API Specification
+Specification-Vendor: JogAmp Community
+Specification-Version: 2.5.0
+

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ThreadUtil.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.util</a> &gt; <span class="el_source">ThreadUtil.java</span></div><h1>ThreadUtil.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.util;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+
+public class ThreadUtil {
+
+  private ThreadUtil() {
+    super();
+  }
+
+  /**
+   * Creates an Executor that uses a single worker thread operating off an unbounded queue, and uses
+   * the provided ThreadFactory to create a new thread when needed. Unlike the otherwise equivalent
+   * {@code newFixedThreadPool(1, threadFactory)} the returned executor is guaranteed not to be
+   * reconfigurable to use additional threads.
+   *
+   * @param name the name of the new thread
+   * @return the newly created single-threaded Executor
+   * @throws NullPointerException if threadFactory is null
+   */
+  public static ExecutorService buildNewSingleThreadExecutor(final String name) {
+<span class="nc" id="L33">    return Executors.newSingleThreadExecutor(getThreadFactory(name));</span>
+  }
+
+  /**
+   * Creates a thread pool that reuses a fixed number of threads operating off a shared unbounded
+   * queue, using the provided ThreadFactory to create new threads when needed. At any point, at
+   * most {@code nThreads} threads will be active processing tasks. If additional tasks are
+   * submitted when all threads are active, they will wait in the queue until a thread is available.
+   * If any thread terminates due to a failure during execution prior to shutdown, a new one will
+   * take its place if needed to execute subsequent tasks. The threads in the pool will exist until
+   * it is explicitly {@link ExecutorService#shutdown shutdown}.
+   *
+   * @param nThreads the number of threads in the pool
+   * @param name the name of the new thread
+   * @return the newly created thread pool
+   * @throws NullPointerException if threadFactory is null
+   * @throws IllegalArgumentException if {@code nThreads &lt;= 0}
+   */
+  public static ExecutorService buildNewFixedThreadExecutor(int nThreads, final String name) {
+<span class="nc" id="L52">    return Executors.newFixedThreadPool(nThreads, getThreadFactory(name));</span>
+  }
+
+  /**
+   * Based on the default thread factory
+   *
+   * @param name the name prefix of the new thread
+   * @return the factory to use when creating new threads
+   */
+  public static ThreadFactory getThreadFactory(String name) {
+<span class="nc" id="L62">    return r -&gt; {</span>
+<span class="nc" id="L63">      Thread t = Executors.defaultThreadFactory().newThread(r);</span>
+<span class="nc" id="L64">      t.setName(name + &quot;-&quot; + t.getName());</span>
+<span class="nc" id="L65">      return t;</span>
+    };
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

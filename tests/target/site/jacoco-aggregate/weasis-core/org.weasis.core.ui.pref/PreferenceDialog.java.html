@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>PreferenceDialog.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.pref</a> &gt; <span class="el_source">PreferenceDialog.java</span></div><h1>PreferenceDialog.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.pref;
+
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Window;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.Hashtable;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JPanel;
+import javax.swing.tree.DefaultMutableTreeNode;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceReference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.InsertableUtil;
+import org.weasis.core.api.gui.PreferencesPageFactory;
+import org.weasis.core.api.gui.util.AbstractItemDialogPage;
+import org.weasis.core.api.gui.util.AbstractWizardDialog;
+import org.weasis.core.api.gui.util.AppProperties;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.util.StringUtil;
+
+public class PreferenceDialog extends AbstractWizardDialog {
+<span class="nc" id="L36">  private static final Logger LOGGER = LoggerFactory.getLogger(PreferenceDialog.class);</span>
+
+  public static final String KEY_SHOW_APPLY = &quot;show.apply&quot;;
+  public static final String KEY_SHOW_RESTORE = &quot;show.restore&quot;;
+  public static final String KEY_HELP = &quot;help.item&quot;;
+
+<span class="nc" id="L42">  protected final JButton jButtonHelp = new JButton();</span>
+<span class="nc" id="L43">  protected final JButton restoreButton = new JButton(Messages.getString(&quot;restore.values&quot;));</span>
+<span class="nc" id="L44">  protected final JButton applyButton = new JButton(Messages.getString(&quot;LabelPrefView.apply&quot;));</span>
+<span class="nc" id="L45">  protected final JPanel bottomPrefPanel =</span>
+<span class="nc" id="L46">      GuiUtils.getFlowLayoutPanel(</span>
+          FlowLayout.TRAILING, 10, 7, jButtonHelp, restoreButton, applyButton);
+
+  public PreferenceDialog(Window parentWin) {
+<span class="nc" id="L50">    super(</span>
+        parentWin,
+<span class="nc" id="L52">        Messages.getString(&quot;OpenPreferencesAction.title&quot;),</span>
+        ModalityType.APPLICATION_MODAL,
+        new Dimension(600, 450));
+
+<span class="nc" id="L56">    jPanelBottom.add(bottomPrefPanel, 0);</span>
+
+<span class="nc" id="L58">    jButtonHelp.putClientProperty(&quot;JButton.buttonType&quot;, &quot;help&quot;);</span>
+<span class="nc" id="L59">    applyButton.addActionListener(</span>
+        e -&gt; {
+<span class="nc bnc" id="L61" title="All 2 branches missed.">          if (currentPage != null) currentPage.closeAdditionalWindow();</span>
+<span class="nc" id="L62">        });</span>
+<span class="nc" id="L63">    restoreButton.addActionListener(</span>
+        e -&gt; {
+<span class="nc bnc" id="L65" title="All 2 branches missed.">          if (currentPage != null) {</span>
+<span class="nc" id="L66">            currentPage.resetToDefaultValues();</span>
+          }
+<span class="nc" id="L68">        });</span>
+
+<span class="nc" id="L70">    initializePages();</span>
+<span class="nc" id="L71">    pack();</span>
+<span class="nc" id="L72">    showFirstPage();</span>
+<span class="nc" id="L73">  }</span>
+
+  @Override
+  protected void initializePages() {
+<span class="nc" id="L77">    Hashtable&lt;String, Object&gt; properties = new Hashtable&lt;&gt;();</span>
+<span class="nc" id="L78">    properties.put(&quot;weasis.user.prefs&quot;, System.getProperty(&quot;weasis.user.prefs&quot;, &quot;user&quot;)); // NON-NLS</span>
+
+<span class="nc" id="L80">    ArrayList&lt;AbstractItemDialogPage&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L81">    GeneralSetting generalSetting = new GeneralSetting(this);</span>
+<span class="nc" id="L82">    list.add(generalSetting);</span>
+<span class="nc" id="L83">    ViewerPrefView viewerSetting = new ViewerPrefView();</span>
+<span class="nc" id="L84">    list.add(viewerSetting);</span>
+<span class="nc" id="L85">    DicomPrefView dicomPrefView = new DicomPrefView();</span>
+<span class="nc" id="L86">    list.add(dicomPrefView);</span>
+<span class="nc" id="L87">    DrawPrefView drawPrefView = new DrawPrefView(this);</span>
+<span class="nc" id="L88">    list.add(drawPrefView);</span>
+
+<span class="nc" id="L90">    BundleContext context = AppProperties.getBundleContext(this.getClass());</span>
+    try {
+      for (ServiceReference&lt;PreferencesPageFactory&gt; service :
+<span class="nc bnc" id="L93" title="All 2 branches missed.">          context.getServiceReferences(PreferencesPageFactory.class, null)) {</span>
+<span class="nc" id="L94">        PreferencesPageFactory factory = context.getService(service);</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">        if (factory != null) {</span>
+          String className =
+<span class="nc" id="L97">              GuiUtils.getUICore().getSystemPreferences().getProperty(factory.getClass().getName());</span>
+<span class="nc bnc" id="L98" title="All 4 branches missed.">          if (!StringUtil.hasText(className) || Boolean.parseBoolean(className)) {</span>
+<span class="nc" id="L99">            AbstractItemDialogPage page = factory.createInstance(properties);</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">            if (page != null) {</span>
+<span class="nc" id="L101">              int position = page.getComponentPosition();</span>
+<span class="nc bnc" id="L102" title="All 2 branches missed.">              if (position &lt; 1000) {</span>
+                AbstractItemDialogPage mainPage;
+<span class="nc bnc" id="L104" title="All 4 branches missed.">                if (position &gt; 500 &amp;&amp; position &lt; 600) {</span>
+<span class="nc" id="L105">                  mainPage = viewerSetting;</span>
+<span class="nc bnc" id="L106" title="All 4 branches missed.">                } else if (position &gt; 600 &amp;&amp; position &lt; 700) {</span>
+<span class="nc" id="L107">                  mainPage = dicomPrefView;</span>
+<span class="nc bnc" id="L108" title="All 4 branches missed.">                } else if (position &gt; 700 &amp;&amp; position &lt; 800) {</span>
+<span class="nc" id="L109">                  mainPage = drawPrefView;</span>
+                } else {
+<span class="nc" id="L111">                  mainPage = generalSetting;</span>
+                }
+<span class="nc" id="L113">                JComponent menuPanel = mainPage.getMenuPanel();</span>
+<span class="nc" id="L114">                mainPage.addSubPage(page, a -&gt; showPage(page.getTitle()), menuPanel);</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">                if (menuPanel != null) {</span>
+<span class="nc" id="L116">                  menuPanel.revalidate();</span>
+<span class="nc" id="L117">                  menuPanel.repaint();</span>
+                }
+<span class="nc" id="L119">              } else {</span>
+<span class="nc" id="L120">                list.add(page);</span>
+              }
+            }
+          }
+        }
+<span class="nc" id="L125">      }</span>
+<span class="nc" id="L126">    } catch (Exception e) {</span>
+<span class="nc" id="L127">      LOGGER.error(&quot;Get Preference pages from service&quot;, e);</span>
+<span class="nc" id="L128">    }</span>
+
+<span class="nc" id="L130">    InsertableUtil.sortInsertable(list);</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">    for (AbstractItemDialogPage page : list) {</span>
+<span class="nc" id="L132">      page.sortSubPages();</span>
+<span class="nc" id="L133">      pagesRoot.add(new DefaultMutableTreeNode(page));</span>
+<span class="nc" id="L134">    }</span>
+<span class="nc" id="L135">    iniTree();</span>
+<span class="nc" id="L136">  }</span>
+
+  @Override
+  protected void selectPage(AbstractItemDialogPage page) {
+<span class="nc bnc" id="L140" title="All 2 branches missed.">    if (page != null) {</span>
+<span class="nc" id="L141">      super.selectPage(page);</span>
+<span class="nc" id="L142">      applyButton.setVisible(Boolean.TRUE.toString().equals(page.getProperty(KEY_SHOW_APPLY)));</span>
+<span class="nc" id="L143">      restoreButton.setVisible(Boolean.TRUE.toString().equals(page.getProperty(KEY_SHOW_RESTORE)));</span>
+
+<span class="nc" id="L145">      String helpKey = page.getProperty(KEY_HELP);</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">      for (ActionListener al : jButtonHelp.getActionListeners()) {</span>
+<span class="nc" id="L147">        jButtonHelp.removeActionListener(al);</span>
+      }
+<span class="nc" id="L149">      jButtonHelp.setVisible(StringUtil.hasText(helpKey));</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">      if (jButtonHelp.isVisible()) {</span>
+<span class="nc" id="L151">        jButtonHelp.addActionListener(GuiUtils.createHelpActionListener(jButtonHelp, helpKey));</span>
+      }
+    }
+<span class="nc" id="L154">  }</span>
+
+  @Override
+  public void cancel() {
+<span class="nc" id="L158">    dispose();</span>
+<span class="nc" id="L159">  }</span>
+
+  @Override
+  public void dispose() {
+<span class="nc" id="L163">    closeAllPages();</span>
+<span class="nc" id="L164">    super.dispose();</span>
+<span class="nc" id="L165">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

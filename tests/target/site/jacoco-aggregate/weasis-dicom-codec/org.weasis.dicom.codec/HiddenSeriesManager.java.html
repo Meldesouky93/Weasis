@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>HiddenSeriesManager.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec</a> &gt; <span class="el_source">HiddenSeriesManager.java</span></div><h1>HiddenSeriesManager.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2023 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.function.Function;
+import org.dcm4che3.data.Attributes;
+import org.dcm4che3.data.Sequence;
+import org.dcm4che3.data.Tag;
+import org.weasis.core.api.media.data.MediaSeriesGroup;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.api.util.ResourceUtil.ResourceIconPath;
+import org.weasis.core.ui.model.graphic.imp.seg.SegContour;
+import org.weasis.core.util.StringUtil;
+
+<span class="nc" id="L31">public class HiddenSeriesManager {</span>
+<span class="nc" id="L32">  private static final HiddenSeriesManager instance = new HiddenSeriesManager();</span>
+<span class="nc" id="L33">  public final Map&lt;String, Set&lt;HiddenSpecialElement&gt;&gt; series2Elements = new ConcurrentHashMap&lt;&gt;();</span>
+<span class="nc" id="L34">  public final Map&lt;String, Set&lt;String&gt;&gt; patient2Series = new ConcurrentHashMap&lt;&gt;();</span>
+<span class="nc" id="L35">  public final Map&lt;String, Set&lt;String&gt;&gt; reference2Series = new ConcurrentHashMap&lt;&gt;();</span>
+
+<span class="nc" id="L37">  public final Map&lt;String, Set&lt;String&gt;&gt; sopRef2Series = new ConcurrentHashMap&lt;&gt;();</span>
+
+  public static HiddenSeriesManager getInstance() {
+<span class="nc" id="L40">    return instance;</span>
+  }
+
+  public void extractReferencedSeries(
+      Attributes dicom,
+      String originSeriesUID,
+      Function&lt;String, Map&lt;String, Set&lt;SegContour&gt;&gt;&gt; addSeries) {
+<span class="nc bnc" id="L47" title="All 6 branches missed.">    if (dicom != null &amp;&amp; StringUtil.hasText(originSeriesUID) &amp;&amp; addSeries != null) {</span>
+<span class="nc" id="L48">      Sequence seriesRef = dicom.getSequence(Tag.ReferencedSeriesSequence);</span>
+<span class="nc bnc" id="L49" title="All 2 branches missed.">      if (seriesRef != null) {</span>
+<span class="nc bnc" id="L50" title="All 2 branches missed.">        for (Attributes ref : seriesRef) {</span>
+<span class="nc" id="L51">          String seriesUID = ref.getString(Tag.SeriesInstanceUID);</span>
+<span class="nc bnc" id="L52" title="All 2 branches missed.">          if (StringUtil.hasText(seriesUID)) {</span>
+<span class="nc" id="L53">            reference2Series</span>
+<span class="nc" id="L54">                .computeIfAbsent(seriesUID, _ -&gt; new CopyOnWriteArraySet&lt;&gt;())</span>
+<span class="nc" id="L55">                .add(originSeriesUID);</span>
+
+<span class="nc" id="L57">            Map&lt;String, Set&lt;SegContour&gt;&gt; refMap = addSeries.apply(seriesUID);</span>
+<span class="nc" id="L58">            Sequence instanceSeq = ref.getSequence(Tag.ReferencedInstanceSequence);</span>
+<span class="nc bnc" id="L59" title="All 2 branches missed.">            if (instanceSeq != null) {</span>
+<span class="nc bnc" id="L60" title="All 2 branches missed.">              for (Attributes instance : instanceSeq) {</span>
+<span class="nc" id="L61">                String sopInstanceUID = instance.getString(Tag.ReferencedSOPInstanceUID);</span>
+<span class="nc" id="L62">                refMap.computeIfAbsent(sopInstanceUID, _ -&gt; new LinkedHashSet&lt;&gt;());</span>
+<span class="nc" id="L63">              }</span>
+            }
+          }
+<span class="nc" id="L66">        }</span>
+      } else {
+<span class="nc" id="L68">        List&lt;String&gt; sourceSopUIDList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L69">        addSourceImage(dicom, sourceSopUIDList);</span>
+<span class="nc" id="L70">        String seriesUID = &quot;1.3.6.1.4.1.14519.5.2.1.7695.1700.229054711046553504545787083659&quot;;</span>
+<span class="nc" id="L71">        reference2Series</span>
+<span class="nc" id="L72">            .computeIfAbsent(seriesUID, _ -&gt; new CopyOnWriteArraySet&lt;&gt;())</span>
+<span class="nc" id="L73">            .add(originSeriesUID);</span>
+<span class="nc" id="L74">        Map&lt;String, Set&lt;SegContour&gt;&gt; refMap = addSeries.apply(seriesUID);</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">        for (String sopUID : sourceSopUIDList) {</span>
+<span class="nc" id="L76">          refMap.computeIfAbsent(sopUID, _ -&gt; new HashSet&lt;&gt;());</span>
+<span class="nc" id="L77">        }</span>
+      }
+    }
+<span class="nc" id="L80">  }</span>
+
+  public static void addSourceImage(Attributes derivation, List&lt;String&gt; sopUIDList) {
+<span class="nc bnc" id="L83" title="All 4 branches missed.">    if (derivation == null || sopUIDList == null) {</span>
+<span class="nc" id="L84">      return;</span>
+    }
+<span class="nc" id="L86">    Sequence srcSeq = derivation.getSequence(Tag.SourceImageSequence);</span>
+<span class="nc bnc" id="L87" title="All 2 branches missed.">    if (srcSeq != null) {</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">      for (Attributes src : srcSeq) {</span>
+<span class="nc" id="L89">        sopUIDList.add(src.getString(Tag.ReferencedSOPInstanceUID));</span>
+<span class="nc" id="L90">      }</span>
+    }
+<span class="nc" id="L92">  }</span>
+
+  public static void addReferencedSOPInstanceUID(Attributes seriesRef, String originSeriesUID) {
+<span class="nc bnc" id="L95" title="All 4 branches missed.">    if (seriesRef == null || originSeriesUID == null) {</span>
+<span class="nc" id="L96">      return;</span>
+    }
+<span class="nc" id="L98">    String structUID = seriesRef.getString(Tag.ReferencedSOPInstanceUID);</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">    if (StringUtil.hasText(structUID)) {</span>
+<span class="nc" id="L100">      HiddenSeriesManager.getInstance()</span>
+          .sopRef2Series
+<span class="nc" id="L102">          .computeIfAbsent(structUID, _ -&gt; new CopyOnWriteArraySet&lt;&gt;())</span>
+<span class="nc" id="L103">          .add(originSeriesUID);</span>
+    }
+<span class="nc" id="L105">  }</span>
+
+  public static &lt;E&gt; boolean hasHiddenElementsFromSeries(Class&lt;E&gt; clazz, String... seriesUID) {
+<span class="nc bnc" id="L108" title="All 4 branches missed.">    if (clazz != null &amp;&amp; clazz.isAssignableFrom(clazz)) {</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">      for (String uid : seriesUID) {</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">        if (hasHiddenElements(clazz, uid)) {</span>
+<span class="nc" id="L111">          return true;</span>
+        }
+      }
+    }
+<span class="nc" id="L115">    return false;</span>
+  }
+
+  private static &lt;E&gt; boolean hasHiddenElements(Class&lt;E&gt; clazz, String seriesUID) {
+<span class="nc bnc" id="L119" title="All 2 branches missed.">    if (StringUtil.hasText(seriesUID)) {</span>
+<span class="nc" id="L120">      Set&lt;HiddenSpecialElement&gt; hiddenElements = getInstance().series2Elements.get(seriesUID);</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">      if (hiddenElements != null) {</span>
+<span class="nc bnc" id="L122" title="All 2 branches missed.">        for (HiddenSpecialElement media : hiddenElements) {</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">          if (clazz.isInstance(media)) {</span>
+<span class="nc" id="L124">            return true;</span>
+          }
+<span class="nc" id="L126">        }</span>
+      }
+    }
+<span class="nc" id="L129">    return false;</span>
+  }
+
+  private static &lt;E&gt; void addHiddenElements(
+      List&lt;E&gt; list, Class&lt;E&gt; clazz, String seriesUID, int childNumber) {
+<span class="nc bnc" id="L134" title="All 2 branches missed.">    if (StringUtil.hasText(seriesUID)) {</span>
+<span class="nc" id="L135">      Set&lt;HiddenSpecialElement&gt; hiddenElements = getInstance().series2Elements.get(seriesUID);</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">      if (hiddenElements != null) {</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">        for (HiddenSpecialElement media : hiddenElements) {</span>
+<span class="nc bnc" id="L138" title="All 4 branches missed.">          if (clazz.isInstance(media) &amp;&amp; !list.contains(media)) {</span>
+<span class="nc" id="L139">            list.add((E) media);</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">            if (childNumber &gt; 0) {</span>
+<span class="nc" id="L141">              String sopUID = TagD.getTagValue(media, Tag.SOPInstanceUID, String.class);</span>
+<span class="nc" id="L142">              Set&lt;String&gt; refs = getInstance().sopRef2Series.get(sopUID);</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">              if (refs != null) {</span>
+<span class="nc bnc" id="L144" title="All 2 branches missed.">                for (String ref : refs) {</span>
+<span class="nc" id="L145">                  addHiddenElements(list, clazz, ref, childNumber - 1);</span>
+<span class="nc" id="L146">                }</span>
+              }
+            }
+          }
+<span class="nc" id="L150">        }</span>
+      }
+    }
+<span class="nc" id="L153">  }</span>
+
+  public static &lt;E&gt; List&lt;E&gt; getHiddenElementsFromSeries(Class&lt;E&gt; clazz, String... seriesUID) {
+<span class="nc bnc" id="L156" title="All 4 branches missed.">    if (clazz != null &amp;&amp; clazz.isAssignableFrom(clazz)) {</span>
+<span class="nc" id="L157">      List&lt;E&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">      for (String uid : seriesUID) {</span>
+<span class="nc" id="L159">        addHiddenElements(list, clazz, uid, 2);</span>
+      }
+<span class="nc" id="L161">      return list;</span>
+    }
+<span class="nc" id="L163">    return Collections.emptyList();</span>
+  }
+
+  public static &lt;E&gt; boolean hasHiddenSpecialElements(Class&lt;E&gt; clazz, MediaSeriesGroup patient) {
+<span class="nc bnc" id="L167" title="All 6 branches missed.">    if (patient != null &amp;&amp; clazz != null &amp;&amp; clazz.isAssignableFrom(clazz)) {</span>
+<span class="nc" id="L168">      String patientPseudoUID = (String) patient.getTagValue(TagW.PatientPseudoUID);</span>
+<span class="nc" id="L169">      Set&lt;String&gt; patients = HiddenSeriesManager.getInstance().patient2Series.get(patientPseudoUID);</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">      if (patients != null) {</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">        for (String seriesUID : patients) {</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">          if (hasHiddenElements(clazz, seriesUID)) {</span>
+<span class="nc" id="L173">            return true;</span>
+          }
+<span class="nc" id="L175">        }</span>
+      }
+    }
+<span class="nc" id="L178">    return false;</span>
+  }
+
+  public static &lt;E&gt; List&lt;E&gt; getHiddenElementsFromPatient(Class&lt;E&gt; clazz, MediaSeriesGroup patient) {
+<span class="nc bnc" id="L182" title="All 2 branches missed.">    if (patient != null) {</span>
+<span class="nc" id="L183">      String patientPseudoUID = (String) patient.getTagValue(TagW.PatientPseudoUID);</span>
+<span class="nc" id="L184">      return getHiddenElementsFromPatient(clazz, patientPseudoUID);</span>
+    }
+<span class="nc" id="L186">    return Collections.emptyList();</span>
+  }
+
+  public static &lt;E&gt; List&lt;E&gt; getHiddenElementsFromPatient(Class&lt;E&gt; clazz, String patientPseudoUID) {
+<span class="nc bnc" id="L190" title="All 6 branches missed.">    if (StringUtil.hasText(patientPseudoUID) &amp;&amp; clazz != null &amp;&amp; clazz.isAssignableFrom(clazz)) {</span>
+<span class="nc" id="L191">      Set&lt;String&gt; patients = HiddenSeriesManager.getInstance().patient2Series.get(patientPseudoUID);</span>
+<span class="nc bnc" id="L192" title="All 2 branches missed.">      if (patients != null) {</span>
+<span class="nc" id="L193">        List&lt;E&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L194" title="All 2 branches missed.">        for (String seriesUID : patients) {</span>
+<span class="nc" id="L195">          addHiddenElements(list, clazz, seriesUID, 2);</span>
+<span class="nc" id="L196">        }</span>
+<span class="nc" id="L197">        return list;</span>
+      }
+    }
+<span class="nc" id="L200">    return Collections.emptyList();</span>
+  }
+
+  public static Set&lt;ResourceIconPath&gt; getRelatedIcons(String seriesUID) {
+<span class="nc bnc" id="L204" title="All 2 branches missed.">    if (StringUtil.hasText(seriesUID)) {</span>
+<span class="nc" id="L205">      Set&lt;String&gt; list = HiddenSeriesManager.getInstance().reference2Series.get(seriesUID);</span>
+<span class="nc bnc" id="L206" title="All 4 branches missed.">      if (list != null &amp;&amp; !list.isEmpty()) {</span>
+<span class="nc" id="L207">        Set&lt;ResourceIconPath&gt; icons = new LinkedHashSet&lt;&gt;();</span>
+<span class="nc bnc" id="L208" title="All 2 branches missed.">        for (String uid : list) {</span>
+<span class="nc" id="L209">          Set&lt;HiddenSpecialElement&gt; hiddenElements = getInstance().series2Elements.get(uid);</span>
+<span class="nc bnc" id="L210" title="All 2 branches missed.">          if (hiddenElements != null) {</span>
+<span class="nc bnc" id="L211" title="All 2 branches missed.">            for (HiddenSpecialElement media : hiddenElements) {</span>
+<span class="nc" id="L212">              ResourceIconPath path = media.getIconPath();</span>
+<span class="nc bnc" id="L213" title="All 2 branches missed.">              if (path != null) {</span>
+<span class="nc" id="L214">                icons.add(path);</span>
+              }
+<span class="nc" id="L216">            }</span>
+          }
+<span class="nc" id="L218">        }</span>
+<span class="nc" id="L219">        return icons;</span>
+      }
+    }
+<span class="nc" id="L222">    return Collections.emptySet();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

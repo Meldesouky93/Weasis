@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AcquireThumbnailList.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer.gui.list</a> &gt; <span class="el_source">AcquireThumbnailList.java</span></div><h1>AcquireThumbnailList.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer.gui.list;
+
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.util.List;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
+import org.weasis.acquire.explorer.AcquireManager;
+import org.weasis.acquire.explorer.Messages;
+import org.weasis.acquire.explorer.gui.control.ImportPanel;
+import org.weasis.acquire.explorer.gui.dialog.AcquireImportDialog;
+import org.weasis.base.explorer.JIThumbnailCache;
+import org.weasis.base.explorer.list.AbstractThumbnailList;
+import org.weasis.base.explorer.list.IThumbnailModel;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.gui.util.WinUtil;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.media.data.MediaElement;
+import org.weasis.core.ui.util.DefaultAction;
+
+public class AcquireThumbnailList&lt;E extends MediaElement&gt; extends AbstractThumbnailList&lt;E&gt; {
+
+  private AcquireThumbnailListPane&lt;E&gt; mainPanel;
+
+  public AcquireThumbnailList(JIThumbnailCache thumbCache) {
+<span class="nc" id="L35">    super(thumbCache);</span>
+<span class="nc" id="L36">  }</span>
+
+  public AcquireThumbnailListPane&lt;E&gt; getMainPanel() {
+<span class="nc" id="L39">    return mainPanel;</span>
+  }
+
+  public void setMainPanel(AcquireThumbnailListPane&lt;E&gt; mainPanel) {
+<span class="nc" id="L43">    this.mainPanel = mainPanel;</span>
+<span class="nc" id="L44">  }</span>
+
+  @Override
+  public IThumbnailModel&lt;E&gt; newModel() {
+<span class="nc" id="L48">    return new AcquireThumbnailModel&lt;&gt;(this, thumbCache);</span>
+  }
+
+  @Override
+  public JPopupMenu buildContextMenu(MouseEvent e) {
+<span class="nc" id="L53">    ImportPanel importPanel = AcquireManager.getInstance().getAcquireExplorer().getImportPanel();</span>
+<span class="nc" id="L54">    List&lt;ImageElement&gt; medias = AcquireManager.toImageElement(getSelected(e));</span>
+<span class="nc bnc" id="L55" title="All 4 branches missed.">    if (!medias.isEmpty() &amp;&amp; !importPanel.isLoading()) {</span>
+<span class="nc" id="L56">      JPopupMenu popupMenu = new JPopupMenu();</span>
+
+<span class="nc" id="L58">      popupMenu.add(</span>
+          new JMenuItem(
+              new DefaultAction(
+<span class="nc" id="L61">                  Messages.getString(&quot;AcquireThumbnailList.import_sel&quot;),</span>
+                  event -&gt; {
+<span class="nc" id="L63">                    AcquireImportDialog dialog = new AcquireImportDialog(importPanel, medias);</span>
+<span class="nc" id="L64">                    GuiUtils.showCenterScreen(dialog, WinUtil.getParentWindow(mainPanel));</span>
+<span class="nc" id="L65">                  })));</span>
+
+<span class="nc" id="L67">      return popupMenu;</span>
+    }
+<span class="nc" id="L69">    return null;</span>
+  }
+
+  @Override
+  public void mouseClickedEvent(MouseEvent e) {
+<span class="nc bnc" id="L74" title="All 2 branches missed.">    if (e.getClickCount() == 2) { // Manage double click</span>
+<span class="nc" id="L75">      ImportPanel importPanel = AcquireManager.getInstance().getAcquireExplorer().getImportPanel();</span>
+<span class="nc" id="L76">      List&lt;ImageElement&gt; medias = AcquireManager.toImageElement(getSelected(e));</span>
+<span class="nc bnc" id="L77" title="All 4 branches missed.">      if (!medias.isEmpty() &amp;&amp; !importPanel.isLoading()) {</span>
+<span class="nc" id="L78">        AcquireImportDialog dialog = new AcquireImportDialog(importPanel, medias);</span>
+<span class="nc" id="L79">        GuiUtils.showCenterScreen(dialog, WinUtil.getParentWindow(mainPanel));</span>
+      }
+    }
+<span class="nc" id="L82">  }</span>
+
+  @Override
+  public void jiThumbnailKeyPressed(KeyEvent e) {
+
+<span class="nc bnc" id="L87" title="All 4 branches missed.">    switch (e.getKeyCode()) {</span>
+<span class="nc" id="L88">      case KeyEvent.VK_PAGE_DOWN -&gt; nextPage(e);</span>
+<span class="nc" id="L89">      case KeyEvent.VK_PAGE_UP -&gt; lastPage(e);</span>
+      case KeyEvent.VK_ENTER -&gt; {
+        ImportPanel importPanel =
+<span class="nc" id="L92">            AcquireManager.getInstance().getAcquireExplorer().getImportPanel();</span>
+<span class="nc" id="L93">        final List&lt;ImageElement&gt; selected =</span>
+<span class="nc" id="L94">            AcquireManager.toImageElement(mainPanel.getSelectedValuesList());</span>
+<span class="nc bnc" id="L95" title="All 4 branches missed.">        if (!selected.isEmpty() &amp;&amp; !importPanel.isLoading()) {</span>
+<span class="nc" id="L96">          AcquireImportDialog dialog = new AcquireImportDialog(importPanel, selected);</span>
+<span class="nc" id="L97">          GuiUtils.showCenterScreen(dialog, WinUtil.getParentWindow(mainPanel));</span>
+        }
+<span class="nc" id="L99">        e.consume();</span>
+      }
+    }
+<span class="nc" id="L102">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

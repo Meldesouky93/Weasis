@@ -1,0 +1,460 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>SliderChangeListener.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.gui.util</a> &gt; <span class="el_source">SliderChangeListener.java</span></div><h1>SliderChangeListener.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.gui.util;
+
+import java.awt.Font;
+import java.awt.event.InputEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
+import java.util.Dictionary;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import javax.swing.BorderFactory;
+import javax.swing.BoundedRangeModel;
+import javax.swing.DefaultBoundedRangeModel;
+import javax.swing.JLabel;
+import javax.swing.JSlider;
+import javax.swing.border.TitledBorder;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import org.weasis.core.api.service.AuditLog;
+import org.weasis.core.api.util.FontItem;
+import org.weasis.core.util.MathUtil;
+import org.weasis.core.util.StringUtil;
+
+public abstract class SliderChangeListener extends MouseActionAdapter
+    implements ChangeListener, ActionState {
+
+  private final DefaultBoundedRangeModel model;
+  protected final BasicActionState basicState;
+<span class="nc" id="L37">  protected volatile boolean triggerAction = true;</span>
+  protected volatile boolean triggerWhenAdjusting;
+  protected Double realMin;
+  protected Double realMax;
+
+  protected SliderChangeListener(
+      Feature&lt;? extends ActionState&gt; action, int min, int max, int value) {
+<span class="nc" id="L44">    this(action, min, max, value, true);</span>
+<span class="nc" id="L45">  }</span>
+
+  protected SliderChangeListener(
+      Feature&lt;? extends ActionState&gt; action,
+      int min,
+      int max,
+      int value,
+      boolean triggerWhenAdjusting,
+      double mouseSensitivity) {
+<span class="nc" id="L54">    this(action, min, max, value, triggerWhenAdjusting);</span>
+<span class="nc" id="L55">    setMouseSensitivity(mouseSensitivity);</span>
+<span class="nc" id="L56">  }</span>
+
+  protected SliderChangeListener(
+      Feature&lt;? extends ActionState&gt; action,
+      int min,
+      int max,
+      int value,
+      boolean triggerWhenAdjusting) {
+<span class="nc" id="L64">    super();</span>
+<span class="nc" id="L65">    this.basicState = new BasicActionState(action);</span>
+<span class="nc" id="L66">    this.triggerWhenAdjusting = triggerWhenAdjusting;</span>
+<span class="nc" id="L67">    model = new DefaultBoundedRangeModel(value, 0, min, max);</span>
+<span class="nc" id="L68">    model.addChangeListener(this);</span>
+<span class="nc" id="L69">  }</span>
+
+  protected SliderChangeListener(
+      Feature&lt;? extends ActionState&gt; action,
+      double min,
+      double max,
+      double value,
+      boolean triggerWhenAdjusting,
+      double mouseSensitivity,
+<span class="nc" id="L78">      int sliderRange) {</span>
+<span class="nc" id="L79">    this.basicState = new BasicActionState(action);</span>
+<span class="nc" id="L80">    this.triggerWhenAdjusting = triggerWhenAdjusting;</span>
+<span class="nc" id="L81">    setMouseSensitivity(mouseSensitivity);</span>
+<span class="nc" id="L82">    model = new DefaultBoundedRangeModel(0, 0, 0, sliderRange);</span>
+<span class="nc" id="L83">    setRealMinMaxValue(min, max, value, false);</span>
+<span class="nc" id="L84">    model.addChangeListener(this);</span>
+<span class="nc" id="L85">  }</span>
+
+  @Override
+  public void enableAction(boolean enabled) {
+<span class="nc" id="L89">    basicState.enableAction(enabled);</span>
+<span class="nc" id="L90">  }</span>
+
+  @Override
+  public boolean isActionEnabled() {
+<span class="nc" id="L94">    return basicState.isActionEnabled();</span>
+  }
+
+  public void setSliderMinMax(int min, int max) {
+<span class="nc" id="L98">    setSliderMinMaxValue(min, max, model.getValue());</span>
+<span class="nc" id="L99">  }</span>
+
+  public void setSliderMinMaxValue(int min, int max, int value) {
+<span class="nc" id="L102">    setSliderMinMaxValue(min, max, value, true);</span>
+<span class="nc" id="L103">  }</span>
+
+  public void setSliderMinMaxValue(int min, int max, int value, boolean triggerChangedEvent) {
+<span class="nc" id="L106">    realMin = null;</span>
+<span class="nc" id="L107">    realMax = null;</span>
+<span class="nc" id="L108">    minMaxValueAction(min, max, value, triggerChangedEvent);</span>
+<span class="nc" id="L109">  }</span>
+
+  public void setRealMinMaxValue(double min, double max, double value) {
+<span class="nc" id="L112">    setRealMinMaxValue(min, max, value, true);</span>
+<span class="nc" id="L113">  }</span>
+
+  public void setRealMinMaxValue(
+      double min, double max, double value, boolean triggerChangedEvent) {
+    // Avoid getting infinity value and lock the slider
+<span class="nc bnc" id="L118" title="All 2 branches missed.">    if (max - min == 0) {</span>
+<span class="nc" id="L119">      max += 1;</span>
+    }
+<span class="nc" id="L121">    realMin = min;</span>
+<span class="nc" id="L122">    realMax = max;</span>
+<span class="nc" id="L123">    minMaxValueAction(</span>
+<span class="nc" id="L124">        toSliderValue(min), toSliderValue(max), toSliderValue(value), triggerChangedEvent);</span>
+<span class="nc" id="L125">  }</span>
+
+  private synchronized void minMaxValueAction(int min, int max, int value, boolean trigger) {
+<span class="nc bnc" id="L128" title="All 2 branches missed.">    if (min &gt; max) {</span>
+<span class="nc" id="L129">      throw new IllegalStateException(&quot;min &gt; max&quot;);</span>
+    }
+
+    // Adjust the value to min and max to avoid the model to change the min and the max
+<span class="nc bnc" id="L133" title="All 2 branches missed.">    int v = (value &gt; max) ? max : Math.max(value, min);</span>
+<span class="nc" id="L134">    boolean oldTrigger = triggerAction;</span>
+<span class="nc" id="L135">    triggerAction = trigger;</span>
+<span class="nc" id="L136">    model.setRangeProperties(v, model.getExtent(), min, max, model.getValueIsAdjusting());</span>
+<span class="nc" id="L137">    triggerAction = oldTrigger;</span>
+<span class="nc bnc" id="L138" title="All 2 branches missed.">    boolean paintThick = max &lt; 65536;</span>
+
+<span class="nc bnc" id="L140" title="All 2 branches missed.">    for (Object c : basicState.getComponents()) {</span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">      if (c instanceof JSliderW s) {</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">        if (s.isShowLabels()) {</span>
+          // When range becomes big do not display thick (can be very slow) and labels
+<span class="nc" id="L144">          s.setPaintTicks(paintThick);</span>
+<span class="nc" id="L145">          s.setPaintLabels(paintThick);</span>
+        }
+<span class="nc" id="L147">        updateSliderProperties(s);</span>
+<span class="nc" id="L148">        setSliderLabelValues(s, min, max, realMin, realMax);</span>
+      }
+<span class="nc" id="L150">    }</span>
+<span class="nc" id="L151">  }</span>
+
+  public boolean isTriggerAction() {
+<span class="nc" id="L154">    return triggerAction;</span>
+  }
+
+  @Override
+  public Feature&lt;? extends ActionState&gt; getActionW() {
+<span class="nc" id="L159">    return basicState.getActionW();</span>
+  }
+
+  public void setSliderValue(int value) {
+<span class="nc" id="L163">    model.setValue(value);</span>
+<span class="nc" id="L164">  }</span>
+
+  public void setSliderValue(int value, boolean triggerChangedEvent) {
+<span class="nc bnc" id="L167" title="All 2 branches missed.">    if (triggerChangedEvent) {</span>
+<span class="nc" id="L168">      setSliderValue(value);</span>
+    } else {
+<span class="nc bnc" id="L170" title="All 4 branches missed.">      boolean adjusting = triggerWhenAdjusting || !model.getValueIsAdjusting();</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">      if (adjusting) {</span>
+<span class="nc" id="L172">        boolean oldTrigger = triggerAction;</span>
+<span class="nc" id="L173">        triggerAction = false;</span>
+<span class="nc" id="L174">        setSliderValue(value);</span>
+<span class="nc" id="L175">        triggerAction = oldTrigger;</span>
+      }
+    }
+<span class="nc" id="L178">  }</span>
+
+  public void setRealValue(double value) {
+<span class="nc" id="L181">    model.setValue(toSliderValue(value));</span>
+<span class="nc" id="L182">  }</span>
+
+  public void setRealValue(double value, boolean triggerChangedEvent) {
+<span class="nc bnc" id="L185" title="All 2 branches missed.">    if (triggerChangedEvent) {</span>
+<span class="nc" id="L186">      setRealValue(value);</span>
+    } else {
+<span class="nc bnc" id="L188" title="All 4 branches missed.">      boolean adjusting = triggerWhenAdjusting || !model.getValueIsAdjusting();</span>
+<span class="nc bnc" id="L189" title="All 2 branches missed.">      if (adjusting) {</span>
+<span class="nc" id="L190">        boolean oldTrigger = triggerAction;</span>
+<span class="nc" id="L191">        triggerAction = false;</span>
+<span class="nc" id="L192">        setRealValue(value);</span>
+<span class="nc" id="L193">        triggerAction = oldTrigger;</span>
+      }
+    }
+<span class="nc" id="L196">  }</span>
+
+  public boolean isTriggerWhenAdjusting() {
+<span class="nc" id="L199">    return triggerWhenAdjusting;</span>
+  }
+
+  public int getSliderMin() {
+<span class="nc" id="L203">    return model.getMinimum();</span>
+  }
+
+  public int getSliderMax() {
+<span class="nc" id="L207">    return model.getMaximum();</span>
+  }
+
+  public int getSliderValue() {
+<span class="nc" id="L211">    return model.getValue();</span>
+  }
+
+  public double getRealValue() {
+<span class="nc" id="L215">    return toModelValue(model.getValue());</span>
+  }
+
+  public DefaultBoundedRangeModel getSliderModel() {
+<span class="nc" id="L219">    return model;</span>
+  }
+
+  public String getValueToDisplay() {
+<span class="nc" id="L223">    return getDisplayedModelValue(getSliderValue(), getSliderMax(), realMin, realMax);</span>
+  }
+
+  @Override
+  public void stateChanged(ChangeEvent evt) {
+<span class="nc bnc" id="L228" title="All 4 branches missed.">    boolean adjusting = triggerWhenAdjusting || !model.getValueIsAdjusting();</span>
+<span class="nc bnc" id="L229" title="All 4 branches missed.">    if (triggerAction &amp;&amp; adjusting) {</span>
+<span class="nc" id="L230">      stateChanged(model);</span>
+<span class="nc" id="L231">      AuditLog.LOGGER.info(</span>
+          &quot;action:{} val:{} min:{} max:{}&quot;,
+<span class="nc" id="L233">          basicState.getActionW().cmd(),</span>
+<span class="nc" id="L234">          model.getValue(),</span>
+<span class="nc" id="L235">          model.getMinimum(),</span>
+<span class="nc" id="L236">          model.getMaximum());</span>
+    }
+
+<span class="nc bnc" id="L239" title="All 2 branches missed.">    for (Object c : basicState.getComponents()) {</span>
+<span class="nc bnc" id="L240" title="All 2 branches missed.">      if (c instanceof JSliderW slider) {</span>
+<span class="nc" id="L241">        updateSliderProperties(slider);</span>
+      }
+<span class="nc" id="L243">    }</span>
+<span class="nc" id="L244">  }</span>
+
+  public abstract void stateChanged(BoundedRangeModel model);
+
+  @Override
+  public String toString() {
+<span class="nc" id="L250">    return basicState.getActionW().getTitle();</span>
+  }
+
+  @Override
+  public boolean registerActionState(Object c) {
+<span class="nc bnc" id="L255" title="All 2 branches missed.">    if (basicState.registerActionState(c)) {</span>
+<span class="nc bnc" id="L256" title="All 2 branches missed.">      if (c instanceof JSliderW slider) {</span>
+<span class="nc" id="L257">        slider.setModel(model);</span>
+<span class="nc" id="L258">        updateSliderProperties(slider);</span>
+      }
+<span class="nc" id="L260">      return true;</span>
+    }
+<span class="nc" id="L262">    return false;</span>
+  }
+
+  @Override
+  public void unregisterActionState(Object c) {
+<span class="nc" id="L267">    basicState.unregisterActionState(c);</span>
+<span class="nc bnc" id="L268" title="All 2 branches missed.">    if (c instanceof JSliderW slider) {</span>
+<span class="nc" id="L269">      slider.setModel(new DefaultBoundedRangeModel(0, 0, 0, 100));</span>
+    }
+<span class="nc" id="L271">  }</span>
+
+  public static void setSliderLabelValues(JSliderW slider, final int min, int max) {
+<span class="nc" id="L274">    setSliderLabelValues(slider, min, max, null, null);</span>
+<span class="nc" id="L275">  }</span>
+
+  public static void setSliderLabelValues(
+      JSliderW slider, final int min, int max, final Double realMin, final Double realMax) {
+<span class="nc" id="L279">    final int div = slider.getLabelDivision();</span>
+<span class="nc bnc" id="L280" title="All 2 branches missed.">    if (div &lt; 1) {</span>
+<span class="nc" id="L281">      return;</span>
+    }
+<span class="nc" id="L283">    int space = (max - min) / (div - 1);</span>
+<span class="nc" id="L284">    final int spacing = Math.max(space, 1);</span>
+<span class="nc bnc" id="L285" title="All 2 branches missed.">    if (!slider.getPaintLabels()) {</span>
+<span class="nc" id="L286">      return;</span>
+    }
+
+<span class="nc" id="L289">    final Hashtable&lt;Integer, JLabel&gt; table = new Hashtable&lt;&gt;();</span>
+<span class="nc" id="L290">    GuiExecutor.invokeAndWait(</span>
+        () -&gt; {
+<span class="nc bnc" id="L292" title="All 2 branches missed.">          for (int i = 0; i &lt; div; i++) {</span>
+<span class="nc" id="L293">            int index = i * spacing + min;</span>
+<span class="nc" id="L294">            table.put(</span>
+<span class="nc" id="L295">                index,</span>
+<span class="nc" id="L296">                new JLabel(getDisplayedModelValue(i * spacing + min, max, realMin, realMax)));</span>
+          }
+<span class="nc" id="L298">        });</span>
+
+<span class="nc" id="L300">    slider.setLabelTable(table);</span>
+<span class="nc" id="L301">    SliderChangeListener.setFont(slider, FontItem.MINI.getFont());</span>
+<span class="nc" id="L302">    slider.setMajorTickSpacing(spacing);</span>
+<span class="nc" id="L303">  }</span>
+
+  private static String getDisplayedModelValue(
+      int sliderValue, int sliderMax, Double modelMin, Double modelMax) {
+<span class="nc bnc" id="L307" title="All 4 branches missed.">    if (modelMin == null || modelMax == null) {</span>
+<span class="nc" id="L308">      return Integer.toString(sliderValue);</span>
+    }
+<span class="nc" id="L310">    double realVal = toModelValue(sliderValue, sliderMax, modelMin, modelMax);</span>
+<span class="nc" id="L311">    return DecFormatter.twoDecimal(realVal);</span>
+  }
+
+  public void updateSliderProperties(JSliderW slider) {
+<span class="nc" id="L315">    String result =</span>
+<span class="nc" id="L316">        basicState.getActionW().getTitle() + StringUtil.COLON_AND_SPACE + getValueToDisplay();</span>
+<span class="nc" id="L317">    updateSliderProperties(slider, result);</span>
+<span class="nc" id="L318">  }</span>
+
+  public static void updateSliderProperties(JSliderW slider, String title) {
+<span class="nc bnc" id="L321" title="All 4 branches missed.">    if (slider.isDisplayValueInTitle() &amp;&amp; slider.getBorder() instanceof TitledBorder titledBorder) {</span>
+<span class="nc" id="L322">      titledBorder.setTitle(title);</span>
+<span class="nc" id="L323">      slider.repaint();</span>
+    } else {
+<span class="nc" id="L325">      slider.setToolTipText(title);</span>
+    }
+<span class="nc" id="L327">  }</span>
+
+  @Override
+  public void mousePressed(MouseEvent e) {
+<span class="nc bnc" id="L331" title="All 4 branches missed.">    if (basicState.isActionEnabled() &amp;&amp; !e.isConsumed()) {</span>
+<span class="nc" id="L332">      int buttonMask = getButtonMaskEx();</span>
+<span class="nc bnc" id="L333" title="All 2 branches missed.">      if ((e.getModifiersEx() &amp; buttonMask) != 0) {</span>
+<span class="nc" id="L334">        model.setValueIsAdjusting(true);</span>
+<span class="nc bnc" id="L335" title="All 2 branches missed.">        lastPosition = isMoveOnX() ? e.getX() : e.getY();</span>
+<span class="nc" id="L336">        dragAccumulator = getSliderValue();</span>
+      }
+<span class="nc" id="L338">    } else {</span>
+      // Ensure to not enter in drag event when the mouse event is consumed
+<span class="nc" id="L340">      dragAccumulator = Double.MAX_VALUE;</span>
+    }
+<span class="nc" id="L342">  }</span>
+
+  @Override
+  public void mouseDragged(MouseEvent e) {
+<span class="nc bnc" id="L346" title="All 4 branches missed.">    if (basicState.isActionEnabled() &amp;&amp; !e.isConsumed()) {</span>
+<span class="nc" id="L347">      int buttonMask = getButtonMaskEx();</span>
+<span class="nc" id="L348">      int modifier = e.getModifiersEx();</span>
+      /*
+       * dragAccumulator == Double.NaN when the listener did not catch the Pressed MouseEvent (could append in
+       * multi split container)
+       */
+<span class="nc bnc" id="L353" title="All 4 branches missed.">      if ((modifier &amp; buttonMask) != 0 &amp;&amp; MathUtil.isDifferent(dragAccumulator, Double.MAX_VALUE)) {</span>
+<span class="nc" id="L354">        model.setValueIsAdjusting(true);</span>
+<span class="nc bnc" id="L355" title="All 2 branches missed.">        int position = isMoveOnX() ? e.getX() : e.getY();</span>
+<span class="nc" id="L356">        int mask = InputEvent.SHIFT_DOWN_MASK | InputEvent.CTRL_DOWN_MASK;</span>
+        // Accelerate the action if ctrl or shift is down
+        double acceleratorKey =
+<span class="nc bnc" id="L359" title="All 4 branches missed.">            (modifier &amp; mask) == 0 ? 1.0 : (modifier &amp; mask) == mask ? 5.0 : 2.5;</span>
+<span class="nc" id="L360">        double val = (position - lastPosition) * getMouseSensitivity() * acceleratorKey;</span>
+<span class="nc bnc" id="L361" title="All 2 branches missed.">        if (MathUtil.isEqualToZero(val)) {</span>
+<span class="nc" id="L362">          return;</span>
+        }
+<span class="nc" id="L364">        lastPosition = position;</span>
+<span class="nc bnc" id="L365" title="All 2 branches missed.">        if (isInverse()) {</span>
+<span class="nc" id="L366">          dragAccumulator -= val;</span>
+        } else {
+<span class="nc" id="L368">          dragAccumulator += val;</span>
+        }
+<span class="nc bnc" id="L370" title="All 2 branches missed.">        if (dragAccumulator &lt; getSliderMin()) {</span>
+<span class="nc" id="L371">          dragAccumulator = getSliderMin();</span>
+        }
+<span class="nc bnc" id="L373" title="All 2 branches missed.">        if (dragAccumulator &gt; getSliderMax()) {</span>
+<span class="nc" id="L374">          dragAccumulator = getSliderMax();</span>
+        }
+
+<span class="nc bnc" id="L377" title="All 2 branches missed.">        if (val &lt; 0.0) {</span>
+<span class="nc" id="L378">          setSliderValue((int) Math.ceil(dragAccumulator));</span>
+        } else {
+<span class="nc" id="L380">          setSliderValue((int) Math.floor(dragAccumulator));</span>
+        }
+      }
+    }
+<span class="nc" id="L384">  }</span>
+
+  @Override
+  public void mouseReleased(MouseEvent e) {
+<span class="nc bnc" id="L388" title="All 2 branches missed.">    if (basicState.isActionEnabled()</span>
+<span class="nc bnc" id="L389" title="All 2 branches missed.">        &amp;&amp; !e.isConsumed()</span>
+<span class="nc bnc" id="L390" title="All 2 branches missed.">        &amp;&amp; (e.getModifiers() &amp; getButtonMask()) != 0) {</span>
+<span class="nc" id="L391">      model.setValueIsAdjusting(false);</span>
+    }
+<span class="nc" id="L393">  }</span>
+
+  @Override
+  public void mouseWheelMoved(MouseWheelEvent e) {
+<span class="nc bnc" id="L397" title="All 4 branches missed.">    if (basicState.isActionEnabled() &amp;&amp; !e.isConsumed()) {</span>
+<span class="nc" id="L398">      setSliderValue(getSliderValue() + e.getWheelRotation() * e.getScrollAmount());</span>
+    }
+<span class="nc" id="L400">  }</span>
+
+  public JSliderW createSlider(int labelDivision, boolean displayValueInTitle) {
+<span class="nc" id="L403">    TitledBorder titledBorder =</span>
+        new TitledBorder(
+<span class="nc" id="L405">            BorderFactory.createEmptyBorder(),</span>
+<span class="nc" id="L406">            basicState.getActionW().getTitle(),</span>
+            TitledBorder.LEADING,
+            TitledBorder.DEFAULT_POSITION,
+<span class="nc" id="L409">            FontItem.MEDIUM.getFont(),</span>
+            null);
+<span class="nc" id="L411">    JSliderW slider = new JSliderW(model.getMinimum(), model.getMaximum(), model.getValue());</span>
+<span class="nc" id="L412">    slider.setLabelDivision(labelDivision);</span>
+<span class="nc" id="L413">    slider.setDisplayValueInTitle(displayValueInTitle);</span>
+<span class="nc" id="L414">    slider.setPaintTicks(true);</span>
+<span class="nc bnc" id="L415" title="All 2 branches missed.">    slider.setShowLabels(labelDivision &gt; 0);</span>
+<span class="nc" id="L416">    slider.setBorder(titledBorder);</span>
+<span class="nc" id="L417">    registerActionState(slider);</span>
+<span class="nc bnc" id="L418" title="All 2 branches missed.">    if (slider.isShowLabels()) {</span>
+<span class="nc" id="L419">      slider.setPaintLabels(true);</span>
+<span class="nc" id="L420">      setSliderLabelValues(slider, model.getMinimum(), model.getMaximum(), realMin, realMax);</span>
+    }
+<span class="nc" id="L422">    return slider;</span>
+  }
+
+  public int toSliderValue(double modelValue) {
+<span class="nc" id="L426">    Double modelMin = realMin;</span>
+<span class="nc" id="L427">    Double modelMax = realMax;</span>
+<span class="nc bnc" id="L428" title="All 4 branches missed.">    if (modelMin == null || modelMax == null) {</span>
+<span class="nc" id="L429">      return (int) modelValue;</span>
+    }
+<span class="nc" id="L431">    return (int) Math.round((modelValue - modelMin) * (model.getMaximum() / (modelMax - modelMin)));</span>
+  }
+
+  public double toModelValue(int sliderValue) {
+<span class="nc" id="L435">    return toModelValue(sliderValue, model.getMaximum(), realMin, realMax);</span>
+  }
+
+  protected static double toModelValue(
+      int sliderValue, int sliderMax, Double modelMin, Double modelMax) {
+<span class="nc bnc" id="L440" title="All 4 branches missed.">    if (modelMin == null || modelMax == null) {</span>
+<span class="nc" id="L441">      return sliderValue;</span>
+    }
+<span class="nc" id="L443">    return (sliderValue * (modelMax - modelMin)) / sliderMax + modelMin;</span>
+  }
+
+  public static void setFont(JSlider jslider, Font font) {
+    @SuppressWarnings(&quot;rawtypes&quot;)
+<span class="nc" id="L448">    Dictionary labelTable = jslider.getLabelTable();</span>
+<span class="nc bnc" id="L449" title="All 2 branches missed.">    if (labelTable == null) {</span>
+<span class="nc" id="L450">      return;</span>
+    }
+<span class="nc" id="L452">    Enumeration&lt;?&gt; labels = labelTable.keys();</span>
+<span class="nc bnc" id="L453" title="All 2 branches missed.">    while (labels.hasMoreElements()) {</span>
+<span class="nc bnc" id="L454" title="All 2 branches missed.">      if (labelTable.get(labels.nextElement()) instanceof JLabel label) {</span>
+<span class="nc" id="L455">        label.setFont(font);</span>
+      }
+    }
+<span class="nc" id="L458">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

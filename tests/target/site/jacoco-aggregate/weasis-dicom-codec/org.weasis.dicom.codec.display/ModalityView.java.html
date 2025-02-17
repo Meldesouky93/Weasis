@@ -1,0 +1,300 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ModalityView.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec.display</a> &gt; <span class="el_source">ModalityView.java</span></div><h1>ModalityView.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec.display;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+import org.dcm4che3.data.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.media.data.TagUtil;
+import org.weasis.core.api.media.data.TagView;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.util.FileUtil;
+import org.weasis.core.util.StringUtil;
+import org.weasis.dicom.codec.Messages;
+import org.weasis.dicom.codec.TagD;
+import org.weasis.dicom.codec.utils.DicomResource;
+
+public class ModalityView {
+<span class="nc" id="L37">  private static final Logger LOGGER = LoggerFactory.getLogger(ModalityView.class);</span>
+
+<span class="nc" id="L39">  static final Map&lt;Modality, ModalityInfoData&gt; MODALITY_VIEW_MAP = new EnumMap&lt;&gt;(Modality.class);</span>
+
+<span class="nc" id="L41">  public static final ModalityInfoData DEFAULT_MODALITY_VIEW =</span>
+      new ModalityInfoData(Modality.DEFAULT, null);
+
+  static {
+    // Format associated to DICOM field:
+    // $V =&gt; the value
+    // $V:l$25$ =&gt; the value is limited to 25 characters followed by &quot;...&quot;
+    // $V:f$#,##0.##$ =&gt; java pattern to display decimal number
+
+    /*
+     * See IHE BIR RAD TF-­‐2: 4.16.4.2.2.5.8
+     */
+    // Default profile of tag formats
+<span class="nc" id="L54">    TagView[] disElements = DEFAULT_MODALITY_VIEW.getCornerInfo(CornerDisplay.TOP_LEFT).getInfos();</span>
+<span class="nc" id="L55">    disElements[0] = new TagView(TagD.get(Tag.PatientName));</span>
+<span class="nc" id="L56">    disElements[1] = new TagView(TagD.get(Tag.PatientBirthDate));</span>
+<span class="nc" id="L57">    disElements[2] = new TagView(Messages.getString(&quot;ModalityView.id&quot;), TagD.get(Tag.PatientID));</span>
+<span class="nc" id="L58">    disElements[3] = new TagView(Messages.getString(&quot;ModalityView.sex&quot;), TagD.get(Tag.PatientSex));</span>
+<span class="nc" id="L59">    disElements[4] = new TagView(TagD.get(Tag.PatientAge));</span>
+
+<span class="nc" id="L61">    disElements = DEFAULT_MODALITY_VIEW.getCornerInfo(CornerDisplay.TOP_RIGHT).getInfos();</span>
+<span class="nc" id="L62">    disElements[0] = new TagView(TagD.get(Tag.InstitutionName));</span>
+<span class="nc" id="L63">    disElements[1] =</span>
+<span class="nc" id="L64">        new TagView(Messages.getString(&quot;ModalityView.desc25&quot;), TagD.get(Tag.StudyDescription));</span>
+<span class="nc" id="L65">    disElements[2] = new TagView(Messages.getString(&quot;ModalityView.study&quot;), TagD.get(Tag.StudyID));</span>
+<span class="nc" id="L66">    disElements[3] =</span>
+<span class="nc" id="L67">        new TagView(Messages.getString(&quot;ModalityView.ac_nb&quot;), TagD.get(Tag.AccessionNumber));</span>
+    // else content date, else Series date, else Study date
+<span class="nc" id="L69">    disElements[4] =</span>
+        new TagView(
+<span class="nc" id="L71">            Messages.getString(&quot;ModalityView.acq&quot;),</span>
+<span class="nc" id="L72">            TagD.getTagFromIDs(</span>
+                Tag.AcquisitionDate,
+                Tag.ContentDate,
+                Tag.DateOfSecondaryCapture,
+                Tag.SeriesDate,
+                Tag.StudyDate));
+    // else content time, else Series time, else Study time
+<span class="nc" id="L79">    disElements[5] =</span>
+        new TagView(
+<span class="nc" id="L81">            Messages.getString(&quot;ModalityView.acq&quot;),</span>
+<span class="nc" id="L82">            TagD.getTagFromIDs(</span>
+                Tag.AcquisitionTime,
+                Tag.ContentTime,
+                Tag.TimeOfSecondaryCapture,
+                Tag.SeriesTime,
+                Tag.StudyTime));
+
+<span class="nc" id="L89">    disElements = DEFAULT_MODALITY_VIEW.getCornerInfo(CornerDisplay.BOTTOM_RIGHT).getInfos();</span>
+<span class="nc" id="L90">    disElements[1] =</span>
+<span class="nc" id="L91">        new TagView(Messages.getString(&quot;ModalityView.series_nb&quot;), TagD.get(Tag.SeriesNumber));</span>
+<span class="nc" id="L92">    disElements[2] =</span>
+        new TagView(
+<span class="nc" id="L94">            Messages.getString(&quot;ModalityView.laterality&quot;),</span>
+<span class="nc" id="L95">            TagD.getTagFromIDs(Tag.FrameLaterality, Tag.ImageLaterality, Tag.Laterality));</span>
+
+    // TODO add sequence
+    // derived from Contrast/Bolus Agent Sequence (0018,0012), if
+    // present, else Contrast/Bolus Agent (0018,0010)
+    // http://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.4b.html
+<span class="nc" id="L101">    disElements[3] =</span>
+<span class="nc" id="L102">        new TagView(Messages.getString(&quot;ModalityView.desc25&quot;), TagD.get(Tag.ContrastBolusAgent));</span>
+<span class="nc" id="L103">    disElements[4] =</span>
+<span class="nc" id="L104">        new TagView(Messages.getString(&quot;ModalityView.desc25&quot;), TagD.get(Tag.SeriesDescription));</span>
+<span class="nc" id="L105">    disElements[5] =</span>
+<span class="nc" id="L106">        new TagView(Messages.getString(&quot;ModalityView.thick&quot;), TagD.get(Tag.SliceThickness));</span>
+<span class="nc" id="L107">    disElements[6] =</span>
+<span class="nc" id="L108">        new TagView(Messages.getString(&quot;ModalityView.location&quot;), TagD.get(Tag.SliceLocation));</span>
+    /*
+     * Spacing Between Slices (0018,0088), if present, else a value derived from successive values of Image Position
+     * (Patient) (0020,0032) perpendicular to the Image Orientation (Patient) (0020,0037)
+     */
+<span class="nc" id="L113">    MODALITY_VIEW_MAP.put(Modality.DEFAULT, DEFAULT_MODALITY_VIEW);</span>
+<span class="nc" id="L114">    readTagDisplayByModality();</span>
+<span class="nc" id="L115">  }</span>
+
+  private ModalityView() {}
+
+  public static ModalityInfoData getModlatityInfos(Modality mod) {
+<span class="nc" id="L120">    ModalityInfoData mdata = MODALITY_VIEW_MAP.get(mod);</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">    if (mdata == null) {</span>
+<span class="nc" id="L122">      mdata = MODALITY_VIEW_MAP.get(Modality.DEFAULT);</span>
+    }
+<span class="nc bnc" id="L124" title="All 2 branches missed.">    if (mdata == null) {</span>
+<span class="nc" id="L125">      mdata = DEFAULT_MODALITY_VIEW;</span>
+    }
+<span class="nc" id="L127">    return mdata;</span>
+  }
+
+  public static Set&lt;Entry&lt;Modality, ModalityInfoData&gt;&gt; getModalityViewEntries() {
+<span class="nc" id="L131">    return MODALITY_VIEW_MAP.entrySet();</span>
+  }
+
+  private static Modality getModality(String name) {
+    try {
+<span class="nc" id="L136">      return Modality.valueOf(name);</span>
+<span class="nc" id="L137">    } catch (Exception e) {</span>
+<span class="nc bnc" id="L138" title="All 2 branches missed.">      if (&quot;DS&quot;.equals(name)) {</span>
+<span class="nc" id="L139">        return Modality.XA;</span>
+<span class="nc bnc" id="L140" title="All 6 branches missed.">      } else if (&quot;CF&quot;.equals(name) || &quot;DF&quot;.equals(name) || &quot;VF&quot;.equals(name)) {</span>
+<span class="nc" id="L141">        return Modality.RF;</span>
+<span class="nc bnc" id="L142" title="All 4 branches missed.">      } else if (&quot;MA&quot;.equals(name) || &quot;MS&quot;.equals(name)) {</span>
+<span class="nc" id="L143">        return Modality.MR;</span>
+<span class="nc bnc" id="L144" title="All 6 branches missed.">      } else if (&quot;EC&quot;.equals(name) || &quot;CD&quot;.equals(name) || &quot;DD&quot;.equals(name)) {</span>
+<span class="nc" id="L145">        return Modality.US;</span>
+<span class="nc bnc" id="L146" title="All 2 branches missed.">      } else if (&quot;ST&quot;.equals(name)) {</span>
+<span class="nc" id="L147">        return Modality.NM;</span>
+      }
+<span class="nc" id="L149">      LOGGER.error(&quot;Modality reference of {} is missing&quot;, name, e);</span>
+    }
+<span class="nc" id="L151">    return null;</span>
+  }
+
+  private static CornerDisplay getCornerDisplay(String name) {
+    try {
+<span class="nc" id="L156">      return CornerDisplay.valueOf(name);</span>
+<span class="nc" id="L157">    } catch (Exception e) {</span>
+<span class="nc" id="L158">      LOGGER.error(&quot;CornerDisplay reference of {} doesn't exist&quot;, name, e);</span>
+    }
+<span class="nc" id="L160">    return null;</span>
+  }
+
+  private static TagView getTagView(String name, String format) {
+<span class="nc bnc" id="L164" title="All 2 branches missed.">    if (name != null) {</span>
+<span class="nc" id="L165">      String[] vals = name.split(&quot;,&quot;);</span>
+<span class="nc" id="L166">      ArrayList&lt;TagW&gt; list = new ArrayList&lt;&gt;(vals.length);</span>
+<span class="nc bnc" id="L167" title="All 2 branches missed.">      for (String s : vals) {</span>
+<span class="nc" id="L168">        TagW t = TagW.get(s);</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">        if (t == null) {</span>
+<span class="nc" id="L170">          LOGGER.warn(&quot;Cannot find tag \&quot;{}\&quot;&quot;, s);</span>
+        } else {
+<span class="nc" id="L172">          list.add(t);</span>
+        }
+      }
+<span class="nc bnc" id="L175" title="All 2 branches missed.">      if (!list.isEmpty()) {</span>
+<span class="nc" id="L176">        return new TagView(format, list.toArray(new TagW[0]));</span>
+      }
+    }
+<span class="nc" id="L179">    return null;</span>
+  }
+
+  private static void readTagDisplayByModality() {
+<span class="nc" id="L183">    XMLStreamReader xmler = null;</span>
+    try {
+<span class="nc" id="L185">      File file = ResourceUtil.getResource(DicomResource.ATTRIBUTES_VIEW);</span>
+<span class="nc bnc" id="L186" title="All 2 branches missed.">      if (!file.canRead()) {</span>
+<span class="nc" id="L187">        return;</span>
+      }
+<span class="nc" id="L189">      XMLInputFactory factory = XMLInputFactory.newInstance();</span>
+      // disable external entities for security
+<span class="nc" id="L191">      factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, Boolean.FALSE);</span>
+<span class="nc" id="L192">      factory.setProperty(XMLInputFactory.SUPPORT_DTD, Boolean.FALSE);</span>
+<span class="nc" id="L193">      xmler = factory.createXMLStreamReader(new FileInputStream(file));</span>
+
+<span class="nc bnc" id="L195" title="All 2 branches missed.">      while (xmler.hasNext()) {</span>
+<span class="nc bnc" id="L196" title="All 2 branches missed.">        if (xmler.next() == XMLStreamConstants.START_ELEMENT) {</span>
+<span class="nc" id="L197">          String key = xmler.getName().getLocalPart();</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">          if (&quot;modalities&quot;.equals(key)) { // NON-NLS</span>
+<span class="nc" id="L199">            readModalities(xmler);</span>
+          }
+<span class="nc" id="L201">        }</span>
+      }
+<span class="nc" id="L203">    } catch (Exception e) {</span>
+<span class="nc" id="L204">      LOGGER.error(&quot;Cannot read attributes-view.xml! &quot;, e);</span>
+    } finally {
+<span class="nc" id="L206">      FileUtil.safeClose(xmler);</span>
+    }
+<span class="nc" id="L208">  }</span>
+
+  private static void readModalities(XMLStreamReader xmler) throws XMLStreamException {
+<span class="nc bnc" id="L211" title="All 2 branches missed.">    while (xmler.hasNext()) {</span>
+<span class="nc bnc" id="L212" title="All 2 branches missed.">      if (xmler.next() == XMLStreamConstants.START_ELEMENT) {</span>
+<span class="nc" id="L213">        String key = xmler.getName().getLocalPart();</span>
+<span class="nc bnc" id="L214" title="All 4 branches missed.">        if (&quot;modality&quot;.equals(key) &amp;&amp; xmler.getAttributeCount() &gt;= 1) { // NON-NLS</span>
+<span class="nc" id="L215">          String name = xmler.getAttributeValue(null, &quot;name&quot;); // NON-NLS</span>
+<span class="nc" id="L216">          Modality m = getModality(name);</span>
+<span class="nc bnc" id="L217" title="All 2 branches missed.">          if (m != null) {</span>
+            try {
+<span class="nc" id="L219">              String extend = xmler.getAttributeValue(null, &quot;extend&quot;); // NON-NLS</span>
+<span class="nc" id="L220">              ModalityInfoData data = new ModalityInfoData(m, getModality(extend));</span>
+<span class="nc" id="L221">              readModality(data, xmler);</span>
+<span class="nc" id="L222">              MODALITY_VIEW_MAP.put(m, data);</span>
+<span class="nc" id="L223">            } catch (Exception e) {</span>
+<span class="nc" id="L224">              LOGGER.error(&quot;Modality {} cannot be read from attributes-view.xml&quot;, name, e);</span>
+<span class="nc" id="L225">            }</span>
+          }
+        }
+<span class="nc" id="L228">      }</span>
+    }
+<span class="nc" id="L230">  }</span>
+
+  private static void readModality(ModalityInfoData data, XMLStreamReader xmler)
+      throws XMLStreamException {
+<span class="nc" id="L234">    boolean state = true;</span>
+<span class="nc bnc" id="L235" title="All 4 branches missed.">    while (xmler.hasNext() &amp;&amp; state) {</span>
+<span class="nc bnc" id="L236" title="All 3 branches missed.">      switch (xmler.next()) {</span>
+        case XMLStreamConstants.START_ELEMENT:
+<span class="nc bnc" id="L238" title="All 2 branches missed.">          if (&quot;corner&quot;.equals(xmler.getName().getLocalPart()) // NON-NLS</span>
+<span class="nc bnc" id="L239" title="All 2 branches missed.">              &amp;&amp; xmler.getAttributeCount() &gt;= 1) {</span>
+<span class="nc" id="L240">            String name = xmler.getAttributeValue(null, &quot;name&quot;); // NON-NLS</span>
+<span class="nc" id="L241">            CornerDisplay corner = getCornerDisplay(name);</span>
+<span class="nc bnc" id="L242" title="All 2 branches missed.">            if (corner != null) {</span>
+<span class="nc" id="L243">              readCorner(data, corner, xmler);</span>
+            }
+<span class="nc" id="L245">          }</span>
+          break;
+        case XMLStreamConstants.END_ELEMENT:
+<span class="nc bnc" id="L248" title="All 2 branches missed.">          if (&quot;modality&quot;.equals(xmler.getName().getLocalPart())) { // NON-NLS</span>
+<span class="nc" id="L249">            state = false;</span>
+          }
+          break;
+        default:
+<span class="nc" id="L253">          break;</span>
+      }
+    }
+<span class="nc" id="L256">  }</span>
+
+  private static void readCorner(ModalityInfoData data, CornerDisplay corner, XMLStreamReader xmler)
+      throws XMLStreamException {
+
+<span class="nc" id="L261">    TagView[] disElements = data.getCornerInfo(corner).getInfos();</span>
+
+<span class="nc" id="L263">    boolean state = true;</span>
+<span class="nc" id="L264">    int index = -1;</span>
+<span class="nc" id="L265">    String format = null;</span>
+<span class="nc bnc" id="L266" title="All 4 branches missed.">    while (xmler.hasNext() &amp;&amp; state) {</span>
+<span class="nc bnc" id="L267" title="All 4 branches missed.">      switch (xmler.next()) {</span>
+        case XMLStreamConstants.CHARACTERS:
+<span class="nc bnc" id="L269" title="All 4 branches missed.">          if (index &gt; 0 &amp;&amp; index &lt;= 7) {</span>
+<span class="nc" id="L270">            disElements[index - 1] = getTag(xmler.getText(), format);</span>
+<span class="nc" id="L271">            index = -1; // Reset current index and format</span>
+<span class="nc" id="L272">            format = null;</span>
+          }
+          break;
+        case XMLStreamConstants.START_ELEMENT:
+<span class="nc bnc" id="L276" title="All 2 branches missed.">          if (&quot;p&quot;.equals(xmler.getName().getLocalPart()) // NON-NLS</span>
+<span class="nc bnc" id="L277" title="All 2 branches missed.">              &amp;&amp; xmler.getAttributeCount() &gt;= 1) {</span>
+<span class="nc" id="L278">            index = TagUtil.getIntegerTagAttribute(xmler, &quot;index&quot;, -1); // NON-NLS</span>
+<span class="nc" id="L279">            format = xmler.getAttributeValue(null, &quot;format&quot;); // NON-NLS</span>
+          }
+          break;
+        case XMLStreamConstants.END_ELEMENT:
+<span class="nc bnc" id="L283" title="All 2 branches missed.">          if (&quot;corner&quot;.equals(xmler.getName().getLocalPart())) { // NON-NLS</span>
+<span class="nc" id="L284">            state = false;</span>
+          }
+          break;
+        default:
+<span class="nc" id="L288">          break;</span>
+      }
+    }
+<span class="nc" id="L291">  }</span>
+
+  private static TagView getTag(String name, String format) {
+<span class="nc bnc" id="L294" title="All 2 branches missed.">    if (StringUtil.hasText(name)) {</span>
+<span class="nc" id="L295">      return getTagView(name, format);</span>
+    }
+<span class="nc" id="L297">    return null;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,423 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>HistogramView.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image</a> &gt; <span class="el_source">HistogramView.java</span></div><h1>HistogramView.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image;
+
+import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.event.ActionEvent;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import javax.swing.BorderFactory;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JSpinner;
+import javax.swing.JTable;
+import javax.swing.SpinnerNumberModel;
+import org.opencv.core.Mat;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.image.OpManager;
+import org.weasis.core.api.image.PseudoColorOp;
+import org.weasis.core.api.image.WindowOp;
+import org.weasis.core.api.image.util.MeasurableLayer;
+import org.weasis.core.api.image.util.WindLevelParameters;
+import org.weasis.core.ui.editor.SeriesViewer;
+import org.weasis.core.ui.editor.SeriesViewerEvent;
+import org.weasis.core.ui.editor.SeriesViewerEvent.EVENT;
+import org.weasis.core.ui.editor.SeriesViewerListener;
+import org.weasis.core.ui.editor.image.HistogramData.Model;
+import org.weasis.core.ui.editor.image.dockable.MeasureTool;
+import org.weasis.core.ui.model.graphic.AbstractDragGraphicArea;
+import org.weasis.core.ui.model.graphic.Graphic;
+import org.weasis.core.ui.model.graphic.GraphicSelectionListener;
+import org.weasis.core.ui.model.graphic.imp.area.SelectGraphic;
+import org.weasis.core.ui.model.utils.bean.MeasureItem;
+import org.weasis.core.ui.util.SimpleTableModel;
+import org.weasis.core.ui.util.TableNumberRenderer;
+import org.weasis.core.util.StringUtil;
+import org.weasis.opencv.data.PlanarImage;
+import org.weasis.opencv.op.lut.ByteLut;
+import org.weasis.opencv.op.lut.WlParams;
+
+public class HistogramView extends JComponent
+    implements SeriesViewerListener, GraphicSelectionListener {
+
+<span class="nc" id="L62">  private static final Logger LOGGER = LoggerFactory.getLogger(HistogramView.class);</span>
+
+<span class="nc" id="L64">  private final JPanel view = new JPanel();</span>
+<span class="nc" id="L65">  private final JPanel histView = new JPanel();</span>
+  private final SeriesViewer&lt;?&gt; viewer;
+<span class="nc" id="L67">  private final JSpinner spinnerBins = new JSpinner(new SpinnerNumberModel(256, 64, 4096, 8));</span>
+
+  private ViewCanvas&lt;?&gt; view2DPane;
+
+<span class="nc" id="L71">  private final ItemListener modelListener =</span>
+      e -&gt; {
+<span class="nc bnc" id="L73" title="All 2 branches missed.">        if (e.getStateChange() == ItemEvent.SELECTED) {</span>
+<span class="nc" id="L74">          buildHistogram();</span>
+<span class="nc" id="L75">          repaint();</span>
+        }
+<span class="nc" id="L77">      };</span>
+<span class="nc" id="L78">  private final JComboBox&lt;Model&gt; jComboBoxImgChannel = new JComboBox&lt;&gt;();</span>
+  private AbstractDragGraphicArea selectedGraphic;
+
+<span class="nc" id="L81">  public HistogramView(SeriesViewer&lt;?&gt; viewer) {</span>
+<span class="nc" id="L82">    this.viewer = viewer;</span>
+<span class="nc" id="L83">    setLayout(new BorderLayout());</span>
+<span class="nc" id="L84">    view.setLayout(new BorderLayout());</span>
+<span class="nc" id="L85">    add(view, BorderLayout.CENTER);</span>
+<span class="nc" id="L86">    setPreferredSize(GuiUtils.getDimension(400, 300));</span>
+<span class="nc" id="L87">    setMinimumSize(GuiUtils.getDimension(150, 50));</span>
+<span class="nc" id="L88">  }</span>
+
+  @Override
+  public void changingViewContentEvent(SeriesViewerEvent event) {
+<span class="nc" id="L92">    EVENT type = event.getEventType();</span>
+<span class="nc bnc" id="L93" title="All 2 branches missed.">    if (event.getSeriesViewer() == viewer) {</span>
+<span class="nc bnc" id="L94" title="All 4 branches missed.">      if (EVENT.SELECT.equals(type) || EVENT.LAYOUT.equals(type)) {</span>
+<span class="nc" id="L95">        updatePane(event);</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">      } else if (EVENT.WIN_LEVEL.equals(type)) {</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">        if (view2DPane == null) {</span>
+<span class="nc" id="L98">          updatePane(event);</span>
+        } else {
+<span class="nc" id="L100">          WindLevelParameters p = getWinLeveParameters();</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">          for (int i = 0; i &lt; histView.getComponentCount(); i++) {</span>
+<span class="nc" id="L102">            Component c = histView.getComponent(i);</span>
+<span class="nc bnc" id="L103" title="All 2 branches missed.">            if (c instanceof ChannelHistogramPanel histogramPanel) {</span>
+<span class="nc" id="L104">              histogramPanel.setWindLevelParameters(p);</span>
+<span class="nc" id="L105">              histogramPanel.getData().updateVoiLut(view2DPane);</span>
+            }
+          }
+<span class="nc" id="L108">        }</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">      } else if (EVENT.LUT.equals(type)) {</span>
+<span class="nc" id="L110">        WlParams p = getWinLeveParameters();</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">        if (p == null) {</span>
+<span class="nc" id="L112">          return;</span>
+        }
+<span class="nc" id="L114">        PlanarImage imageSource = view2DPane.getSourceImage();</span>
+<span class="nc" id="L115">        int channels = imageSource.channels();</span>
+<span class="nc" id="L116">        Model colorModel = getSelectedColorModel(channels);</span>
+<span class="nc" id="L117">        DisplayByteLut[] lut = getLut(p, colorModel);</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">        for (int i = 0; i &lt; histView.getComponentCount(); i++) {</span>
+<span class="nc" id="L119">          Component c = histView.getComponent(i);</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">          if (c instanceof ChannelHistogramPanel histogramPanel) {</span>
+<span class="nc" id="L121">            histogramPanel.setLut(lut[i]);</span>
+          }
+        }
+      }
+    }
+<span class="nc" id="L126">  }</span>
+
+  private void updatePane(SeriesViewerEvent event) {
+<span class="nc bnc" id="L129" title="All 2 branches missed.">    if (event.getSeriesViewer() instanceof ImageViewerPlugin) {</span>
+<span class="nc" id="L130">      view2DPane = ((ImageViewerPlugin&lt;?&gt;) event.getSeriesViewer()).getSelectedImagePane();</span>
+<span class="nc" id="L131">      displayHistogram();</span>
+    } else {
+<span class="nc" id="L133">      view2DPane = null;</span>
+    }
+<span class="nc" id="L135">  }</span>
+
+  private void displayHistogram() {
+<span class="nc" id="L138">    buildLayout();</span>
+<span class="nc" id="L139">    buildHistogram();</span>
+<span class="nc" id="L140">    repaint();</span>
+<span class="nc" id="L141">  }</span>
+
+  private void buildLayout() {
+<span class="nc" id="L144">    view.removeAll();</span>
+<span class="nc bnc" id="L145" title="All 4 branches missed.">    if (view2DPane != null &amp;&amp; view2DPane.getSourceImage() != null) {</span>
+<span class="nc" id="L146">      PlanarImage imageSource = view2DPane.getSourceImage();</span>
+<span class="nc" id="L147">      int channels = imageSource.channels();</span>
+
+<span class="nc" id="L149">      histView.setLayout(new BoxLayout(histView, BoxLayout.Y_AXIS));</span>
+
+<span class="nc" id="L151">      JPanel headerPanel = new JPanel();</span>
+<span class="nc" id="L152">      headerPanel.setLayout(new BoxLayout(headerPanel, BoxLayout.Y_AXIS));</span>
+<span class="nc" id="L153">      headerPanel.setBorder(</span>
+<span class="nc" id="L154">          BorderFactory.createCompoundBorder(</span>
+<span class="nc" id="L155">              GuiUtils.getEmptyBorder(10, 7, 7, 7),</span>
+<span class="nc" id="L156">              GuiUtils.getTitledBorder(Messages.getString(&quot;HistogramView.histoParams&quot;))));</span>
+
+<span class="nc" id="L158">      JPanel row1 = new JPanel();</span>
+<span class="nc" id="L159">      row1.add(new JLabel(Messages.getString(&quot;HistogramView.channel&quot;) + StringUtil.COLON));</span>
+
+<span class="nc" id="L161">      jComboBoxImgChannel.removeItemListener(modelListener);</span>
+<span class="nc" id="L162">      Model oldColorModel = (Model) jComboBoxImgChannel.getSelectedItem();</span>
+<span class="nc" id="L163">      int oldModelNumber = jComboBoxImgChannel.getItemCount();</span>
+<span class="nc" id="L164">      jComboBoxImgChannel.removeAllItems();</span>
+<span class="nc" id="L165">      Model[] vals = Model.values();</span>
+<span class="nc bnc" id="L166" title="All 4 branches missed.">      int limit = channels &gt; 1 ? imageSource.depth() &gt; 1 ? 2 : vals.length : 1;</span>
+<span class="nc bnc" id="L167" title="All 4 branches missed.">      for (int i = channels &gt; 1 ? 1 : 0; i &lt; limit; i++) {</span>
+<span class="nc" id="L168">        jComboBoxImgChannel.addItem(vals[i]);</span>
+      }
+<span class="nc bnc" id="L170" title="All 2 branches missed.">      if (channels &gt; 1) {</span>
+<span class="nc" id="L171">        jComboBoxImgChannel.addItem(vals[0]);</span>
+      }
+
+<span class="nc bnc" id="L174" title="All 4 branches missed.">      if (oldColorModel != null &amp;&amp; oldModelNumber == jComboBoxImgChannel.getItemCount()) {</span>
+<span class="nc" id="L175">        jComboBoxImgChannel.setSelectedItem(oldColorModel);</span>
+      }
+<span class="nc" id="L177">      jComboBoxImgChannel.addItemListener(modelListener);</span>
+
+<span class="nc" id="L179">      row1.add(jComboBoxImgChannel);</span>
+<span class="nc" id="L180">      headerPanel.add(row1);</span>
+
+<span class="nc" id="L182">      JPanel row2 = new JPanel();</span>
+<span class="nc" id="L183">      row2.add(new JLabel(Messages.getString(&quot;HistogramView.bins&quot;) + StringUtil.COLON));</span>
+<span class="nc" id="L184">      GuiUtils.formatCheckAction(spinnerBins);</span>
+<span class="nc" id="L185">      row2.add(spinnerBins);</span>
+<span class="nc" id="L186">      spinnerBins.addChangeListener(e -&gt; buildHistogram());</span>
+<span class="nc" id="L187">      row2.add(GuiUtils.boxHorizontalStrut(15));</span>
+
+<span class="nc" id="L189">      final JButton stats = new JButton(Messages.getString(&quot;HistogramView.stats&quot;));</span>
+<span class="nc" id="L190">      stats.addActionListener((ActionEvent e) -&gt; showStatistics());</span>
+<span class="nc" id="L191">      row2.add(stats);</span>
+<span class="nc" id="L192">      headerPanel.add(row2);</span>
+
+<span class="nc" id="L194">      view.add(headerPanel, BorderLayout.NORTH);</span>
+<span class="nc" id="L195">      view.add(histView, BorderLayout.CENTER);</span>
+    }
+<span class="nc" id="L197">  }</span>
+
+  private void showStatistics() {
+<span class="nc bnc" id="L200" title="All 4 branches missed.">    if (view2DPane == null || histView.getComponentCount() == 0) {</span>
+<span class="nc" id="L201">      return;</span>
+    }
+
+<span class="nc" id="L204">    ChannelHistogramPanel[] hist = new ChannelHistogramPanel[histView.getComponentCount()];</span>
+<span class="nc bnc" id="L205" title="All 2 branches missed.">    for (int i = 0; i &lt; hist.length; i++) {</span>
+<span class="nc" id="L206">      Component c = histView.getComponent(i);</span>
+<span class="nc bnc" id="L207" title="All 2 branches missed.">      if (c instanceof ChannelHistogramPanel panel) {</span>
+<span class="nc" id="L208">        hist[i] = panel;</span>
+      }
+    }
+<span class="nc bnc" id="L211" title="All 2 branches missed.">    if (hist.length == 0) {</span>
+<span class="nc" id="L212">      return;</span>
+    }
+
+<span class="nc" id="L215">    List&lt;MeasureItem&gt; measList = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L216" title="All 2 branches missed.">    for (int i = 0; i &lt; hist.length; i++) {</span>
+<span class="nc bnc" id="L217" title="All 2 branches missed.">      Integer channel = hist.length == 1 ? null : i;</span>
+<span class="nc bnc" id="L218" title="All 2 branches missed.">      measList.addAll(ImageRegionStatistics.getStatistics(hist[i].getData(), channel, i == 0));</span>
+    }
+
+<span class="nc" id="L221">    JPanel tableContainer = buildStatisticsTable(measList);</span>
+<span class="nc" id="L222">    JOptionPane.showMessageDialog(</span>
+        spinnerBins,
+        tableContainer,
+<span class="nc" id="L225">        Messages.getString(&quot;HistogramView.stats&quot;),</span>
+        JOptionPane.PLAIN_MESSAGE,
+        null);
+<span class="nc" id="L228">  }</span>
+
+  public static JPanel buildStatisticsTable(List&lt;MeasureItem&gt; measList) {
+<span class="nc" id="L231">    JPanel tableContainer = new JPanel();</span>
+<span class="nc" id="L232">    tableContainer.setLayout(new BorderLayout());</span>
+
+<span class="nc" id="L234">    JTable jtable =</span>
+<span class="nc" id="L235">        MeasureTool.createMultipleRenderingTable(</span>
+            new SimpleTableModel(new String[] {}, new Object[][] {}));
+<span class="nc" id="L237">    jtable.getTableHeader().setReorderingAllowed(false);</span>
+
+<span class="nc" id="L239">    String[] headers = {</span>
+<span class="nc" id="L240">      Messages.getString(&quot;MeasureTool.param&quot;), Messages.getString(&quot;MeasureTool.val&quot;)</span>
+    };
+<span class="nc" id="L242">    jtable.setModel(new SimpleTableModel(headers, MeasureTool.getLabels(measList)));</span>
+<span class="nc" id="L243">    jtable.getColumnModel().getColumn(1).setCellRenderer(new TableNumberRenderer());</span>
+<span class="nc" id="L244">    tableContainer.add(jtable.getTableHeader(), BorderLayout.PAGE_START);</span>
+<span class="nc" id="L245">    tableContainer.add(jtable, BorderLayout.CENTER);</span>
+<span class="nc" id="L246">    jtable.setShowVerticalLines(true);</span>
+<span class="nc" id="L247">    jtable.getColumnModel().getColumn(0).setPreferredWidth(120);</span>
+<span class="nc" id="L248">    jtable.getColumnModel().getColumn(1).setPreferredWidth(80);</span>
+<span class="nc" id="L249">    return tableContainer;</span>
+  }
+
+  private WindLevelParameters getWinLeveParameters() {
+<span class="nc bnc" id="L253" title="All 2 branches missed.">    if (view2DPane != null) {</span>
+<span class="nc" id="L254">      OpManager dispOp = view2DPane.getDisplayOpManager();</span>
+<span class="nc" id="L255">      WindowOp wlOp = (WindowOp) dispOp.getNode(WindowOp.OP_NAME);</span>
+<span class="nc bnc" id="L256" title="All 2 branches missed.">      if (wlOp != null) {</span>
+<span class="nc" id="L257">        return wlOp.getWindLevelParameters();</span>
+      }
+    }
+<span class="nc" id="L260">    return null;</span>
+  }
+
+  private DisplayByteLut[] getLut(WlParams p, Model colorModel) {
+<span class="nc" id="L264">    DisplayByteLut[] lut = null;</span>
+<span class="nc bnc" id="L265" title="All 2 branches missed.">    if (view2DPane != null) {</span>
+<span class="nc" id="L266">      int channels = view2DPane.getSourceImage().channels();</span>
+<span class="nc bnc" id="L267" title="All 2 branches missed.">      if (channels == 1) {</span>
+<span class="nc" id="L268">        DisplayByteLut disLut = buildDisplayByteLut(view2DPane);</span>
+<span class="nc bnc" id="L269" title="All 2 branches missed.">        if (disLut == null) {</span>
+<span class="nc" id="L270">          disLut = new DisplayByteLut(Model.GRAY.getByteLut()[0]);</span>
+        }
+<span class="nc" id="L272">        disLut.setInvert(p.isInverseLut());</span>
+<span class="nc" id="L273">        lut = new DisplayByteLut[] {disLut};</span>
+      }
+    }
+
+<span class="nc bnc" id="L277" title="All 2 branches missed.">    if (lut == null) {</span>
+<span class="nc" id="L278">      ByteLut[] l = colorModel.getByteLut();</span>
+<span class="nc" id="L279">      lut = new DisplayByteLut[l.length];</span>
+<span class="nc bnc" id="L280" title="All 2 branches missed.">      for (int i = 0; i &lt; l.length; i++) {</span>
+<span class="nc" id="L281">        lut[i] = new DisplayByteLut(l[i]);</span>
+      }
+    }
+<span class="nc" id="L284">    return lut;</span>
+  }
+
+  public static DisplayByteLut buildDisplayByteLut(ViewCanvas&lt;?&gt; view2DPane) {
+<span class="nc" id="L288">    DisplayByteLut disLut = null;</span>
+<span class="nc" id="L289">    OpManager dispOp = view2DPane.getDisplayOpManager();</span>
+<span class="nc" id="L290">    PseudoColorOp lutOp = (PseudoColorOp) dispOp.getNode(PseudoColorOp.OP_NAME);</span>
+<span class="nc bnc" id="L291" title="All 2 branches missed.">    if (lutOp != null) {</span>
+<span class="nc" id="L292">      ByteLut lutTable = (ByteLut) lutOp.getParam(PseudoColorOp.P_LUT);</span>
+<span class="nc bnc" id="L293" title="All 4 branches missed.">      if (lutTable != null &amp;&amp; lutTable.lutTable() != null) {</span>
+<span class="nc" id="L294">        disLut = new DisplayByteLut(lutTable);</span>
+      }
+    }
+<span class="nc" id="L297">    return disLut;</span>
+  }
+
+  private Model getSelectedColorModel(int channels) {
+<span class="nc" id="L301">    Model colorModel = (Model) jComboBoxImgChannel.getSelectedItem();</span>
+<span class="nc bnc" id="L302" title="All 2 branches missed.">    if (colorModel == null) {</span>
+<span class="nc bnc" id="L303" title="All 2 branches missed.">      colorModel = channels &gt; 1 ? Model.RGB : Model.GRAY;</span>
+    }
+<span class="nc" id="L305">    return colorModel;</span>
+  }
+
+  private void buildHistogram() {
+<span class="nc bnc" id="L309" title="All 4 branches missed.">    if (view2DPane != null &amp;&amp; view2DPane.getSourceImage() != null) {</span>
+<span class="nc" id="L310">      ChannelHistogramPanel[] old = new ChannelHistogramPanel[histView.getComponentCount()];</span>
+<span class="nc bnc" id="L311" title="All 2 branches missed.">      for (int i = 0; i &lt; old.length; i++) {</span>
+<span class="nc" id="L312">        Component c = histView.getComponent(i);</span>
+<span class="nc bnc" id="L313" title="All 2 branches missed.">        if (c instanceof ChannelHistogramPanel channelHistogramPanel) {</span>
+<span class="nc" id="L314">          old[i] = channelHistogramPanel;</span>
+        }
+      }
+<span class="nc" id="L317">      histView.removeAll();</span>
+
+<span class="nc" id="L319">      WindLevelParameters p = getWinLeveParameters();</span>
+<span class="nc bnc" id="L320" title="All 2 branches missed.">      if (p == null) {</span>
+<span class="nc" id="L321">        return;</span>
+      }
+<span class="nc" id="L323">      MeasurableLayer layer = view2DPane.getMeasurableLayer();</span>
+<span class="nc" id="L324">      double pixMin = layer.getPixelMin();</span>
+<span class="nc" id="L325">      double pixMax = layer.getPixelMax();</span>
+<span class="nc" id="L326">      PlanarImage imageSource = view2DPane.getSourceImage();</span>
+<span class="nc" id="L327">      int channels = imageSource.channels();</span>
+<span class="nc" id="L328">      Model colorModel = getSelectedColorModel(channels);</span>
+<span class="nc" id="L329">      int[] selChannels = new int[channels];</span>
+<span class="nc bnc" id="L330" title="All 2 branches missed.">      for (int i = 0; i &lt; selChannels.length; i++) {</span>
+<span class="nc" id="L331">        selChannels[i] = i;</span>
+      }
+      try {
+<span class="nc" id="L334">        int nbins = (Integer) spinnerBins.getValue();</span>
+<span class="nc" id="L335">        List&lt;Mat&gt; imgPr = ImageRegionStatistics.prepareInputImages(selectedGraphic, layer);</span>
+<span class="nc bnc" id="L336" title="All 2 branches missed.">        if (imgPr.size() &gt; 1) {</span>
+<span class="nc" id="L337">          Mat srcImg = imgPr.get(0);</span>
+<span class="nc" id="L338">          Mat mask = imgPr.get(1);</span>
+<span class="nc" id="L339">          List&lt;Mat&gt; listHisto =</span>
+<span class="nc" id="L340">              HistogramData.computeHistogram(</span>
+                  srcImg, mask, nbins, selChannels, colorModel, pixMin, pixMax);
+
+<span class="nc" id="L343">          ByteLut[] lut = colorModel.getByteLut();</span>
+<span class="nc" id="L344">          DisplayByteLut[] displut = getLut(p, colorModel);</span>
+<span class="nc bnc" id="L345" title="All 2 branches missed.">          for (int i = 0; i &lt; lut.length; i++) {</span>
+            ChannelHistogramPanel chartPanel;
+<span class="nc" id="L347">            StringBuilder name = new StringBuilder(lut[i].name());</span>
+<span class="nc" id="L348">            name.append(StringUtil.SPACE);</span>
+<span class="nc" id="L349">            name.append(Messages.getString(&quot;HistogramView.histo&quot;));</span>
+<span class="nc bnc" id="L350" title="All 2 branches missed.">            if (StringUtil.hasText(layer.getPixelValueUnit())) {</span>
+<span class="nc" id="L351">              name.append(&quot; [&quot;);</span>
+<span class="nc" id="L352">              name.append(layer.getPixelValueUnit());</span>
+<span class="nc" id="L353">              name.append(&quot;]&quot;);</span>
+            }
+<span class="nc bnc" id="L355" title="All 4 branches missed.">            if (i &gt;= old.length || old[i] == null) {</span>
+<span class="nc" id="L356">              chartPanel = new ChannelHistogramPanel(name.toString());</span>
+            } else {
+<span class="nc" id="L358">              chartPanel =</span>
+                  new ChannelHistogramPanel(
+<span class="nc" id="L360">                      name.toString(),</span>
+<span class="nc" id="L361">                      old[i].isAccumulate(),</span>
+<span class="nc" id="L362">                      old[i].isLogarithmic(),</span>
+<span class="nc" id="L363">                      old[i].isShowIntensity());</span>
+            }
+<span class="nc" id="L365">            histView.add(chartPanel);</span>
+<span class="nc" id="L366">            Mat h = listHisto.get(i);</span>
+<span class="nc" id="L367">            float[] histValues = new float[h.rows()];</span>
+<span class="nc" id="L368">            h.get(0, 0, histValues);</span>
+<span class="nc" id="L369">            HistogramData data =</span>
+                new HistogramData(histValues, displut[i], i, colorModel, p, pixMin, pixMax, layer);
+<span class="nc" id="L371">            data.updateVoiLut(view2DPane);</span>
+<span class="nc" id="L372">            chartPanel.setHistogramBins(data);</span>
+          }
+        }
+<span class="nc" id="L375">      } catch (Exception e) {</span>
+<span class="nc" id="L376">        LOGGER.error(&quot;Build histogram&quot;, e);</span>
+<span class="nc" id="L377">      }</span>
+<span class="nc" id="L378">      histView.revalidate();</span>
+<span class="nc" id="L379">      histView.repaint();</span>
+    }
+<span class="nc" id="L381">  }</span>
+
+  // TODO remove
+  //  private void exportcsv(PlanarImage imageSource) {
+  //    File csvOutputFile = new File(&quot;/tmp/&quot; + &quot;image&quot; + &quot;.csv&quot;); // NON-NLS
+  //    try (PrintWriter pw = new PrintWriter(csvOutputFile)) {
+  //      short[] pix = new short[imageSource.width()];
+  //      for (int i = 0; i &lt; imageSource.height(); i++) {
+  //        imageSource.get(i, 0, pix);
+  //        IntStream is = IntStream.range(0, pix.length).map(k -&gt; pix[k]);
+  //        pw.println(is.mapToObj(String::valueOf).collect(Collectors.joining(&quot;,&quot;)));
+  //      }
+  //    } catch (FileNotFoundException e) {
+  //      LOGGER.error(&quot;&quot;, e);
+  //    }
+  //  }
+
+  @Override
+  public void handle(List&lt;Graphic&gt; selectedGraphicList, MeasurableLayer layer) {
+<span class="nc" id="L400">    AbstractDragGraphicArea g = null;</span>
+
+<span class="nc bnc" id="L402" title="All 2 branches missed.">    if (selectedGraphicList != null</span>
+<span class="nc bnc" id="L403" title="All 2 branches missed.">        &amp;&amp; selectedGraphicList.size() == 1</span>
+<span class="nc bnc" id="L404" title="All 2 branches missed.">        &amp;&amp; selectedGraphicList.get(0) instanceof AbstractDragGraphicArea sel) {</span>
+<span class="nc bnc" id="L405" title="All 2 branches missed.">      if (!(sel instanceof SelectGraphic)) {</span>
+<span class="nc" id="L406">        g = sel;</span>
+      }
+    }
+<span class="nc bnc" id="L409" title="All 2 branches missed.">    boolean update = !Objects.equals(selectedGraphic, g);</span>
+<span class="nc" id="L410">    this.selectedGraphic = g;</span>
+<span class="nc bnc" id="L411" title="All 2 branches missed.">    if (update) {</span>
+<span class="nc" id="L412">      buildHistogram();</span>
+    }
+<span class="nc" id="L414">  }</span>
+
+  @Override
+  public void updateMeasuredItems(List&lt;MeasureItem&gt; measureList) {
+<span class="nc bnc" id="L418" title="All 2 branches missed.">    if (selectedGraphic != null) {</span>
+<span class="nc" id="L419">      buildHistogram();</span>
+    }
+<span class="nc" id="L421">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

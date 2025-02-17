@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>SerieButtonList.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer.gui.central</a> &gt; <span class="el_source">SerieButtonList.java</span></div><h1>SerieButtonList.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer.gui.central;
+
+import java.awt.Dimension;
+import java.util.Optional;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import javax.swing.BoxLayout;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.ScrollPaneConstants;
+import org.weasis.acquire.explorer.core.bean.SeriesGroup;
+
+public class SerieButtonList extends JScrollPane {
+
+<span class="nc" id="L25">  private static final JPanel serieButtonPane = new JPanel();</span>
+
+<span class="nc" id="L27">  private final SortedSet&lt;SeriesButton&gt; seriesButtonSet = new TreeSet&lt;&gt;();</span>
+
+  public SerieButtonList() {
+<span class="nc" id="L30">    super(</span>
+        serieButtonPane,
+        ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED,
+        ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+<span class="nc" id="L34">    serieButtonPane.setLayout(new BoxLayout(serieButtonPane, BoxLayout.Y_AXIS));</span>
+<span class="nc" id="L35">  }</span>
+
+  public void addButton(SeriesButton btn) {
+<span class="nc" id="L38">    Dimension dim = btn.getPreferredSize();</span>
+<span class="nc" id="L39">    dim.width = 210;</span>
+<span class="nc" id="L40">    btn.setPreferredSize(dim);</span>
+<span class="nc" id="L41">    dim = btn.getMaximumSize();</span>
+<span class="nc" id="L42">    dim.width = 210;</span>
+<span class="nc" id="L43">    btn.setMaximumSize(dim);</span>
+<span class="nc" id="L44">    seriesButtonSet.add(btn);</span>
+<span class="nc" id="L45">    int index = seriesButtonSet.headSet(btn).size();</span>
+<span class="nc" id="L46">    serieButtonPane.add(btn, index);</span>
+<span class="nc" id="L47">  }</span>
+
+  public Optional&lt;SeriesButton&gt; getButton(final SeriesGroup seriesGroup) {
+<span class="nc" id="L50">    return seriesButtonSet.stream().filter(sb -&gt; sb.getSeries().equals(seriesGroup)).findAny();</span>
+  }
+
+  public Set&lt;SeriesButton&gt; getButtons() {
+<span class="nc" id="L54">    return seriesButtonSet;</span>
+  }
+
+  private void remove(SeriesButton btn) {
+<span class="nc bnc" id="L58" title="All 2 branches missed.">    if (seriesButtonSet.remove(btn)) {</span>
+<span class="nc" id="L59">      serieButtonPane.remove(btn);</span>
+    }
+<span class="nc" id="L61">  }</span>
+
+  public Optional&lt;SeriesButton&gt; getFirstSerieButton() {
+<span class="nc" id="L64">    return seriesButtonSet.stream().sorted().findFirst();</span>
+  }
+
+  public void removeBySerie(final SeriesGroup seriesGroup) {
+<span class="nc" id="L68">    seriesButtonSet.stream()</span>
+<span class="nc" id="L69">        .filter(sb -&gt; sb.getSeries().equals(seriesGroup))</span>
+<span class="nc" id="L70">        .findFirst()</span>
+<span class="nc" id="L71">        .ifPresent(this::remove);</span>
+<span class="nc" id="L72">  }</span>
+
+  protected void refreshGUI() {
+<span class="nc" id="L75">    revalidate();</span>
+<span class="nc" id="L76">    repaint();</span>
+<span class="nc" id="L77">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

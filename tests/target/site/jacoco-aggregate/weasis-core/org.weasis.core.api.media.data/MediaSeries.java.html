@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>MediaSeries.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.media.data</a> &gt; <span class="el_source">MediaSeries.java</span></div><h1>MediaSeries.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.media.data;
+
+import java.awt.datatransfer.Transferable;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.List;
+import org.weasis.core.api.gui.util.Filter;
+
+public interface MediaSeries&lt;E&gt; extends MediaSeriesGroup, Transferable {
+
+<span class="nc" id="L20">  enum MEDIA_POSITION {</span>
+<span class="nc" id="L21">    FIRST,</span>
+<span class="nc" id="L22">    MIDDLE,</span>
+<span class="nc" id="L23">    LAST,</span>
+<span class="nc" id="L24">    RANDOM</span>
+  }
+
+  List&lt;E&gt; getSortedMedias(Comparator&lt;E&gt; comparator);
+
+  void addMedia(E media);
+
+  void add(E media);
+
+  void add(int index, E media);
+
+  void addAll(Collection&lt;? extends E&gt; c);
+
+  void addAll(int index, Collection&lt;? extends E&gt; c);
+
+  E getMedia(MEDIA_POSITION position, Filter&lt;E&gt; filter, Comparator&lt;E&gt; sort);
+
+  Iterable&lt;E&gt; getMedias(Filter&lt;E&gt; filter, Comparator&lt;E&gt; sort);
+
+  List&lt;E&gt; copyOfMedias(Filter&lt;E&gt; filter, Comparator&lt;E&gt; sort);
+
+  E getMedia(int index, Filter&lt;E&gt; filter, Comparator&lt;E&gt; sort);
+
+  MediaElement getFirstSpecialElement();
+
+  @Override
+  void dispose();
+
+  int size(Filter&lt;E&gt; filter);
+
+  SeriesImporter getSeriesLoader();
+
+  void setSeriesLoader(SeriesImporter seriesLoader);
+
+  String getToolTips();
+
+  String getSeriesNumber();
+
+  boolean isOpen();
+
+  boolean isSelected();
+
+  boolean isFocused();
+
+  String getMimeType();
+
+  void setOpen(boolean b);
+
+  void setSelected(boolean b, E selectedMedia);
+
+  void setFocused(boolean b);
+
+  E getNearestImage(double location, int offset, Filter&lt;E&gt; filter, Comparator&lt;E&gt; sort);
+
+  int getNearestImageIndex(double location, int offset, Filter&lt;E&gt; filter, Comparator&lt;E&gt; sort);
+
+  long getFileSize();
+
+  default boolean isSuitableFor3d() {
+<span class="nc" id="L83">    return false;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

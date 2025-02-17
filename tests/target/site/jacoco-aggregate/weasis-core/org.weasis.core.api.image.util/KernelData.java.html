@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>KernelData.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.image.util</a> &gt; <span class="el_source">KernelData.java</span></div><h1>KernelData.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.image.util;
+
+import org.weasis.core.Messages;
+import org.weasis.core.util.MathUtil;
+
+public class KernelData {
+
+<span class="nc" id="L17">  public static final KernelData NONE =</span>
+<span class="nc" id="L18">      new KernelData(Messages.getString(&quot;KernelData.0&quot;), false, 1, 1, new float[] {1.0F});</span>
+<span class="nc" id="L19">  public static final KernelData MEAN =</span>
+      new KernelData(
+<span class="nc" id="L21">          Messages.getString(&quot;KernelData.1&quot;),</span>
+          false,
+          3,
+          3,
+          1,
+          1,
+          new float[] {
+            1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F,
+          },
+          9);
+<span class="nc" id="L31">  public static final KernelData BLUR =</span>
+      new KernelData(
+<span class="nc" id="L33">          Messages.getString(&quot;KernelData.2&quot;),</span>
+          false,
+          3,
+          3,
+          1,
+          1,
+          new float[] {0.0F, 1.0F, 0.0F, 1.0F, 4.0F, 1.0F, 0.0F, 1.0F, 0.0F},
+          8);
+<span class="nc" id="L41">  public static final KernelData BLURMORE =</span>
+      new KernelData(
+<span class="nc" id="L43">          Messages.getString(&quot;KernelData.3&quot;),</span>
+          false,
+          3,
+          3,
+          1,
+          1,
+          new float[] {1.0F, 2.0F, 1.0F, 2.0F, 2.0F, 2.0F, 1.0F, 2.0F, 1.0F},
+          14);
+<span class="nc" id="L51">  public static final KernelData SHARPEN =</span>
+      new KernelData(
+<span class="nc" id="L53">          Messages.getString(&quot;KernelData.4&quot;),</span>
+          false,
+          3,
+          3,
+          1,
+          1,
+          new float[] {0.0F, -1.0F, 0.0F, -1.0F, 8.0F, -1.0F, 0.0F, -1.0F, 0.0F},
+          4);
+<span class="nc" id="L61">  public static final KernelData SHARPENMORE =</span>
+      new KernelData(
+<span class="nc" id="L63">          Messages.getString(&quot;KernelData.5&quot;),</span>
+          false,
+          3,
+          3,
+          1,
+          1,
+          new float[] {-1.0F, -1.0F, -1.0F, -1.0F, 12.0F, -1.0F, -1.0F, -1.0F, -1.0F},
+          4);
+<span class="nc" id="L71">  public static final KernelData DEFOCUS =</span>
+      new KernelData(
+<span class="nc" id="L73">          Messages.getString(&quot;KernelData.6&quot;),</span>
+          false,
+          3,
+          3,
+          new float[] {1.0F, 1.0F, 1.0F, 1.0F, -7.0F, 1.0F, 1.0F, 1.0F, 1.0F});
+<span class="nc" id="L78">  public static final KernelData EDGE1 =</span>
+      new KernelData(
+<span class="nc" id="L80">          Messages.getString(&quot;KernelData.7&quot;),</span>
+          false,
+          3,
+          3,
+          new float[] {0.0F, -1.0F, 0.0F, -1.0F, 4.0F, -1.0F, 0.0F, -1.0F, 0.0F});
+<span class="nc" id="L85">  public static final KernelData EDGE2 =</span>
+      new KernelData(
+<span class="nc" id="L87">          Messages.getString(&quot;KernelData.8&quot;),</span>
+          false,
+          3,
+          3,
+          new float[] {-1.0F, -1.0F, -1.0F, -1.0F, 8.0F, -1.0F, -1.0F, -1.0F, -1.0F});
+<span class="nc" id="L92">  public static final KernelData STRONGEDGE =</span>
+      new KernelData(
+<span class="nc" id="L94">          Messages.getString(&quot;KernelData.9&quot;),</span>
+          false,
+          5,
+          5,
+          new float[] {
+            -2.0F, -2.0F, -2.0F, -2.0F, -2.0F, -2.0F, -3.0F, -3.0F, -3.0F, -2.0F, -2.0F, -3.0F,
+            53.0F, -3.0F, -2.0F, -2.0F, -3.0F, -3.0F, -3.0F, -2.0F, -2.0F, -2.0F, -2.0F, -2.0F,
+            -2.0F
+          });
+<span class="nc" id="L103">  public static final KernelData OUTLINE =</span>
+      new KernelData(
+<span class="nc" id="L105">          Messages.getString(&quot;KernelData.10&quot;),</span>
+          false,
+          5,
+          5,
+          new float[] {
+            1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 0.0F, 0.0F, 0.0F, 1.0F, 1.0F, 0.0F, -16.0F, 0.0F,
+            1.0F, 1.0F, 0.0F, 0.0F, 0.0F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F, 1.0F
+          });
+
+<span class="nc" id="L114">  public static final KernelData EMBOSS =</span>
+      new KernelData(
+<span class="nc" id="L116">          Messages.getString(&quot;KernelData.11&quot;),</span>
+          false,
+          3,
+          3,
+          new float[] {-5.0F, 0.0F, 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, 0.0F, 5.0F});
+<span class="nc" id="L121">  public static final KernelData GAUSSIAN3 =</span>
+<span class="nc" id="L122">      gaussianKernel(Messages.getString(&quot;KernelData.12&quot;), 3, 3);</span>
+<span class="nc" id="L123">  public static final KernelData GAUSSIAN5 =</span>
+<span class="nc" id="L124">      gaussianKernel(Messages.getString(&quot;KernelData.13&quot;), 5, 5);</span>
+<span class="nc" id="L125">  public static final KernelData GAUSSIAN7 =</span>
+<span class="nc" id="L126">      gaussianKernel(Messages.getString(&quot;KernelData.14&quot;), 7, 7);</span>
+<span class="nc" id="L127">  public static final KernelData GAUSSIAN9 =</span>
+<span class="nc" id="L128">      gaussianKernel(Messages.getString(&quot;KernelData.15&quot;), 9, 9);</span>
+<span class="nc" id="L129">  public static final KernelData GAUSSIAN23 =</span>
+<span class="nc" id="L130">      gaussianKernel2(Messages.getString(&quot;KernelData.16&quot;), 3);</span>
+<span class="nc" id="L131">  public static final KernelData GAUSSIAN25 =</span>
+<span class="nc" id="L132">      gaussianKernel2(Messages.getString(&quot;KernelData.17&quot;), 5);</span>
+<span class="nc" id="L133">  public static final KernelData GAUSSIAN27 =</span>
+<span class="nc" id="L134">      gaussianKernel2(Messages.getString(&quot;KernelData.18&quot;), 7);</span>
+
+  /** The type of the kernel. */
+  private final boolean morphologicalFilter;
+
+  /** The name of the kernel. */
+  private String name;
+
+  /** The width of the kernel. */
+  private int width;
+
+  /** The height of the kernel. */
+  private int height;
+
+  /** The X coordinate of the key element. */
+  private int xOrigin;
+
+  /** The Y coordinate of the key element. */
+  private int yOrigin;
+
+  /** The divisior of the kernel values. */
+  private int divisor;
+
+  /** The kernel data. */
+  private float[] data;
+
+  public KernelData(
+      String name,
+      boolean morphologicalFilter,
+      int width,
+      int height,
+      int xOrigin,
+      int yOrigin,
+      float[] data,
+<span class="nc" id="L168">      int divisor) {</span>
+<span class="nc" id="L169">    this.name = name;</span>
+<span class="nc" id="L170">    this.morphologicalFilter = morphologicalFilter;</span>
+<span class="nc" id="L171">    this.width = width;</span>
+<span class="nc" id="L172">    this.height = height;</span>
+<span class="nc" id="L173">    setXOrigin(xOrigin);</span>
+<span class="nc" id="L174">    setYOrigin(yOrigin);</span>
+<span class="nc" id="L175">    this.divisor = divisor;</span>
+<span class="nc" id="L176">    this.data = divideKernel(data);</span>
+<span class="nc" id="L177">  }</span>
+
+  public KernelData(String name, boolean morphologicalFilter, int width, int height, float[] data) {
+<span class="nc" id="L180">    this(name, morphologicalFilter, width, height, width / 2, height / 2, data, 1);</span>
+<span class="nc" id="L181">  }</span>
+
+  public float[] getData() {
+<span class="nc" id="L184">    return data;</span>
+  }
+
+  private float[] divideKernel(float[] data) {
+<span class="nc bnc" id="L188" title="All 2 branches missed.">    if (data == null) {</span>
+<span class="nc" id="L189">      return new float[width * height];</span>
+    }
+<span class="nc bnc" id="L191" title="All 2 branches missed.">    if (divisor == 0) {</span>
+<span class="nc" id="L192">      divisor = 1;</span>
+    }
+<span class="nc bnc" id="L194" title="All 2 branches missed.">    if (divisor == 1) {</span>
+<span class="nc" id="L195">      return data;</span>
+    }
+<span class="nc" id="L197">    float div = divisor;</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">    for (int i = 0; i &lt; data.length; i++) {</span>
+<span class="nc" id="L199">      data[i] /= div;</span>
+    }
+<span class="nc" id="L201">    return data;</span>
+  }
+
+  public int getDivisor() {
+<span class="nc" id="L205">    return divisor;</span>
+  }
+
+  public int getHeight() {
+<span class="nc" id="L209">    return height;</span>
+  }
+
+  public String getName() {
+<span class="nc" id="L213">    return name;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L218">    return name;</span>
+  }
+
+  public int getWidth() {
+<span class="nc" id="L222">    return width;</span>
+  }
+
+  public int getXOrigin() {
+<span class="nc" id="L226">    return xOrigin;</span>
+  }
+
+  public int getYOrigin() {
+<span class="nc" id="L230">    return yOrigin;</span>
+  }
+
+  public boolean isMorphologicalFilter() {
+<span class="nc" id="L234">    return morphologicalFilter;</span>
+  }
+
+  public boolean setYOrigin(int yOrigin) {
+<span class="nc bnc" id="L238" title="All 4 branches missed.">    if (yOrigin &gt;= height || yOrigin &lt; 0) {</span>
+<span class="nc" id="L239">      this.yOrigin = height / 2;</span>
+<span class="nc" id="L240">      return false;</span>
+    }
+<span class="nc" id="L242">    this.yOrigin = yOrigin;</span>
+<span class="nc" id="L243">    return true;</span>
+  }
+
+  public boolean setXOrigin(int xOrigin) {
+<span class="nc bnc" id="L247" title="All 4 branches missed.">    if (xOrigin &gt;= width || xOrigin &lt; 0) {</span>
+<span class="nc" id="L248">      this.xOrigin = width / 2;</span>
+<span class="nc" id="L249">      return false;</span>
+    }
+<span class="nc" id="L251">    this.xOrigin = xOrigin;</span>
+<span class="nc" id="L252">    return true;</span>
+  }
+
+  public void setWidth(int width) {
+<span class="nc" id="L256">    this.width = width;</span>
+<span class="nc" id="L257">  }</span>
+
+  public void setName(String name) {
+<span class="nc" id="L260">    this.name = name;</span>
+<span class="nc" id="L261">  }</span>
+
+  public void setHeight(int height) {
+<span class="nc" id="L264">    this.height = height;</span>
+<span class="nc" id="L265">  }</span>
+
+  public void setDivisor(int divisor) {
+<span class="nc" id="L268">    this.divisor = divisor;</span>
+<span class="nc" id="L269">  }</span>
+
+  public static KernelData[] getAllFilters() {
+<span class="nc" id="L272">    return new KernelData[] {</span>
+      NONE,
+      MEAN,
+      BLUR,
+      BLURMORE,
+      SHARPEN,
+      SHARPENMORE,
+      DEFOCUS,
+      EDGE1,
+      EDGE2,
+      STRONGEDGE,
+      OUTLINE,
+      EMBOSS,
+      GAUSSIAN3,
+      GAUSSIAN5,
+      GAUSSIAN7,
+      GAUSSIAN9,
+      GAUSSIAN23,
+      GAUSSIAN25,
+      GAUSSIAN27
+    };
+  }
+
+  public static KernelData makeGaussianKernel(String name, int radius) {
+<span class="nc" id="L296">    int diameter = 2 * radius + 1;</span>
+<span class="nc" id="L297">    float invrsq = 1.0F / (radius * radius);</span>
+<span class="nc" id="L298">    float[] gaussianData = new float[diameter * diameter];</span>
+
+<span class="nc" id="L300">    float sum = 0.0F;</span>
+<span class="nc bnc" id="L301" title="All 2 branches missed.">    for (int i = 0; i &lt; diameter; i++) {</span>
+<span class="nc" id="L302">      float d = i - (float) radius;</span>
+<span class="nc" id="L303">      float val = (float) Math.exp(-d * d * invrsq);</span>
+<span class="nc" id="L304">      gaussianData[i] = val;</span>
+<span class="nc" id="L305">      sum += val;</span>
+    }
+
+    // Normalize
+<span class="nc bnc" id="L309" title="All 2 branches missed.">    float invsum = sum == 0.0F ? 1.0F : 1.0F / sum;</span>
+<span class="nc bnc" id="L310" title="All 2 branches missed.">    for (int i = 0; i &lt; diameter; i++) {</span>
+<span class="nc" id="L311">      gaussianData[i] *= invsum;</span>
+    }
+<span class="nc bnc" id="L313" title="All 2 branches missed.">    for (int i = diameter; i &lt; gaussianData.length; i++) {</span>
+<span class="nc" id="L314">      gaussianData[i] = invsum;</span>
+    }
+<span class="nc" id="L316">    return new KernelData(name, false, diameter, diameter, gaussianData);</span>
+  }
+
+  public static int sign(float x) {
+<span class="nc bnc" id="L320" title="All 2 branches missed.">    if (x &lt; 0.0F) {</span>
+<span class="nc" id="L321">      return -1 * (int) (-x + 0.5F);</span>
+    } else {
+<span class="nc" id="L323">      return (int) (x + 0.5F);</span>
+    }
+  }
+
+  public static KernelData gaussianKernel(String name, int nx, int ny) {
+<span class="nc" id="L328">    int x = nx;</span>
+<span class="nc" id="L329">    int y = ny;</span>
+<span class="nc bnc" id="L330" title="All 2 branches missed.">    if (x % 2 == 0) {</span>
+<span class="nc" id="L331">      x++;</span>
+    }
+<span class="nc bnc" id="L333" title="All 2 branches missed.">    if (y % 2 == 0) {</span>
+<span class="nc" id="L334">      y++;</span>
+    }
+<span class="nc" id="L336">    float sigmax = (x - 1) / 6F;</span>
+<span class="nc" id="L337">    float sigmay = (y - 1) / 6F;</span>
+<span class="nc" id="L338">    return gaussianKernel(name, sigmax, sigmay);</span>
+  }
+
+  public static KernelData gaussianKernel(String name, float sigmax, float sigmay) {
+<span class="nc" id="L342">    int nx = sign(6F * sigmax);</span>
+<span class="nc" id="L343">    int ny = sign(6F * sigmay);</span>
+<span class="nc bnc" id="L344" title="All 2 branches missed.">    if (nx % 2 == 0) {</span>
+<span class="nc" id="L345">      nx++;</span>
+    }
+<span class="nc bnc" id="L347" title="All 2 branches missed.">    if (ny % 2 == 0) {</span>
+<span class="nc" id="L348">      ny++;</span>
+    }
+<span class="nc" id="L350">    float[] gaussKernel = new float[nx * ny];</span>
+<span class="nc" id="L351">    float scale = 0.0F;</span>
+<span class="nc bnc" id="L352" title="All 2 branches missed.">    float sigmaX = MathUtil.isEqualToZero(sigmax) ? 1E-005F : sigmax;</span>
+<span class="nc bnc" id="L353" title="All 2 branches missed.">    float sigmaY = MathUtil.isEqualToZero(sigmay) ? 1E-005F : sigmay;</span>
+<span class="nc bnc" id="L354" title="All 2 branches missed.">    for (int j = 0; j &lt; ny; j++) {</span>
+<span class="nc" id="L355">      float locy = j - (ny - 1) / 2.F;</span>
+<span class="nc bnc" id="L356" title="All 2 branches missed.">      for (int i = 0; i &lt; nx; i++) {</span>
+<span class="nc" id="L357">        float locx = i - (nx - 1) / 2.F;</span>
+<span class="nc" id="L358">        gaussKernel[j * nx + i] =</span>
+            (float)
+<span class="nc" id="L360">                Math.exp(</span>
+                    -0.5F
+                        * ((locx * locx) / (sigmaX * sigmaX) + (locy * locy) / (sigmaY * sigmaY)));
+<span class="nc" id="L363">        scale += gaussKernel[j * nx + i];</span>
+      }
+    }
+
+<span class="nc bnc" id="L367" title="All 2 branches missed.">    if (scale == 0.0F) {</span>
+<span class="nc" id="L368">      scale = 1.0F;</span>
+    }
+<span class="nc bnc" id="L370" title="All 2 branches missed.">    for (int i = 0; i &lt; gaussKernel.length; i++) {</span>
+<span class="nc" id="L371">      gaussKernel[i] /= scale;</span>
+    }
+<span class="nc" id="L373">    return new KernelData(name, false, nx, ny, gaussKernel);</span>
+  }
+
+  public static KernelData gaussianKernel2(String name, int n) {
+<span class="nc" id="L377">    float[] gaussKernel = new float[n * n];</span>
+<span class="nc" id="L378">    float sigma = (n - 1) / 6F;</span>
+<span class="nc" id="L379">    float scale = 0.0F;</span>
+<span class="nc bnc" id="L380" title="All 2 branches missed.">    for (int i = 0; i &lt; n; i++) {</span>
+<span class="nc" id="L381">      float locy = i - (n - 1) / 2.F;</span>
+<span class="nc bnc" id="L382" title="All 2 branches missed.">      for (int j = 0; j &lt; n; j++) {</span>
+<span class="nc" id="L383">        float locx = j - (n - 1) / 2.F;</span>
+<span class="nc" id="L384">        float dist = (float) Math.sqrt(locy * locy + locx * locx);</span>
+<span class="nc" id="L385">        gaussKernel[j * n + i] =</span>
+<span class="nc" id="L386">            (-dist / (sigma * sigma)) * (float) Math.exp((-dist * dist) / (2.0F * sigma * sigma));</span>
+<span class="nc" id="L387">        scale += gaussKernel[j * n + i];</span>
+      }
+    }
+
+<span class="nc bnc" id="L391" title="All 2 branches missed.">    if (scale == 0.0F) {</span>
+<span class="nc" id="L392">      scale = 1.0F;</span>
+    }
+<span class="nc bnc" id="L394" title="All 2 branches missed.">    for (int i = 0; i &lt; gaussKernel.length; i++) {</span>
+<span class="nc" id="L395">      gaussKernel[i] /= scale;</span>
+    }
+<span class="nc" id="L397">    return new KernelData(name, false, n, n, gaussKernel);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

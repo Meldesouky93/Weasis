@@ -1,0 +1,524 @@
+<?xml version="1.0" encoding="UTF-8"?><uids>
+    <uid value="1.2.840.10008.1.1" keyword="Verification" type="SOPClass">Verification SOP Class</uid>
+    <uid value="1.2.840.10008.1.2" keyword="ImplicitVRLittleEndian" type="TransferSyntax">Implicit VR Little Endian</uid>
+    <uid value="1.2.840.10008.1.2.1" keyword="ExplicitVRLittleEndian" type="TransferSyntax">Explicit VR Little Endian</uid>
+    <uid value="1.2.840.10008.1.2.1.98" keyword="EncapsulatedUncompressedExplicitVRLittleEndian" type="TransferSyntax">Encapsulated Uncompressed Explicit VR Little Endian</uid>
+    <uid value="1.2.840.10008.1.2.1.99" keyword="DeflatedExplicitVRLittleEndian" type="TransferSyntax">Deflated Explicit VR Little Endian</uid>
+    <uid value="1.2.840.10008.1.2.2" keyword="ExplicitVRBigEndian" type="TransferSyntax">Explicit VR Big Endian (Retired)</uid>
+    <uid value="1.2.840.10008.1.2.4.50" keyword="JPEGBaseline8Bit" type="TransferSyntax">JPEG Baseline (Process 1)</uid>
+    <uid value="1.2.840.10008.1.2.4.51" keyword="JPEGExtended12Bit" type="TransferSyntax">JPEG Extended (Process 2 &amp; 4)</uid>
+    <uid value="1.2.840.10008.1.2.4.52" keyword="JPEGExtended35" type="TransferSyntax">JPEG Extended (Process 3 &amp; 5) (Retired)</uid>
+    <uid value="1.2.840.10008.1.2.4.53" keyword="JPEGSpectralSelectionNonHierarchical68" type="TransferSyntax">JPEG Spectral Selection, Non-Hierarchical (Process 6 &amp; 8) (Retired)</uid>
+    <uid value="1.2.840.10008.1.2.4.54" keyword="JPEGSpectralSelectionNonHierarchical79" type="TransferSyntax">JPEG Spectral Selection, Non-Hierarchical (Process 7 &amp; 9) (Retired)</uid>
+    <uid value="1.2.840.10008.1.2.4.55" keyword="JPEGFullProgressionNonHierarchical1012" type="TransferSyntax">JPEG Full Progression, Non-Hierarchical (Process 10 &amp; 12) (Retired)</uid>
+    <uid value="1.2.840.10008.1.2.4.56" keyword="JPEGFullProgressionNonHierarchical1113" type="TransferSyntax">JPEG Full Progression, Non-Hierarchical (Process 11 &amp; 13) (Retired)</uid>
+    <uid value="1.2.840.10008.1.2.4.57" keyword="JPEGLossless" type="TransferSyntax">JPEG Lossless, Non-Hierarchical (Process 14)</uid>
+    <uid value="1.2.840.10008.1.2.4.58" keyword="JPEGLosslessNonHierarchical15" type="TransferSyntax">JPEG Lossless, Non-Hierarchical (Process 15) (Retired)</uid>
+    <uid value="1.2.840.10008.1.2.4.59" keyword="JPEGExtendedHierarchical1618" type="TransferSyntax">JPEG Extended, Hierarchical (Process 16 &amp; 18) (Retired)</uid>
+    <uid value="1.2.840.10008.1.2.4.60" keyword="JPEGExtendedHierarchical1719" type="TransferSyntax">JPEG Extended, Hierarchical (Process 17 &amp; 19) (Retired)</uid>
+    <uid value="1.2.840.10008.1.2.4.61" keyword="JPEGSpectralSelectionHierarchical2022" type="TransferSyntax">JPEG Spectral Selection, Hierarchical (Process 20 &amp; 22) (Retired)</uid>
+    <uid value="1.2.840.10008.1.2.4.62" keyword="JPEGSpectralSelectionHierarchical2123" type="TransferSyntax">JPEG Spectral Selection, Hierarchical (Process 21 &amp; 23) (Retired)</uid>
+    <uid value="1.2.840.10008.1.2.4.63" keyword="JPEGFullProgressionHierarchical2426" type="TransferSyntax">JPEG Full Progression, Hierarchical (Process 24 &amp; 26) (Retired)</uid>
+    <uid value="1.2.840.10008.1.2.4.64" keyword="JPEGFullProgressionHierarchical2527" type="TransferSyntax">JPEG Full Progression, Hierarchical (Process 25 &amp; 27) (Retired)</uid>
+    <uid value="1.2.840.10008.1.2.4.65" keyword="JPEGLosslessHierarchical28" type="TransferSyntax">JPEG Lossless, Hierarchical (Process 28) (Retired)</uid>
+    <uid value="1.2.840.10008.1.2.4.66" keyword="JPEGLosslessHierarchical29" type="TransferSyntax">JPEG Lossless, Hierarchical (Process 29) (Retired)</uid>
+    <uid value="1.2.840.10008.1.2.4.70" keyword="JPEGLosslessSV1" type="TransferSyntax">JPEG Lossless, Non-Hierarchical, First-Order Prediction (Process 14 [Selection Value 1])</uid>
+    <uid value="1.2.840.10008.1.2.4.80" keyword="JPEGLSLossless" type="TransferSyntax">JPEG-LS Lossless Image Compression</uid>
+    <uid value="1.2.840.10008.1.2.4.81" keyword="JPEGLSNearLossless" type="TransferSyntax">JPEG-LS Lossy (Near-Lossless) Image Compression</uid>
+    <uid value="1.2.840.10008.1.2.4.90" keyword="JPEG2000Lossless" type="TransferSyntax">JPEG 2000 Image Compression (Lossless Only)</uid>
+    <uid value="1.2.840.10008.1.2.4.91" keyword="JPEG2000" type="TransferSyntax">JPEG 2000 Image Compression</uid>
+    <uid value="1.2.840.10008.1.2.4.92" keyword="JPEG2000MCLossless" type="TransferSyntax">JPEG 2000 Part 2 Multi-component Image Compression (Lossless Only)</uid>
+    <uid value="1.2.840.10008.1.2.4.93" keyword="JPEG2000MC" type="TransferSyntax">JPEG 2000 Part 2 Multi-component Image Compression</uid>
+    <uid value="1.2.840.10008.1.2.4.94" keyword="JPIPReferenced" type="TransferSyntax">JPIP Referenced</uid>
+    <uid value="1.2.840.10008.1.2.4.95" keyword="JPIPReferencedDeflate" type="TransferSyntax">JPIP Referenced Deflate</uid>
+    <uid value="1.2.840.10008.1.2.4.100" keyword="MPEG2MPML" type="TransferSyntax">MPEG2 Main Profile / Main Level</uid>
+    <uid value="1.2.840.10008.1.2.4.100.1" keyword="MPEG2MPMLF" type="TransferSyntax">Fragmentable MPEG2 Main Profile / Main Level</uid>
+    <uid value="1.2.840.10008.1.2.4.101" keyword="MPEG2MPHL" type="TransferSyntax">MPEG2 Main Profile / High Level</uid>
+    <uid value="1.2.840.10008.1.2.4.101.1" keyword="MPEG2MPHLF" type="TransferSyntax">Fragmentable MPEG2 Main Profile / High Level</uid>
+    <uid value="1.2.840.10008.1.2.4.102" keyword="MPEG4HP41" type="TransferSyntax">MPEG-4 AVC/H.264 High Profile / Level 4.1</uid>
+    <uid value="1.2.840.10008.1.2.4.102.1" keyword="MPEG4HP41F" type="TransferSyntax">Fragmentable MPEG-4 AVC/H.264 High Profile / Level 4.1</uid>
+    <uid value="1.2.840.10008.1.2.4.103" keyword="MPEG4HP41BD" type="TransferSyntax">MPEG-4 AVC/H.264 BD-compatible High Profile / Level 4.1</uid>
+    <uid value="1.2.840.10008.1.2.4.103.1" keyword="MPEG4HP41BDF" type="TransferSyntax">Fragmentable MPEG-4 AVC/H.264 BD-compatible High Profile / Level 4.1</uid>
+    <uid value="1.2.840.10008.1.2.4.104" keyword="MPEG4HP422D" type="TransferSyntax">MPEG-4 AVC/H.264 High Profile / Level 4.2 For 2D Video</uid>
+    <uid value="1.2.840.10008.1.2.4.104.1" keyword="MPEG4HP422DF" type="TransferSyntax">Fragmentable MPEG-4 AVC/H.264 High Profile / Level 4.2 For 2D Video</uid>
+    <uid value="1.2.840.10008.1.2.4.105" keyword="MPEG4HP423D" type="TransferSyntax">MPEG-4 AVC/H.264 High Profile / Level 4.2 For 3D Video</uid>
+    <uid value="1.2.840.10008.1.2.4.105.1" keyword="MPEG4HP423DF" type="TransferSyntax">Fragmentable MPEG-4 AVC/H.264 High Profile / Level 4.2 For 3D Video</uid>
+    <uid value="1.2.840.10008.1.2.4.106" keyword="MPEG4HP42STEREO" type="TransferSyntax">MPEG-4 AVC/H.264 Stereo High Profile / Level 4.2</uid>
+    <uid value="1.2.840.10008.1.2.4.106.1" keyword="MPEG4HP42STEREOF" type="TransferSyntax">Fragmentable MPEG-4 AVC/H.264 Stereo High Profile / Level 4.2</uid>
+    <uid value="1.2.840.10008.1.2.4.107" keyword="HEVCMP51" type="TransferSyntax">HEVC/H.265 Main Profile / Level 5.1</uid>
+    <uid value="1.2.840.10008.1.2.4.108" keyword="HEVCM10P51" type="TransferSyntax">HEVC/H.265 Main 10 Profile / Level 5.1</uid>
+    <uid value="1.2.840.10008.1.2.4.110" keyword="JPEGXLLossless" type="TransferSyntax">JPEG XL Lossless</uid>
+    <uid value="1.2.840.10008.1.2.4.111" keyword="JPEGXLJPEGRecompression" type="TransferSyntax">JPEG XL JPEG Recompression</uid>
+    <uid value="1.2.840.10008.1.2.4.112" keyword="JPEGXL" type="TransferSyntax">JPEG XL</uid>
+    <uid value="1.2.840.10008.1.2.4.201" keyword="HTJ2KLossless" type="TransferSyntax">High-Throughput JPEG 2000 Image Compression (Lossless Only)</uid>
+    <uid value="1.2.840.10008.1.2.4.202" keyword="HTJ2KLosslessRPCL" type="TransferSyntax">High-Throughput JPEG 2000 with RPCL Options Image Compression (Lossless Only)</uid>
+    <uid value="1.2.840.10008.1.2.4.203" keyword="HTJ2K" type="TransferSyntax">High-Throughput JPEG 2000 Image Compression</uid>
+    <uid value="1.2.840.10008.1.2.4.204" keyword="JPIPHTJ2KReferenced" type="TransferSyntax">JPIP HTJ2K Referenced</uid>
+    <uid value="1.2.840.10008.1.2.4.205" keyword="JPIPHTJ2KReferencedDeflate" type="TransferSyntax">JPIP HTJ2K Referenced Deflate</uid>
+    <uid value="1.2.840.10008.1.2.5" keyword="RLELossless" type="TransferSyntax">RLE Lossless</uid>
+    <uid value="1.2.840.10008.1.2.6.1" keyword="RFC2557MIMEEncapsulation" type="TransferSyntax">RFC 2557 MIME encapsulation (Retired)</uid>
+    <uid value="1.2.840.10008.1.2.6.2" keyword="XMLEncoding" type="TransferSyntax">XML Encoding (Retired)</uid>
+    <uid value="1.2.840.10008.1.2.7.1" keyword="SMPTEST211020UncompressedProgressiveActiveVideo" type="TransferSyntax">SMPTE ST 2110-20 Uncompressed Progressive Active Video</uid>
+    <uid value="1.2.840.10008.1.2.7.2" keyword="SMPTEST211020UncompressedInterlacedActiveVideo" type="TransferSyntax">SMPTE ST 2110-20 Uncompressed Interlaced Active Video</uid>
+    <uid value="1.2.840.10008.1.2.7.3" keyword="SMPTEST211030PCMDigitalAudio" type="TransferSyntax">SMPTE ST 2110-30 PCM Digital Audio</uid>
+    <uid value="1.2.840.10008.1.3.10" keyword="MediaStorageDirectoryStorage" type="SOPClass">Media Storage Directory Storage</uid>
+    <uid value="1.2.840.10008.1.5.1" keyword="HotIronPalette" type="WellKnownSOPInstance">Hot Iron Color Palette SOP Instance</uid>
+    <uid value="1.2.840.10008.1.5.2" keyword="PETPalette" type="WellKnownSOPInstance">PET Color Palette SOP Instance</uid>
+    <uid value="1.2.840.10008.1.5.3" keyword="HotMetalBluePalette" type="WellKnownSOPInstance">Hot Metal Blue Color Palette SOP Instance</uid>
+    <uid value="1.2.840.10008.1.5.4" keyword="PET20StepPalette" type="WellKnownSOPInstance">PET 20 Step Color Palette SOP Instance</uid>
+    <uid value="1.2.840.10008.1.5.5" keyword="SpringPalette" type="WellKnownSOPInstance">Spring Color Palette SOP Instance</uid>
+    <uid value="1.2.840.10008.1.5.6" keyword="SummerPalette" type="WellKnownSOPInstance">Summer Color Palette SOP Instance</uid>
+    <uid value="1.2.840.10008.1.5.7" keyword="FallPalette" type="WellKnownSOPInstance">Fall Color Palette SOP Instance</uid>
+    <uid value="1.2.840.10008.1.5.8" keyword="WinterPalette" type="WellKnownSOPInstance">Winter Color Palette SOP Instance</uid>
+    <uid value="1.2.840.10008.1.9" keyword="BasicStudyContentNotification" type="SOPClass">Basic Study Content Notification SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.1.20" keyword="Papyrus3ImplicitVRLittleEndian" type="TransferSyntax">Papyrus 3 Implicit VR Little Endian (Retired)</uid>
+    <uid value="1.2.840.10008.1.20.1" keyword="StorageCommitmentPushModel" type="SOPClass">Storage Commitment Push Model SOP Class</uid>
+    <uid value="1.2.840.10008.1.20.1.1" keyword="StorageCommitmentPushModelInstance" type="WellKnownSOPInstance">Storage Commitment Push Model SOP Instance</uid>
+    <uid value="1.2.840.10008.1.20.2" keyword="StorageCommitmentPullModel" type="SOPClass">Storage Commitment Pull Model SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.1.20.2.1" keyword="StorageCommitmentPullModelInstance" type="WellKnownSOPInstance">Storage Commitment Pull Model SOP Instance (Retired)</uid>
+    <uid value="1.2.840.10008.1.40" keyword="ProceduralEventLogging" type="SOPClass">Procedural Event Logging SOP Class</uid>
+    <uid value="1.2.840.10008.1.40.1" keyword="ProceduralEventLoggingInstance" type="WellKnownSOPInstance">Procedural Event Logging SOP Instance</uid>
+    <uid value="1.2.840.10008.1.42" keyword="SubstanceAdministrationLogging" type="SOPClass">Substance Administration Logging SOP Class</uid>
+    <uid value="1.2.840.10008.1.42.1" keyword="SubstanceAdministrationLoggingInstance" type="WellKnownSOPInstance">Substance Administration Logging SOP Instance</uid>
+    <uid value="1.2.840.10008.2.6.1" keyword="DCMUID" type="DICOMUIDsAsACodingScheme">DICOM UID Registry</uid>
+    <uid value="1.2.840.10008.2.16.4" keyword="DCM" type="CodingScheme">DICOM Controlled Terminology</uid>
+    <uid value="1.2.840.10008.2.16.5" keyword="MA" type="CodingScheme">Adult Mouse Anatomy Ontology</uid>
+    <uid value="1.2.840.10008.2.16.6" keyword="UBERON" type="CodingScheme">Uberon Ontology</uid>
+    <uid value="1.2.840.10008.2.16.7" keyword="ITIS_TSN" type="CodingScheme">Integrated Taxonomic Information System (ITIS) Taxonomic Serial Number (TSN)</uid>
+    <uid value="1.2.840.10008.2.16.8" keyword="MGI" type="CodingScheme">Mouse Genome Initiative (MGI)</uid>
+    <uid value="1.2.840.10008.2.16.9" keyword="PUBCHEM_CID" type="CodingScheme">PubChem Compound CID</uid>
+    <uid value="1.2.840.10008.2.16.10" keyword="DC" type="CodingScheme">Dublin Core</uid>
+    <uid value="1.2.840.10008.2.16.11" keyword="NYUMCCG" type="CodingScheme">New York University Melanoma Clinical Cooperative Group</uid>
+    <uid value="1.2.840.10008.2.16.12" keyword="MAYONRISBSASRG" type="CodingScheme">Mayo Clinic Non-radiological Images Specific Body Structure Anatomical Surface Region Guide</uid>
+    <uid value="1.2.840.10008.2.16.13" keyword="IBSI" type="CodingScheme">Image Biomarker Standardisation Initiative</uid>
+    <uid value="1.2.840.10008.2.16.14" keyword="RO" type="CodingScheme">Radiomics Ontology</uid>
+    <uid value="1.2.840.10008.2.16.15" keyword="RADELEMENT" type="CodingScheme">RadElement</uid>
+    <uid value="1.2.840.10008.2.16.16" keyword="I11" type="CodingScheme">ICD-11</uid>
+    <uid value="1.2.840.10008.2.16.17" keyword="UNS" type="CodingScheme">Unified numbering system (UNS) for metals and alloys</uid>
+    <uid value="1.2.840.10008.2.16.18" keyword="RRID" type="CodingScheme">Research Resource Identification</uid>
+    <uid value="1.2.840.10008.3.1.1.1" keyword="DICOMApplicationContext" type="ApplicationContextName">DICOM Application Context Name</uid>
+    <uid value="1.2.840.10008.3.1.2.1.1" keyword="DetachedPatientManagement" type="SOPClass">Detached Patient Management SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.3.1.2.1.4" keyword="DetachedPatientManagementMeta" type="MetaSOPClass">Detached Patient Management Meta SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.3.1.2.2.1" keyword="DetachedVisitManagement" type="SOPClass">Detached Visit Management SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.3.1.2.3.1" keyword="DetachedStudyManagement" type="SOPClass">Detached Study Management SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.3.1.2.3.2" keyword="StudyComponentManagement" type="SOPClass">Study Component Management SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.3.1.2.3.3" keyword="ModalityPerformedProcedureStep" type="SOPClass">Modality Performed Procedure Step SOP Class</uid>
+    <uid value="1.2.840.10008.3.1.2.3.4" keyword="ModalityPerformedProcedureStepRetrieve" type="SOPClass">Modality Performed Procedure Step Retrieve SOP Class</uid>
+    <uid value="1.2.840.10008.3.1.2.3.5" keyword="ModalityPerformedProcedureStepNotification" type="SOPClass">Modality Performed Procedure Step Notification SOP Class</uid>
+    <uid value="1.2.840.10008.3.1.2.5.1" keyword="DetachedResultsManagement" type="SOPClass">Detached Results Management SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.3.1.2.5.4" keyword="DetachedResultsManagementMeta" type="MetaSOPClass">Detached Results Management Meta SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.3.1.2.5.5" keyword="DetachedStudyManagementMeta" type="MetaSOPClass">Detached Study Management Meta SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.3.1.2.6.1" keyword="DetachedInterpretationManagement" type="SOPClass">Detached Interpretation Management SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.4.2" keyword="Storage" type="ServiceClass">Storage Service Class</uid>
+    <uid value="1.2.840.10008.5.1.1.1" keyword="BasicFilmSession" type="SOPClass">Basic Film Session SOP Class</uid>
+    <uid value="1.2.840.10008.5.1.1.2" keyword="BasicFilmBox" type="SOPClass">Basic Film Box SOP Class</uid>
+    <uid value="1.2.840.10008.5.1.1.4" keyword="BasicGrayscaleImageBox" type="SOPClass">Basic Grayscale Image Box SOP Class</uid>
+    <uid value="1.2.840.10008.5.1.1.4.1" keyword="BasicColorImageBox" type="SOPClass">Basic Color Image Box SOP Class</uid>
+    <uid value="1.2.840.10008.5.1.1.4.2" keyword="ReferencedImageBox" type="SOPClass">Referenced Image Box SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.1.9" keyword="BasicGrayscalePrintManagementMeta" type="MetaSOPClass">Basic Grayscale Print Management Meta SOP Class</uid>
+    <uid value="1.2.840.10008.5.1.1.9.1" keyword="ReferencedGrayscalePrintManagementMeta" type="MetaSOPClass">Referenced Grayscale Print Management Meta SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.1.14" keyword="PrintJob" type="SOPClass">Print Job SOP Class</uid>
+    <uid value="1.2.840.10008.5.1.1.15" keyword="BasicAnnotationBox" type="SOPClass">Basic Annotation Box SOP Class</uid>
+    <uid value="1.2.840.10008.5.1.1.16" keyword="Printer" type="SOPClass">Printer SOP Class</uid>
+    <uid value="1.2.840.10008.5.1.1.16.376" keyword="PrinterConfigurationRetrieval" type="SOPClass">Printer Configuration Retrieval SOP Class</uid>
+    <uid value="1.2.840.10008.5.1.1.17" keyword="PrinterInstance" type="WellKnownSOPInstance">Printer SOP Instance</uid>
+    <uid value="1.2.840.10008.5.1.1.17.376" keyword="PrinterConfigurationRetrievalInstance" type="WellKnownSOPInstance">Printer Configuration Retrieval SOP Instance</uid>
+    <uid value="1.2.840.10008.5.1.1.18" keyword="BasicColorPrintManagementMeta" type="MetaSOPClass">Basic Color Print Management Meta SOP Class</uid>
+    <uid value="1.2.840.10008.5.1.1.18.1" keyword="ReferencedColorPrintManagementMeta" type="MetaSOPClass">Referenced Color Print Management Meta SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.1.22" keyword="VOILUTBox" type="SOPClass">VOI LUT Box SOP Class</uid>
+    <uid value="1.2.840.10008.5.1.1.23" keyword="PresentationLUT" type="SOPClass">Presentation LUT SOP Class</uid>
+    <uid value="1.2.840.10008.5.1.1.24" keyword="ImageOverlayBox" type="SOPClass">Image Overlay Box SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.1.24.1" keyword="BasicPrintImageOverlayBox" type="SOPClass">Basic Print Image Overlay Box SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.1.25" keyword="PrintQueueInstance" type="WellKnownSOPInstance">Print Queue SOP Instance (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.1.26" keyword="PrintQueueManagement" type="SOPClass">Print Queue Management SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.1.27" keyword="StoredPrintStorage" type="SOPClass">Stored Print Storage SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.1.29" keyword="HardcopyGrayscaleImageStorage" type="SOPClass">Hardcopy Grayscale Image Storage SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.1.30" keyword="HardcopyColorImageStorage" type="SOPClass">Hardcopy Color Image Storage SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.1.31" keyword="PullPrintRequest" type="SOPClass">Pull Print Request SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.1.32" keyword="PullStoredPrintManagementMeta" type="MetaSOPClass">Pull Stored Print Management Meta SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.1.33" keyword="MediaCreationManagement" type="SOPClass">Media Creation Management SOP Class UID</uid>
+    <uid value="1.2.840.10008.5.1.1.40" keyword="DisplaySystem" type="SOPClass">Display System SOP Class</uid>
+    <uid value="1.2.840.10008.5.1.1.40.1" keyword="DisplaySystemInstance" type="WellKnownSOPInstance">Display System SOP Instance</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.1" keyword="ComputedRadiographyImageStorage" type="SOPClass">Computed Radiography Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.1.1" keyword="DigitalXRayImageStorageForPresentation" type="SOPClass">Digital X-Ray Image Storage - For Presentation</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.1.1.1" keyword="DigitalXRayImageStorageForProcessing" type="SOPClass">Digital X-Ray Image Storage - For Processing</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.1.2" keyword="DigitalMammographyXRayImageStorageForPresentation" type="SOPClass">Digital Mammography X-Ray Image Storage - For Presentation</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.1.2.1" keyword="DigitalMammographyXRayImageStorageForProcessing" type="SOPClass">Digital Mammography X-Ray Image Storage - For Processing</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.1.3" keyword="DigitalIntraOralXRayImageStorageForPresentation" type="SOPClass">Digital Intra-Oral X-Ray Image Storage - For Presentation</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.1.3.1" keyword="DigitalIntraOralXRayImageStorageForProcessing" type="SOPClass">Digital Intra-Oral X-Ray Image Storage - For Processing</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.2" keyword="CTImageStorage" type="SOPClass">CT Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.2.1" keyword="EnhancedCTImageStorage" type="SOPClass">Enhanced CT Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.2.2" keyword="LegacyConvertedEnhancedCTImageStorage" type="SOPClass">Legacy Converted Enhanced CT Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.3" keyword="UltrasoundMultiFrameImageStorageRetired" type="SOPClass">Ultrasound Multi-frame Image Storage (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.3.1" keyword="UltrasoundMultiFrameImageStorage" type="SOPClass">Ultrasound Multi-frame Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.4" keyword="MRImageStorage" type="SOPClass">MR Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.4.1" keyword="EnhancedMRImageStorage" type="SOPClass">Enhanced MR Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.4.2" keyword="MRSpectroscopyStorage" type="SOPClass">MR Spectroscopy Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.4.3" keyword="EnhancedMRColorImageStorage" type="SOPClass">Enhanced MR Color Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.4.4" keyword="LegacyConvertedEnhancedMRImageStorage" type="SOPClass">Legacy Converted Enhanced MR Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.5" keyword="NuclearMedicineImageStorageRetired" type="SOPClass">Nuclear Medicine Image Storage (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.6" keyword="UltrasoundImageStorageRetired" type="SOPClass">Ultrasound Image Storage (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.6.1" keyword="UltrasoundImageStorage" type="SOPClass">Ultrasound Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.6.2" keyword="EnhancedUSVolumeStorage" type="SOPClass">Enhanced US Volume Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.6.3" keyword="PhotoacousticImageStorage" type="SOPClass">Photoacoustic Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.7" keyword="SecondaryCaptureImageStorage" type="SOPClass">Secondary Capture Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.7.1" keyword="MultiFrameSingleBitSecondaryCaptureImageStorage" type="SOPClass">Multi-frame Single Bit Secondary Capture Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.7.2" keyword="MultiFrameGrayscaleByteSecondaryCaptureImageStorage" type="SOPClass">Multi-frame Grayscale Byte Secondary Capture Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.7.3" keyword="MultiFrameGrayscaleWordSecondaryCaptureImageStorage" type="SOPClass">Multi-frame Grayscale Word Secondary Capture Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.7.4" keyword="MultiFrameTrueColorSecondaryCaptureImageStorage" type="SOPClass">Multi-frame True Color Secondary Capture Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.8" keyword="StandaloneOverlayStorage" type="SOPClass">Standalone Overlay Storage (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.9" keyword="StandaloneCurveStorage" type="SOPClass">Standalone Curve Storage (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.9.1" keyword="WaveformStorageTrial" type="SOPClass">Waveform Storage - Trial (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.9.1.1" keyword="TwelveLeadECGWaveformStorage" type="SOPClass">12-lead ECG Waveform Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.9.1.2" keyword="GeneralECGWaveformStorage" type="SOPClass">General ECG Waveform Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.9.1.3" keyword="AmbulatoryECGWaveformStorage" type="SOPClass">Ambulatory ECG Waveform Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.9.1.4" keyword="General32bitECGWaveformStorage" type="SOPClass">General 32-bit ECG Waveform Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.9.2.1" keyword="HemodynamicWaveformStorage" type="SOPClass">Hemodynamic Waveform Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.9.3.1" keyword="CardiacElectrophysiologyWaveformStorage" type="SOPClass">Cardiac Electrophysiology Waveform Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.9.4.1" keyword="BasicVoiceAudioWaveformStorage" type="SOPClass">Basic Voice Audio Waveform Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.9.4.2" keyword="GeneralAudioWaveformStorage" type="SOPClass">General Audio Waveform Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.9.5.1" keyword="ArterialPulseWaveformStorage" type="SOPClass">Arterial Pulse Waveform Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.9.6.1" keyword="RespiratoryWaveformStorage" type="SOPClass">Respiratory Waveform Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.9.6.2" keyword="MultichannelRespiratoryWaveformStorage" type="SOPClass">Multi-channel Respiratory Waveform Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.9.7.1" keyword="RoutineScalpElectroencephalogramWaveformStorage" type="SOPClass">Routine Scalp Electroencephalogram Waveform Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.9.7.2" keyword="ElectromyogramWaveformStorage" type="SOPClass">Electromyogram Waveform Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.9.7.3" keyword="ElectrooculogramWaveformStorage" type="SOPClass">Electrooculogram Waveform Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.9.7.4" keyword="SleepElectroencephalogramWaveformStorage" type="SOPClass">Sleep Electroencephalogram Waveform Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.9.8.1" keyword="BodyPositionWaveformStorage" type="SOPClass">Body Position Waveform Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.10" keyword="StandaloneModalityLUTStorage" type="SOPClass">Standalone Modality LUT Storage (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.11" keyword="StandaloneVOILUTStorage" type="SOPClass">Standalone VOI LUT Storage (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.11.1" keyword="GrayscaleSoftcopyPresentationStateStorage" type="SOPClass">Grayscale Softcopy Presentation State Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.11.2" keyword="ColorSoftcopyPresentationStateStorage" type="SOPClass">Color Softcopy Presentation State Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.11.3" keyword="PseudoColorSoftcopyPresentationStateStorage" type="SOPClass">Pseudo-Color Softcopy Presentation State Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.11.4" keyword="BlendingSoftcopyPresentationStateStorage" type="SOPClass">Blending Softcopy Presentation State Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.11.5" keyword="XAXRFGrayscaleSoftcopyPresentationStateStorage" type="SOPClass">XA/XRF Grayscale Softcopy Presentation State Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.11.6" keyword="GrayscalePlanarMPRVolumetricPresentationStateStorage" type="SOPClass">Grayscale Planar MPR Volumetric Presentation State Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.11.7" keyword="CompositingPlanarMPRVolumetricPresentationStateStorage" type="SOPClass">Compositing Planar MPR Volumetric Presentation State Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.11.8" keyword="AdvancedBlendingPresentationStateStorage" type="SOPClass">Advanced Blending Presentation State Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.11.9" keyword="VolumeRenderingVolumetricPresentationStateStorage" type="SOPClass">Volume Rendering Volumetric Presentation State Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.11.10" keyword="SegmentedVolumeRenderingVolumetricPresentationStateStorage" type="SOPClass">Segmented Volume Rendering Volumetric Presentation State Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.11.11" keyword="MultipleVolumeRenderingVolumetricPresentationStateStorage" type="SOPClass">Multiple Volume Rendering Volumetric Presentation State Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.11.12" keyword="VariableModalityLUTSoftcopyPresentationStateStorage" type="SOPClass">Variable Modality LUT Softcopy Presentation State Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.12.1" keyword="XRayAngiographicImageStorage" type="SOPClass">X-Ray Angiographic Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.12.1.1" keyword="EnhancedXAImageStorage" type="SOPClass">Enhanced XA Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.12.2" keyword="XRayRadiofluoroscopicImageStorage" type="SOPClass">X-Ray Radiofluoroscopic Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.12.2.1" keyword="EnhancedXRFImageStorage" type="SOPClass">Enhanced XRF Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.12.3" keyword="XRayAngiographicBiPlaneImageStorage" type="SOPClass">X-Ray Angiographic Bi-Plane Image Storage (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.12.77" keyword="ZeissOPTFile" type="SOPClass">Zeiss OPT File (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.13.1.1" keyword="XRay3DAngiographicImageStorage" type="SOPClass">X-Ray 3D Angiographic Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.13.1.2" keyword="XRay3DCraniofacialImageStorage" type="SOPClass">X-Ray 3D Craniofacial Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.13.1.3" keyword="BreastTomosynthesisImageStorage" type="SOPClass">Breast Tomosynthesis Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.13.1.4" keyword="BreastProjectionXRayImageStorageForPresentation" type="SOPClass">Breast Projection X-Ray Image Storage - For Presentation</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.13.1.5" keyword="BreastProjectionXRayImageStorageForProcessing" type="SOPClass">Breast Projection X-Ray Image Storage - For Processing</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.14.1" keyword="IntravascularOpticalCoherenceTomographyImageStorageForPresentation" type="SOPClass">Intravascular Optical Coherence Tomography Image Storage - For Presentation</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.14.2" keyword="IntravascularOpticalCoherenceTomographyImageStorageForProcessing" type="SOPClass">Intravascular Optical Coherence Tomography Image Storage - For Processing</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.20" keyword="NuclearMedicineImageStorage" type="SOPClass">Nuclear Medicine Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.30" keyword="ParametricMapStorage" type="SOPClass">Parametric Map Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.40" keyword="MRImageStorageZeroPadded" type="SOPClass">MR Image Storage Zero Padded (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.66" keyword="RawDataStorage" type="SOPClass">Raw Data Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.66.1" keyword="SpatialRegistrationStorage" type="SOPClass">Spatial Registration Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.66.2" keyword="SpatialFiducialsStorage" type="SOPClass">Spatial Fiducials Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.66.3" keyword="DeformableSpatialRegistrationStorage" type="SOPClass">Deformable Spatial Registration Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.66.4" keyword="SegmentationStorage" type="SOPClass">Segmentation Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.66.5" keyword="SurfaceSegmentationStorage" type="SOPClass">Surface Segmentation Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.66.6" keyword="TractographyResultsStorage" type="SOPClass">Tractography Results Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.66.7" keyword="LabelMapSegmentationStorage" type="SOPClass">Label Map Segmentation Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.66.8" keyword="HeightMapSegmentationStorage" type="SOPClass">Height Map Segmentation Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.67" keyword="RealWorldValueMappingStorage" type="SOPClass">Real World Value Mapping Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.68.1" keyword="SurfaceScanMeshStorage" type="SOPClass">Surface Scan Mesh Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.68.2" keyword="SurfaceScanPointCloudStorage" type="SOPClass">Surface Scan Point Cloud Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.77.1" keyword="VLImageStorageTrial" type="SOPClass">VL Image Storage - Trial (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.77.2" keyword="VLMultiFrameImageStorageTrial" type="SOPClass">VL Multi-frame Image Storage - Trial (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.77.1.1" keyword="VLEndoscopicImageStorage" type="SOPClass">VL Endoscopic Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.77.1.1.1" keyword="VideoEndoscopicImageStorage" type="SOPClass">Video Endoscopic Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.77.1.2" keyword="VLMicroscopicImageStorage" type="SOPClass">VL Microscopic Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.77.1.2.1" keyword="VideoMicroscopicImageStorage" type="SOPClass">Video Microscopic Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.77.1.3" keyword="VLSlideCoordinatesMicroscopicImageStorage" type="SOPClass">VL Slide-Coordinates Microscopic Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.77.1.4" keyword="VLPhotographicImageStorage" type="SOPClass">VL Photographic Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.77.1.4.1" keyword="VideoPhotographicImageStorage" type="SOPClass">Video Photographic Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.77.1.5.1" keyword="OphthalmicPhotography8BitImageStorage" type="SOPClass">Ophthalmic Photography 8 Bit Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.77.1.5.2" keyword="OphthalmicPhotography16BitImageStorage" type="SOPClass">Ophthalmic Photography 16 Bit Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.77.1.5.3" keyword="StereometricRelationshipStorage" type="SOPClass">Stereometric Relationship Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.77.1.5.4" keyword="OphthalmicTomographyImageStorage" type="SOPClass">Ophthalmic Tomography Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.77.1.5.5" keyword="WideFieldOphthalmicPhotographyStereographicProjectionImageStorage" type="SOPClass">Wide Field Ophthalmic Photography Stereographic Projection Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.77.1.5.6" keyword="WideFieldOphthalmicPhotography3DCoordinatesImageStorage" type="SOPClass">Wide Field Ophthalmic Photography 3D Coordinates Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.77.1.5.7" keyword="OphthalmicOpticalCoherenceTomographyEnFaceImageStorage" type="SOPClass">Ophthalmic Optical Coherence Tomography En Face Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.77.1.5.8" keyword="OphthalmicOpticalCoherenceTomographyBscanVolumeAnalysisStorage" type="SOPClass">Ophthalmic Optical Coherence Tomography B-scan Volume Analysis Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.77.1.6" keyword="VLWholeSlideMicroscopyImageStorage" type="SOPClass">VL Whole Slide Microscopy Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.77.1.7" keyword="DermoscopicPhotographyImageStorage" type="SOPClass">Dermoscopic Photography Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.77.1.8" keyword="ConfocalMicroscopyImageStorage" type="SOPClass">Confocal Microscopy Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.77.1.9" keyword="ConfocalMicroscopyTiledPyramidalImageStorage" type="SOPClass">Confocal Microscopy Tiled Pyramidal Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.78.1" keyword="LensometryMeasurementsStorage" type="SOPClass">Lensometry Measurements Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.78.2" keyword="AutorefractionMeasurementsStorage" type="SOPClass">Autorefraction Measurements Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.78.3" keyword="KeratometryMeasurementsStorage" type="SOPClass">Keratometry Measurements Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.78.4" keyword="SubjectiveRefractionMeasurementsStorage" type="SOPClass">Subjective Refraction Measurements Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.78.5" keyword="VisualAcuityMeasurementsStorage" type="SOPClass">Visual Acuity Measurements Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.78.6" keyword="SpectaclePrescriptionReportStorage" type="SOPClass">Spectacle Prescription Report Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.78.7" keyword="OphthalmicAxialMeasurementsStorage" type="SOPClass">Ophthalmic Axial Measurements Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.78.8" keyword="IntraocularLensCalculationsStorage" type="SOPClass">Intraocular Lens Calculations Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.79.1" keyword="MacularGridThicknessAndVolumeReportStorage" type="SOPClass">Macular Grid Thickness and Volume Report Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.80.1" keyword="OphthalmicVisualFieldStaticPerimetryMeasurementsStorage" type="SOPClass">Ophthalmic Visual Field Static Perimetry Measurements Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.81.1" keyword="OphthalmicThicknessMapStorage" type="SOPClass">Ophthalmic Thickness Map Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.82.1" keyword="CornealTopographyMapStorage" type="SOPClass">Corneal Topography Map Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.1" keyword="TextSRStorageTrial" type="SOPClass">Text SR Storage - Trial (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.2" keyword="AudioSRStorageTrial" type="SOPClass">Audio SR Storage - Trial (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.3" keyword="DetailSRStorageTrial" type="SOPClass">Detail SR Storage - Trial (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.4" keyword="ComprehensiveSRStorageTrial" type="SOPClass">Comprehensive SR Storage - Trial (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.11" keyword="BasicTextSRStorage" type="SOPClass">Basic Text SR Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.22" keyword="EnhancedSRStorage" type="SOPClass">Enhanced SR Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.33" keyword="ComprehensiveSRStorage" type="SOPClass">Comprehensive SR Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.34" keyword="Comprehensive3DSRStorage" type="SOPClass">Comprehensive 3D SR Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.35" keyword="ExtensibleSRStorage" type="SOPClass">Extensible SR Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.40" keyword="ProcedureLogStorage" type="SOPClass">Procedure Log Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.50" keyword="MammographyCADSRStorage" type="SOPClass">Mammography CAD SR Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.59" keyword="KeyObjectSelectionDocumentStorage" type="SOPClass">Key Object Selection Document Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.65" keyword="ChestCADSRStorage" type="SOPClass">Chest CAD SR Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.67" keyword="XRayRadiationDoseSRStorage" type="SOPClass">X-Ray Radiation Dose SR Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.68" keyword="RadiopharmaceuticalRadiationDoseSRStorage" type="SOPClass">Radiopharmaceutical Radiation Dose SR Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.69" keyword="ColonCADSRStorage" type="SOPClass">Colon CAD SR Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.70" keyword="ImplantationPlanSRStorage" type="SOPClass">Implantation Plan SR Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.71" keyword="AcquisitionContextSRStorage" type="SOPClass">Acquisition Context SR Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.72" keyword="SimplifiedAdultEchoSRStorage" type="SOPClass">Simplified Adult Echo SR Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.73" keyword="PatientRadiationDoseSRStorage" type="SOPClass">Patient Radiation Dose SR Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.74" keyword="PlannedImagingAgentAdministrationSRStorage" type="SOPClass">Planned Imaging Agent Administration SR Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.75" keyword="PerformedImagingAgentAdministrationSRStorage" type="SOPClass">Performed Imaging Agent Administration SR Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.76" keyword="EnhancedXRayRadiationDoseSRStorage" type="SOPClass">Enhanced X-Ray Radiation Dose SR Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.88.77" keyword="WaveformAnnotationSRStorage" type="SOPClass">Waveform Annotation SR Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.90.1" keyword="ContentAssessmentResultsStorage" type="SOPClass">Content Assessment Results Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.91.1" keyword="MicroscopyBulkSimpleAnnotationsStorage" type="SOPClass">Microscopy Bulk Simple Annotations Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.104.1" keyword="EncapsulatedPDFStorage" type="SOPClass">Encapsulated PDF Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.104.2" keyword="EncapsulatedCDAStorage" type="SOPClass">Encapsulated CDA Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.104.3" keyword="EncapsulatedSTLStorage" type="SOPClass">Encapsulated STL Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.104.4" keyword="EncapsulatedOBJStorage" type="SOPClass">Encapsulated OBJ Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.104.5" keyword="EncapsulatedMTLStorage" type="SOPClass">Encapsulated MTL Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.128" keyword="PositronEmissionTomographyImageStorage" type="SOPClass">Positron Emission Tomography Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.128.1" keyword="LegacyConvertedEnhancedPETImageStorage" type="SOPClass">Legacy Converted Enhanced PET Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.129" keyword="StandalonePETCurveStorage" type="SOPClass">Standalone PET Curve Storage (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.130" keyword="EnhancedPETImageStorage" type="SOPClass">Enhanced PET Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.131" keyword="BasicStructuredDisplayStorage" type="SOPClass">Basic Structured Display Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.200.1" keyword="CTDefinedProcedureProtocolStorage" type="SOPClass">CT Defined Procedure Protocol Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.200.2" keyword="CTPerformedProcedureProtocolStorage" type="SOPClass">CT Performed Procedure Protocol Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.200.3" keyword="ProtocolApprovalStorage" type="SOPClass">Protocol Approval Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.200.4" keyword="ProtocolApprovalInformationModelFind" type="SOPClass">Protocol Approval Information Model - FIND</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.200.5" keyword="ProtocolApprovalInformationModelMove" type="SOPClass">Protocol Approval Information Model - MOVE</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.200.6" keyword="ProtocolApprovalInformationModelGet" type="SOPClass">Protocol Approval Information Model - GET</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.200.7" keyword="XADefinedProcedureProtocolStorage" type="SOPClass">XA Defined Procedure Protocol Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.200.8" keyword="XAPerformedProcedureProtocolStorage" type="SOPClass">XA Performed Procedure Protocol Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.201.1" keyword="InventoryStorage" type="SOPClass">Inventory Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.201.2" keyword="InventoryFind" type="SOPClass">Inventory - FIND</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.201.3" keyword="InventoryMove" type="SOPClass">Inventory - MOVE</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.201.4" keyword="InventoryGet" type="SOPClass">Inventory - GET</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.201.5" keyword="InventoryCreation" type="SOPClass">Inventory Creation</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.201.6" keyword="RepositoryQuery" type="SOPClass">Repository Query</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.201.1.1" keyword="StorageManagementInstance" type="WellKnownSOPInstance">Storage Management SOP Instance</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.1" keyword="RTImageStorage" type="SOPClass">RT Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.2" keyword="RTDoseStorage" type="SOPClass">RT Dose Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.3" keyword="RTStructureSetStorage" type="SOPClass">RT Structure Set Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.4" keyword="RTBeamsTreatmentRecordStorage" type="SOPClass">RT Beams Treatment Record Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.5" keyword="RTPlanStorage" type="SOPClass">RT Plan Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.6" keyword="RTBrachyTreatmentRecordStorage" type="SOPClass">RT Brachy Treatment Record Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.7" keyword="RTTreatmentSummaryRecordStorage" type="SOPClass">RT Treatment Summary Record Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.8" keyword="RTIonPlanStorage" type="SOPClass">RT Ion Plan Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.9" keyword="RTIonBeamsTreatmentRecordStorage" type="SOPClass">RT Ion Beams Treatment Record Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.10" keyword="RTPhysicianIntentStorage" type="SOPClass">RT Physician Intent Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.11" keyword="RTSegmentAnnotationStorage" type="SOPClass">RT Segment Annotation Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.12" keyword="RTRadiationSetStorage" type="SOPClass">RT Radiation Set Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.13" keyword="CArmPhotonElectronRadiationStorage" type="SOPClass">C-Arm Photon-Electron Radiation Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.14" keyword="TomotherapeuticRadiationStorage" type="SOPClass">Tomotherapeutic Radiation Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.15" keyword="RoboticArmRadiationStorage" type="SOPClass">Robotic-Arm Radiation Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.16" keyword="RTRadiationRecordSetStorage" type="SOPClass">RT Radiation Record Set Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.17" keyword="RTRadiationSalvageRecordStorage" type="SOPClass">RT Radiation Salvage Record Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.18" keyword="TomotherapeuticRadiationRecordStorage" type="SOPClass">Tomotherapeutic Radiation Record Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.19" keyword="CArmPhotonElectronRadiationRecordStorage" type="SOPClass">C-Arm Photon-Electron Radiation Record Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.20" keyword="RoboticRadiationRecordStorage" type="SOPClass">Robotic Radiation Record Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.21" keyword="RTRadiationSetDeliveryInstructionStorage" type="SOPClass">RT Radiation Set Delivery Instruction Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.22" keyword="RTTreatmentPreparationStorage" type="SOPClass">RT Treatment Preparation Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.23" keyword="EnhancedRTImageStorage" type="SOPClass">Enhanced RT Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.24" keyword="EnhancedContinuousRTImageStorage" type="SOPClass">Enhanced Continuous RT Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.481.25" keyword="RTPatientPositionAcquisitionInstructionStorage" type="SOPClass">RT Patient Position Acquisition Instruction Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.501.1" keyword="DICOSCTImageStorage" type="SOPClass">DICOS CT Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.501.2.1" keyword="DICOSDigitalXRayImageStorageForPresentation" type="SOPClass">DICOS Digital X-Ray Image Storage - For Presentation</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.501.2.2" keyword="DICOSDigitalXRayImageStorageForProcessing" type="SOPClass">DICOS Digital X-Ray Image Storage - For Processing</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.501.3" keyword="DICOSThreatDetectionReportStorage" type="SOPClass">DICOS Threat Detection Report Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.501.4" keyword="DICOS2DAITStorage" type="SOPClass">DICOS 2D AIT Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.501.5" keyword="DICOS3DAITStorage" type="SOPClass">DICOS 3D AIT Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.501.6" keyword="DICOSQuadrupoleResonanceStorage" type="SOPClass">DICOS Quadrupole Resonance (QR) Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.601.1" keyword="EddyCurrentImageStorage" type="SOPClass">Eddy Current Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.601.2" keyword="EddyCurrentMultiFrameImageStorage" type="SOPClass">Eddy Current Multi-frame Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.601.3" keyword="ThermographyImageStorage" type="SOPClass">Thermography Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.1.601.4" keyword="ThermographyMultiFrameImageStorage" type="SOPClass">Thermography Multi-frame Image Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.1.2.1.1" keyword="PatientRootQueryRetrieveInformationModelFind" type="SOPClass">Patient Root Query/Retrieve Information Model - FIND</uid>
+    <uid value="1.2.840.10008.5.1.4.1.2.1.2" keyword="PatientRootQueryRetrieveInformationModelMove" type="SOPClass">Patient Root Query/Retrieve Information Model - MOVE</uid>
+    <uid value="1.2.840.10008.5.1.4.1.2.1.3" keyword="PatientRootQueryRetrieveInformationModelGet" type="SOPClass">Patient Root Query/Retrieve Information Model - GET</uid>
+    <uid value="1.2.840.10008.5.1.4.1.2.2.1" keyword="StudyRootQueryRetrieveInformationModelFind" type="SOPClass">Study Root Query/Retrieve Information Model - FIND</uid>
+    <uid value="1.2.840.10008.5.1.4.1.2.2.2" keyword="StudyRootQueryRetrieveInformationModelMove" type="SOPClass">Study Root Query/Retrieve Information Model - MOVE</uid>
+    <uid value="1.2.840.10008.5.1.4.1.2.2.3" keyword="StudyRootQueryRetrieveInformationModelGet" type="SOPClass">Study Root Query/Retrieve Information Model - GET</uid>
+    <uid value="1.2.840.10008.5.1.4.1.2.3.1" keyword="PatientStudyOnlyQueryRetrieveInformationModelFind" type="SOPClass">Patient/Study Only Query/Retrieve Information Model - FIND (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.1.2.3.2" keyword="PatientStudyOnlyQueryRetrieveInformationModelMove" type="SOPClass">Patient/Study Only Query/Retrieve Information Model - MOVE (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.1.2.3.3" keyword="PatientStudyOnlyQueryRetrieveInformationModelGet" type="SOPClass">Patient/Study Only Query/Retrieve Information Model - GET (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.1.2.4.2" keyword="CompositeInstanceRootRetrieveMove" type="SOPClass">Composite Instance Root Retrieve - MOVE</uid>
+    <uid value="1.2.840.10008.5.1.4.1.2.4.3" keyword="CompositeInstanceRootRetrieveGet" type="SOPClass">Composite Instance Root Retrieve - GET</uid>
+    <uid value="1.2.840.10008.5.1.4.1.2.5.3" keyword="CompositeInstanceRetrieveWithoutBulkDataGet" type="SOPClass">Composite Instance Retrieve Without Bulk Data - GET</uid>
+    <uid value="1.2.840.10008.5.1.4.20.1" keyword="DefinedProcedureProtocolInformationModelFind" type="SOPClass">Defined Procedure Protocol Information Model - FIND</uid>
+    <uid value="1.2.840.10008.5.1.4.20.2" keyword="DefinedProcedureProtocolInformationModelMove" type="SOPClass">Defined Procedure Protocol Information Model - MOVE</uid>
+    <uid value="1.2.840.10008.5.1.4.20.3" keyword="DefinedProcedureProtocolInformationModelGet" type="SOPClass">Defined Procedure Protocol Information Model - GET</uid>
+    <uid value="1.2.840.10008.5.1.4.31" keyword="ModalityWorklistInformationModelFind" type="SOPClass">Modality Worklist Information Model - FIND</uid>
+    <uid value="1.2.840.10008.5.1.4.32" keyword="GeneralPurposeWorklistManagementMeta" type="MetaSOPClass">General Purpose Worklist Management Meta SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.32.1" keyword="GeneralPurposeWorklistInformationModelFind" type="SOPClass">General Purpose Worklist Information Model - FIND (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.32.2" keyword="GeneralPurposeScheduledProcedureStep" type="SOPClass">General Purpose Scheduled Procedure Step SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.32.3" keyword="GeneralPurposePerformedProcedureStep" type="SOPClass">General Purpose Performed Procedure Step SOP Class (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.33" keyword="InstanceAvailabilityNotification" type="SOPClass">Instance Availability Notification SOP Class</uid>
+    <uid value="1.2.840.10008.5.1.4.34.1" keyword="RTBeamsDeliveryInstructionStorageTrial" type="SOPClass">RT Beams Delivery Instruction Storage - Trial (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.34.2" keyword="RTConventionalMachineVerificationTrial" type="SOPClass">RT Conventional Machine Verification - Trial (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.34.3" keyword="RTIonMachineVerificationTrial" type="SOPClass">RT Ion Machine Verification - Trial (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.34.4" keyword="UnifiedWorklistAndProcedureStepTrial" type="ServiceClass">Unified Worklist and Procedure Step Service Class - Trial (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.34.4.1" keyword="UnifiedProcedureStepPushTrial" type="SOPClass">Unified Procedure Step - Push SOP Class - Trial (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.34.4.2" keyword="UnifiedProcedureStepWatchTrial" type="SOPClass">Unified Procedure Step - Watch SOP Class - Trial (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.34.4.3" keyword="UnifiedProcedureStepPullTrial" type="SOPClass">Unified Procedure Step - Pull SOP Class - Trial (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.34.4.4" keyword="UnifiedProcedureStepEventTrial" type="SOPClass">Unified Procedure Step - Event SOP Class - Trial (Retired)</uid>
+    <uid value="1.2.840.10008.5.1.4.34.5" keyword="UPSGlobalSubscriptionInstance" type="WellKnownSOPInstance">UPS Global Subscription SOP Instance</uid>
+    <uid value="1.2.840.10008.5.1.4.34.5.1" keyword="UPSFilteredGlobalSubscriptionInstance" type="WellKnownSOPInstance">UPS Filtered Global Subscription SOP Instance</uid>
+    <uid value="1.2.840.10008.5.1.4.34.6" keyword="UnifiedWorklistAndProcedureStep" type="ServiceClass">Unified Worklist and Procedure Step Service Class</uid>
+    <uid value="1.2.840.10008.5.1.4.34.6.1" keyword="UnifiedProcedureStepPush" type="SOPClass">Unified Procedure Step - Push SOP Class</uid>
+    <uid value="1.2.840.10008.5.1.4.34.6.2" keyword="UnifiedProcedureStepWatch" type="SOPClass">Unified Procedure Step - Watch SOP Class</uid>
+    <uid value="1.2.840.10008.5.1.4.34.6.3" keyword="UnifiedProcedureStepPull" type="SOPClass">Unified Procedure Step - Pull SOP Class</uid>
+    <uid value="1.2.840.10008.5.1.4.34.6.4" keyword="UnifiedProcedureStepEvent" type="SOPClass">Unified Procedure Step - Event SOP Class</uid>
+    <uid value="1.2.840.10008.5.1.4.34.6.5" keyword="UnifiedProcedureStepQuery" type="SOPClass">Unified Procedure Step - Query SOP Class</uid>
+    <uid value="1.2.840.10008.5.1.4.34.7" keyword="RTBeamsDeliveryInstructionStorage" type="SOPClass">RT Beams Delivery Instruction Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.34.8" keyword="RTConventionalMachineVerification" type="SOPClass">RT Conventional Machine Verification</uid>
+    <uid value="1.2.840.10008.5.1.4.34.9" keyword="RTIonMachineVerification" type="SOPClass">RT Ion Machine Verification</uid>
+    <uid value="1.2.840.10008.5.1.4.34.10" keyword="RTBrachyApplicationSetupDeliveryInstructionStorage" type="SOPClass">RT Brachy Application Setup Delivery Instruction Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.37.1" keyword="GeneralRelevantPatientInformationQuery" type="SOPClass">General Relevant Patient Information Query</uid>
+    <uid value="1.2.840.10008.5.1.4.37.2" keyword="BreastImagingRelevantPatientInformationQuery" type="SOPClass">Breast Imaging Relevant Patient Information Query</uid>
+    <uid value="1.2.840.10008.5.1.4.37.3" keyword="CardiacRelevantPatientInformationQuery" type="SOPClass">Cardiac Relevant Patient Information Query</uid>
+    <uid value="1.2.840.10008.5.1.4.38.1" keyword="HangingProtocolStorage" type="SOPClass">Hanging Protocol Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.38.2" keyword="HangingProtocolInformationModelFind" type="SOPClass">Hanging Protocol Information Model - FIND</uid>
+    <uid value="1.2.840.10008.5.1.4.38.3" keyword="HangingProtocolInformationModelMove" type="SOPClass">Hanging Protocol Information Model - MOVE</uid>
+    <uid value="1.2.840.10008.5.1.4.38.4" keyword="HangingProtocolInformationModelGet" type="SOPClass">Hanging Protocol Information Model - GET</uid>
+    <uid value="1.2.840.10008.5.1.4.39.1" keyword="ColorPaletteStorage" type="SOPClass">Color Palette Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.39.2" keyword="ColorPaletteQueryRetrieveInformationModelFind" type="SOPClass">Color Palette Query/Retrieve Information Model - FIND</uid>
+    <uid value="1.2.840.10008.5.1.4.39.3" keyword="ColorPaletteQueryRetrieveInformationModelMove" type="SOPClass">Color Palette Query/Retrieve Information Model - MOVE</uid>
+    <uid value="1.2.840.10008.5.1.4.39.4" keyword="ColorPaletteQueryRetrieveInformationModelGet" type="SOPClass">Color Palette Query/Retrieve Information Model - GET</uid>
+    <uid value="1.2.840.10008.5.1.4.41" keyword="ProductCharacteristicsQuery" type="SOPClass">Product Characteristics Query SOP Class</uid>
+    <uid value="1.2.840.10008.5.1.4.42" keyword="SubstanceApprovalQuery" type="SOPClass">Substance Approval Query SOP Class</uid>
+    <uid value="1.2.840.10008.5.1.4.43.1" keyword="GenericImplantTemplateStorage" type="SOPClass">Generic Implant Template Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.43.2" keyword="GenericImplantTemplateInformationModelFind" type="SOPClass">Generic Implant Template Information Model - FIND</uid>
+    <uid value="1.2.840.10008.5.1.4.43.3" keyword="GenericImplantTemplateInformationModelMove" type="SOPClass">Generic Implant Template Information Model - MOVE</uid>
+    <uid value="1.2.840.10008.5.1.4.43.4" keyword="GenericImplantTemplateInformationModelGet" type="SOPClass">Generic Implant Template Information Model - GET</uid>
+    <uid value="1.2.840.10008.5.1.4.44.1" keyword="ImplantAssemblyTemplateStorage" type="SOPClass">Implant Assembly Template Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.44.2" keyword="ImplantAssemblyTemplateInformationModelFind" type="SOPClass">Implant Assembly Template Information Model - FIND</uid>
+    <uid value="1.2.840.10008.5.1.4.44.3" keyword="ImplantAssemblyTemplateInformationModelMove" type="SOPClass">Implant Assembly Template Information Model - MOVE</uid>
+    <uid value="1.2.840.10008.5.1.4.44.4" keyword="ImplantAssemblyTemplateInformationModelGet" type="SOPClass">Implant Assembly Template Information Model - GET</uid>
+    <uid value="1.2.840.10008.5.1.4.45.1" keyword="ImplantTemplateGroupStorage" type="SOPClass">Implant Template Group Storage</uid>
+    <uid value="1.2.840.10008.5.1.4.45.2" keyword="ImplantTemplateGroupInformationModelFind" type="SOPClass">Implant Template Group Information Model - FIND</uid>
+    <uid value="1.2.840.10008.5.1.4.45.3" keyword="ImplantTemplateGroupInformationModelMove" type="SOPClass">Implant Template Group Information Model - MOVE</uid>
+    <uid value="1.2.840.10008.5.1.4.45.4" keyword="ImplantTemplateGroupInformationModelGet" type="SOPClass">Implant Template Group Information Model - GET</uid>
+    <uid value="1.2.840.10008.7.1.1" keyword="NativeDICOMModel" type="ApplicationHostingModel">Native DICOM Model</uid>
+    <uid value="1.2.840.10008.7.1.2" keyword="AbstractMultiDimensionalImageModel" type="ApplicationHostingModel">Abstract Multi-Dimensional Image Model</uid>
+    <uid value="1.2.840.10008.8.1.1" keyword="DICOMContentMappingResource" type="MappingResource">DICOM Content Mapping Resource</uid>
+    <uid value="1.2.840.10008.10.1" keyword="VideoEndoscopicImageRealTimeCommunication" type="SOPClass">Video Endoscopic Image Real-Time Communication</uid>
+    <uid value="1.2.840.10008.10.2" keyword="VideoPhotographicImageRealTimeCommunication" type="SOPClass">Video Photographic Image Real-Time Communication</uid>
+    <uid value="1.2.840.10008.10.3" keyword="AudioWaveformRealTimeCommunication" type="SOPClass">Audio Waveform Real-Time Communication</uid>
+    <uid value="1.2.840.10008.10.4" keyword="RenditionSelectionDocumentRealTimeCommunication" type="SOPClass">Rendition Selection Document Real-Time Communication</uid>
+    <uid value="1.2.840.10008.15.0.3.1" keyword="dicomDeviceName" type="LDAPOID">dicomDeviceName</uid>
+    <uid value="1.2.840.10008.15.0.3.2" keyword="dicomDescription" type="LDAPOID">dicomDescription</uid>
+    <uid value="1.2.840.10008.15.0.3.3" keyword="dicomManufacturer" type="LDAPOID">dicomManufacturer</uid>
+    <uid value="1.2.840.10008.15.0.3.4" keyword="dicomManufacturerModelName" type="LDAPOID">dicomManufacturerModelName</uid>
+    <uid value="1.2.840.10008.15.0.3.5" keyword="dicomSoftwareVersion" type="LDAPOID">dicomSoftwareVersion</uid>
+    <uid value="1.2.840.10008.15.0.3.6" keyword="dicomVendorData" type="LDAPOID">dicomVendorData</uid>
+    <uid value="1.2.840.10008.15.0.3.7" keyword="dicomAETitle" type="LDAPOID">dicomAETitle</uid>
+    <uid value="1.2.840.10008.15.0.3.8" keyword="dicomNetworkConnectionReference" type="LDAPOID">dicomNetworkConnectionReference</uid>
+    <uid value="1.2.840.10008.15.0.3.9" keyword="dicomApplicationCluster" type="LDAPOID">dicomApplicationCluster</uid>
+    <uid value="1.2.840.10008.15.0.3.10" keyword="dicomAssociationInitiator" type="LDAPOID">dicomAssociationInitiator</uid>
+    <uid value="1.2.840.10008.15.0.3.11" keyword="dicomAssociationAcceptor" type="LDAPOID">dicomAssociationAcceptor</uid>
+    <uid value="1.2.840.10008.15.0.3.12" keyword="dicomHostname" type="LDAPOID">dicomHostname</uid>
+    <uid value="1.2.840.10008.15.0.3.13" keyword="dicomPort" type="LDAPOID">dicomPort</uid>
+    <uid value="1.2.840.10008.15.0.3.14" keyword="dicomSOPClass" type="LDAPOID">dicomSOPClass</uid>
+    <uid value="1.2.840.10008.15.0.3.15" keyword="dicomTransferRole" type="LDAPOID">dicomTransferRole</uid>
+    <uid value="1.2.840.10008.15.0.3.16" keyword="dicomTransferSyntax" type="LDAPOID">dicomTransferSyntax</uid>
+    <uid value="1.2.840.10008.15.0.3.17" keyword="dicomPrimaryDeviceType" type="LDAPOID">dicomPrimaryDeviceType</uid>
+    <uid value="1.2.840.10008.15.0.3.18" keyword="dicomRelatedDeviceReference" type="LDAPOID">dicomRelatedDeviceReference</uid>
+    <uid value="1.2.840.10008.15.0.3.19" keyword="dicomPreferredCalledAETitle" type="LDAPOID">dicomPreferredCalledAETitle</uid>
+    <uid value="1.2.840.10008.15.0.3.20" keyword="dicomTLSCyphersuite" type="LDAPOID">dicomTLSCyphersuite</uid>
+    <uid value="1.2.840.10008.15.0.3.21" keyword="dicomAuthorizedNodeCertificateReference" type="LDAPOID">dicomAuthorizedNodeCertificateReference</uid>
+    <uid value="1.2.840.10008.15.0.3.22" keyword="dicomThisNodeCertificateReference" type="LDAPOID">dicomThisNodeCertificateReference</uid>
+    <uid value="1.2.840.10008.15.0.3.23" keyword="dicomInstalled" type="LDAPOID">dicomInstalled</uid>
+    <uid value="1.2.840.10008.15.0.3.24" keyword="dicomStationName" type="LDAPOID">dicomStationName</uid>
+    <uid value="1.2.840.10008.15.0.3.25" keyword="dicomDeviceSerialNumber" type="LDAPOID">dicomDeviceSerialNumber</uid>
+    <uid value="1.2.840.10008.15.0.3.26" keyword="dicomInstitutionName" type="LDAPOID">dicomInstitutionName</uid>
+    <uid value="1.2.840.10008.15.0.3.27" keyword="dicomInstitutionAddress" type="LDAPOID">dicomInstitutionAddress</uid>
+    <uid value="1.2.840.10008.15.0.3.28" keyword="dicomInstitutionDepartmentName" type="LDAPOID">dicomInstitutionDepartmentName</uid>
+    <uid value="1.2.840.10008.15.0.3.29" keyword="dicomIssuerOfPatientID" type="LDAPOID">dicomIssuerOfPatientID</uid>
+    <uid value="1.2.840.10008.15.0.3.30" keyword="dicomPreferredCallingAETitle" type="LDAPOID">dicomPreferredCallingAETitle</uid>
+    <uid value="1.2.840.10008.15.0.3.31" keyword="dicomSupportedCharacterSet" type="LDAPOID">dicomSupportedCharacterSet</uid>
+    <uid value="1.2.840.10008.15.0.4.1" keyword="dicomConfigurationRoot" type="LDAPOID">dicomConfigurationRoot</uid>
+    <uid value="1.2.840.10008.15.0.4.2" keyword="dicomDevicesRoot" type="LDAPOID">dicomDevicesRoot</uid>
+    <uid value="1.2.840.10008.15.0.4.3" keyword="dicomUniqueAETitlesRegistryRoot" type="LDAPOID">dicomUniqueAETitlesRegistryRoot</uid>
+    <uid value="1.2.840.10008.15.0.4.4" keyword="dicomDevice" type="LDAPOID">dicomDevice</uid>
+    <uid value="1.2.840.10008.15.0.4.5" keyword="dicomNetworkAE" type="LDAPOID">dicomNetworkAE</uid>
+    <uid value="1.2.840.10008.15.0.4.6" keyword="dicomNetworkConnection" type="LDAPOID">dicomNetworkConnection</uid>
+    <uid value="1.2.840.10008.15.0.4.7" keyword="dicomUniqueAETitle" type="LDAPOID">dicomUniqueAETitle</uid>
+    <uid value="1.2.840.10008.15.0.4.8" keyword="dicomTransferCapability" type="LDAPOID">dicomTransferCapability</uid>
+    <uid value="1.2.840.10008.15.1.1" keyword="UTC" type="SynchronizationFrameOfReference">Universal Coordinated Time</uid>
+    <uid value="1.2.40.0.13.1.5.1.4.1.1.104.1" keyword="PrivateDcm4cheEncapsulatedGenozipStorage" type="SOPClass">Private Dcm4che Encapsulated Genozip Storage</uid>
+    <uid value="1.2.40.0.13.1.5.1.4.1.1.104.2" keyword="PrivateDcm4cheEncapsulatedBzip2VCFStorage" type="SOPClass">Private Dcm4che Encapsulated Bzip2 VCF Storage</uid>
+    <uid value="1.2.40.0.13.1.5.1.4.1.1.104.3" keyword="PrivateDcm4cheEncapsulatedBzip2DocumentStorage" type="SOPClass">Private Dcm4che Encapsulated Bzip2 Document Storage</uid>
+    <uid value="1.2.124.113532.3500.7" keyword="PrivateAgfaBasicAttributePresentationState" type="SOPClass">Private Agfa Basic Attribute Presentation State</uid>
+    <uid value="1.2.124.113532.3500.8.1" keyword="PrivateAgfaArrivalTransaction" type="SOPClass">Private Agfa Arrival Transaction</uid>
+    <uid value="1.2.124.113532.3500.8.2" keyword="PrivateAgfaDictationTransaction" type="SOPClass">Private Agfa Dictation Transaction</uid>
+    <uid value="1.2.124.113532.3500.8.3" keyword="PrivateAgfaReportTranscriptionTransaction" type="SOPClass">Private Agfa Report Transcription Transaction</uid>
+    <uid value="1.2.124.113532.3500.8.4" keyword="PrivateAgfaReportApprovalTransaction" type="SOPClass">Private Agfa Report Approval Transaction</uid>
+    <uid value="1.2.276.0.48.5.1.4.1.1.7" keyword="PrivateTomTecAnnotationStorage" type="SOPClass">Private TomTec Annotation Storage</uid>
+    <uid value="1.2.392.200036.9116.7.8.1.1.1" keyword="PrivateToshibaUSImageStorage" type="SOPClass">Private Toshiba US Image Storage</uid>
+    <uid value="1.2.392.200036.9125.1.1.2" keyword="PrivateFujiCRImageStorage" type="SOPClass">Private Fuji CR Image Storage</uid>
+    <uid value="1.2.528.1.1001.5.1.1.1" keyword="PrivateGECollageStorage" type="SOPClass">Private GE Collage Storage</uid>
+    <uid value="1.2.826.0.1.3680043.293.1.0.1" keyword="PrivateERADPracticeBuilderReportTextStorage" type="SOPClass">Private ERAD Practice Builder Report Text Storage</uid>
+    <uid value="1.2.826.0.1.3680043.293.1.0.2" keyword="PrivateERADPracticeBuilderReportDictationStorage" type="SOPClass">Private ERAD Practice Builder Report Dictation Storage</uid>
+    <uid value="1.2.840.113543.6.6.1.3.10001" keyword="PrivatePhilipsHPLive3D01Storage" type="SOPClass">Private Philips HP Live 3D 01 Storage</uid>
+    <uid value="1.2.840.113543.6.6.1.3.10002" keyword="PrivatePhilipsHPLive3D02Storage" type="SOPClass">Private Philips HP Live 3D 02 Storage</uid>
+    <uid value="1.2.840.113619.4.26" keyword="PrivateGE3DModelStorage" type="SOPClass">Private GE 3D Model Storage</uid>
+    <uid value="1.2.840.113619.4.3" keyword="PrivateGEDicomCTImageInfoObject" type="SOPClass">Private GE Dicom CT Image Info Object</uid>
+    <uid value="1.2.840.113619.4.4" keyword="PrivateGEDicomDisplayImageInfoObject" type="SOPClass">Private GE Dicom Display Image Info Object</uid>
+    <uid value="1.2.840.113619.4.2" keyword="PrivateGEDicomMRImageInfoObject" type="SOPClass">Private GE Dicom MR Image Info Object</uid>
+    <uid value="1.2.840.113619.4.27" keyword="PrivateGEeNTEGRAProtocolOrNMGenieStorage" type="SOPClass">Private GE eNTEGRA Protocol or NM Genie Storage</uid>
+    <uid value="1.2.840.113619.4.30" keyword="PrivateGEPETRawDataStorage" type="SOPClass">Private GE PET Raw Data Storage</uid>
+    <uid value="1.2.840.113619.4.5.249" keyword="PrivateGERTPlanStorage" type="SOPClass">Private GE RT Plan Storage</uid>
+    <uid value="1.3.6.1.4.1.5962.301.1" keyword="PrivatePixelMedLegacyConvertedEnhancedCTImageStorage" type="SOPClass">Private PixelMed Legacy Converted Enhanced CT Image Storage</uid>
+    <uid value="1.3.6.1.4.1.5962.301.2" keyword="PrivatePixelMedLegacyConvertedEnhancedMRImageStorage" type="SOPClass">Private PixelMed Legacy Converted Enhanced MR Image Storage</uid>
+    <uid value="1.3.6.1.4.1.5962.301.3" keyword="PrivatePixelMedLegacyConvertedEnhancedPETImageStorage" type="SOPClass">Private PixelMed Legacy Converted Enhanced PET Image Storage</uid>
+    <uid value="1.3.6.1.4.1.5962.301.9" keyword="PrivatePixelMedFloatingPointImageStorage" type="SOPClass">Private PixelMed Floating Point Image Storage</uid>
+    <uid value="1.3.12.2.1107.5.9.1" keyword="PrivateSiemensCSANonImageStorage" type="SOPClass">Private Siemens CSA Non Image Storage</uid>
+    <uid value="1.3.12.2.1107.5.99.3.10" keyword="PrivateSiemensCTMRVolumeStorage" type="SOPClass">Private Siemens CT MR Volume Storage</uid>
+    <uid value="1.3.12.2.1107.5.99.3.11" keyword="PrivateSiemensAXFrameSetsStorage" type="SOPClass">Private Siemens AX Frame Sets Storage</uid>
+    <uid value="1.3.46.670589.2.3.1.1" keyword="PrivatePhilipsSpecialisedXAStorage" type="SOPClass">Private Philips Specialised XA Storage</uid>
+    <uid value="1.3.46.670589.2.4.1.1" keyword="PrivatePhilipsCXImageStorage" type="SOPClass">Private Philips CX Image Storage</uid>
+    <uid value="1.3.46.670589.2.5.1.1" keyword="PrivatePhilips3DPresentationStateStorage" type="SOPClass">Private Philips 3D Presentation State Storage</uid>
+    <uid value="1.3.46.670589.2.8.1.1" keyword="PrivatePhilipsVRMLStorage" type="SOPClass">Private Philips VRML Storage</uid>
+    <uid value="1.3.46.670589.2.11.1.1" keyword="PrivatePhilipsVolumeSetStorage" type="SOPClass">Private Philips Volume Set Storage</uid>
+    <uid value="1.3.46.670589.5.0.1" keyword="PrivatePhilipsVolumeStorageRetired" type="SOPClass">Private Philips Volume Storage (Retired)</uid>
+    <uid value="1.3.46.670589.5.0.1.1" keyword="PrivatePhilipsVolumeStorage" type="SOPClass">Private Philips Volume Storage</uid>
+    <uid value="1.3.46.670589.5.0.2" keyword="PrivatePhilips3DObjectStorageRetired" type="SOPClass">Private Philips 3D Object Storage (Retired)</uid>
+    <uid value="1.3.46.670589.5.0.2.1" keyword="PrivatePhilips3DObjectStorage" type="SOPClass">Private Philips 3D Object Storage</uid>
+    <uid value="1.3.46.670589.5.0.3" keyword="PrivatePhilipsSurfaceStorageRetired" type="SOPClass">Private Philips Surface Storage (Retired)</uid>
+    <uid value="1.3.46.670589.5.0.3.1" keyword="PrivatePhilipsSurfaceStorage" type="SOPClass">Private Philips Surface Storage</uid>
+    <uid value="1.3.46.670589.5.0.4" keyword="PrivatePhilipsCompositeObjectStorage" type="SOPClass">Private Philips Composite Object Storage</uid>
+    <uid value="1.3.46.670589.5.0.7" keyword="PrivatePhilipsMRCardioProfileStorage" type="SOPClass">Private Philips MR Cardio Profile Storage</uid>
+    <uid value="1.3.46.670589.5.0.8" keyword="PrivatePhilipsMRCardioStorageRetired" type="SOPClass">Private Philips MR Cardio Storage (Retired)</uid>
+    <uid value="1.3.46.670589.5.0.8.1" keyword="PrivatePhilipsMRCardioStorage" type="SOPClass">Private Philips MR Cardio Storage</uid>
+    <uid value="1.3.46.670589.5.0.9" keyword="PrivatePhilipsCTSyntheticImageStorage" type="SOPClass">Private Philips CT Synthetic Image Storage</uid>
+    <uid value="1.3.46.670589.5.0.10" keyword="PrivatePhilipsMRSyntheticImageStorage" type="SOPClass">Private Philips MR Synthetic Image Storage</uid>
+    <uid value="1.3.46.670589.5.0.11" keyword="PrivatePhilipsMRCardioAnalysisStorageRetired" type="SOPClass">Private Philips MR Cardio Analysis Storage (Retired)</uid>
+    <uid value="1.3.46.670589.5.0.11.1" keyword="PrivatePhilipsMRCardioAnalysisStorage" type="SOPClass">Private Philips MR Cardio Analysis Storage</uid>
+    <uid value="1.3.46.670589.5.0.12" keyword="PrivatePhilipsCXSyntheticImageStorage" type="SOPClass">Private Philips CX Synthetic Image Storage</uid>
+    <uid value="1.3.46.670589.5.0.13" keyword="PrivatePhilipsPerfusionStorage" type="SOPClass">Private Philips Perfusion Storage</uid>
+    <uid value="1.3.46.670589.5.0.14" keyword="PrivatePhilipsPerfusionImageStorage" type="SOPClass">Private Philips Perfusion Image Storage</uid>
+    <uid value="1.3.46.670589.7.8.1618510091" keyword="PrivatePhilipsXRayMFStorage" type="SOPClass">Private Philips X-Ray MF Storage</uid>
+    <uid value="1.3.46.670589.7.8.1618510092" keyword="PrivatePhilipsLiveRunStorage" type="SOPClass">Private Philips Live Run Storage</uid>
+    <uid value="1.3.46.670589.7.8.16185100129" keyword="PrivatePhilipsRunStorage" type="SOPClass">Private Philips Run Storage</uid>
+    <uid value="1.3.46.670589.7.8.16185100130" keyword="PrivatePhilipsReconstructionStorage" type="SOPClass">Private Philips Reconstruction Storage</uid>
+    <uid value="1.3.46.670589.11.0.0.12.1" keyword="PrivatePhilipsMRSpectrumStorage" type="SOPClass">Private Philips MR Spectrum Storage</uid>
+    <uid value="1.3.46.670589.11.0.0.12.2" keyword="PrivatePhilipsMRSeriesDataStorage" type="SOPClass">Private Philips MR Series Data Storage</uid>
+    <uid value="1.3.46.670589.11.0.0.12.3" keyword="PrivatePhilipsMRColorImageStorage" type="SOPClass">Private Philips MR Color Image Storage</uid>
+    <uid value="1.3.46.670589.11.0.0.12.4" keyword="PrivatePhilipsMRExamcardStorage" type="SOPClass">Private Philips MR Examcard Storage</uid>
+    <uid value="2.16.840.1.114033.5.1.4.1.1.130" keyword="PrivatePMODMultiFrameImageStorage" type="SOPClass">Private PMOD Multi-frame Image Storage</uid>
+</uids>

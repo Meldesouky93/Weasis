@@ -1,0 +1,530 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>Options.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.command</a> &gt; <span class="el_source">Options.java</span></div><h1>Options.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.command;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.weasis.core.util.LangUtil;
+import org.weasis.core.util.StringUtil;
+
+/** Yet another GNU long options' parser. This one is configured by parsing its Usage string. */
+public class Options implements Option {
+
+<span class="nc" id="L28">  public static final String NL = System.getProperty(&quot;line.separator&quot;, &quot;\n&quot;); // NON-NLS</span>
+
+<span class="nc" id="L30">  private static final String REGEX =</span>
+      new StringBuilder()
+<span class="nc" id="L32">          .append(&quot;(?x)\\s*&quot;) // NON-NLS</span>
+<span class="nc" id="L33">          .append(&quot;(?:-([^-]))?&quot;) // NON-NLS  // 1: short-opt-1</span>
+<span class="nc" id="L34">          .append(&quot;(?:,?\\s*-(\\w))?&quot;) // NON-NLS // 2: short-opt-2</span>
+<span class="nc" id="L35">          .append(&quot;(?:,?\\s*--(\\w[\\w-]*)(=\\w+)?)?&quot;) // NON-NLS // 3: long-opt-1 and 4:arg-1</span>
+<span class="nc" id="L36">          .append(&quot;(?:,?\\s*--(\\w[\\w-]*))?&quot;) // NON-NLS // 5: long-opt-2</span>
+<span class="nc" id="L37">          .append(&quot;.*?(?:\\(default=(.*)\\))?\\s*&quot;) // NON-NLS  // 6: default</span>
+<span class="nc" id="L38">          .toString(); // NON-NLS</span>
+
+  private static final int GROUP_SHORT_OPT_1 = 1;
+  private static final int GROUP_SHORT_OPT_2 = 2;
+  private static final int GROUP_LONG_OPT_1 = 3;
+  private static final int GROUP_ARG_1 = 4;
+  private static final int GROUP_LONG_OPT_2 = 5;
+  private static final int GROUP_DEFAULT = 6;
+
+<span class="nc" id="L47">  private final Pattern parser = Pattern.compile(REGEX);</span>
+<span class="nc" id="L48">  private final Pattern uname = Pattern.compile(&quot;^Usage:\\s+(\\w+)&quot;);</span>
+
+  private final Map&lt;String, Boolean&gt; unmodifiableOptSet;
+  private final Map&lt;String, Object&gt; unmodifiableOptArg;
+<span class="nc" id="L52">  private final Map&lt;String, Boolean&gt; optSet = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L53">  private final Map&lt;String, Object&gt; optArg = new HashMap&lt;&gt;();</span>
+
+<span class="nc" id="L55">  private final Map&lt;String, String&gt; optName = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L56">  private final Map&lt;String, String&gt; optAlias = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L57">  private final List&lt;Object&gt; xargs = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L58">  private List&lt;String&gt; args = null;</span>
+
+  private static final String UNKNOWN = &quot;unknown_usage_name&quot;; // NON-NLS
+<span class="nc" id="L61">  private String usageName = UNKNOWN;</span>
+<span class="nc" id="L62">  private int usageIndex = 0;</span>
+
+  private final String[] spec;
+  private final String[] gspec;
+  private final String[] defArgs;
+<span class="nc" id="L67">  private String error = null;</span>
+
+<span class="nc" id="L69">  private boolean optionsFirst = false;</span>
+<span class="nc" id="L70">  private boolean stopOnBadOption = false;</span>
+
+  public static void main(String[] args) {
+<span class="nc" id="L73">    final String[] usage = {</span>
+      &quot;test - test Options usage&quot;, // NON-NLS
+      &quot;  text before Usage: is displayed when usage() is called and no error has occurred.&quot;, // NON-NLS
+      &quot;  so can be used as a simple help message.&quot;, // NON-NLS
+      &quot;&quot;,
+      &quot;Usage: testOptions [OPTION]... PATTERN [FILES]...&quot;, // NON-NLS
+      &quot;  Output control: arbitrary non-option text can be included.&quot;, // NON-NLS
+      &quot;  -? --help                show help&quot;, // NON-NLS
+      &quot;  -c --count=COUNT           show COUNT lines&quot;, // NON-NLS
+      &quot;  -h --no-filename         suppress the prefixing filename on output&quot;, // NON-NLS
+      &quot;  -q --quiet, --silent     suppress all normal output&quot;, // NON-NLS
+      &quot;     --binary-files=TYPE   assume that binary files are TYPE&quot;, // NON-NLS
+      &quot;                           TYPE is 'binary', 'text', or 'without-match'&quot;, // NON-NLS
+      &quot;  -I                       equivalent to --binary-files=without-match&quot;, // NON-NLS
+      &quot;  -d --directories=ACTION  how to handle directories (default=skip)&quot;, // NON-NLS
+      &quot;                           ACTION is 'read', 'recurse', or 'skip'&quot;, // NON-NLS
+      &quot;  -D --devices=ACTION      how to handle devices, FIFOs and sockets&quot;, // NON-NLS
+      &quot;                           ACTION is 'read' or 'skip'&quot;, // NON-NLS
+      &quot;  -R, -r --recursive       equivalent to --directories=recurse&quot; // NON-NLS
+    };
+
+<span class="nc" id="L94">    Option opt = Options.compile(usage).parse(args);</span>
+
+<span class="nc bnc" id="L96" title="All 2 branches missed.">    if (opt.isSet(&quot;help&quot;)) { // NON-NLS</span>
+<span class="nc" id="L97">      opt.usage(); // includes text before Usage:</span>
+<span class="nc" id="L98">      return;</span>
+    }
+
+<span class="nc bnc" id="L101" title="All 2 branches missed.">    if (opt.args().isEmpty()) {</span>
+<span class="nc" id="L102">      throw opt.usageError(&quot;PATTERN not specified&quot;); // NON-NLS</span>
+    }
+
+<span class="nc" id="L105">    System.out.println(opt);</span>
+<span class="nc bnc" id="L106" title="All 2 branches missed.">    if (opt.isSet(&quot;count&quot;)) { // NON-NLS</span>
+<span class="nc" id="L107">      System.out.println(&quot;count = &quot; + opt.getNumber(&quot;count&quot;)); // NON-NLS</span>
+    }
+<span class="nc" id="L109">    System.out.println(&quot;--directories specified: &quot; + opt.isSet(&quot;directories&quot;)); // NON-NLS</span>
+<span class="nc" id="L110">    System.out.println(&quot;directories=&quot; + opt.get(&quot;directories&quot;)); // NON-NLS</span>
+<span class="nc" id="L111">  }</span>
+
+  public static Option compile(String[] optSpec) {
+<span class="nc" id="L114">    return new Options(optSpec, null, null);</span>
+  }
+
+  public static Option compile(String optSpec) {
+<span class="nc" id="L118">    return compile(optSpec.split(&quot;\\n&quot;)); // NON-NLS</span>
+  }
+
+  public static Option compile(String[] optSpec, Option gopt) {
+<span class="nc" id="L122">    return new Options(optSpec, null, gopt);</span>
+  }
+
+  public static Option compile(String[] optSpec, String[] gspec) {
+<span class="nc" id="L126">    return new Options(optSpec, gspec, null);</span>
+  }
+
+  @Override
+  public Option setStopOnBadOption(boolean stopOnBadOption) {
+<span class="nc" id="L131">    this.stopOnBadOption = stopOnBadOption;</span>
+<span class="nc" id="L132">    return this;</span>
+  }
+
+  @Override
+  public Option setOptionsFirst(boolean optionsFirst) {
+<span class="nc" id="L137">    this.optionsFirst = optionsFirst;</span>
+<span class="nc" id="L138">    return this;</span>
+  }
+
+  @Override
+  public boolean isSet(String name) {
+<span class="nc bnc" id="L143" title="All 2 branches missed.">    if (!optSet.containsKey(name)) {</span>
+<span class="nc" id="L144">      throw new IllegalArgumentException(&quot;option not defined in spec: &quot; + name);</span>
+    }
+
+<span class="nc" id="L147">    return optSet.get(name);</span>
+  }
+
+  @Override
+  public Object getObject(String name) {
+<span class="nc bnc" id="L152" title="All 2 branches missed.">    if (!optArg.containsKey(name)) {</span>
+<span class="nc" id="L153">      throw new IllegalArgumentException(&quot;option not defined with argument: &quot; + name);</span>
+    }
+
+<span class="nc" id="L156">    List&lt;Object&gt; list = getObjectList(name);</span>
+
+<span class="nc bnc" id="L158" title="All 2 branches missed.">    return list.isEmpty() ? &quot;&quot; : list.get(list.size() - 1);</span>
+  }
+
+  @Override
+  public List&lt;Object&gt; getObjectList(String name) {
+    List&lt;Object&gt; list;
+<span class="nc" id="L164">    Object arg = optArg.get(name);</span>
+
+<span class="nc bnc" id="L166" title="All 2 branches missed.">    if (arg == null) {</span>
+<span class="nc" id="L167">      throw new IllegalArgumentException(&quot;option not defined with argument: &quot; + name);</span>
+    }
+
+<span class="nc bnc" id="L170" title="All 2 branches missed.">    if (arg instanceof String val) { // default value</span>
+<span class="nc" id="L171">      list = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L172" title="All 2 branches missed.">      if (StringUtil.hasText(val)) {</span>
+<span class="nc" id="L173">        list.add(arg);</span>
+      }
+    } else {
+<span class="nc" id="L176">      list = (List&lt;Object&gt;) arg;</span>
+    }
+
+<span class="nc" id="L179">    return list;</span>
+  }
+
+  @Override
+  public List&lt;String&gt; getList(String name) {
+<span class="nc" id="L184">    ArrayList&lt;String&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L185" title="All 2 branches missed.">    for (Object o : getObjectList(name)) {</span>
+      try {
+<span class="nc" id="L187">        list.add((String) o);</span>
+<span class="nc" id="L188">      } catch (ClassCastException e) {</span>
+<span class="nc" id="L189">        throw new IllegalArgumentException(&quot;option not String: &quot; + name);</span>
+<span class="nc" id="L190">      }</span>
+<span class="nc" id="L191">    }</span>
+<span class="nc" id="L192">    return list;</span>
+  }
+
+  private void addArg(String name, Object value) {
+    List&lt;Object&gt; list;
+<span class="nc" id="L197">    Object arg = optArg.get(name);</span>
+
+<span class="nc bnc" id="L199" title="All 2 branches missed.">    if (arg instanceof String) { // default value</span>
+<span class="nc" id="L200">      list = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L201">      optArg.put(name, list);</span>
+    } else {
+<span class="nc" id="L203">      list = (List&lt;Object&gt;) arg;</span>
+    }
+
+<span class="nc" id="L206">    list.add(value);</span>
+<span class="nc" id="L207">  }</span>
+
+  @Override
+  public String get(String name) {
+    try {
+<span class="nc" id="L212">      return (String) getObject(name);</span>
+<span class="nc" id="L213">    } catch (ClassCastException e) {</span>
+<span class="nc" id="L214">      throw new IllegalArgumentException(&quot;option not String: &quot; + name);</span>
+    }
+  }
+
+  @Override
+  public int getNumber(String name) {
+<span class="nc" id="L220">    String number = get(name);</span>
+    try {
+<span class="nc bnc" id="L222" title="All 2 branches missed.">      if (number != null) {</span>
+<span class="nc" id="L223">        return Integer.parseInt(number);</span>
+      }
+<span class="nc" id="L225">      return 0;</span>
+<span class="nc" id="L226">    } catch (NumberFormatException e) {</span>
+<span class="nc" id="L227">      throw new IllegalArgumentException(&quot;option '&quot; + name + &quot;' not Number: &quot; + number); // NON-NLS</span>
+    }
+  }
+
+  @Override
+  public List&lt;Object&gt; argObjects() {
+<span class="nc" id="L233">    return xargs;</span>
+  }
+
+  @Override
+  public List&lt;String&gt; args() {
+<span class="nc bnc" id="L238" title="All 2 branches missed.">    if (args == null) {</span>
+<span class="nc" id="L239">      args = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L240" title="All 2 branches missed.">      for (Object arg : xargs) {</span>
+<span class="nc bnc" id="L241" title="All 2 branches missed.">        args.add(arg == null ? &quot;null&quot; : arg.toString()); // NON-NLS</span>
+<span class="nc" id="L242">      }</span>
+    }
+<span class="nc" id="L244">    return args;</span>
+  }
+
+  @Override
+  public void usage() {
+<span class="nc" id="L249">    StringBuilder buf = new StringBuilder();</span>
+<span class="nc" id="L250">    int index = 0;</span>
+
+<span class="nc bnc" id="L252" title="All 2 branches missed.">    if (error != null) {</span>
+<span class="nc" id="L253">      buf.append(error);</span>
+<span class="nc" id="L254">      buf.append(NL);</span>
+<span class="nc" id="L255">      index = usageIndex;</span>
+    }
+
+<span class="nc bnc" id="L258" title="All 2 branches missed.">    for (int i = index; i &lt; spec.length; ++i) {</span>
+<span class="nc" id="L259">      buf.append(spec[i]);</span>
+<span class="nc" id="L260">      buf.append(NL);</span>
+    }
+<span class="nc" id="L262">    System.err.print(buf);</span>
+<span class="nc" id="L263">  }</span>
+
+  /** prints usage message and returns IllegalArgumentException, for you to throw. */
+  @Override
+  public IllegalArgumentException usageError(String s) {
+<span class="nc" id="L268">    error = usageName + &quot;: &quot; + s;</span>
+<span class="nc" id="L269">    usage();</span>
+<span class="nc" id="L270">    return new IllegalArgumentException(error);</span>
+  }
+
+  // internal constructor
+<span class="nc" id="L274">  private Options(String[] spec, String[] gspec, Option opt) {</span>
+<span class="nc" id="L275">    this.gspec = gspec;</span>
+<span class="nc" id="L276">    Options gopt = (Options) opt;</span>
+
+<span class="nc bnc" id="L278" title="All 4 branches missed.">    if (gspec == null &amp;&amp; gopt == null) {</span>
+<span class="nc" id="L279">      this.spec = spec;</span>
+    } else {
+<span class="nc" id="L281">      ArrayList&lt;String&gt; list = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L282">      list.addAll(Arrays.asList(spec));</span>
+<span class="nc bnc" id="L283" title="All 2 branches missed.">      list.addAll(Arrays.asList(gspec != null ? gspec : gopt.gspec));</span>
+<span class="nc" id="L284">      this.spec = list.toArray(new String[0]);</span>
+    }
+
+<span class="nc" id="L287">    Map&lt;String, Boolean&gt; myOptSet = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L288">    Map&lt;String, Object&gt; myOptArg = new HashMap&lt;&gt;();</span>
+
+<span class="nc" id="L290">    parseSpec(myOptSet, myOptArg);</span>
+
+<span class="nc bnc" id="L292" title="All 2 branches missed.">    if (gopt != null) {</span>
+<span class="nc bnc" id="L293" title="All 2 branches missed.">      for (Entry&lt;String, Boolean&gt; e : gopt.optSet.entrySet()) {</span>
+<span class="nc bnc" id="L294" title="All 2 branches missed.">        if (LangUtil.getNULLtoFalse(e.getValue())) {</span>
+<span class="nc" id="L295">          myOptSet.put(e.getKey(), true);</span>
+        }
+<span class="nc" id="L297">      }</span>
+
+<span class="nc bnc" id="L299" title="All 2 branches missed.">      for (Entry&lt;String, Object&gt; e : gopt.optArg.entrySet()) {</span>
+<span class="nc bnc" id="L300" title="All 2 branches missed.">        if (!&quot;&quot;.equals(e.getValue())) {</span>
+<span class="nc" id="L301">          myOptArg.put(e.getKey(), e.getValue());</span>
+        }
+<span class="nc" id="L303">      }</span>
+
+<span class="nc" id="L305">      gopt.reset();</span>
+    }
+
+<span class="nc" id="L308">    unmodifiableOptSet = Collections.unmodifiableMap(myOptSet);</span>
+<span class="nc" id="L309">    unmodifiableOptArg = Collections.unmodifiableMap(myOptArg);</span>
+
+<span class="nc" id="L311">    String defOpts = System.getenv(usageName.toUpperCase() + &quot;_OPTS&quot;); // NON-NLS</span>
+<span class="nc bnc" id="L312" title="All 2 branches missed.">    defArgs = (defOpts != null) ? defOpts.split(&quot;\\s+&quot;) : new String[0]; // NON-NLS</span>
+<span class="nc" id="L313">  }</span>
+
+  /** parse option spec. */
+  private void parseSpec(Map&lt;String, Boolean&gt; myOptSet, Map&lt;String, Object&gt; myOptArg) {
+<span class="nc" id="L317">    int index = 0;</span>
+<span class="nc bnc" id="L318" title="All 2 branches missed.">    for (String line : spec) {</span>
+<span class="nc" id="L319">      Matcher m = parser.matcher(line);</span>
+
+<span class="nc bnc" id="L321" title="All 2 branches missed.">      if (m.matches()) {</span>
+<span class="nc" id="L322">        final String opt = m.group(GROUP_LONG_OPT_1);</span>
+<span class="nc bnc" id="L323" title="All 2 branches missed.">        final String name = (opt != null) ? opt : m.group(GROUP_SHORT_OPT_1);</span>
+
+<span class="nc bnc" id="L325" title="All 2 branches missed.">        if (name != null) {</span>
+<span class="nc bnc" id="L326" title="All 2 branches missed.">          if (myOptSet.containsKey(name)) {</span>
+<span class="nc" id="L327">            throw new IllegalArgumentException(&quot;duplicate option in spec: --&quot; + name);</span>
+          }
+<span class="nc" id="L329">          myOptSet.put(name, false);</span>
+        }
+
+<span class="nc bnc" id="L332" title="All 2 branches missed.">        String dflt = (m.group(GROUP_DEFAULT) != null) ? m.group(GROUP_DEFAULT) : &quot;&quot;;</span>
+<span class="nc bnc" id="L333" title="All 2 branches missed.">        if (m.group(GROUP_ARG_1) != null) {</span>
+<span class="nc" id="L334">          myOptArg.put(opt, dflt);</span>
+        }
+
+<span class="nc" id="L337">        String opt2 = m.group(GROUP_LONG_OPT_2);</span>
+<span class="nc bnc" id="L338" title="All 2 branches missed.">        if (opt2 != null) {</span>
+<span class="nc" id="L339">          optAlias.put(opt2, opt);</span>
+<span class="nc" id="L340">          myOptSet.put(opt2, false);</span>
+<span class="nc bnc" id="L341" title="All 2 branches missed.">          if (m.group(GROUP_ARG_1) != null) {</span>
+<span class="nc" id="L342">            myOptArg.put(opt2, &quot;&quot;);</span>
+          }
+        }
+
+<span class="nc bnc" id="L346" title="All 2 branches missed.">        for (int i = 0; i &lt; 2; ++i) {</span>
+<span class="nc bnc" id="L347" title="All 2 branches missed.">          String sopt = m.group(i == 0 ? GROUP_SHORT_OPT_1 : GROUP_SHORT_OPT_2);</span>
+<span class="nc bnc" id="L348" title="All 2 branches missed.">          if (sopt != null) {</span>
+<span class="nc bnc" id="L349" title="All 2 branches missed.">            if (optName.containsKey(sopt)) {</span>
+<span class="nc" id="L350">              throw new IllegalArgumentException(&quot;duplicate option in spec: -&quot; + sopt);</span>
+            }
+<span class="nc" id="L352">            optName.put(sopt, name);</span>
+          }
+        }
+      }
+
+<span class="nc bnc" id="L357" title="All 2 branches missed.">      if (Objects.equals(usageName, UNKNOWN)) {</span>
+<span class="nc" id="L358">        Matcher u = uname.matcher(line);</span>
+<span class="nc bnc" id="L359" title="All 2 branches missed.">        if (u.find()) {</span>
+<span class="nc" id="L360">          usageName = u.group(1);</span>
+<span class="nc" id="L361">          usageIndex = index;</span>
+        }
+      }
+
+<span class="nc" id="L365">      index++;</span>
+    }
+<span class="nc" id="L367">  }</span>
+
+  private void reset() {
+<span class="nc" id="L370">    optSet.clear();</span>
+<span class="nc" id="L371">    optSet.putAll(unmodifiableOptSet);</span>
+<span class="nc" id="L372">    optArg.clear();</span>
+<span class="nc" id="L373">    optArg.putAll(unmodifiableOptArg);</span>
+<span class="nc" id="L374">    xargs.clear();</span>
+<span class="nc" id="L375">    args = null;</span>
+<span class="nc" id="L376">    error = null;</span>
+<span class="nc" id="L377">  }</span>
+
+  @Override
+  public Option parse(Object[] argv) {
+<span class="nc" id="L381">    return parse(argv, false);</span>
+  }
+
+  @Override
+  public Option parse(List&lt;?&gt; argv) {
+<span class="nc" id="L386">    return parse(argv, false);</span>
+  }
+
+  @Override
+  public Option parse(Object[] argv, boolean skipArg0) {
+<span class="nc bnc" id="L391" title="All 2 branches missed.">    if (null == argv) {</span>
+<span class="nc" id="L392">      throw new IllegalArgumentException(&quot;argv is null&quot;);</span>
+    }
+
+<span class="nc" id="L395">    return parse(Arrays.asList(argv), skipArg0);</span>
+  }
+
+  @Override
+  public Option parse(List&lt;?&gt; argv, boolean skipArg0) {
+<span class="nc" id="L400">    reset();</span>
+<span class="nc" id="L401">    List&lt;Object&gt; arguments = new ArrayList&lt;&gt;(Arrays.asList(defArgs));</span>
+
+<span class="nc bnc" id="L403" title="All 2 branches missed.">    for (Object arg : argv) {</span>
+<span class="nc bnc" id="L404" title="All 2 branches missed.">      if (skipArg0) {</span>
+<span class="nc" id="L405">        skipArg0 = false;</span>
+<span class="nc" id="L406">        usageName = arg.toString();</span>
+      } else {
+<span class="nc" id="L408">        arguments.add(arg);</span>
+      }
+<span class="nc" id="L410">    }</span>
+
+<span class="nc" id="L412">    String needArg = null;</span>
+<span class="nc" id="L413">    String needOpt = null;</span>
+<span class="nc" id="L414">    boolean endOpt = false;</span>
+
+<span class="nc bnc" id="L416" title="All 2 branches missed.">    for (Object oarg : arguments) {</span>
+<span class="nc bnc" id="L417" title="All 2 branches missed.">      String arg = oarg == null ? &quot;null&quot; : oarg.toString(); // NON-NLS</span>
+
+<span class="nc bnc" id="L419" title="All 2 branches missed.">      if (endOpt) {</span>
+<span class="nc" id="L420">        xargs.add(oarg);</span>
+<span class="nc bnc" id="L421" title="All 2 branches missed.">      } else if (needArg != null) {</span>
+<span class="nc" id="L422">        addArg(needArg, oarg);</span>
+<span class="nc" id="L423">        needArg = null;</span>
+<span class="nc" id="L424">        needOpt = null;</span>
+<span class="nc bnc" id="L425" title="All 4 branches missed.">      } else if (!arg.startsWith(&quot;-&quot;) || &quot;-&quot;.equals(oarg)) { // NON-NLS</span>
+<span class="nc bnc" id="L426" title="All 2 branches missed.">        if (optionsFirst) {</span>
+<span class="nc" id="L427">          endOpt = true;</span>
+        }
+<span class="nc" id="L429">        xargs.add(oarg);</span>
+      } else {
+<span class="nc bnc" id="L431" title="All 2 branches missed.">        if (&quot;--&quot;.equals(arg)) {</span>
+<span class="nc" id="L432">          endOpt = true;</span>
+<span class="nc bnc" id="L433" title="All 2 branches missed.">        } else if (arg.startsWith(&quot;--&quot;)) {</span>
+<span class="nc" id="L434">          int eq = arg.indexOf('=');</span>
+<span class="nc bnc" id="L435" title="All 2 branches missed.">          String value = (eq == -1) ? null : arg.substring(eq + 1);</span>
+<span class="nc bnc" id="L436" title="All 2 branches missed.">          String name = arg.substring(2, (eq == -1) ? arg.length() : eq);</span>
+<span class="nc" id="L437">          List&lt;String&gt; names = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L439" title="All 2 branches missed.">          if (optSet.containsKey(name)) {</span>
+<span class="nc" id="L440">            names.add(name);</span>
+          } else {
+<span class="nc bnc" id="L442" title="All 2 branches missed.">            for (String k : optSet.keySet()) {</span>
+<span class="nc bnc" id="L443" title="All 2 branches missed.">              if (k.startsWith(name)) {</span>
+<span class="nc" id="L444">                names.add(k);</span>
+              }
+<span class="nc" id="L446">            }</span>
+          }
+
+<span class="nc bnc" id="L449" title="All 3 branches missed.">          switch (names.size()) {</span>
+            case 1:
+<span class="nc" id="L451">              name = names.get(0);</span>
+<span class="nc" id="L452">              optSet.put(name, true);</span>
+<span class="nc bnc" id="L453" title="All 2 branches missed.">              if (optArg.containsKey(name)) {</span>
+<span class="nc bnc" id="L454" title="All 2 branches missed.">                if (value != null) {</span>
+<span class="nc" id="L455">                  addArg(name, value);</span>
+                } else {
+<span class="nc" id="L457">                  needArg = name;</span>
+                }
+<span class="nc bnc" id="L459" title="All 2 branches missed.">              } else if (value != null) {</span>
+<span class="nc" id="L460">                throw usageError(&quot;option '--&quot; + name + &quot;' doesn't allow an argument&quot;); // NON-NLS</span>
+              }
+              break;
+
+            case 0:
+<span class="nc bnc" id="L465" title="All 2 branches missed.">              if (stopOnBadOption) {</span>
+<span class="nc" id="L466">                endOpt = true;</span>
+<span class="nc" id="L467">                xargs.add(oarg);</span>
+<span class="nc" id="L468">                break;</span>
+              } else {
+<span class="nc" id="L470">                throw usageError(&quot;invalid option '--&quot; + name + &quot;'&quot;); // NON-NLS</span>
+              }
+
+            default:
+<span class="nc" id="L474">              throw usageError(&quot;option '--&quot; + name + &quot;' is ambiguous: &quot; + names); // NON-NLS</span>
+          }
+<span class="nc" id="L476">        } else {</span>
+<span class="nc bnc" id="L477" title="All 2 branches missed.">          for (int i = 1; i &lt; arg.length(); i++) {</span>
+<span class="nc" id="L478">            String c = String.valueOf(arg.charAt(i));</span>
+<span class="nc bnc" id="L479" title="All 2 branches missed.">            if (optName.containsKey(c)) {</span>
+<span class="nc" id="L480">              String name = optName.get(c);</span>
+<span class="nc" id="L481">              optSet.put(name, true);</span>
+<span class="nc bnc" id="L482" title="All 2 branches missed.">              if (optArg.containsKey(name)) {</span>
+<span class="nc" id="L483">                int k = i + 1;</span>
+<span class="nc bnc" id="L484" title="All 2 branches missed.">                if (k &lt; arg.length()) {</span>
+<span class="nc" id="L485">                  addArg(name, arg.substring(k));</span>
+                } else {
+<span class="nc" id="L487">                  needOpt = c;</span>
+<span class="nc" id="L488">                  needArg = name;</span>
+                }
+<span class="nc" id="L490">                break;</span>
+              }
+<span class="nc" id="L492">            } else {</span>
+<span class="nc bnc" id="L493" title="All 2 branches missed.">              if (stopOnBadOption) {</span>
+<span class="nc" id="L494">                xargs.add(&quot;-&quot; + c);</span>
+<span class="nc" id="L495">                endOpt = true;</span>
+              } else {
+<span class="nc" id="L497">                throw usageError(&quot;invalid option '&quot; + c + &quot;'&quot;); // NON-NLS</span>
+              }
+            }
+          }
+        }
+      }
+<span class="nc" id="L503">    }</span>
+
+<span class="nc bnc" id="L505" title="All 2 branches missed.">    if (needArg != null) {</span>
+<span class="nc bnc" id="L506" title="All 2 branches missed.">      String name = (needOpt != null) ? needOpt : &quot;--&quot; + needArg;</span>
+<span class="nc" id="L507">      throw usageError(&quot;option '&quot; + name + &quot;' requires an argument&quot;); // NON-NLS</span>
+    }
+
+    // remove long option aliases
+<span class="nc bnc" id="L511" title="All 2 branches missed.">    for (Entry&lt;String, String&gt; alias : optAlias.entrySet()) {</span>
+<span class="nc bnc" id="L512" title="All 2 branches missed.">      if (LangUtil.getNULLtoFalse(optSet.get(alias.getKey()))) {</span>
+<span class="nc" id="L513">        optSet.put(alias.getValue(), true);</span>
+<span class="nc bnc" id="L514" title="All 2 branches missed.">        if (optArg.containsKey(alias.getKey())) {</span>
+<span class="nc" id="L515">          optArg.put(alias.getValue(), optArg.get(alias.getKey()));</span>
+        }
+      }
+<span class="nc" id="L518">      optSet.remove(alias.getKey());</span>
+<span class="nc" id="L519">      optArg.remove(alias.getKey());</span>
+<span class="nc" id="L520">    }</span>
+
+<span class="nc" id="L522">    return this;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L527">    return &quot;isSet&quot; + optSet + &quot;\nArg&quot; + optArg + &quot;\nargs&quot; + xargs; // NON-NLS</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

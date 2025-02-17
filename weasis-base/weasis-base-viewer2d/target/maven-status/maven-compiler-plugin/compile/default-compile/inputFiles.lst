@@ -1,0 +1,10 @@
+/workspaces/Weasis/weasis-base/weasis-base-viewer2d/src/main/java/org/weasis/base/viewer2d/EventManager.java
+/workspaces/Weasis/weasis-base/weasis-base-viewer2d/src/main/java/org/weasis/base/viewer2d/ImportToolBar.java
+/workspaces/Weasis/weasis-base/weasis-base-viewer2d/src/main/java/org/weasis/base/viewer2d/InfoLayer.java
+/workspaces/Weasis/weasis-base/weasis-base-viewer2d/src/main/java/org/weasis/base/viewer2d/Messages.java
+/workspaces/Weasis/weasis-base/weasis-base-viewer2d/src/main/java/org/weasis/base/viewer2d/View2d.java
+/workspaces/Weasis/weasis-base/weasis-base-viewer2d/src/main/java/org/weasis/base/viewer2d/View2dContainer.java
+/workspaces/Weasis/weasis-base/weasis-base-viewer2d/src/main/java/org/weasis/base/viewer2d/ViewerFactory.java
+/workspaces/Weasis/weasis-base/weasis-base-viewer2d/src/main/java/org/weasis/base/viewer2d/dockable/DisplayTool.java
+/workspaces/Weasis/weasis-base/weasis-base-viewer2d/src/main/java/org/weasis/base/viewer2d/dockable/ImageTool.java
+/workspaces/Weasis/weasis-base/weasis-base-viewer2d/src/main/java/org/weasis/base/viewer2d/internal/Activator.java

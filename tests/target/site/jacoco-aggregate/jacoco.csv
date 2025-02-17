@@ -1,0 +1,616 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central,SeriesButton,82,0,8,0,23,0,12,0,8,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central,AcquireCentralImagePanel,185,0,8,0,53,0,21,0,17,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central,AcquireCentralInfoPanel,86,0,2,0,28,0,5,0,4,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central,SerieButtonList,110,0,2,0,29,0,12,0,11,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central,ImageGroupPane,104,0,6,0,33,0,15,0,12,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central,AcquireTabPanel,552,0,52,0,134,0,52,0,26,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central.meta.model,AcquireMetadataTableModel,312,0,43,0,63,0,40,0,18,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.dicom,Transform2Dicom,365,0,38,0,86,0,23,0,4,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central.meta.panel.imp,AcquireSeriesMetaPanel,72,0,4,0,21,0,10,0,8,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central.meta.panel.imp,AcquireImageMetaPanel,30,0,2,0,9,0,5,0,4,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central.meta.panel.imp,AcquireGlobalMetaPanel,11,0,0,0,4,0,2,0,2,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.util,AbstractBean,67,0,0,0,18,0,10,0,10,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central.meta.panel,AnatomicRegionView,352,0,18,0,81,0,22,0,13,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central.meta.panel,AnatomicRegionView.new DropDownButton() {...},26,0,2,0,4,0,3,0,2,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central.meta.panel,AnatomicRegionCellEditor,137,0,16,0,38,0,13,0,5,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central.meta.panel,AcquireMetadataPanel.TagRenderer,79,0,14,0,18,0,10,0,3,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central.meta.panel,AcquireMetadataPanel.AcquireImageCellEditor,417,0,40,0,104,0,31,0,11,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central.meta.panel,AcquireMetadataPanel,175,0,6,0,47,0,13,0,10,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central.meta.model.imp,AcquireGlobalMeta,24,0,0,0,9,0,3,0,3,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central.meta.model.imp,AcquireImageMeta,29,0,2,0,10,0,4,0,3,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central.meta.model.imp,AcquireSeriesMeta,24,0,0,0,9,0,3,0,3,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.core.bean,DefaultTaggable,53,0,4,0,14,0,11,0,9,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.core.bean,SeriesGroup,381,0,67,0,94,0,56,0,22,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.core.bean,Global,149,0,30,0,46,0,24,0,9,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.core.bean,SeriesGroup.Type,21,0,0,0,4,0,1,0,1,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.model.renderer,MediaSourceListCellRenderer,51,0,6,0,15,0,5,0,2,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.model.actions,ChangePathSelectionAction,92,0,8,0,29,0,8,0,4,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.core,ItemList.Interval,19,0,0,0,6,0,3,0,3,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.core,ItemList,249,0,36,0,56,0,38,0,20,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.core,ItemList.eProperty,21,0,0,0,4,0,1,0,1,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.media,FileSystemDrive,47,0,4,0,12,0,3,0,1,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.media,MediaSource,66,0,10,0,13,0,13,0,8,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.dialog,AcquirePublishDialog.new WindowAdapter() {...},11,0,0,0,3,0,2,0,2,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.dialog,AcquirePublishDialog,798,0,66,0,203,0,54,0,21,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.dialog,AcquireNewSeriesDialog,136,0,12,0,37,0,10,0,4,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.dialog,AcquireImportDialog.new FocusListener() {...},17,0,0,0,4,0,3,0,3,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.dialog,AcquireImportDialog.new FocusListener() {...},17,0,0,0,4,0,3,0,3,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.dialog,AcquireImportDialog,381,0,26,0,87,0,19,0,6,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.dialog,AcquirePublishDialog.Resolution,73,0,2,0,17,0,7,0,6,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer,AcquireExplorer,383,0,32,0,95,0,38,0,22,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer,MediaImporterFactory,114,0,10,0,35,0,11,0,6,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer,Messages,12,0,0,0,4,0,2,0,2,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer,PublishDicomTask,146,0,2,0,43,0,11,0,10,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer,AcquireImageValues,368,0,28,0,76,0,42,0,28,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer,ImportTask,90,0,4,0,27,0,6,0,4,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer,AcquireImageInfo,839,0,68,0,178,0,62,0,28,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer,AcquireManager,1308,0,148,0,355,0,145,0,71,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer,AcquireImageStatus,21,0,0,0,4,0,1,0,1,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer,WorklistDialog,835,0,26,0,122,0,24,0,11,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer,DicomizeTask,119,0,4,0,29,0,6,0,4,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.model.list,ItemListModel,130,0,18,0,27,0,18,0,8,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.model.list,ItemListComboBoxModel,174,0,36,0,35,0,25,0,6,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.model.publish,PublishTree,43,0,0,0,12,0,4,0,4,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.model.publish,PublishTreeModel,104,0,0,0,24,0,10,0,10,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.control,ImportPanel,144,0,12,0,36,0,13,0,7,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.control,BrowsePanel,221,0,10,0,55,0,15,0,10,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.control,AcquirePublishPanel,343,0,26,0,91,0,23,0,10,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central.tumbnail,AcquireCentralThumbnailModel,6,0,0,0,3,0,2,0,2,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central.tumbnail,AcquireCentralThumbnailList,432,0,27,0,120,0,38,0,23,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central.tumbnail,AcquireCentralThumbnailPane.SeriesHandler,132,0,22,0,37,0,16,0,5,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.central.tumbnail,AcquireCentralThumbnailPane,78,0,6,0,23,0,10,0,7,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.list,AcquireThumbnailModel,78,0,8,0,23,0,8,0,4,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.list,AcquireThumbnailList,139,0,18,0,35,0,18,0,8,0
+Tests/weasis-acquire-explorer,org.weasis.acquire.explorer.gui.list,AcquireThumbnailListPane,12,0,0,0,3,0,1,0,1,0
+Tests/weasis-dicom-codec,org.weasis.dicom.ref,MesBody,12,0,0,0,4,0,2,0,2,0
+Tests/weasis-dicom-codec,org.weasis.dicom.ref,CodingScheme,546,0,4,0,75,0,12,0,10,0
+Tests/weasis-dicom-codec,org.weasis.dicom.ref,OtherPart,29,0,0,0,6,0,6,0,6,0
+Tests/weasis-dicom-codec,org.weasis.dicom.ref,AnatomicBuilder,138,0,2,0,34,0,15,0,14,0
+Tests/weasis-dicom-codec,org.weasis.dicom.ref,BodyPart,4483,0,0,0,387,0,11,0,11,0
+Tests/weasis-dicom-codec,org.weasis.dicom.ref,AnatomicRegion,372,0,56,0,101,0,43,0,15,0
+Tests/weasis-dicom-codec,org.weasis.dicom.ref,SurfacePart,2335,0,2,0,225,0,13,0,12,0
+Tests/weasis-dicom-codec,org.weasis.dicom.ref,AnatomicBuilder.OtherCategory,70,0,10,0,16,0,12,0,7,0
+Tests/weasis-dicom-codec,org.weasis.dicom.ref,MesSurface,12,0,0,0,4,0,2,0,2,0
+Tests/weasis-dicom-codec,org.weasis.dicom.ref,MesModifier,12,0,0,0,4,0,2,0,2,0
+Tests/weasis-dicom-codec,org.weasis.dicom.ref,AnatomicModifier,399,0,0,0,56,0,7,0,7,0
+Tests/weasis-dicom-codec,org.weasis.dicom.ref,AnatomicBuilder.Category,91,0,4,0,19,0,10,0,8,0
+Tests/weasis-dicom-codec,org.weasis.dicom.ref,MesCategory,12,0,0,0,4,0,2,0,2,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,TagD.Sex,70,0,6,0,16,0,8,0,5,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,SegSpecialElement.new StructToolTipTreeNode() {...},200,0,12,0,47,0,8,0,2,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,TagD.Level,52,0,0,0,11,0,4,0,4,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,DicomSpecialElementFactory,2,0,0,0,1,0,1,0,1,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,HiddenSeriesManager,532,0,108,0,122,0,73,0,19,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,DicomEncapDocElement,122,0,12,0,32,0,12,0,6,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,DicomMediaIO.new DicomSpecialElementFactory() {...},19,0,0,0,5,0,5,0,5,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,DicomEncapDocSeries,60,0,4,0,19,0,9,0,7,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,DicomMediaIO.Reading,21,0,0,0,4,0,1,0,1,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,DicomMediaIO.new DicomSpecialElementFactory() {...},19,0,0,0,5,0,5,0,5,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,DicomMediaIO.new DicomSpecialElementFactory() {...},27,0,2,0,7,0,6,0,5,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,DicomMediaIO.new SoftHashMap() {...},17,0,2,0,5,0,3,0,2,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,DicomElement.DicomExportParameters,18,0,0,0,1,0,1,0,1,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,AbstractKOSpecialElement,947,0,152,0,252,0,112,0,36,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,DcmMediaReader,30,0,4,0,8,0,3,0,1,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,HiddenSpecialElement,4,0,0,0,2,0,1,0,1,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,TransferSyntax,231,0,2,0,38,0,7,0,6,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,Messages,12,0,0,0,4,0,2,0,2,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,AbstractKOSpecialElement.new Filter() {...},38,0,4,0,8,0,4,0,2,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,DicomVideoElement,116,0,14,0,31,0,12,0,5,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,DicomVideoSeries,145,0,10,0,33,0,13,0,8,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,TagSeq,74,0,16,0,13,0,10,0,2,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,SegSpecialElement,688,0,78,0,162,0,64,0,25,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,KOSpecialElement,309,0,22,0,73,0,20,0,9,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,DicomMediaIO,1928,0,192,0,446,0,146,0,50,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,DicomMediaIO.ResultContainer,15,0,0,0,6,0,3,0,3,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,TagD,2018,0,343,0,462,0,225,0,50,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,AbstractKOSpecialElement.Reference,112,0,4,0,30,0,10,0,8,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,TagSeq.MacroSeqData,27,0,0,0,10,0,5,0,5,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,DicomSpecialElement,291,0,44,0,66,0,34,0,12,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,SortSeriesStack,52,0,0,0,7,0,2,0,2,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,RejectedKOSpecialElement,46,0,16,0,14,0,10,0,2,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,PresentationStateReader,236,0,18,0,50,0,25,0,16,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,DicomSeries,664,0,98,0,169,0,67,0,18,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,SortSeriesStack.new SeriesComparator() {...},28,0,4,0,7,0,5,0,3,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,SortSeriesStack.new SeriesComparator() {...},48,0,4,0,7,0,5,0,3,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,TagManager,130,0,26,0,28,0,18,0,5,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,SortSeriesStack.new SeriesComparator() {...},28,0,4,0,7,0,5,0,3,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,SortSeriesStack.new SeriesComparator() {...},28,0,4,0,7,0,5,0,3,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,SortSeriesStack.new SeriesComparator() {...},28,0,4,0,7,0,5,0,3,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,SortSeriesStack.new SeriesComparator() {...},28,0,4,0,7,0,5,0,3,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,ExtendSegmentedInputImageStream,28,0,2,0,9,0,5,0,4,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,DicomCodec,265,0,20,0,46,0,23,0,13,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,DicomSpecialElement.new SeriesComparator() {...},70,0,16,0,17,0,10,0,2,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,DicomSeries.PreloadingTask,264,0,40,0,61,0,28,0,8,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,DicomSpecialElement.new SeriesComparator() {...},10,0,0,0,2,0,2,0,2,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,SpecialElementRegion,169,0,28,0,44,0,18,0,4,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,PRSpecialElement,80,0,16,0,24,0,13,0,5,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec,DicomImageElement,1322,0,228,0,270,0,153,0,39,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.utils,SplittingModalityRules.Or,29,0,6,0,6,0,5,0,2,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.utils,DicomResource,56,0,0,0,11,0,3,0,3,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.utils,SplittingModalityRules.DefaultCondition,138,0,29,0,28,0,19,0,3,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.utils,PatientComparator,252,0,10,0,55,0,21,0,14,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.utils,SplittingRules,582,0,80,0,160,0,55,0,13,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.utils,Ultrasound,148,0,35,0,46,0,27,0,4,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.utils,DicomMediaUtils,2298,0,324,0,445,0,195,0,33,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.utils,SplittingModalityRules.CompositeCondition,18,0,0,0,5,0,3,0,3,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.utils,SplittingModalityRules.And,29,0,6,0,6,0,5,0,2,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.utils,SeriesInstanceList,77,0,4,0,19,0,10,0,8,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.utils,DicomMediaUtils.KeyObjectSelectionCode,66,0,2,0,16,0,5,0,4,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.utils,SplittingModalityRules.Rule,45,0,6,0,13,0,7,0,4,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.utils,SplittingModalityRules.Condition.Type,51,0,0,0,9,0,1,0,1,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.utils,SplittingModalityRules,96,0,8,0,28,0,14,0,10,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.utils,SplittingModalityRules.Condition,19,0,2,0,5,0,5,0,4,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.display,CornerDisplay,46,0,0,0,9,0,3,0,3,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.display,OverlayOp,186,0,24,0,44,0,18,0,6,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.display,ModalityInfoData,88,0,8,0,17,0,10,0,6,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.display,WindowAndPresetsOp,311,0,42,0,67,0,25,0,4,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.display,ShutterOp,347,0,56,0,67,0,35,0,7,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.display,Modality,602,0,2,0,94,0,7,0,6,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.display,ModalityView,710,0,85,0,144,0,55,0,11,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.display,CornerInfoData,44,0,6,0,13,0,7,0,4,0
+Tests/weasis-dicom-codec,org.weasis.dicom.macro,HierarchicalSOPInstanceReference,67,0,6,0,18,0,10,0,7,0
+Tests/weasis-dicom-codec,org.weasis.dicom.macro,MACParameters,101,0,6,0,23,0,14,0,11,0
+Tests/weasis-dicom-codec,org.weasis.dicom.macro,SOPInstanceReferenceAndPurpose,62,0,8,0,15,0,9,0,5,0
+Tests/weasis-dicom-codec,org.weasis.dicom.macro,ReferencedRequest,191,0,12,0,44,0,29,0,23,0
+Tests/weasis-dicom-codec,org.weasis.dicom.macro,KODocumentModule,66,0,0,0,20,0,11,0,11,0
+Tests/weasis-dicom-codec,org.weasis.dicom.macro,SeriesAndInstanceReference,106,0,6,0,27,0,16,0,13,0
+Tests/weasis-dicom-codec,org.weasis.dicom.macro,DigitalSignatures,177,0,8,0,39,0,25,0,21,0
+Tests/weasis-dicom-codec,org.weasis.dicom.macro,Module,103,0,22,0,31,0,15,0,4,0
+Tests/weasis-dicom-codec,org.weasis.dicom.macro,Code,250,0,12,0,60,0,38,0,32,0
+Tests/weasis-dicom-codec,org.weasis.dicom.macro,SOPInstanceReference,105,0,8,0,24,0,15,0,11,0
+Tests/weasis-dicom-codec,org.weasis.dicom.macro,SOPInstanceReferenceAndMAC,65,0,6,0,18,0,10,0,7,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.geometry,PatientOrientation.Quadruped,85,0,2,0,19,0,7,0,6,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.geometry,ImageOrientation,489,0,130,0,112,0,76,0,11,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.geometry,GeometryOfSlice,513,0,60,0,65,0,49,0,19,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.geometry,VectorUtils,30,0,0,0,5,0,3,0,3,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.geometry,LocalizerPoster,879,0,48,0,114,0,39,0,15,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.geometry,IntersectVolume,71,0,8,0,16,0,7,0,3,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.geometry,PatientOrientation,127,0,28,0,31,0,29,0,11,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.geometry,ImageOrientation.Plan,33,0,0,0,6,0,1,0,1,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.geometry,PatientOrientation.Biped,84,0,2,0,19,0,7,0,6,0
+Tests/weasis-dicom-codec,org.weasis.dicom.codec.geometry,IntersectSlice,177,0,40,0,30,0,27,0,7,0
+Tests/weasis-core,org.weasis.core.ui.docking,ExtToolFactory,95,0,14,0,29,0,15,0,8,0
+Tests/weasis-core,org.weasis.core.ui.docking,PluginTool,353,0,38,0,97,0,38,0,19,0
+Tests/weasis-core,org.weasis.core.ui.docking,PluginTool.POSITION,27,0,0,0,5,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.model,PerformanceModel,83,0,0,0,34,0,17,0,17,0
+Tests/weasis-core,org.weasis.core.api.util,FontItem,216,0,4,0,34,0,10,0,8,0
+Tests/weasis-core,org.weasis.core.api.util,ClosableURLConnection,78,0,6,0,21,0,12,0,9,0
+Tests/weasis-core,org.weasis.core.api.util,AuthResponse,32,0,0,0,10,0,7,0,7,0
+Tests/weasis-core,org.weasis.core.api.util,LocalUtil,24,0,6,0,8,0,5,0,2,0
+Tests/weasis-core,org.weasis.core.api.util,ResourceUtil,116,0,14,0,27,0,18,0,11,0
+Tests/weasis-core,org.weasis.core.api.util,ThreadUtil,24,0,0,0,6,0,4,0,4,0
+Tests/weasis-core,org.weasis.core.api.util,ResourceUtil.ActionIcon,595,0,0,0,88,0,3,0,3,0
+Tests/weasis-core,org.weasis.core.api.util,ResourceUtil.LogoIcon,35,0,0,0,8,0,3,0,3,0
+Tests/weasis-core,org.weasis.core.api.util,URLParameters,250,0,26,0,46,0,27,0,14,0
+Tests/weasis-core,org.weasis.core.api.util,SocketUtil,118,0,10,0,28,0,10,0,5,0
+Tests/weasis-core,org.weasis.core.api.util,ResourceUtil.FileIcon,77,0,0,0,14,0,3,0,3,0
+Tests/weasis-core,org.weasis.core.api.util,ResourceUtil.OtherIcon,154,0,0,0,25,0,3,0,3,0
+Tests/weasis-core,org.weasis.core.api.util,FontTools,141,0,4,0,27,0,4,0,2,0
+Tests/weasis-core,org.weasis.core.api.util,GzipManager,250,0,18,0,59,0,20,0,11,0
+Tests/weasis-core,org.weasis.core.api.util,NetworkUtil,464,0,60,0,112,0,47,0,17,0
+Tests/weasis-core,org.weasis.core.ui.launcher,ConfigurationDialog,551,0,20,0,112,0,23,0,13,0
+Tests/weasis-core,org.weasis.core.ui.launcher,LauncherDialog,285,0,8,0,61,0,10,0,6,0
+Tests/weasis-core,org.weasis.core.ui.launcher,Launcher.Compatibility,35,0,0,0,8,0,3,0,3,0
+Tests/weasis-core,org.weasis.core.ui.launcher,Launcher,590,0,74,0,174,0,68,0,31,0
+Tests/weasis-core,org.weasis.core.ui.launcher,Launcher.Configuration,68,0,12,0,18,0,13,0,7,0
+Tests/weasis-core,org.weasis.core.ui.launcher,Launcher.Type,38,0,0,0,9,0,4,0,4,0
+Tests/weasis-core,org.weasis.core.ui.launcher,Launcher.ApplicationConfiguration,396,0,78,0,96,0,56,0,17,0
+Tests/weasis-core,org.weasis.core.ui.launcher,Placeholder,85,0,6,0,23,0,7,0,4,0
+Tests/weasis-core,org.weasis.core.ui.launcher,Launcher.URIConfiguration,65,0,8,0,19,0,10,0,6,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp.area,RectangleGraphic.eHandlePoint,157,0,16,0,37,0,20,0,7,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp.area,SelectGraphic,108,0,4,0,27,0,14,0,12,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp.area,RectangleGraphic,777,0,70,0,143,0,49,0,14,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp.area,ObliqueRectangleGraphic,1119,0,110,0,202,0,72,0,17,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp.area,EllipseGraphic,684,0,38,0,130,0,29,0,10,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp.area,ThreePointsCircleGraphic,401,0,38,0,74,0,32,0,13,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp.area,PolygonGraphic,1237,0,124,0,254,0,90,0,27,0
+Tests/weasis-core,org.weasis.core.api.media,MimeInspector,472,0,96,0,137,0,61,0,13,0
+Tests/weasis-core,org.weasis.core.internal,StreamBackingStoreImpl,886,0,106,0,225,0,81,0,27,0
+Tests/weasis-core,org.weasis.core.internal,Activator,385,0,38,0,109,0,30,0,11,0
+Tests/weasis-core,org.weasis.core.ui.model.utils.exceptions,InvalidShapeException,16,0,0,0,8,0,4,0,4,0
+Tests/weasis-core,org.weasis.core.api.auth,OAuth2ServiceFactory,148,0,8,0,28,0,7,0,3,0
+Tests/weasis-core,org.weasis.core.api.auth,BasicHttpClient.BodyType,21,0,0,0,4,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.auth,DefaultAuthMethod,237,0,24,0,72,0,28,0,16,0
+Tests/weasis-core,org.weasis.core.api.auth,AcceptCompletionHandler,44,0,0,0,14,0,7,0,7,0
+Tests/weasis-core,org.weasis.core.api.auth,OAuth2ServiceFactory.OAuth2Api,26,0,2,0,9,0,6,0,5,0
+Tests/weasis-core,org.weasis.core.api.auth,AuthRegistration,42,0,0,0,18,0,10,0,10,0
+Tests/weasis-core,org.weasis.core.api.auth,BasicHttpClient.new BodySupplier() {...},26,0,0,0,3,0,3,0,3,0
+Tests/weasis-core,org.weasis.core.api.auth,BasicHttpClient.new BodySupplier() {...},17,0,0,0,3,0,3,0,3,0
+Tests/weasis-core,org.weasis.core.api.auth,FileBodyPartPayload,53,0,4,0,17,0,7,0,5,0
+Tests/weasis-core,org.weasis.core.api.auth,AsyncCallbackServerHandler,124,0,6,0,38,0,13,0,10,0
+Tests/weasis-core,org.weasis.core.api.auth,AcceptCompletionHandler.new CompletionHandler() {...},124,0,8,0,32,0,7,0,3,0
+Tests/weasis-core,org.weasis.core.api.auth,BasicHttpClient,579,0,60,0,137,0,51,0,21,0
+Tests/weasis-core,org.weasis.core.api.auth,OpenIdJsonTokenExtractor.InstanceHolder,5,0,0,0,1,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.auth,BasicHttpClient.BodyType.new BasicHttpClient.BodyType() {...},11,0,0,0,3,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.api.auth,BasicHttpClient.BodyType.new BasicHttpClient.BodyType() {...},11,0,0,0,3,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.api.auth,BasicHttpClient.BodyType.new BasicHttpClient.BodyType() {...},13,0,0,0,3,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.api.auth,AuthProvider,55,0,0,0,23,0,12,0,12,0
+Tests/weasis-core,org.weasis.core.api.auth,OpenIdOAuth2AccessToken,67,0,8,0,18,0,9,0,5,0
+Tests/weasis-core,org.weasis.core.api.auth,AcceptCompletionHandler.WriteHandler,20,0,0,0,9,0,3,0,3,0
+Tests/weasis-core,org.weasis.core.api.auth,OpenIdJsonTokenExtractor,25,0,2,0,5,0,4,0,3,0
+Tests/weasis-core,org.weasis.core.api.auth,OAuth2ServiceFactory.new DefaultAuthMethod() {...},8,0,0,0,2,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,MeasureToolBar,590,0,80,0,129,0,54,0,14,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ExportImage,305,0,16,0,71,0,21,0,13,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ViewerToolBar,918,0,102,0,199,0,74,0,23,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ZoomWin,989,0,64,0,205,0,65,0,33,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerPlugin.DragLayoutElement,38,0,4,0,12,0,7,0,5,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerPlugin.LayoutModel,9,0,0,0,1,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,MeasureToolBar.MeasureGroupMenu,58,0,6,0,18,0,8,0,5,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ScreenshotDialog.Format,55,0,0,0,12,0,5,0,5,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,MouseActions,226,0,22,0,62,0,27,0,16,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,RotationToolBar,82,0,2,0,18,0,6,0,5,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ViewerToolBar.new DropDownButton() {...},13,0,0,0,2,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ViewerToolBar.new DropDownButton() {...},13,0,0,0,2,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ViewerToolBar.new DropDownButton() {...},13,0,0,0,2,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,GraphicMouseHandler,720,0,116,0,176,0,71,0,13,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ViewerToolBar.new Icon() {...},94,0,10,0,19,0,9,0,4,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ViewerToolBar.new Icon() {...},89,0,12,0,20,0,10,0,4,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ViewerToolBar.new DropDownButton() {...},25,0,2,0,4,0,3,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,CrosshairListener,409,0,56,0,94,0,50,0,22,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,DefaultView2d,2662,0,310,0,633,0,249,0,94,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ViewerPlugin.MenuOnlySimpleAction,15,0,2,0,5,0,3,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ScreenshotDialog,788,0,48,0,171,0,39,0,15,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,SynchData.Mode,21,0,0,0,4,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ViewCanvas,982,0,124,0,220,0,82,0,20,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,PannerListener,306,0,40,0,68,0,39,0,19,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerPlugin.new PanelUI() {...},3,0,0,0,1,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerPlugin.new WindowAdapter() {...},16,0,0,0,3,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,GraphicsPane.ViewModelHandler,10,0,0,0,3,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,PropertyChangeHandler,336,0,52,0,94,0,35,0,9,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,GraphicsPane.LayerModelHandler,10,0,0,0,3,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ZoomToolBar,230,0,14,0,58,0,16,0,9,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,GraphicMouseHandler.CursorSet,43,0,0,0,10,0,5,0,5,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,SynchCineEvent,33,0,0,0,12,0,6,0,6,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,HistogramPanel.InternalMouseListener,205,0,14,0,50,0,16,0,9,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,Panner,361,0,24,0,80,0,22,0,10,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ViewCanvas.new TimerTask() {...},15,0,0,0,3,0,3,0,3,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,PixelInfo,223,0,22,0,52,0,27,0,16,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerEventManager.new PannerListener() {...},25,0,0,0,5,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerEventManager.new CrosshairListener() {...},25,0,0,0,5,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerEventManager.new SliderChangeListener() {...},35,0,0,0,6,0,3,0,3,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerEventManager.new SliderChangeListener() {...},71,0,0,0,11,0,5,0,5,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerEventManager.new ToggleButtonListener() {...},26,0,0,0,5,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ChannelHistogramPanel,307,0,2,0,69,0,19,0,18,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerPlugin.MouseHandler,767,0,102,0,143,0,58,0,7,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,SynchView,235,0,2,0,45,0,10,0,9,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,HistogramPanel,1009,0,66,0,208,0,52,0,19,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ZoomWin.MouseHandler,257,0,22,0,54,0,19,0,8,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,FocusHandler,239,0,34,0,63,0,22,0,5,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerEventManager.new SliderChangeListener() {...},49,0,2,0,7,0,3,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerEventManager.new SliderChangeListener() {...},49,0,2,0,7,0,3,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerEventManager.new SliderCineListener() {...},104,0,14,0,24,0,10,0,3,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerEventManager.new ToggleButtonListener() {...},20,0,0,0,3,0,3,0,3,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageTransferHandler,42,0,2,0,13,0,10,0,9,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,HistogramData.Model,149,0,0,0,28,0,8,0,8,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,DisplayByteLut,16,0,0,0,7,0,4,0,4,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,HistogramView,1019,0,120,0,230,0,78,0,18,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerEventManager.new ComboItemListener() {...},25,0,0,0,4,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerEventManager.new ToggleButtonListener() {...},29,0,0,0,6,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerEventManager.new ToggleButtonListener() {...},26,0,0,0,5,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerEventManager.new ComboItemListener() {...},24,0,4,0,4,0,4,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerEventManager.new ComboItemListener() {...},6,0,0,0,2,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerEventManager.new ComboItemListener() {...},6,0,0,0,2,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerEventManager.new ToggleButtonListener() {...},26,0,0,0,5,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ViewerToolBar.SynchGroupMenu,41,0,4,0,9,0,5,0,3,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerEventManager.new ToggleButtonListener() {...},42,0,2,0,7,0,3,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerEventManager.new ComboItemListener() {...},64,0,6,0,13,0,6,0,3,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerEventManager.new SliderChangeListener() {...},71,0,0,0,11,0,5,0,5,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ResetTools,54,0,0,0,10,0,3,0,3,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,GraphicsPane,827,0,36,0,160,0,51,0,33,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ViewButton,133,0,12,0,34,0,20,0,14,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ContextMenuHandler,61,0,10,0,17,0,9,0,4,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ViewerPlugin.CloseOthersAction,131,0,22,0,26,0,13,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageRegionStatistics,832,0,122,0,158,0,72,0,11,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerEventManager,1117,0,158,0,240,0,148,0,69,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ScreenshotToolBar,46,0,2,0,10,0,4,0,3,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,SynchData,65,0,2,0,20,0,9,0,8,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,Canvas,87,0,14,0,25,0,10,0,3,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ImageViewerPlugin,2368,0,354,0,534,0,226,0,49,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,CalibrationView,431,0,42,0,101,0,30,0,9,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,MeasureToolBar.new DropDownButton() {...},25,0,2,0,4,0,3,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,MeasureToolBar.new PolygonGraphic() {...},5,0,0,0,2,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,DefaultView2d.ZoomType,27,0,0,0,5,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,MeasureToolBar.new LineGraphic() {...},5,0,0,0,2,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,HistogramData,524,0,68,0,110,0,51,0,17,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ZoomToolBar.new DropDownButton() {...},18,0,0,0,2,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ViewerPlugin,314,0,16,0,84,0,26,0,18,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,DefaultView2d.BulkDragSequence,91,0,10,0,20,0,9,0,4,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ViewTransferHandler,149,0,6,0,45,0,13,0,10,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ViewerPlugin.new CCloseAction() {...},100,0,12,0,25,0,8,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,Panner.MouseClickHandler,182,0,6,0,34,0,8,0,5,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,PopUpMenuOnZoom,493,0,30,0,94,0,27,0,12,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,SequenceHandler,158,0,34,0,44,0,25,0,8,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,SynchEvent,52,0,2,0,16,0,8,0,7,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,ZoomWin.SyncType,21,0,0,0,4,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.ui.editor.image,DrawingsKeyListeners,46,0,10,0,13,0,9,0,4,0
+Tests/weasis-core,org.weasis.core.ui.model.utils.bean,AdvancedShape,634,0,90,0,149,0,71,0,26,0
+Tests/weasis-core,org.weasis.core.ui.model.utils.bean,MeasureItem,37,0,0,0,12,0,6,0,6,0
+Tests/weasis-core,org.weasis.core.ui.model.utils.bean,AdvancedShape.LinkSegmentToInvariantShape,168,0,16,0,35,0,10,0,2,0
+Tests/weasis-core,org.weasis.core.ui.model.utils.bean,GraphicClipboard,21,0,4,0,5,0,6,0,4,0
+Tests/weasis-core,org.weasis.core.ui.model.utils.bean,AdvancedShape.BasicShape,113,0,10,0,37,0,19,0,14,0
+Tests/weasis-core,org.weasis.core.ui.model.utils.bean,PanPoint.State,33,0,0,0,6,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.ui.model.utils.bean,Measurement,71,0,0,0,21,0,10,0,10,0
+Tests/weasis-core,org.weasis.core.ui.model.utils.bean,PanPoint,157,0,16,0,40,0,18,0,10,0
+Tests/weasis-core,org.weasis.core.ui.model.utils.bean,AdvancedShape.InvariantShape,99,0,10,0,22,0,7,0,2,0
+Tests/weasis-core,org.weasis.core.ui.model.utils.bean,AdvancedShape.ScaleInvariantShape,65,0,6,0,16,0,6,0,3,0
+Tests/weasis-core,org.weasis.core.api.media.data,MediaSeries.MEDIA_POSITION,27,0,0,0,5,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.media.data,SeriesEvent.Action,33,0,0,0,6,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.media.data,ImageElement.Load,10,0,0,0,2,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.api.media.data,TagW,1288,0,134,0,280,0,99,0,32,0
+Tests/weasis-core,org.weasis.core.api.media.data,SeriesEvent,21,0,0,0,8,0,4,0,4,0
+Tests/weasis-core,org.weasis.core.api.media.data,NativeCache,237,0,18,0,50,0,23,0,14,0
+Tests/weasis-core,org.weasis.core.api.media.data,AudioVideoElement,5,0,0,0,2,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.media.data,SimpleTaggable,53,0,8,0,15,0,11,0,7,0
+Tests/weasis-core,org.weasis.core.api.media.data,TagW.TagType,178,0,2,0,30,0,5,0,4,0
+Tests/weasis-core,org.weasis.core.api.media.data,Thumbnail.new SwingWorker() {...},30,0,0,0,5,0,3,0,3,0
+Tests/weasis-core,org.weasis.core.api.media.data,Thumbnail.new NativeCache() {...},9,0,2,0,4,0,3,0,2,0
+Tests/weasis-core,org.weasis.core.api.media.data,Thumbnail.new ImageIcon() {...},214,0,12,0,36,0,10,0,4,0
+Tests/weasis-core,org.weasis.core.api.media.data,Taggable,33,0,10,0,6,0,6,0,1,0
+Tests/weasis-core,org.weasis.core.api.media.data,TagUtil,874,0,186,0,235,0,122,0,29,0
+Tests/weasis-core,org.weasis.core.api.media.data,MediaSeries,2,0,0,0,1,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.media.data,ImageElement,860,0,118,0,189,0,107,0,48,0
+Tests/weasis-core,org.weasis.core.api.media.data,Thumbnail.Load,11,0,0,0,4,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.api.media.data,SeriesComparator,13,0,2,0,4,0,3,0,2,0
+Tests/weasis-core,org.weasis.core.api.media.data,MediaElement,176,0,14,0,46,0,31,0,24,0
+Tests/weasis-core,org.weasis.core.api.media.data,MediaSeriesGroupNode,194,0,30,0,35,0,30,0,15,0
+Tests/weasis-core,org.weasis.core.api.media.data,SeriesThumbnail,955,0,90,0,228,0,76,0,31,0
+Tests/weasis-core,org.weasis.core.api.media.data,Thumbnail,599,0,90,0,153,0,60,0,15,0
+Tests/weasis-core,org.weasis.core.api.media.data,ImageElement.new NativeCache() {...},23,0,6,0,9,0,5,0,2,0
+Tests/weasis-core,org.weasis.core.api.media.data,FileCache,125,0,6,0,35,0,18,0,15,0
+Tests/weasis-core,org.weasis.core.api.media.data,Series,815,0,110,0,216,0,100,0,45,0
+Tests/weasis-core,org.weasis.core.api.media.data,TagView,83,0,12,0,18,0,12,0,6,0
+Tests/weasis-core,org.weasis.core.api.image.measure,MeasurementsAdapter,86,0,4,0,17,0,12,0,10,0
+Tests/weasis-core,org.weasis.core.ui.serialize,PointAdapter.Pt,3,0,0,0,1,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.ui.serialize,ColorModelAdapter.ColorAdapter,18,0,0,0,5,0,3,0,3,0
+Tests/weasis-core,org.weasis.core.ui.serialize,XmlSerializer,236,0,14,0,58,0,19,0,12,0
+Tests/weasis-core,org.weasis.core.ui.serialize,ColorModelAdapter,4,0,0,0,1,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.ui.serialize,RectangleAdapter.RectanglePt,3,0,0,0,1,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.ui.serialize,PointAdapter.Point2DAdapter,30,0,2,0,8,0,4,0,3,0
+Tests/weasis-core,org.weasis.core.ui.serialize,RectangleAdapter.Rectangle2DAdapter,42,0,2,0,10,0,4,0,3,0
+Tests/weasis-core,org.weasis.core.ui.serialize,NoNamespaceStreamReaderDelegate,30,0,6,0,13,0,9,0,6,0
+Tests/weasis-core,org.weasis.core.ui.serialize,ColorModelAdapter.PaintAdapter,30,0,2,0,7,0,4,0,3,0
+Tests/weasis-core,org.weasis.core.ui.serialize,ColorModelAdapter.ColorModel,3,0,0,0,1,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.explorer.model,Tree,258,0,14,0,60,0,21,0,14,0
+Tests/weasis-core,org.weasis.core.api.explorer.model,TreeModelNode,26,0,0,0,7,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.api.explorer.model,AbstractFileModel,463,0,64,0,102,0,53,0,21,0
+Tests/weasis-core,org.weasis.core.ui.pref,ScreenPrefView,253,0,10,0,59,0,11,0,6,0
+Tests/weasis-core,org.weasis.core.ui.pref,LoggingPrefView,477,0,34,0,91,0,26,0,9,0
+Tests/weasis-core,org.weasis.core.ui.pref,JLocale,15,0,0,0,5,0,3,0,3,0
+Tests/weasis-core,org.weasis.core.ui.pref,GraphicPrefView,231,0,0,0,50,0,7,0,7,0
+Tests/weasis-core,org.weasis.core.ui.pref,JLocaleFormat,150,0,16,0,44,0,15,0,7,0
+Tests/weasis-core,org.weasis.core.ui.pref,Monitor,130,0,14,0,38,0,17,0,10,0
+Tests/weasis-core,org.weasis.core.ui.pref,ThemeSetting,608,0,48,0,138,0,37,0,13,0
+Tests/weasis-core,org.weasis.core.ui.pref,ScreenPrefView.Cross,187,0,4,0,47,0,7,0,5,0
+Tests/weasis-core,org.weasis.core.ui.pref,LauncherPrefView,157,0,0,0,32,0,10,0,10,0
+Tests/weasis-core,org.weasis.core.ui.pref,PreferenceDialog,359,0,38,0,83,0,28,0,9,0
+Tests/weasis-core,org.weasis.core.ui.pref,ScreenPrefView.CalibrationDialog,278,0,14,0,59,0,11,0,4,0
+Tests/weasis-core,org.weasis.core.ui.pref,Refreshable,1,0,0,0,1,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.ui.pref,LauncherToolBar,88,0,8,0,21,0,9,0,5,0
+Tests/weasis-core,org.weasis.core.ui.pref,LanguageSetting.new JLocaleFormat() {...},12,0,0,0,3,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.pref,LanguageSetting.new JLocaleLanguage() {...},11,0,0,0,3,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.pref,ThemeSetting.LookInfo,12,0,0,0,2,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.pref,DicomPrefView,52,0,2,0,13,0,5,0,4,0
+Tests/weasis-core,org.weasis.core.ui.pref,JLocaleLanguage,222,0,32,0,60,0,22,0,6,0
+Tests/weasis-core,org.weasis.core.ui.pref,LabelsPrefView,460,0,26,0,100,0,26,0,13,0
+Tests/weasis-core,org.weasis.core.ui.pref,DrawPrefView,85,0,2,0,16,0,7,0,6,0
+Tests/weasis-core,org.weasis.core.ui.pref,GeneralSetting,167,0,2,0,39,0,10,0,9,0
+Tests/weasis-core,org.weasis.core.ui.pref,ViewSetting,736,0,58,0,162,0,58,0,29,0
+Tests/weasis-core,org.weasis.core.ui.pref,ViewerPrefView,53,0,2,0,13,0,5,0,4,0
+Tests/weasis-core,org.weasis.core.ui.pref,ProxyPrefView,690,0,32,0,150,0,28,0,12,0
+Tests/weasis-core,org.weasis.core.ui.pref,ZoomSetting,125,0,8,0,43,0,23,0,19,0
+Tests/weasis-core,org.weasis.core.ui.pref,LanguageSetting,253,0,0,0,58,0,7,0,7,0
+Tests/weasis-core,org.weasis.core.api.explorer,ObservableEvent.BasicAction,87,0,0,0,15,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.explorer,ObservableEvent,27,0,2,0,8,0,5,0,4,0
+Tests/weasis-core,org.weasis.core.ui.model.layer.imp,RenderedImageLayer,762,0,94,0,202,0,91,0,44,0
+Tests/weasis-core,org.weasis.core.ui.model.layer.imp,DefaultLayer,8,0,0,0,4,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.model,ReferencedImage,28,0,0,0,10,0,5,0,5,0
+Tests/weasis-core,org.weasis.core.ui.model,AbstractGraphicModel,1360,0,204,0,328,0,170,0,68,0
+Tests/weasis-core,org.weasis.core.ui.model,ReferencedSeries,28,0,0,0,10,0,5,0,5,0
+Tests/weasis-core,org.weasis.core.internal.mime,MagicMimeEntry,1102,0,188,0,269,0,115,0,21,0
+Tests/weasis-core,org.weasis.core.internal.mime,InvalidMagicMimeEntryException,12,0,0,0,4,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.dialog,MeasureDialog,456,0,66,0,93,0,36,0,3,0
+Tests/weasis-core,org.weasis.core.ui.dialog,PropertiesDialog,480,0,6,0,99,0,20,0,17,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp.seg,SegMeasurableLayer,75,0,2,0,23,0,16,0,15,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp.seg,SegContour,144,0,14,0,36,0,14,0,7,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp.seg,SegGraphic,105,0,8,0,35,0,20,0,16,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp.seg,GroupTreeNode,45,0,6,0,16,0,8,0,5,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp.seg,SegRegion,112,0,0,0,34,0,13,0,13,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic,AbstractGraphic,1906,0,244,0,407,0,221,0,99,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic,AbstractDragGraphicArea,34,0,2,0,10,0,5,0,4,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic,AbstractGraphic.Adapter,13,0,0,0,4,0,3,0,3,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic,DragGraphic,3,0,0,0,1,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic,AbstractGraphicLabel.Adapter,8,0,0,0,3,0,3,0,3,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic,Graphic,71,0,8,0,17,0,8,0,4,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic,GraphicLabel,7,0,0,0,2,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic,AbstractDragGraphic,290,0,42,0,55,0,37,0,16,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic,AbstractGraphicLabel,558,0,38,0,111,0,42,0,23,0
+Tests/weasis-core,org.weasis.core.ui.model.utils,ImageStatistics,166,0,0,0,17,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.service,UICore.StackTabSwitcher,97,0,18,0,28,0,15,0,6,0
+Tests/weasis-core,org.weasis.core.api.service,AuditLog,296,0,14,0,82,0,17,0,10,0
+Tests/weasis-core,org.weasis.core.api.service,UICore.new CVetoFocusListener() {...},7,0,0,0,3,0,3,0,3,0
+Tests/weasis-core,org.weasis.core.api.service,UICore.Holder,5,0,0,0,1,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.service,BundleTools,518,0,72,0,125,0,54,0,18,0
+Tests/weasis-core,org.weasis.core.api.service,WProperties,436,0,96,0,137,0,74,0,26,0
+Tests/weasis-core,org.weasis.core.api.service,AuditLog.LEVEL,39,0,0,0,9,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.api.service,UICore,883,0,102,0,217,0,95,0,44,0
+Tests/weasis-core,org.weasis.core.api.service,BundlePreferences,281,0,80,0,85,0,52,0,12,0
+Tests/weasis-core,org.weasis.core.ui.model.utils.algo,ConvexHull.RadialSorter,71,0,4,0,16,0,5,0,3,0
+Tests/weasis-core,org.weasis.core.ui.model.utils.algo,MinimumEnclosingRectangle,600,0,42,0,119,0,32,0,11,0
+Tests/weasis-core,org.weasis.core.ui.model.utils.algo,ConvexHull,216,0,24,0,44,0,20,0,8,0
+Tests/weasis-core,org.weasis.core.ui.editor.image.dockable,MeasureTool,830,0,62,0,200,0,56,0,25,0
+Tests/weasis-core,org.weasis.core.ui.editor.image.dockable,MiniTool.new DropDownButton() {...},13,0,0,0,2,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor.image.dockable,MiniTool,343,0,34,0,79,0,25,0,8,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp,AnnotationGraphic,707,0,80,0,153,0,73,0,33,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp,PixelInfoGraphic,457,0,56,0,99,0,40,0,12,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp,NonEditableGraphic,103,0,8,0,34,0,19,0,15,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp,PointGraphic,123,0,4,0,31,0,15,0,13,0
+Tests/weasis-core,org.weasis.core.ui.model.imp,XmlGraphicModel,77,0,8,0,18,0,7,0,3,0
+Tests/weasis-core,org.weasis.core.api.image.op,ByteLutCollection,176,0,28,0,36,0,18,0,4,0
+Tests/weasis-core,org.weasis.core.api.image.op,MaxCollectionZprojection,17,0,2,0,6,0,3,0,2,0
+Tests/weasis-core,org.weasis.core.api.image.op,MinCollectionZprojection,17,0,2,0,6,0,3,0,2,0
+Tests/weasis-core,org.weasis.core.api.image.op,MeanCollectionZprojection,17,0,2,0,6,0,3,0,2,0
+Tests/weasis-core,org.weasis.core.api.command,Options,1226,0,147,0,259,0,101,0,27,0
+Tests/weasis-core,org.weasis.core.api.command,Option,30,0,6,0,5,0,4,0,1,0
+Tests/weasis-core,org.weasis.core.api.image,RotationOp,191,0,12,0,40,0,12,0,6,0
+Tests/weasis-core,org.weasis.core.api.image,AutoLevelsOp,85,0,8,0,22,0,9,0,5,0
+Tests/weasis-core,org.weasis.core.api.image,ZoomOp.Interpolation,83,0,4,0,16,0,8,0,6,0
+Tests/weasis-core,org.weasis.core.api.image,BrightnessOp,56,0,4,0,14,0,6,0,4,0
+Tests/weasis-core,org.weasis.core.api.image,MergeImgOp,70,0,6,0,17,0,7,0,4,0
+Tests/weasis-core,org.weasis.core.api.image,SimpleOpManager,460,0,72,0,131,0,65,0,29,0
+Tests/weasis-core,org.weasis.core.api.image,WindowOp,155,0,14,0,37,0,15,0,8,0
+Tests/weasis-core,org.weasis.core.api.image,CropOp,47,0,2,0,14,0,6,0,5,0
+Tests/weasis-core,org.weasis.core.api.image,ImageOpEvent,33,0,2,0,12,0,6,0,5,0
+Tests/weasis-core,org.weasis.core.api.image,LayoutConstraints,104,0,4,0,16,0,10,0,8,0
+Tests/weasis-core,org.weasis.core.api.image,FlipOp,50,0,4,0,14,0,7,0,5,0
+Tests/weasis-core,org.weasis.core.api.image,SimpleOpManager.Position,15,0,0,0,3,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.image,ImageOpEvent.OpEvent,27,0,0,0,5,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.image,PseudoColorOp,77,0,8,0,23,0,9,0,5,0
+Tests/weasis-core,org.weasis.core.api.image,ZoomOp,116,0,14,0,25,0,12,0,5,0
+Tests/weasis-core,org.weasis.core.api.image,MaskOp,78,0,10,0,17,0,9,0,4,0
+Tests/weasis-core,org.weasis.core.api.image,OpManager,24,0,6,0,5,0,4,0,1,0
+Tests/weasis-core,org.weasis.core.api.image,GridBagLayoutModel,267,0,16,0,65,0,24,0,16,0
+Tests/weasis-core,org.weasis.core.api.image,GridBagLayoutModel.SAXAdapter,214,0,18,0,42,0,14,0,5,0
+Tests/weasis-core,org.weasis.core.api.image,GridBagLayoutModel.new Icon() {...},162,0,12,0,31,0,10,0,4,0
+Tests/weasis-core,org.weasis.core.api.image,FilterOp,51,0,4,0,14,0,7,0,5,0
+Tests/weasis-core,org.weasis.core.api.image,AbstractOp,116,0,16,0,34,0,21,0,13,0
+Tests/weasis-core,org.weasis.core.api.image,AffineTransformOp,141,0,18,0,30,0,14,0,5,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp.angle,FourPointsAngleToolGraphic,1040,0,130,0,150,0,78,0,13,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp.angle,OpenAngleToolGraphic,978,0,80,0,143,0,56,0,16,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp.angle,CobbAngleToolGraphic,754,0,50,0,115,0,35,0,10,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp.angle,AngleToolGraphic,415,0,44,0,82,0,37,0,15,0
+Tests/weasis-core,org.weasis.core,Messages,12,0,0,0,4,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.api.gui.task,CircularProgressBar,443,0,22,0,89,0,20,0,9,0
+Tests/weasis-core,org.weasis.core.api.gui.task,SeriesProgressMonitor,235,0,20,0,59,0,19,0,9,0
+Tests/weasis-core,org.weasis.core.api.gui.task,TaskInterruptionException,16,0,0,0,8,0,4,0,4,0
+Tests/weasis-core,org.weasis.core.api.gui.task,TaskMonitor,35,0,4,0,10,0,7,0,5,0
+Tests/weasis-core,org.weasis.core.api.gui,PreferencesPageFactory,3,0,0,0,2,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.api.gui,Insertable.Type,45,0,0,0,8,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.gui,InsertableUtil,375,0,60,0,77,0,38,0,8,0
+Tests/weasis-core,org.weasis.core.ui.model.utils.imp,DefaultDragSequence,298,0,52,0,65,0,31,0,5,0
+Tests/weasis-core,org.weasis.core.ui.model.utils.imp,DefaultUUID,67,0,6,0,17,0,10,0,7,0
+Tests/weasis-core,org.weasis.core.ui.model.utils.imp,DragLabelSequence,58,0,4,0,13,0,6,0,4,0
+Tests/weasis-core,org.weasis.core.ui.model.utils.imp,DefaultGraphicLabel,12,0,0,0,5,0,3,0,3,0
+Tests/weasis-core,org.weasis.core.ui.model.utils.imp,DefaultViewModel,260,0,32,0,76,0,39,0,23,0
+Tests/weasis-core,org.weasis.core.ui.model.utils.imp,SelectedDragSequence,15,0,4,0,5,0,4,0,2,0
+Tests/weasis-core,org.weasis.core.ui.editor,SeriesViewerUI,226,0,50,0,51,0,33,0,8,0
+Tests/weasis-core,org.weasis.core.ui.editor,SeriesViewerEvent.EVENT,51,0,0,0,9,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.ui.editor,MimeSystemAppViewer,61,0,8,0,21,0,14,0,10,0
+Tests/weasis-core,org.weasis.core.ui.editor,DefaultMimeAppFactory,43,0,4,0,14,0,14,0,12,0
+Tests/weasis-core,org.weasis.core.ui.editor,FileModel,155,0,10,0,35,0,12,0,7,0
+Tests/weasis-core,org.weasis.core.ui.editor,DefaultMimeAppFactory.new MimeSystemAppViewer() {...},53,0,10,0,17,0,10,0,5,0
+Tests/weasis-core,org.weasis.core.ui.editor,DefaultMimeIO.new Series() {...},61,0,8,0,15,0,8,0,4,0
+Tests/weasis-core,org.weasis.core.ui.editor,SeriesViewerEvent,41,0,2,0,15,0,8,0,7,0
+Tests/weasis-core,org.weasis.core.ui.editor,SeriesViewer,6,0,0,0,3,0,3,0,3,0
+Tests/weasis-core,org.weasis.core.ui.editor,ViewerPluginBuilder,508,0,86,0,128,0,63,0,20,0
+Tests/weasis-core,org.weasis.core.ui.editor,DefaultMimeIO,134,0,4,0,34,0,25,0,23,0
+Tests/weasis-core,org.weasis.core.ui.editor,SeriesViewerFactory,2,0,0,0,1,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.image.util,AbbreviationUnit,10,0,0,0,2,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.api.image.util,WindLevelParameters,216,0,12,0,48,0,17,0,11,0
+Tests/weasis-core,org.weasis.core.api.image.util,Unit,366,0,22,0,52,0,25,0,14,0
+Tests/weasis-core,org.weasis.core.api.image.util,KernelData,1377,0,54,0,153,0,52,0,25,0
+Tests/weasis-core,org.weasis.core.ui.util,ImagePrint,595,0,60,0,135,0,42,0,11,0
+Tests/weasis-core,org.weasis.core.ui.util,PrintDialog,313,0,8,0,64,0,9,0,5,0
+Tests/weasis-core,org.weasis.core.ui.util,TitleMenuItem,21,0,0,0,9,0,6,0,6,0
+Tests/weasis-core,org.weasis.core.ui.util,PrintOptions.DotPerInches,67,0,2,0,16,0,6,0,5,0
+Tests/weasis-core,org.weasis.core.ui.util,StructToolTipTreeNode,75,0,4,0,19,0,6,0,4,0
+Tests/weasis-core,org.weasis.core.ui.util,LimitedTextField,9,0,0,0,3,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.ui.util,WtoolBar,73,0,2,0,24,0,13,0,12,0
+Tests/weasis-core,org.weasis.core.ui.util,ExportLayout,200,0,8,0,49,0,12,0,8,0
+Tests/weasis-core,org.weasis.core.ui.util,LimitedTextField.LimitedDocument,23,0,4,0,8,0,4,0,2,0
+Tests/weasis-core,org.weasis.core.ui.util,ToolBarContainer.new Icon() {...},8,0,0,0,4,0,4,0,4,0
+Tests/weasis-core,org.weasis.core.ui.util,MouseEventDouble,97,0,0,0,34,0,8,0,8,0
+Tests/weasis-core,org.weasis.core.ui.util,ToolBarContainer.new WtoolBar() {...},7,0,0,0,2,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.util,CsvExporter,72,0,4,0,23,0,10,0,8,0
+Tests/weasis-core,org.weasis.core.ui.util,SearchableComboBox.new KeyAdapter() {...},16,0,0,0,3,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.util,ForcedAcceptPrintService,124,0,2,0,36,0,20,0,19,0
+Tests/weasis-core,org.weasis.core.ui.util,CalendarUtil,176,0,0,0,46,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.ui.util,ToolBarContainer.PopUpToolbars,57,0,6,0,12,0,5,0,2,0
+Tests/weasis-core,org.weasis.core.ui.util,ToolBarContainer,177,0,22,0,49,0,19,0,8,0
+Tests/weasis-core,org.weasis.core.ui.util,SearchableComboBox,240,0,24,0,59,0,22,0,10,0
+Tests/weasis-core,org.weasis.core.ui.util,TreeBuilder,73,0,14,0,23,0,11,0,4,0
+Tests/weasis-core,org.weasis.core.ui.util,SegRegionTree,505,0,68,0,130,0,56,0,22,0
+Tests/weasis-core,org.weasis.core.ui.util,UriListFlavor,101,0,6,0,27,0,9,0,6,0
+Tests/weasis-core,org.weasis.core.ui.util,SegRegionTree.new MouseAdapter() {...},11,0,0,0,3,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.ui.util,TableColumnAdjuster,242,0,22,0,56,0,14,0,3,0
+Tests/weasis-core,org.weasis.core.ui.util,WrapLayout,233,0,22,0,56,0,19,0,8,0
+Tests/weasis-core,org.weasis.core.ui.util,ExportLayout.new PanelUI() {...},3,0,0,0,1,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.ui.util,TableNumberRenderer,39,0,4,0,12,0,5,0,3,0
+Tests/weasis-core,org.weasis.core.ui.util,ColorLayerUI,201,0,20,0,56,0,20,0,10,0
+Tests/weasis-core,org.weasis.core.ui.util,SimpleTableModel,63,0,0,0,16,0,9,0,9,0
+Tests/weasis-core,org.weasis.core.ui.util,ArrayListComboBoxModel,191,0,26,0,48,0,27,0,14,0
+Tests/weasis-core,org.weasis.core.ui.util,PrintOptions,51,0,2,0,19,0,11,0,10,0
+Tests/weasis-core,org.weasis.core.ui.util,LabelHighlighted,167,0,14,0,46,0,12,0,5,0
+Tests/weasis-core,org.weasis.core.ui.util,ToolBarContainer.PopClickListener,35,0,4,0,8,0,6,0,4,0
+Tests/weasis-core,org.weasis.core.ui.util,DefaultAction,24,0,0,0,8,0,3,0,3,0
+Tests/weasis-core,org.weasis.core.api.gui.util,DecFormatter,95,0,0,0,25,0,8,0,8,0
+Tests/weasis-core,org.weasis.core.api.gui.util,CheckBoxModel,20,0,0,0,8,0,4,0,4,0
+Tests/weasis-core,org.weasis.core.api.gui.util,Feature.CrosshairListenerValue,8,0,0,0,2,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.gui.util,Feature,149,0,4,0,38,0,18,0,16,0
+Tests/weasis-core,org.weasis.core.api.gui.util,AbstractTabLicense,36,0,0,0,13,0,9,0,9,0
+Tests/weasis-core,org.weasis.core.api.gui.util,ActionState.NoneLabel,33,0,0,0,8,0,4,0,4,0
+Tests/weasis-core,org.weasis.core.api.gui.util,ActionW.new Feature.BasicActionStateValue() {...},10,0,0,0,2,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.api.gui.util,ActionW.new Feature.BasicActionStateValue() {...},10,0,0,0,2,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.api.gui.util,AbstractItemDialogPage,182,0,14,0,54,0,30,0,23,0
+Tests/weasis-core,org.weasis.core.api.gui.util,DropButtonIcon,141,0,8,0,25,0,9,0,5,0
+Tests/weasis-core,org.weasis.core.api.gui.util,Filter.FilterIterator,60,0,10,0,19,0,10,0,5,0
+Tests/weasis-core,org.weasis.core.api.gui.util,Feature.ComboItemListenerValue,8,0,0,0,2,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.gui.util,GUIEntry,2,0,0,0,1,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.gui.util,GeomUtil,1582,0,219,0,296,0,150,0,40,0
+Tests/weasis-core,org.weasis.core.api.gui.util,Feature.SliderChangeListenerValue,8,0,0,0,2,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.gui.util,JSliderW,92,0,0,0,22,0,11,0,11,0
+Tests/weasis-core,org.weasis.core.api.gui.util,Feature.BooleanValue,8,0,0,0,2,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.gui.util,ComboItemListener,351,0,36,0,93,0,44,0,26,0
+Tests/weasis-core,org.weasis.core.api.gui.util,GuiUtils.new AbstractAction() {...},29,0,0,0,9,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.api.gui.util,GuiUtils.new FlatTreeCollapsedIcon() {...},22,0,0,0,4,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.api.gui.util,Feature.BasicActionStateValue,8,0,0,0,2,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.gui.util,WinUtil,513,0,76,0,119,0,55,0,17,0
+Tests/weasis-core,org.weasis.core.api.gui.util,Feature.SliderCineListenerValue,8,0,0,0,2,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.gui.util,DynamicMenu.new PopupMenuListener() {...},18,0,0,0,7,0,4,0,4,0
+Tests/weasis-core,org.weasis.core.api.gui.util,DynamicMenu.new TimerTask() {...},10,0,0,0,3,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.api.gui.util,Feature.IntegerValue,8,0,0,0,2,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.gui.util,SliderChangeListener,982,0,122,0,218,0,105,0,44,0
+Tests/weasis-core,org.weasis.core.api.gui.util,JScrollPopupMenu.ScrollPopupMenuLayout,266,0,24,0,46,0,18,0,6,0
+Tests/weasis-core,org.weasis.core.api.gui.util,JScrollPopupMenu,265,0,20,0,66,0,21,0,11,0
+Tests/weasis-core,org.weasis.core.api.gui.util,DropDownButton,78,0,0,0,28,0,10,0,10,0
+Tests/weasis-core,org.weasis.core.api.gui.util,ComboItemListener.ComboItems,16,0,0,0,4,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.api.gui.util,Feature.DoubleValue,8,0,0,0,2,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.gui.util,Filter,61,0,6,0,16,0,10,0,7,0
+Tests/weasis-core,org.weasis.core.api.gui.util,GuiUtils.IconColor,94,0,0,0,13,0,4,0,4,0
+Tests/weasis-core,org.weasis.core.api.gui.util,GuiUtils,1182,0,106,0,295,0,117,0,64,0
+Tests/weasis-core,org.weasis.core.api.gui.util,Feature.PannerListenerValue,8,0,0,0,2,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.gui.util,JToggleButtonGroup,237,0,34,0,57,0,29,0,12,0
+Tests/weasis-core,org.weasis.core.api.gui.util,DynamicMenu,67,0,6,0,27,0,11,0,8,0
+Tests/weasis-core,org.weasis.core.api.gui.util,AbstractWizardDialog,536,0,68,0,139,0,49,0,15,0
+Tests/weasis-core,org.weasis.core.api.gui.util,GroupCheckBoxMenu,312,0,30,0,66,0,27,0,12,0
+Tests/weasis-core,org.weasis.core.api.gui.util,AppProperties,227,0,26,0,59,0,20,0,7,0
+Tests/weasis-core,org.weasis.core.api.gui.util,DropButtonIcon.new Icon() {...},43,0,6,0,11,0,7,0,4,0
+Tests/weasis-core,org.weasis.core.api.gui.util,SliderCineListener,357,0,42,0,81,0,35,0,14,0
+Tests/weasis-core,org.weasis.core.api.gui.util,GhostGlassPane,165,0,18,0,34,0,15,0,6,0
+Tests/weasis-core,org.weasis.core.api.gui.util,ActionW,598,0,0,0,104,0,2,0,2,0
+Tests/weasis-core,org.weasis.core.api.gui.util,FileFormatFilter,353,0,40,0,93,0,34,0,14,0
+Tests/weasis-core,org.weasis.core.api.gui.util,BasicActionState,97,0,12,0,25,0,13,0,7,0
+Tests/weasis-core,org.weasis.core.api.gui.util,RadioMenuItem,25,0,0,0,8,0,4,0,4,0
+Tests/weasis-core,org.weasis.core.api.gui.util,SliderCineListener.TIME,21,0,0,0,4,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.gui.util,GuiExecutor,40,0,8,0,19,0,7,0,3,0
+Tests/weasis-core,org.weasis.core.api.gui.util,ToggleButtonListener,156,0,8,0,41,0,18,0,14,0
+Tests/weasis-core,org.weasis.core.api.gui.util,Feature.ToggleButtonListenerValue,8,0,0,0,2,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.gui.util,MouseActionAdapter,91,0,8,0,35,0,22,0,18,0
+Tests/weasis-core,org.weasis.core.api.gui.util,GroupRadioMenu,305,0,36,0,75,0,34,0,16,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp.line,LineWithGapGraphic,280,0,26,0,61,0,31,0,18,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp.line,PolylineGraphic,379,0,52,0,82,0,39,0,13,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp.line,ParallelLineGraphic,605,0,78,0,110,0,52,0,13,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp.line,PerpendicularLineGraphic,637,0,92,0,111,0,59,0,13,0
+Tests/weasis-core,org.weasis.core.ui.model.graphic.imp.line,LineGraphic,447,0,40,0,91,0,40,0,20,0
+Tests/weasis-core,org.weasis.core.ui.model.layer,AbstractGraphicLayer,110,0,0,0,30,0,16,0,16,0
+Tests/weasis-core,org.weasis.core.ui.model.layer,LayerType,237,0,0,0,48,0,9,0,9,0
+Tests/weasis-core,org.weasis.core.ui.model.layer,LayerItem,173,0,0,0,24,0,6,0,6,0
+Tests/weasis-core,org.weasis.core.ui.model.layer,LayerAnnotation.Position,27,0,0,0,5,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.ui.model.layer,Layer,16,0,2,0,5,0,2,0,1,0
+Tests/weasis-core,org.weasis.core.ui.model.layer,GraphicModelChangeListener,4,0,0,0,4,0,4,0,4,0
+Tests/weasis-core,org.weasis.core.ui.model.layer,AbstractGraphicLayer.Adapter,8,0,0,0,3,0,3,0,3,0
+Tests/weasis-core,org.weasis.core.ui.model.layer,AbstractInfoLayer,1754,0,128,0,321,0,105,0,41,0
+Tests/weasis-core,org.weasis.core.ui.model.layer,AbstractInfoLayer.ImageProperties,24,0,0,0,1,0,1,0,1,0
+Tests/weasis-core,org.weasis.core.api.image.cv,ImageCVIO,663,0,82,0,164,0,72,0,31,0
+Tests/weasis-core,org.weasis.core.api.image.cv,ImageCVIO.new Series() {...},61,0,8,0,15,0,8,0,4,0
+Tests/weasis-core,org.weasis.core.api.image.cv,CvUtil,319,0,30,0,77,0,23,0,8,0
+Tests/weasis-core,org.weasis.core.internal.cv,NativeOpenCVCodec,256,0,8,0,24,0,15,0,11,0

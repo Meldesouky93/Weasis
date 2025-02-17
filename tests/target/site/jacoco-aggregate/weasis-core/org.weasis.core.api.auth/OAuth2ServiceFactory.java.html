@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>OAuth2ServiceFactory.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.auth</a> &gt; <span class="el_source">OAuth2ServiceFactory.java</span></div><h1>OAuth2ServiceFactory.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2021 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.auth;
+
+import com.github.scribejava.core.builder.ServiceBuilder;
+import com.github.scribejava.core.builder.api.DefaultApi20;
+import com.github.scribejava.core.extractors.OAuth2AccessTokenJsonExtractor;
+import com.github.scribejava.core.extractors.TokenExtractor;
+import com.github.scribejava.core.model.OAuth2AccessToken;
+import com.github.scribejava.core.oauth.OAuth20Service;
+import java.util.HashMap;
+import java.util.Map;
+import org.weasis.core.Messages;
+import org.weasis.core.api.util.SocketUtil;
+
+public class OAuth2ServiceFactory {
+  static final String CALLBACK_URL = &quot;http://127.0.0.1:&quot;;
+  public static final String NO = &quot;5aa85854-8f1f-11eb-b339-d3daace59a05&quot;; // NON-NLS
+<span class="nc" id="L26">  public static final DefaultAuthMethod noAuth =</span>
+      new DefaultAuthMethod(
+          NO,
+<span class="nc" id="L29">          new AuthProvider(Messages.getString(&quot;no.authentication&quot;), null, null, null, false),</span>
+<span class="nc" id="L30">          new AuthRegistration(null, null, null)) {</span>
+        @Override
+        public OAuth2AccessToken getToken() {
+<span class="nc" id="L33">          return null;</span>
+        }
+      };
+<span class="nc" id="L36">  private static final AuthProvider googleProvider =</span>
+      new AuthProvider(
+          &quot;Google Cloud Healthcare&quot;, // NON-NLS
+          &quot;https://accounts.google.com/o/oauth2/v2/auth&quot;,
+          &quot;https://oauth2.googleapis.com/token&quot;,
+          &quot;https://oauth2.googleapis.com/revoke&quot;,
+          true);
+<span class="nc" id="L43">  public static final DefaultAuthMethod googleAuthTemplate =</span>
+      new DefaultAuthMethod(
+          &quot;2c5dc28c-8fa0-11eb-9321-7fffcd64cef1&quot;, // NON-NLS
+          googleProvider,
+          new AuthRegistration(
+              null,
+              null,
+              &quot;https://www.googleapis.com/auth/cloud-healthcare https://www.googleapis.com/auth/cloudplatformprojects.readonly&quot;));
+<span class="nc" id="L51">  public static final DefaultAuthMethod keycloackTemplate =</span>
+      new DefaultAuthMethod(
+          &quot;68c845fc-93c5-11eb-b2f8-0f5db063091d&quot;, // NON-NLS
+<span class="nc" id="L54">          buildKeycloackProvider(</span>
+              &quot;Default Keycloack&quot;, &quot;http://localhost:8080/&quot;, &quot;master&quot;), // NON-NLS
+          new AuthRegistration(null, null, &quot;openid&quot;)); // NON-NLS
+
+<span class="nc" id="L58">  private static final Map&lt;String, OAuth20Service&gt; services = new HashMap&lt;&gt;();</span>
+
+  private OAuth2ServiceFactory() {}
+
+  public static AuthProvider buildKeycloackProvider(String name, String baseUrl, String realm) {
+<span class="nc" id="L63">    String baseUrlWithRealm =</span>
+<span class="nc bnc" id="L64" title="All 2 branches missed.">        baseUrl + (baseUrl.endsWith(&quot;/&quot;) ? &quot;&quot; : &quot;/&quot;) + &quot;auth/realms/&quot; + realm.trim(); // NON-NLS</span>
+<span class="nc" id="L65">    return new AuthProvider(</span>
+        name,
+        baseUrlWithRealm + &quot;/protocol/openid-connect/auth&quot;, // NON-NLS
+        baseUrlWithRealm + &quot;/protocol/openid-connect/token&quot;, // NON-NLS
+        baseUrlWithRealm + &quot;/protocol/openid-connect/revoke&quot;, // NON-NLS
+        true);
+  }
+
+  public static OAuth20Service getService(AuthMethod authMethod) {
+<span class="nc bnc" id="L74" title="All 2 branches missed.">    if (services.containsKey(authMethod.getUid())) {</span>
+<span class="nc" id="L75">      return services.get(authMethod.getUid());</span>
+    }
+
+<span class="nc" id="L78">    AuthRegistration registration = authMethod.getAuthRegistration();</span>
+<span class="nc" id="L79">    AuthProvider provider = authMethod.getAuthProvider();</span>
+<span class="nc bnc" id="L80" title="All 4 branches missed.">    if (registration == null || provider == null) {</span>
+<span class="nc" id="L81">      return null;</span>
+    }
+<span class="nc" id="L83">    int port = SocketUtil.findAvailablePort();</span>
+<span class="nc" id="L84">    OAuth20Service oAuth20Service =</span>
+<span class="nc" id="L85">        new ServiceBuilder(registration.getClientId())</span>
+<span class="nc" id="L86">            .apiSecret(registration.getClientSecret())</span>
+<span class="nc" id="L87">            .httpClient(new BasicHttpClient())</span>
+<span class="nc" id="L88">            .defaultScope(registration.getScope())</span>
+<span class="nc" id="L89">            .callback(CALLBACK_URL + port)</span>
+<span class="nc" id="L90">            .responseType(registration.getAuthorizationGrantType())</span>
+<span class="nc" id="L91">            .userAgent(System.getProperty(&quot;http.agent&quot;))</span>
+<span class="nc" id="L92">            .build(new OAuth2Api(provider));</span>
+
+<span class="nc" id="L94">    services.put(authMethod.getUid(), oAuth20Service);</span>
+<span class="nc" id="L95">    return oAuth20Service;</span>
+  }
+
+  static class OAuth2Api extends DefaultApi20 {
+    private final AuthProvider provider;
+
+<span class="nc" id="L101">    OAuth2Api(AuthProvider provider) {</span>
+<span class="nc" id="L102">      this.provider = provider;</span>
+<span class="nc" id="L103">    }</span>
+
+    @Override
+    public String getAccessTokenEndpoint() {
+<span class="nc" id="L107">      return provider.getTokenUri();</span>
+    }
+
+    @Override
+    public String getAuthorizationBaseUrl() {
+<span class="nc" id="L112">      return provider.getAuthorizationUri();</span>
+    }
+
+    @Override
+    public String getRevokeTokenEndpoint() {
+<span class="nc" id="L117">      return provider.getRevokeTokenUri();</span>
+    }
+
+    @Override
+    public TokenExtractor&lt;OAuth2AccessToken&gt; getAccessTokenExtractor() {
+<span class="nc bnc" id="L122" title="All 2 branches missed.">      if (provider.getOpenId()) {</span>
+<span class="nc" id="L123">        return OpenIdJsonTokenExtractor.instance();</span>
+      }
+<span class="nc" id="L125">      return OAuth2AccessTokenJsonExtractor.instance();</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

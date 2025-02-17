@@ -1,0 +1,402 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>GraphicMouseHandler.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image</a> &gt; <span class="el_source">GraphicMouseHandler.java</span></div><h1>GraphicMouseHandler.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image;
+
+import java.awt.Cursor;
+import java.awt.Rectangle;
+import java.awt.event.MouseEvent;
+import java.awt.geom.AffineTransform;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import org.weasis.core.api.gui.util.ActionState;
+import org.weasis.core.api.gui.util.ActionW;
+import org.weasis.core.api.gui.util.ComboItemListener;
+import org.weasis.core.api.gui.util.Feature;
+import org.weasis.core.api.gui.util.MouseActionAdapter;
+import org.weasis.core.api.gui.util.ToggleButtonListener;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.ui.editor.image.DefaultView2d.BulkDragSequence;
+import org.weasis.core.ui.model.AbstractGraphicModel;
+import org.weasis.core.ui.model.GraphicModel;
+import org.weasis.core.ui.model.graphic.DragGraphic;
+import org.weasis.core.ui.model.graphic.Graphic;
+import org.weasis.core.ui.model.graphic.imp.area.SelectGraphic;
+import org.weasis.core.ui.model.utils.Draggable;
+import org.weasis.core.ui.model.utils.imp.DefaultDragSequence;
+import org.weasis.core.ui.util.MouseEventDouble;
+
+public class GraphicMouseHandler&lt;E extends ImageElement&gt; extends MouseActionAdapter {
+  private final ViewCanvas&lt;E&gt; vImg;
+  private Draggable ds;
+  private final CursorSet cursorSet;
+
+  public GraphicMouseHandler(ViewCanvas&lt;E&gt; vImg) {
+<span class="nc" id="L43">    this(</span>
+        vImg,
+        new CursorSet(
+            DefaultView2d.DEFAULT_CURSOR,
+            DefaultView2d.MOVE_CURSOR,
+            DefaultView2d.HAND_CURSOR,
+            DefaultView2d.EDIT_CURSOR));
+<span class="nc" id="L50">  }</span>
+
+<span class="nc" id="L52">  public GraphicMouseHandler(ViewCanvas&lt;E&gt; vImg, CursorSet cursors) {</span>
+<span class="nc bnc" id="L53" title="All 2 branches missed.">    if (vImg == null) {</span>
+<span class="nc" id="L54">      throw new IllegalArgumentException();</span>
+    }
+<span class="nc" id="L56">    this.vImg = vImg;</span>
+<span class="nc" id="L57">    this.cursorSet = cursors;</span>
+<span class="nc" id="L58">  }</span>
+
+  public Draggable getDragSequence() {
+<span class="nc" id="L61">    return ds;</span>
+  }
+
+  @Override
+  public void mousePressed(MouseEvent e) {
+<span class="nc" id="L66">    int buttonMask = getButtonMaskEx();</span>
+
+    // Check if extended modifier of mouse event equals the current buttonMask
+    // Also asserts that Mouse adapter is not disable
+<span class="nc bnc" id="L70" title="All 4 branches missed.">    if (e.isConsumed() || (e.getModifiersEx() &amp; buttonMask) == 0) {</span>
+<span class="nc" id="L71">      return;</span>
+    }
+
+    // Convert mouse event point to real image coordinate point (without geometric transformation)
+<span class="nc" id="L75">    MouseEventDouble mouseEvt = new MouseEventDouble(e);</span>
+<span class="nc" id="L76">    mouseEvt.setImageCoordinates(vImg.getImageCoordinatesFromMouse(e.getX(), e.getY()));</span>
+
+    // Do nothing and return if current dragSequence is not completed
+<span class="nc bnc" id="L79" title="All 2 branches missed.">    if (ds != null) {</span>
+<span class="nc" id="L80">      Boolean c = ds.completeDrag(mouseEvt);</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">      if (mouseEvt.isConsumed()) {</span>
+<span class="nc" id="L82">        c = Boolean.FALSE;</span>
+<span class="nc" id="L83">        ds = null;</span>
+      }
+<span class="nc bnc" id="L85" title="All 2 branches missed.">      if (!c) {</span>
+<span class="nc" id="L86">        return;</span>
+      }
+    }
+
+<span class="nc" id="L90">    Cursor newCursor = cursorSet.getDrawingCursor();</span>
+
+<span class="nc" id="L92">    GraphicModel graphicList = vImg.getGraphicManager();</span>
+    // Avoid any dragging on selection when Shift Button is Down
+<span class="nc bnc" id="L94" title="All 2 branches missed.">    if (!mouseEvt.isShiftDown()) {</span>
+      // Evaluates if mouse is on a dragging position, creates a DragSequence and changes cursor
+      // consequently
+<span class="nc" id="L97">      Optional&lt;Graphic&gt; firstGraphicIntersecting =</span>
+<span class="nc" id="L98">          graphicList.getFirstGraphicIntersecting(mouseEvt);</span>
+
+<span class="nc bnc" id="L100" title="All 2 branches missed.">      if (firstGraphicIntersecting.isPresent()</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">          &amp;&amp; firstGraphicIntersecting.get() instanceof DragGraphic dragGraph) {</span>
+<span class="nc" id="L102">        List&lt;DragGraphic&gt; selectedDragGraphList = graphicList.getSelectedDraggableGraphics();</span>
+<span class="nc" id="L103">        boolean locked = dragGraph.getLayer().getLocked();</span>
+
+<span class="nc bnc" id="L105" title="All 4 branches missed.">        if (!locked &amp;&amp; selectedDragGraphList.contains(dragGraph)) {</span>
+
+<span class="nc bnc" id="L107" title="All 2 branches missed.">          if (selectedDragGraphList.size() &gt; 1</span>
+<span class="nc bnc" id="L108" title="All 2 branches missed.">              &amp;&amp; selectedDragGraphList.stream().noneMatch(g -&gt; g.getLayer().getLocked())) {</span>
+<span class="nc" id="L109">            ds = new BulkDragSequence(selectedDragGraphList, mouseEvt);</span>
+<span class="nc" id="L110">            newCursor = cursorSet.getMoveCursor();</span>
+
+<span class="nc bnc" id="L112" title="All 2 branches missed.">          } else if (selectedDragGraphList.size() == 1) {</span>
+
+<span class="nc bnc" id="L114" title="All 2 branches missed.">            if (dragGraph.isOnGraphicLabel(mouseEvt)) {</span>
+<span class="nc" id="L115">              ds = dragGraph.createDragLabelSequence();</span>
+<span class="nc" id="L116">              newCursor = cursorSet.getHandCursor();</span>
+
+            } else {
+<span class="nc" id="L119">              int handlePtIndex = dragGraph.getHandlePointIndex(mouseEvt);</span>
+
+<span class="nc bnc" id="L121" title="All 2 branches missed.">              if (handlePtIndex &gt;= 0) {</span>
+<span class="nc" id="L122">                dragGraph.moveMouseOverHandlePoint(handlePtIndex, mouseEvt);</span>
+<span class="nc" id="L123">                ds = dragGraph.createResizeDrag(handlePtIndex);</span>
+<span class="nc" id="L124">                newCursor = cursorSet.getEditCursor();</span>
+
+              } else {
+<span class="nc" id="L127">                ds = dragGraph.createMoveDrag();</span>
+<span class="nc" id="L128">                newCursor = cursorSet.getMoveCursor();</span>
+              }
+<span class="nc" id="L130">            }</span>
+          }
+        } else {
+<span class="nc bnc" id="L133" title="All 4 branches missed.">          if (!locked &amp;&amp; dragGraph.isOnGraphicLabel(mouseEvt)) {</span>
+<span class="nc" id="L134">            ds = dragGraph.createDragLabelSequence();</span>
+<span class="nc" id="L135">            newCursor = cursorSet.getHandCursor();</span>
+
+<span class="nc bnc" id="L137" title="All 2 branches missed.">          } else if (!locked) {</span>
+<span class="nc" id="L138">            ds = dragGraph.createMoveDrag();</span>
+<span class="nc" id="L139">            newCursor = cursorSet.getMoveCursor();</span>
+          }
+<span class="nc" id="L141">          vImg.getGraphicManager().setSelectedGraphic(Collections.singletonList(dragGraph));</span>
+        }
+      }
+    }
+
+<span class="nc bnc" id="L146" title="All 2 branches missed.">    if (ds == null) {</span>
+<span class="nc" id="L147">      ImageViewerEventManager&lt;E&gt; eventManager = vImg.getEventManager();</span>
+<span class="nc" id="L148">      Optional&lt;Feature&lt;? extends ActionState&gt;&gt; action =</span>
+<span class="nc" id="L149">          eventManager.getMouseAction(e.getModifiersEx());</span>
+<span class="nc bnc" id="L150" title="All 4 branches missed.">      if (action.isPresent() &amp;&amp; action.get().isDrawingAction()) {</span>
+<span class="nc" id="L151">        Optional&lt;ComboItemListener&gt; items =</span>
+<span class="nc" id="L152">            eventManager.getActionFromActionKey(</span>
+<span class="nc" id="L153">                ActionW.DRAW_CMD_PREFIX + action.get().cmd(), ComboItemListener.class);</span>
+<span class="nc bnc" id="L154" title="All 2 branches missed.">        if (items.isPresent()) {</span>
+<span class="nc" id="L155">          Object item = items.get().getSelectedItem();</span>
+<span class="nc" id="L156">          Graphic graph =</span>
+<span class="nc" id="L157">              AbstractGraphicModel.drawFromCurrentGraphic(</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">                  vImg, (Graphic) (item instanceof Graphic ? item : null));</span>
+<span class="nc bnc" id="L159" title="All 2 branches missed.">          if (graph instanceof DragGraphic dragGraphic) {</span>
+<span class="nc" id="L160">            ds = dragGraphic.createResizeDrag();</span>
+<span class="nc bnc" id="L161" title="All 2 branches missed.">            if (!(graph instanceof SelectGraphic)) {</span>
+<span class="nc" id="L162">              vImg.getGraphicManager().setSelectedGraphic(Collections.singletonList(graph));</span>
+            }
+          }
+        }
+      }
+    }
+<span class="nc" id="L168">    vImg.getJComponent()</span>
+<span class="nc" id="L169">        .setCursor(Optional.ofNullable(newCursor).orElse(cursorSet.getDrawingCursor()));</span>
+
+<span class="nc bnc" id="L171" title="All 2 branches missed.">    if (ds != null) {</span>
+<span class="nc" id="L172">      ds.startDrag(mouseEvt);</span>
+    } else {
+<span class="nc" id="L174">      vImg.getGraphicManager().setSelectedGraphic(null);</span>
+    }
+
+    // Throws to the tool listener the current graphic selection.
+<span class="nc" id="L178">    vImg.getGraphicManager().fireGraphicsSelectionChanged(vImg.getMeasurableLayer());</span>
+<span class="nc" id="L179">  }</span>
+
+  @Override
+  public void mouseReleased(MouseEvent e) {
+<span class="nc" id="L183">    int buttonMask = getButtonMask();</span>
+
+    // Check if extended modifier of mouse event equals the current buttonMask
+    // Note that extended modifiers are not triggered in mouse released
+    // Also asserts that Mouse adapter is not disable
+<span class="nc bnc" id="L188" title="All 2 branches missed.">    if ((e.getModifiers() &amp; buttonMask) == 0) {</span>
+<span class="nc" id="L189">      return;</span>
+    }
+
+    // Do nothing and return if no dragSequence exist
+<span class="nc bnc" id="L193" title="All 2 branches missed.">    if (ds == null) {</span>
+<span class="nc" id="L194">      return;</span>
+    }
+
+    // Convert mouse event point to real image coordinate point (without geometric transformation)
+<span class="nc" id="L198">    MouseEventDouble mouseEvt = new MouseEventDouble(e);</span>
+<span class="nc" id="L199">    mouseEvt.setImageCoordinates(vImg.getImageCoordinatesFromMouse(e.getX(), e.getY()));</span>
+
+<span class="nc" id="L201">    Optional&lt;SelectGraphic&gt; selection = vImg.getGraphicManager().getSelectGraphic();</span>
+<span class="nc bnc" id="L202" title="All 2 branches missed.">    if (selection.isPresent()) {</span>
+<span class="nc" id="L203">      Graphic selectGraphic = selection.get();</span>
+<span class="nc" id="L204">      AffineTransform transform = DefaultView2d.getAffineTransform(mouseEvt);</span>
+<span class="nc" id="L205">      Rectangle selectionRect = selectGraphic.getBounds(transform);</span>
+
+      // Little size rectangle in selection click is interpreted as a single click
+<span class="nc bnc" id="L208" title="All 6 branches missed.">      boolean isSelectionSingleClick =</span>
+          selectionRect == null || (selectionRect.width &lt; 5 &amp;&amp; selectionRect.height &lt; 5);
+
+<span class="nc" id="L211">      final List&lt;Graphic&gt; newSelectedGraphList = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L212" title="All 2 branches missed.">      if (isSelectionSingleClick) {</span>
+<span class="nc" id="L213">        vImg.getGraphicManager()</span>
+<span class="nc" id="L214">            .getFirstGraphicIntersecting(mouseEvt)</span>
+<span class="nc" id="L215">            .ifPresent(newSelectedGraphList::add);</span>
+      } else {
+<span class="nc" id="L217">        newSelectedGraphList.addAll(</span>
+<span class="nc" id="L218">            vImg.getGraphicManager().getSelectedAllGraphicsIntersecting(selectionRect, transform));</span>
+      }
+
+      // Add all graphics inside selection rectangle at any level in layers instead in the case of
+      // single
+      // click where top level first graphic found is removed from list if already selected
+<span class="nc bnc" id="L224" title="All 2 branches missed.">      if (mouseEvt.isShiftDown()) {</span>
+<span class="nc" id="L225">        List&lt;Graphic&gt; selectedGraphList = vImg.getGraphicManager().getSelectedGraphics();</span>
+
+<span class="nc bnc" id="L227" title="All 2 branches missed.">        if (!selectedGraphList.isEmpty()) {</span>
+<span class="nc bnc" id="L228" title="All 2 branches missed.">          if (newSelectedGraphList.isEmpty()) {</span>
+<span class="nc" id="L229">            newSelectedGraphList.addAll(selectedGraphList);</span>
+          } else {
+<span class="nc" id="L231">            selectedGraphList.forEach(</span>
+                g -&gt; {
+<span class="nc bnc" id="L233" title="All 2 branches missed.">                  if (!newSelectedGraphList.contains(g)) {</span>
+<span class="nc" id="L234">                    newSelectedGraphList.add(g);</span>
+<span class="nc bnc" id="L235" title="All 2 branches missed.">                  } else if (isSelectionSingleClick) {</span>
+<span class="nc" id="L236">                    newSelectedGraphList.remove(g);</span>
+                  }
+<span class="nc" id="L238">                });</span>
+          }
+        }
+      }
+
+<span class="nc" id="L243">      vImg.getGraphicManager().setSelectedGraphic(newSelectedGraphList);</span>
+    }
+
+<span class="nc bnc" id="L246" title="All 2 branches missed.">    if (ds.completeDrag(mouseEvt)) {</span>
+<span class="nc" id="L247">      vImg.getEventManager()</span>
+<span class="nc" id="L248">          .getAction(ActionW.DRAW_ONLY_ONCE)</span>
+<span class="nc" id="L249">          .filter(ToggleButtonListener::isSelected)</span>
+<span class="nc" id="L250">          .ifPresent(</span>
+              a -&gt; {
+<span class="nc" id="L252">                vImg.getEventManager()</span>
+<span class="nc" id="L253">                    .getAction(ActionW.DRAW_MEASURE)</span>
+<span class="nc" id="L254">                    .ifPresent(c -&gt; c.setSelectedItem(MeasureToolBar.selectionGraphic));</span>
+<span class="nc" id="L255">                vImg.getEventManager()</span>
+<span class="nc" id="L256">                    .getAction(ActionW.DRAW_GRAPHICS)</span>
+<span class="nc" id="L257">                    .ifPresent(c -&gt; c.setSelectedItem(MeasureToolBar.selectionGraphic));</span>
+<span class="nc" id="L258">              });</span>
+<span class="nc" id="L259">      ds = null;</span>
+    }
+
+    // Throws to the tool listener the current graphic selection.
+<span class="nc" id="L263">    vImg.getGraphicManager().fireGraphicsSelectionChanged(vImg.getMeasurableLayer());</span>
+
+<span class="nc" id="L265">    Cursor newCursor = cursorSet.getDrawingCursor();</span>
+
+    // Evaluates if mouse is on a dragging position, and changes cursor image consequently
+<span class="nc" id="L268">    List&lt;DragGraphic&gt; selectedDragGraphList =</span>
+<span class="nc" id="L269">        vImg.getGraphicManager().getSelectedDraggableGraphics();</span>
+<span class="nc" id="L270">    Optional&lt;Graphic&gt; firstGraphicIntersecting =</span>
+<span class="nc" id="L271">        vImg.getGraphicManager().getFirstGraphicIntersecting(mouseEvt);</span>
+
+<span class="nc bnc" id="L273" title="All 2 branches missed.">    if (firstGraphicIntersecting.isPresent()</span>
+<span class="nc bnc" id="L274" title="All 2 branches missed.">        &amp;&amp; firstGraphicIntersecting.get() instanceof DragGraphic dragGraph</span>
+<span class="nc bnc" id="L275" title="All 2 branches missed.">        &amp;&amp; !firstGraphicIntersecting.get().getLayer().getLocked()) {</span>
+<span class="nc" id="L276">      newCursor = getCursor(mouseEvt, selectedDragGraphList, dragGraph, cursorSet);</span>
+    }
+
+<span class="nc" id="L279">    vImg.getJComponent()</span>
+<span class="nc" id="L280">        .setCursor(Optional.ofNullable(newCursor).orElse(cursorSet.getDrawingCursor()));</span>
+<span class="nc" id="L281">  }</span>
+
+  private static Cursor getCursor(
+      MouseEventDouble mouseEvt,
+      List&lt;DragGraphic&gt; selectedDragGraphList,
+      DragGraphic dragGraph,
+      CursorSet cursorSet) {
+    Cursor newCursor;
+<span class="nc bnc" id="L289" title="All 2 branches missed.">    if (selectedDragGraphList.contains(dragGraph)) {</span>
+
+<span class="nc bnc" id="L291" title="All 2 branches missed.">      if (selectedDragGraphList.size() &gt; 1) {</span>
+<span class="nc" id="L292">        newCursor = cursorSet.getMoveCursor();</span>
+
+      } else {
+<span class="nc bnc" id="L295" title="All 2 branches missed.">        if (dragGraph.isOnGraphicLabel(mouseEvt)) {</span>
+<span class="nc" id="L296">          newCursor = cursorSet.getHandCursor();</span>
+
+        } else {
+<span class="nc bnc" id="L299" title="All 2 branches missed.">          if (dragGraph.getHandlePointIndex(mouseEvt) &gt;= 0) {</span>
+<span class="nc" id="L300">            newCursor = cursorSet.getEditCursor();</span>
+          } else {
+<span class="nc" id="L302">            newCursor = cursorSet.getMoveCursor();</span>
+          }
+        }
+      }
+    } else {
+<span class="nc bnc" id="L307" title="All 2 branches missed.">      if (dragGraph.isOnGraphicLabel(mouseEvt)) {</span>
+<span class="nc" id="L308">        newCursor = cursorSet.getHandCursor();</span>
+      } else {
+<span class="nc" id="L310">        newCursor = cursorSet.getMoveCursor();</span>
+      }
+    }
+<span class="nc" id="L313">    return newCursor;</span>
+  }
+
+  @Override
+  public void mouseDragged(MouseEvent e) {
+<span class="nc" id="L318">    int buttonMask = getButtonMaskEx();</span>
+
+    // Check if extended modifier of mouse event equals the current buttonMask
+    // Also asserts that Mouse adapter is not disable
+<span class="nc bnc" id="L322" title="All 4 branches missed.">    if (e.isConsumed() || (e.getModifiersEx() &amp; buttonMask) == 0) {</span>
+<span class="nc" id="L323">      return;</span>
+    }
+
+<span class="nc bnc" id="L326" title="All 2 branches missed.">    if (ds != null) {</span>
+      // Convert mouse event point to real image coordinate point (without geometric transformation)
+<span class="nc" id="L328">      MouseEventDouble mouseEvt = new MouseEventDouble(e);</span>
+<span class="nc" id="L329">      mouseEvt.setImageCoordinates(vImg.getImageCoordinatesFromMouse(e.getX(), e.getY()));</span>
+
+<span class="nc" id="L331">      ds.drag(mouseEvt);</span>
+    }
+<span class="nc" id="L333">  }</span>
+
+  @Override
+  public void mouseMoved(MouseEvent e) {
+<span class="nc bnc" id="L337" title="All 2 branches missed.">    if (e.isConsumed()) {</span>
+<span class="nc" id="L338">      return;</span>
+    }
+
+    // Convert mouse event point to real image coordinate point (without geometric transformation)
+<span class="nc" id="L342">    MouseEventDouble mouseEvt = new MouseEventDouble(e);</span>
+<span class="nc" id="L343">    mouseEvt.setImageCoordinates(vImg.getImageCoordinatesFromMouse(e.getX(), e.getY()));</span>
+
+    // Handle special case when drawing in mode [click &gt; release &gt; move/drag &gt; release] instead of
+    // [click + drag &gt; release]
+<span class="nc bnc" id="L347" title="All 2 branches missed.">    if (ds instanceof DefaultDragSequence) {</span>
+<span class="nc" id="L348">      ds.drag(mouseEvt);</span>
+    } else {
+<span class="nc" id="L350">      Cursor newCursor = null;</span>
+<span class="nc" id="L351">      GraphicModel graphicList = vImg.getGraphicManager();</span>
+<span class="nc bnc" id="L352" title="All 2 branches missed.">      if (!mouseEvt.isShiftDown()) {</span>
+        // Evaluates if mouse is on a dragging position, and changes cursor image consequently
+<span class="nc" id="L354">        Optional&lt;Graphic&gt; firstGraphicIntersecting =</span>
+<span class="nc" id="L355">            graphicList.getFirstGraphicIntersecting(mouseEvt);</span>
+
+<span class="nc bnc" id="L357" title="All 2 branches missed.">        if (firstGraphicIntersecting.isPresent()</span>
+<span class="nc bnc" id="L358" title="All 2 branches missed.">            &amp;&amp; firstGraphicIntersecting.get() instanceof DragGraphic dragGraph</span>
+<span class="nc bnc" id="L359" title="All 2 branches missed.">            &amp;&amp; !firstGraphicIntersecting.get().getLayer().getLocked()) {</span>
+<span class="nc" id="L360">          List&lt;DragGraphic&gt; selectedDragGraphList =</span>
+<span class="nc" id="L361">              vImg.getGraphicManager().getSelectedDraggableGraphics();</span>
+
+<span class="nc" id="L363">          newCursor = getCursor(mouseEvt, selectedDragGraphList, dragGraph, cursorSet);</span>
+        }
+      }
+<span class="nc bnc" id="L366" title="All 2 branches missed.">      if (newCursor != null) {</span>
+<span class="nc" id="L367">        vImg.getJComponent().setCursor(newCursor);</span>
+      }
+    }
+<span class="nc" id="L370">  }</span>
+
+  public static class CursorSet {
+    private final Cursor drawingCursor;
+    private final Cursor moveCursor;
+    private final Cursor handCursor;
+    private final Cursor editCursor;
+
+<span class="nc" id="L378">    public CursorSet(Cursor drawing, Cursor move, Cursor hand, Cursor edit) {</span>
+<span class="nc" id="L379">      this.drawingCursor = Optional.ofNullable(drawing).orElse(DefaultView2d.DEFAULT_CURSOR);</span>
+<span class="nc" id="L380">      this.moveCursor = Optional.ofNullable(move).orElse(DefaultView2d.MOVE_CURSOR);</span>
+<span class="nc" id="L381">      this.handCursor = Optional.ofNullable(hand).orElse(DefaultView2d.HAND_CURSOR);</span>
+<span class="nc" id="L382">      this.editCursor = Optional.ofNullable(edit).orElse(DefaultView2d.EDIT_CURSOR);</span>
+<span class="nc" id="L383">    }</span>
+
+    public Cursor getDrawingCursor() {
+<span class="nc" id="L386">      return drawingCursor;</span>
+    }
+
+    public Cursor getMoveCursor() {
+<span class="nc" id="L390">      return moveCursor;</span>
+    }
+
+    public Cursor getHandCursor() {
+<span class="nc" id="L394">      return handCursor;</span>
+    }
+
+    public Cursor getEditCursor() {
+<span class="nc" id="L398">      return editCursor;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

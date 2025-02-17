@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AcquireCentralImagePanel.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer.gui.central</a> &gt; <span class="el_source">AcquireCentralImagePanel.java</span></div><h1>AcquireCentralImagePanel.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer.gui.central;
+
+import java.awt.BorderLayout;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
+import javax.swing.JPanel;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import org.dcm4che3.data.Tag;
+import org.weasis.acquire.explorer.AcquireImageInfo;
+import org.weasis.acquire.explorer.core.bean.SeriesGroup;
+import org.weasis.acquire.explorer.gui.central.tumbnail.AcquireCentralThumbnailPane;
+import org.weasis.base.explorer.JIThumbnailCache;
+import org.weasis.base.explorer.list.IThumbnailModel;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.dicom.codec.TagD;
+
+public class AcquireCentralImagePanel extends JPanel implements ListSelectionListener {
+
+  private final AcquireCentralThumbnailPane&lt;ImageElement&gt; imageListPane;
+  private final AcquireCentralInfoPanel imageInfo;
+
+<span class="nc" id="L35">  public AcquireCentralImagePanel(AcquireTabPanel acquireTabPanel, JIThumbnailCache thumbCache) {</span>
+<span class="nc" id="L36">    setLayout(new BorderLayout());</span>
+<span class="nc" id="L37">    this.imageInfo = new AcquireCentralInfoPanel(null);</span>
+<span class="nc" id="L38">    this.imageListPane = new AcquireCentralThumbnailPane&lt;&gt;(new ArrayList&lt;&gt;(), thumbCache);</span>
+
+<span class="nc" id="L40">    imageListPane.setAcquireTabPanel(Objects.requireNonNull(acquireTabPanel));</span>
+<span class="nc" id="L41">    imageListPane.addListSelectionListener(this);</span>
+
+<span class="nc" id="L43">    add(imageListPane, BorderLayout.CENTER);</span>
+<span class="nc" id="L44">    add(imageInfo, BorderLayout.SOUTH);</span>
+<span class="nc" id="L45">  }</span>
+
+  public void getCurrentSeries(SeriesGroup newSeries) {
+<span class="nc" id="L48">    imageInfo.setSeries(newSeries);</span>
+<span class="nc" id="L49">  }</span>
+
+  public void setSeriesGroup(SeriesGroup seriesGroup, List&lt;AcquireImageInfo&gt; imageInfos) {
+<span class="nc" id="L52">    imageInfo.setSeries(seriesGroup);</span>
+<span class="nc bnc" id="L53" title="All 2 branches missed.">    List&lt;ImageElement&gt; list = imageInfos == null ? null : toImageElement(imageInfos);</span>
+<span class="nc" id="L54">    imageListPane.setList(list);</span>
+<span class="nc" id="L55">  }</span>
+
+  private static List&lt;ImageElement&gt; toImageElement(List&lt;AcquireImageInfo&gt; list) {
+<span class="nc" id="L58">    return list.stream()</span>
+<span class="nc" id="L59">        .map(AcquireImageInfo::getImage)</span>
+<span class="nc" id="L60">        .sorted(</span>
+<span class="nc" id="L61">            Comparator.comparing(</span>
+<span class="nc" id="L62">                i -&gt; TagD.dateTime(Tag.ContentDate, Tag.ContentTime, i),</span>
+<span class="nc" id="L63">                Comparator.nullsLast(Comparator.naturalOrder())))</span>
+<span class="nc" id="L64">        .collect(Collectors.toList());</span>
+  }
+
+  public void addImagesInfo(List&lt;AcquireImageInfo&gt; imageInfos) {
+<span class="nc bnc" id="L68" title="All 2 branches missed.">    List&lt;ImageElement&gt; list = imageInfos == null ? null : toImageElement(imageInfos);</span>
+<span class="nc" id="L69">    imageListPane.addElements(list);</span>
+<span class="nc" id="L70">  }</span>
+
+  public void updateList(List&lt;AcquireImageInfo&gt; imageInfos) {
+<span class="nc bnc" id="L73" title="All 2 branches missed.">    List&lt;ImageElement&gt; list = imageInfos == null ? null : toImageElement(imageInfos);</span>
+<span class="nc" id="L74">    imageListPane.setList(list);</span>
+<span class="nc" id="L75">  }</span>
+
+  public void updateSeries(SeriesGroup newSeriesGroup) {
+<span class="nc" id="L78">    imageInfo.setSeries(newSeriesGroup);</span>
+<span class="nc" id="L79">  }</span>
+
+  public IThumbnailModel&lt;ImageElement&gt; getFileListModel() {
+<span class="nc" id="L82">    return imageListPane.getFileListModel();</span>
+  }
+
+  public boolean containsImageElement(ImageElement image) {
+<span class="nc" id="L86">    return getFileListModel().contains(image);</span>
+  }
+
+  public void removeElement(ImageElement image) {
+<span class="nc" id="L90">    getFileListModel().removeElement(image);</span>
+<span class="nc" id="L91">  }</span>
+
+  public void removeElements(List&lt;ImageElement&gt; medias) {
+<span class="nc" id="L94">    IThumbnailModel&lt;ImageElement&gt; model = getFileListModel();</span>
+<span class="nc" id="L95">    medias.forEach(model::removeElement);</span>
+<span class="nc" id="L96">  }</span>
+
+  public void clearAll() {
+<span class="nc" id="L99">    getFileListModel().clear();</span>
+<span class="nc" id="L100">    imageListPane.repaintList();</span>
+<span class="nc" id="L101">  }</span>
+
+  public boolean isEmpty() {
+<span class="nc" id="L104">    return getFileListModel().isEmpty();</span>
+  }
+
+  protected void refreshGUI() {
+<span class="nc" id="L108">    imageListPane.repaintList();</span>
+<span class="nc" id="L109">    imageListPane.revalidate();</span>
+<span class="nc" id="L110">    imageListPane.repaint();</span>
+<span class="nc" id="L111">    refreshInfoGUI();</span>
+<span class="nc" id="L112">  }</span>
+
+  protected void refreshInfoGUI() {
+<span class="nc" id="L115">    imageInfo.refreshGUI();</span>
+<span class="nc" id="L116">  }</span>
+
+  @Override
+  public void valueChanged(ListSelectionEvent e) {
+<span class="nc" id="L120">    List&lt;ImageElement&gt; images = imageListPane.getSelectedValuesList();</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">    if (images.size() == 1) {</span>
+<span class="nc" id="L122">      imageInfo.setImage(images.get(0));</span>
+    } else {
+<span class="nc" id="L124">      imageInfo.setImage(null);</span>
+    }
+<span class="nc" id="L126">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

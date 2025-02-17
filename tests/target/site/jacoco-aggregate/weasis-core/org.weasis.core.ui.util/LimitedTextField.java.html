@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>LimitedTextField.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.util</a> &gt; <span class="el_source">LimitedTextField.java</span></div><h1>LimitedTextField.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2024 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.util;
+
+import javax.swing.*;
+import javax.swing.text.*;
+
+public class LimitedTextField extends JTextField {
+  public LimitedTextField(int limit) {
+<span class="nc" id="L17">    super();</span>
+<span class="nc" id="L18">    setDocument(new LimitedDocument(limit));</span>
+<span class="nc" id="L19">  }</span>
+
+  private static class LimitedDocument extends PlainDocument {
+    private final int limit;
+
+<span class="nc" id="L24">    LimitedDocument(int limit) {</span>
+<span class="nc" id="L25">      this.limit = limit;</span>
+<span class="nc" id="L26">    }</span>
+
+    @Override
+    public void insertString(int offset, String str, AttributeSet attr)
+        throws BadLocationException {
+<span class="nc bnc" id="L31" title="All 2 branches missed.">      if (str == null) {</span>
+<span class="nc" id="L32">        return;</span>
+      }
+
+<span class="nc bnc" id="L35" title="All 2 branches missed.">      if ((getLength() + str.length()) &lt;= limit) {</span>
+<span class="nc" id="L36">        super.insertString(offset, str, attr);</span>
+      }
+<span class="nc" id="L38">    }</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

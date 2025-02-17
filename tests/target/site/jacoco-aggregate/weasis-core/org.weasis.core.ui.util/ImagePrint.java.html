@@ -1,0 +1,281 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ImagePrint.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.util</a> &gt; <span class="el_source">ImagePrint.java</span></div><h1>ImagePrint.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.util;
+
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.awt.print.PageFormat;
+import java.awt.print.Paper;
+import java.awt.print.Printable;
+import java.awt.print.PrinterException;
+import java.awt.print.PrinterJob;
+import java.util.Map;
+import java.util.Map.Entry;
+import javax.print.attribute.HashPrintRequestAttributeSet;
+import javax.print.attribute.PrintRequestAttributeSet;
+import javax.print.attribute.Size2DSyntax;
+import javax.print.attribute.standard.MediaPrintableArea;
+import javax.print.attribute.standard.MediaSize;
+import javax.print.attribute.standard.MediaSizeName;
+import javax.print.attribute.standard.OrientationRequested;
+import javax.swing.JComponent;
+import javax.swing.JOptionPane;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.image.LayoutConstraints;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.ui.editor.image.ExportImage;
+import org.weasis.core.util.MathUtil;
+import org.weasis.opencv.data.PlanarImage;
+
+public class ImagePrint implements Printable {
+<span class="nc" id="L46">  private static final Logger LOGGER = LoggerFactory.getLogger(ImagePrint.class);</span>
+
+  private static final double POINTS_PER_INCH = 72.0;
+
+  private Point printLoc;
+  private final PrintOptions printOptions;
+  private final ExportLayout&lt;? extends ImageElement&gt; layout;
+
+<span class="nc" id="L54">  public ImagePrint(ExportLayout&lt;? extends ImageElement&gt; layout, PrintOptions printOptions) {</span>
+<span class="nc" id="L55">    this.layout = layout;</span>
+<span class="nc" id="L56">    this.printLoc = new Point(0, 0);</span>
+<span class="nc bnc" id="L57" title="All 2 branches missed.">    this.printOptions = printOptions == null ? new PrintOptions() : printOptions;</span>
+<span class="nc" id="L58">  }</span>
+
+  public void setPrintLocation(Point d) {
+<span class="nc" id="L61">    printLoc = d;</span>
+<span class="nc" id="L62">  }</span>
+
+  public Point getPrintLocation() {
+<span class="nc" id="L65">    return printLoc;</span>
+  }
+
+  private static OrientationRequested mapOrientation(final int orientation) {
+<span class="nc bnc" id="L69" title="All 4 branches missed.">    return switch (orientation) {</span>
+<span class="nc" id="L70">      case PageFormat.LANDSCAPE -&gt; OrientationRequested.LANDSCAPE;</span>
+<span class="nc" id="L71">      case PageFormat.REVERSE_LANDSCAPE -&gt; OrientationRequested.REVERSE_LANDSCAPE;</span>
+<span class="nc" id="L72">      case PageFormat.PORTRAIT -&gt; OrientationRequested.PORTRAIT;</span>
+      default -&gt;
+<span class="nc" id="L74">          throw new IllegalArgumentException(&quot;The given value is no valid PageFormat orientation.&quot;);</span>
+    };
+  }
+
+  public void print() {
+<span class="nc" id="L79">    PrinterJob pj = PrinterJob.getPrinterJob();</span>
+<span class="nc" id="L80">    pj.setPrintable(this);</span>
+<span class="nc" id="L81">    PrintRequestAttributeSet aset = new HashPrintRequestAttributeSet();</span>
+<span class="nc" id="L82">    PageFormat pf = pj.getPageFormat(aset);</span>
+<span class="nc" id="L83">    Paper paper = pf.getPaper();</span>
+
+    // Change the default margins
+<span class="nc" id="L86">    final MediaSizeName media =</span>
+<span class="nc" id="L87">        MediaSize.findMedia(</span>
+<span class="nc" id="L88">            (float) (paper.getWidth() / POINTS_PER_INCH),</span>
+<span class="nc" id="L89">            (float) (paper.getHeight() / POINTS_PER_INCH),</span>
+            MediaPrintableArea.INCH);
+<span class="nc" id="L91">    aset.add(media);</span>
+<span class="nc" id="L92">    MediaSize mediaSize = MediaSize.getMediaSizeForName(media);</span>
+<span class="nc" id="L93">    MediaPrintableArea printableArea =</span>
+        new MediaPrintableArea(
+            0.25f,
+            0.25f,
+<span class="nc" id="L97">            mediaSize.getX(Size2DSyntax.INCH) - 0.5f,</span>
+<span class="nc" id="L98">            mediaSize.getY(Size2DSyntax.INCH) - 0.5f,</span>
+            MediaPrintableArea.INCH);
+<span class="nc" id="L100">    aset.add(printableArea);</span>
+<span class="nc" id="L101">    aset.add(mapOrientation(pf.getOrientation()));</span>
+
+    // Get page format from the printer
+<span class="nc bnc" id="L104" title="All 2 branches missed.">    if (pj.printDialog(aset)) {</span>
+      try {
+<span class="nc" id="L106">        pj.print(aset);</span>
+<span class="nc" id="L107">      } catch (Exception e) {</span>
+        // check for the annoying 'Printer is not accepting job' error.
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        if (e.getMessage().contains(&quot;accepting job&quot;)) { // NON-NLS</span>
+          // recommend prompting the user at this point if they want to force it,
+          // so they'll know there may be a problem.
+          int response =
+<span class="nc" id="L113">              JOptionPane.showConfirmDialog(</span>
+<span class="nc" id="L114">                  GuiUtils.getUICore().getApplicationWindow(),</span>
+<span class="nc" id="L115">                  Messages.getString(&quot;ImagePrint.issue_desc&quot;),</span>
+<span class="nc" id="L116">                  Messages.getString(&quot;ImagePrint.status&quot;),</span>
+                  JOptionPane.YES_NO_OPTION,
+                  JOptionPane.WARNING_MESSAGE);
+
+<span class="nc bnc" id="L120" title="All 2 branches missed.">          if (response == 0) {</span>
+            try {
+              // try printing again but ignore the not-accepting-jobs attribute
+<span class="nc" id="L123">              ForcedAcceptPrintService.setupPrintJob(pj); // add secret ingredient</span>
+<span class="nc" id="L124">              pj.print(aset);</span>
+<span class="nc" id="L125">              LOGGER.info(&quot;Bypass Printer is not accepting job&quot;);</span>
+<span class="nc" id="L126">            } catch (PrinterException ex) {</span>
+<span class="nc" id="L127">              LOGGER.error(&quot;Printer exception&quot;, ex);</span>
+<span class="nc" id="L128">            }</span>
+          }
+<span class="nc" id="L130">        } else {</span>
+<span class="nc" id="L131">          LOGGER.error(&quot;Print exception&quot;, e);</span>
+        }
+<span class="nc" id="L133">      }</span>
+    }
+<span class="nc" id="L135">  }</span>
+
+  public static boolean disableDoubleBuffering(JComponent c) {
+<span class="nc bnc" id="L138" title="All 2 branches missed.">    if (c == null) {</span>
+<span class="nc" id="L139">      return false;</span>
+    }
+<span class="nc" id="L141">    c.setDoubleBuffered(false);</span>
+<span class="nc" id="L142">    return c.isDoubleBuffered();</span>
+  }
+
+  public static void restoreDoubleBuffering(JComponent c, boolean wasBuffered) {
+<span class="nc bnc" id="L146" title="All 2 branches missed.">    if (c != null) {</span>
+<span class="nc" id="L147">      c.setDoubleBuffered(wasBuffered);</span>
+    }
+<span class="nc" id="L149">  }</span>
+
+  @Override
+  public int print(Graphics g, PageFormat f, int pageIndex) {
+<span class="nc bnc" id="L153" title="All 2 branches missed.">    if (pageIndex &gt;= 1) {</span>
+<span class="nc" id="L154">      return Printable.NO_SUCH_PAGE;</span>
+    }
+<span class="nc" id="L156">    printImage((Graphics2D) g, f);</span>
+<span class="nc" id="L157">    return Printable.PAGE_EXISTS;</span>
+  }
+
+  public void printImage(Graphics2D g2d, PageFormat f) {
+<span class="nc bnc" id="L161" title="All 4 branches missed.">    if ((layout == null) || (g2d == null)) {</span>
+<span class="nc" id="L162">      return;</span>
+    }
+<span class="nc" id="L164">    Dimension dimGrid = layout.layoutModel.getGridSize();</span>
+<span class="nc" id="L165">    Point2D.Double placeholder =</span>
+        new Point2D.Double(
+<span class="nc" id="L167">            f.getImageableWidth() - (dimGrid.width - 1) * 5,</span>
+<span class="nc" id="L168">            f.getImageableHeight() - (dimGrid.height - 1) * 5);</span>
+
+<span class="nc" id="L170">    int lastx = 0;</span>
+<span class="nc" id="L171">    double lastwx = 0.0;</span>
+<span class="nc" id="L172">    double[] lastwy = new double[dimGrid.width];</span>
+<span class="nc" id="L173">    double wx = 0.0;</span>
+
+<span class="nc" id="L175">    final Map&lt;LayoutConstraints, Component&gt; elements = layout.layoutModel.getConstraints();</span>
+<span class="nc bnc" id="L176" title="All 2 branches missed.">    for (Entry&lt;LayoutConstraints, Component&gt; e : elements.entrySet()) {</span>
+<span class="nc" id="L177">      LayoutConstraints key = e.getKey();</span>
+<span class="nc" id="L178">      Component value = e.getValue();</span>
+
+<span class="nc" id="L180">      ExportImage&lt;? extends ImageElement&gt; image = null;</span>
+<span class="nc" id="L181">      Point2D.Double pad = new Point2D.Double(0.0, 0.0);</span>
+
+<span class="nc bnc" id="L183" title="All 2 branches missed.">      if (value instanceof ExportImage&lt;? extends ImageElement&gt; exportImage) {</span>
+<span class="nc" id="L184">        image = exportImage;</span>
+<span class="nc" id="L185">        formatImage(image, key, placeholder, pad);</span>
+      }
+
+<span class="nc bnc" id="L188" title="All 2 branches missed.">      if (key.gridx == 0) {</span>
+<span class="nc" id="L189">        wx = 0.0;</span>
+<span class="nc bnc" id="L190" title="All 2 branches missed.">      } else if (lastx &lt; key.gridx) {</span>
+<span class="nc" id="L191">        wx += lastwx;</span>
+      }
+<span class="nc" id="L193">      double wy = lastwy[key.gridx];</span>
+<span class="nc" id="L194">      double x =</span>
+          printLoc.x
+<span class="nc" id="L196">              + f.getImageableX()</span>
+              + (placeholder.x * wx)
+<span class="nc bnc" id="L198" title="All 2 branches missed.">              + (MathUtil.isEqualToZero(wx) ? 0 : key.gridx * 5)</span>
+              + pad.x;
+<span class="nc" id="L200">      double y =</span>
+          printLoc.y
+<span class="nc" id="L202">              + f.getImageableY()</span>
+              + (placeholder.y * wy)
+<span class="nc bnc" id="L204" title="All 2 branches missed.">              + (MathUtil.isEqualToZero(wy) ? 0 : key.gridy * 5)</span>
+              + pad.y;
+<span class="nc" id="L206">      lastx = key.gridx;</span>
+<span class="nc" id="L207">      lastwx = key.weightx;</span>
+<span class="nc bnc" id="L208" title="All 2 branches missed.">      for (int i = key.gridx; i &lt; key.gridx + key.gridwidth; i++) {</span>
+<span class="nc" id="L209">        lastwy[i] += key.weighty;</span>
+      }
+
+<span class="nc bnc" id="L212" title="All 2 branches missed.">      if (image != null) {</span>
+        // Set us to the upper left corner
+<span class="nc" id="L214">        g2d.translate(x, y);</span>
+<span class="nc" id="L215">        boolean wasBuffered = disableDoubleBuffering(image);</span>
+<span class="nc" id="L216">        g2d.setClip(image.getBounds());</span>
+<span class="nc" id="L217">        image.draw(g2d);</span>
+<span class="nc" id="L218">        restoreDoubleBuffering(image, wasBuffered);</span>
+<span class="nc" id="L219">        g2d.translate(-x, -y);</span>
+      }
+<span class="nc" id="L221">    }</span>
+<span class="nc" id="L222">  }</span>
+
+  private void formatImage(
+      ExportImage&lt;? extends ImageElement&gt; image,
+      LayoutConstraints key,
+      Point2D.Double placeholder,
+      Point2D.Double pad) {
+<span class="nc bnc" id="L229" title="All 4 branches missed.">    if (!printOptions.isShowingAnnotations() &amp;&amp; image.getInfoLayer().getVisible()) {</span>
+<span class="nc" id="L230">      image.getInfoLayer().setVisible(false);</span>
+    }
+
+<span class="nc" id="L233">    Rectangle2D originSize = (Rectangle2D) image.getActionValue(&quot;origin.image.bound&quot;);</span>
+<span class="nc" id="L234">    Point2D originCenterOffset = (Point2D) image.getActionValue(&quot;origin.center.offset&quot;);</span>
+<span class="nc" id="L235">    Double originZoom = (Double) image.getActionValue(&quot;origin.zoom&quot;);</span>
+<span class="nc" id="L236">    PlanarImage img = image.getSourceImage();</span>
+<span class="nc bnc" id="L237" title="All 6 branches missed.">    if (img != null &amp;&amp; originCenterOffset != null &amp;&amp; originZoom != null) {</span>
+<span class="nc bnc" id="L238" title="All 2 branches missed.">      boolean bestfit = originZoom &lt;= 0.0;</span>
+      double canvasWidth;
+      double canvasHeight;
+<span class="nc bnc" id="L241" title="All 4 branches missed.">      if (bestfit || originSize == null) {</span>
+<span class="nc" id="L242">        canvasWidth = img.width() * image.getImage().getRescaleX();</span>
+<span class="nc" id="L243">        canvasHeight = img.height() * image.getImage().getRescaleY();</span>
+      } else {
+<span class="nc" id="L245">        canvasWidth = originSize.getWidth() / originZoom;</span>
+<span class="nc" id="L246">        canvasHeight = originSize.getHeight() / originZoom;</span>
+      }
+<span class="nc" id="L248">      double scaleCanvas =</span>
+<span class="nc" id="L249">          Math.min(</span>
+              placeholder.x * key.weightx / canvasWidth,
+              placeholder.y * key.weighty / canvasHeight);
+
+      // Set the print area in pixel
+<span class="nc" id="L254">      double cw = canvasWidth * scaleCanvas;</span>
+<span class="nc" id="L255">      double ch = canvasHeight * scaleCanvas;</span>
+<span class="nc" id="L256">      image.setSize((int) (cw + 0.5), (int) (ch + 0.5));</span>
+
+<span class="nc bnc" id="L258" title="All 2 branches missed.">      if (printOptions.isCenter()) {</span>
+<span class="nc" id="L259">        pad.x = (placeholder.x * key.weightx - cw) * 0.5;</span>
+<span class="nc" id="L260">        pad.y = (placeholder.y * key.weighty - ch) * 0.5;</span>
+      } else {
+<span class="nc" id="L262">        pad.x = 0.0;</span>
+<span class="nc" id="L263">        pad.y = 0.0;</span>
+      }
+
+<span class="nc" id="L266">      double scaleFactor = Math.min(cw / canvasWidth, ch / canvasHeight);</span>
+      // Resize in best fit window
+<span class="nc" id="L268">      image.zoom(scaleFactor);</span>
+<span class="nc bnc" id="L269" title="All 2 branches missed.">      if (bestfit) {</span>
+<span class="nc" id="L270">        image.center();</span>
+      } else {
+<span class="nc" id="L272">        image.setCenter(originCenterOffset.getX(), originCenterOffset.getY());</span>
+      }
+
+<span class="nc bnc" id="L275" title="All 2 branches missed.">      int dpi = printOptions.getDpi() == null ? 150 : printOptions.getDpi().getDpi();</span>
+<span class="nc" id="L276">      double ratioFromDPI = dpi * scaleFactor / 72.0;</span>
+<span class="nc" id="L277">      image.setImagePrintingResolution(ratioFromDPI);</span>
+    }
+<span class="nc" id="L279">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>DicomVideoElement.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec</a> &gt; <span class="el_source">DicomVideoElement.java</span></div><h1>DicomVideoElement.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec;
+
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import org.dcm4che3.data.Attributes;
+import org.dcm4che3.data.BulkData;
+import org.dcm4che3.data.Fragments;
+import org.dcm4che3.data.Tag;
+import org.dcm4che3.data.VR;
+import org.dcm4che3.util.StreamUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.gui.util.AppProperties;
+import org.weasis.core.util.FileUtil;
+
+public class DicomVideoElement extends DicomImageElement implements FileExtractor {
+<span class="nc" id="L28">  private static final Logger LOGGER = LoggerFactory.getLogger(DicomVideoElement.class);</span>
+<span class="nc" id="L29">  private File videoFile = null;</span>
+
+  public DicomVideoElement(DicomMediaIO mediaIO, Object key) {
+<span class="nc" id="L32">    super(mediaIO, key);</span>
+<span class="nc" id="L33">  }</span>
+
+  @Override
+  public File getExtractFile() {
+<span class="nc" id="L37">    synchronized (this) {</span>
+<span class="nc bnc" id="L38" title="All 6 branches missed.">      if ((videoFile == null || !videoFile.exists()) &amp;&amp; getMediaReader() != null) {</span>
+<span class="nc" id="L39">        Attributes dcm = getMediaReader().getDicomObject();</span>
+<span class="nc bnc" id="L40" title="All 2 branches missed.">        if (dcm != null) {</span>
+<span class="nc" id="L41">          VR.Holder holder = new VR.Holder();</span>
+<span class="nc" id="L42">          Object pixelData = dcm.getValue(Tag.PixelData, holder);</span>
+<span class="nc bnc" id="L43" title="All 2 branches missed.">          if (pixelData instanceof Fragments fragments) {</span>
+<span class="nc" id="L44">            readFragments(fragments);</span>
+          }
+        }
+      }
+<span class="nc" id="L48">    }</span>
+<span class="nc" id="L49">    return videoFile;</span>
+  }
+
+  private void readFragments(Fragments fragments) {
+    // Should have only 2 fragments: 1) compression marker 2) video stream
+    // One fragment shall contain the whole video stream.
+    // see http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_8.2.5.html
+<span class="nc bnc" id="L56" title="All 2 branches missed.">    for (Object data : fragments) {</span>
+<span class="nc bnc" id="L57" title="All 2 branches missed.">      if (data instanceof BulkData bulkData) {</span>
+<span class="nc" id="L58">        InputStream in = null;</span>
+<span class="nc" id="L59">        FileOutputStream out = null;</span>
+        try {
+<span class="nc" id="L61">          File file =</span>
+<span class="nc" id="L62">              File.createTempFile(&quot;video_&quot;, &quot;.mpg&quot;, AppProperties.FILE_CACHE_DIR); // NON-NLS</span>
+<span class="nc" id="L63">          in = new BufferedInputStream(bulkData.openStream());</span>
+<span class="nc" id="L64">          out = new FileOutputStream(file);</span>
+<span class="nc" id="L65">          StreamUtils.copy(in, out, bulkData.length());</span>
+<span class="nc" id="L66">          videoFile = file;</span>
+<span class="nc" id="L67">        } catch (Exception e) {</span>
+<span class="nc" id="L68">          LOGGER.error(&quot;Cannot extract video stream&quot;, e);</span>
+        } finally {
+<span class="nc" id="L70">          FileUtil.safeClose(out);</span>
+<span class="nc" id="L71">          FileUtil.safeClose(in);</span>
+        }
+      }
+<span class="nc" id="L74">    }</span>
+<span class="nc" id="L75">  }</span>
+
+  @Override
+  public Attributes saveToFile(File output, DicomExportParameters params) {
+<span class="nc" id="L79">    return DicomSpecialElement.saveToFile(this, output, params.dicomEditors());</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

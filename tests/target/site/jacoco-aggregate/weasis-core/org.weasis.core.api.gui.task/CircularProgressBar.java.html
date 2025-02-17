@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>CircularProgressBar.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.gui.task</a> &gt; <span class="el_source">CircularProgressBar.java</span></div><h1>CircularProgressBar.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.gui.task;
+
+import com.formdev.flatlaf.ui.FlatUIUtils;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.GradientPaint;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.Stroke;
+import java.awt.geom.Arc2D;
+import java.text.NumberFormat;
+import javax.swing.JProgressBar;
+import javax.swing.Timer;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.util.FontItem;
+
+public class CircularProgressBar extends JProgressBar {
+
+  private static final int TEXT_GAP = 2;
+
+  private Timer timer;
+  private int animateAngle;
+
+  private final float arcThickness;
+  private final boolean displayText;
+
+  public CircularProgressBar() {
+<span class="nc" id="L41">    this(0, 100);</span>
+<span class="nc" id="L42">  }</span>
+
+  public CircularProgressBar(int min, int max) {
+<span class="nc" id="L45">    this(min, max, 5f, true, null);</span>
+<span class="nc" id="L46">  }</span>
+
+  public CircularProgressBar(
+      int min, int max, float arcThickness, boolean displayText, Float fontSize) {
+<span class="nc" id="L50">    super(min, max);</span>
+<span class="nc" id="L51">    this.arcThickness = arcThickness;</span>
+<span class="nc" id="L52">    this.displayText = displayText;</span>
+    Font font =
+<span class="nc bnc" id="L54" title="All 2 branches missed.">        fontSize == null</span>
+<span class="nc" id="L55">            ? FontItem.MINI.getFont()</span>
+<span class="nc" id="L56">            : FontItem.DEFAULT.getFont().deriveFont(fontSize);</span>
+<span class="nc" id="L57">    this.setFont(font.deriveFont((float) Math.max(font.getSize() - 1, 8)));</span>
+<span class="nc" id="L58">    init();</span>
+<span class="nc" id="L59">  }</span>
+
+  private void init() {
+<span class="nc" id="L62">    this.setOpaque(false);</span>
+<span class="nc" id="L63">    this.setBorder(GuiUtils.getEmptyBorder(TEXT_GAP + (int) Math.ceil(arcThickness)));</span>
+    Dimension dim;
+<span class="nc bnc" id="L65" title="All 2 branches missed.">    if (displayText) {</span>
+<span class="nc" id="L66">      int size = GuiUtils.getComponentWidthFromText(this, &quot;90%&quot;);</span>
+<span class="nc" id="L67">      dim = new Dimension(size, size);</span>
+<span class="nc" id="L68">    } else {</span>
+<span class="nc" id="L69">      dim = GuiUtils.getBigIconButtonSize(this);</span>
+    }
+<span class="nc" id="L71">    this.setSize(dim.width, dim.height);</span>
+<span class="nc" id="L72">    this.setPreferredSize(dim);</span>
+<span class="nc" id="L73">    this.setMaximumSize(dim);</span>
+<span class="nc" id="L74">  }</span>
+
+  @Override
+  public void paint(Graphics g) {
+<span class="nc bnc" id="L78" title="All 2 branches missed.">    if (g instanceof Graphics2D g2d) {</span>
+<span class="nc" id="L79">      draw(g2d);</span>
+    }
+<span class="nc" id="L81">  }</span>
+
+  @Override
+  public void setIndeterminate(boolean newValue) {
+<span class="nc" id="L85">    super.setIndeterminate(newValue);</span>
+<span class="nc bnc" id="L86" title="All 2 branches missed.">    if (newValue) {</span>
+<span class="nc bnc" id="L87" title="All 2 branches missed.">      if (timer == null) {</span>
+<span class="nc" id="L88">        animateAngle = 360;</span>
+<span class="nc" id="L89">        timer =</span>
+            new Timer(
+                5,
+                e -&gt; {
+<span class="nc" id="L93">                  animateAngle -= 1;</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">                  if (animateAngle &lt;= 0) {</span>
+<span class="nc" id="L95">                    animateAngle = 360;</span>
+                  }
+<span class="nc" id="L97">                  repaint();</span>
+<span class="nc" id="L98">                });</span>
+      }
+
+<span class="nc" id="L101">      timer.setInitialDelay(0);</span>
+<span class="nc" id="L102">      timer.start();</span>
+    } else {
+<span class="nc" id="L104">      stopAnimation();</span>
+    }
+<span class="nc" id="L106">  }</span>
+
+  protected void stopAnimation() {
+<span class="nc bnc" id="L109" title="All 2 branches missed.">    if (timer != null) timer.stop();</span>
+<span class="nc" id="L110">  }</span>
+
+  private void draw(Graphics2D g2d) {
+<span class="nc bnc" id="L113" title="All 2 branches missed.">    if (isEnabled()) {</span>
+<span class="nc" id="L114">      Stroke oldStroke = g2d.getStroke();</span>
+<span class="nc" id="L115">      Font oldFont = g2d.getFont();</span>
+
+<span class="nc" id="L117">      int h = this.getHeight();</span>
+<span class="nc" id="L118">      int w = this.getWidth();</span>
+<span class="nc" id="L119">      int range = this.getMaximum() - this.getMinimum();</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">      if (range &lt; 1) {</span>
+<span class="nc" id="L121">        range = 1;</span>
+      }
+
+<span class="nc" id="L124">      double angle = 360 - this.getValue() * 360.0 / range;</span>
+<span class="nc" id="L125">      String text = NumberFormat.getPercentInstance().format((double) this.getValue() / range);</span>
+<span class="nc" id="L126">      float textGap = GuiUtils.getScaleLength(TEXT_GAP);</span>
+<span class="nc" id="L127">      float arcSize = getInsets().top - textGap;</span>
+<span class="nc" id="L128">      double shift = arcSize / 2.0;</span>
+
+<span class="nc" id="L130">      Object[] oldRenderingHints = GuiUtils.setRenderingHints(g2d, true, false, true);</span>
+
+<span class="nc" id="L132">      g2d.setStroke(new BasicStroke(arcSize, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND));</span>
+<span class="nc" id="L133">      Color background = FlatUIUtils.getUIColor(&quot;ProgressBar.background&quot;, Color.WHITE);</span>
+<span class="nc" id="L134">      Color foreground = FlatUIUtils.getUIColor(&quot;ProgressBar.foreground&quot;, Color.LIGHT_GRAY);</span>
+<span class="nc" id="L135">      g2d.setPaint(background);</span>
+<span class="nc" id="L136">      g2d.draw(new Arc2D.Double(shift, shift, w - arcSize, h - arcSize, 0, 360, Arc2D.OPEN));</span>
+<span class="nc" id="L137">      g2d.setPaint(foreground);</span>
+
+<span class="nc" id="L139">      boolean animated = isIndeterminate();</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">      if (animated) {</span>
+<span class="nc" id="L141">        g2d.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);</span>
+
+<span class="nc" id="L143">        double radian = Math.toRadians(animateAngle);</span>
+<span class="nc" id="L144">        float r = w / 2f;</span>
+<span class="nc" id="L145">        float dx1 = r + (float) (Math.sin(radian) * r);</span>
+<span class="nc" id="L146">        float dy1 = r + (float) (Math.cos(radian) * r);</span>
+<span class="nc" id="L147">        float dx2 = r + (float) (Math.sin(radian + Math.PI) * w / 3f);</span>
+<span class="nc" id="L148">        float dy2 = r + (float) (Math.cos(radian + Math.PI) * w / 3f);</span>
+<span class="nc" id="L149">        GradientPaint gradient = new GradientPaint(dx1, dy1, foreground, dx2, dy2, background);</span>
+<span class="nc" id="L150">        g2d.setPaint(gradient);</span>
+<span class="nc" id="L151">        g2d.draw(</span>
+            new Arc2D.Double(
+                shift, shift, w - arcSize, h - arcSize, animateAngle + 90.0, 360, Arc2D.OPEN));
+<span class="nc" id="L154">      } else {</span>
+<span class="nc" id="L155">        g2d.draw(</span>
+            new Arc2D.Double(
+                shift, shift, w - arcSize, h - arcSize, angle + 90, 360 - angle, Arc2D.OPEN));
+
+<span class="nc bnc" id="L159" title="All 2 branches missed.">        if (displayText) {</span>
+<span class="nc" id="L160">          FontMetrics fm = g2d.getFontMetrics();</span>
+<span class="nc" id="L161">          float x = (w - fm.stringWidth(text)) / 2f + textGap;</span>
+<span class="nc" id="L162">          float y = (h - fm.getHeight()) / 2f + fm.getAscent();</span>
+<span class="nc" id="L163">          Color textColor = FlatUIUtils.getUIColor(&quot;ProgressBar.selectionBackground&quot;, Color.BLACK);</span>
+<span class="nc" id="L164">          g2d.setPaint(textColor);</span>
+<span class="nc" id="L165">          g2d.setFont(getFont());</span>
+<span class="nc" id="L166">          g2d.drawString(text, x, y);</span>
+        }
+      }
+
+<span class="nc" id="L170">      GuiUtils.resetRenderingHints(g2d, oldRenderingHints);</span>
+<span class="nc" id="L171">      g2d.setStroke(oldStroke);</span>
+<span class="nc" id="L172">      g2d.setFont(oldFont);</span>
+    }
+<span class="nc" id="L174">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

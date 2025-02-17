@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>WtoolBar.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.util</a> &gt; <span class="el_source">WtoolBar.java</span></div><h1>WtoolBar.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.util;
+
+import java.awt.Dimension;
+import javax.swing.Box;
+import javax.swing.JToolBar;
+import org.weasis.core.api.gui.Insertable;
+import org.weasis.core.api.util.ResourceUtil;
+
+public class WtoolBar extends JToolBar implements Toolbar {
+
+  private final String barName;
+  private int barPosition;
+  private Insertable attachedInsertable;
+
+<span class="nc" id="L24">  public WtoolBar(String barName, int position) {</span>
+<span class="nc" id="L25">    setFloatable(false);</span>
+<span class="nc" id="L26">    setBorder(null);</span>
+<span class="nc" id="L27">    this.barName = barName;</span>
+<span class="nc" id="L28">    this.barPosition = position;</span>
+<span class="nc" id="L29">    addSeparator();</span>
+<span class="nc" id="L30">  }</span>
+
+  @Override
+  public void addSeparator() {
+<span class="nc" id="L34">    add(Box.createRigidArea(new Dimension(5, 0)));</span>
+<span class="nc" id="L35">    add(new JToolBar.Separator(new Dimension(3, ResourceUtil.TOOLBAR_ICON_SIZE)));</span>
+<span class="nc" id="L36">  }</span>
+
+  @Override
+  public Type getType() {
+<span class="nc" id="L40">    return Type.TOOLBAR;</span>
+  }
+
+  @Override
+  public int getComponentPosition() {
+<span class="nc" id="L45">    return barPosition;</span>
+  }
+
+  @Override
+  public void setComponentPosition(int position) {
+<span class="nc" id="L50">    this.barPosition = position;</span>
+<span class="nc" id="L51">  }</span>
+
+  public Insertable getAttachedInsertable() {
+<span class="nc" id="L54">    return attachedInsertable;</span>
+  }
+
+  public void setAttachedInsertable(Insertable attachedInsertable) {
+<span class="nc" id="L58">    this.attachedInsertable = attachedInsertable;</span>
+<span class="nc" id="L59">  }</span>
+
+  @Override
+  public String toString() {
+<span class="nc" id="L63">    return barName;</span>
+  }
+
+  @Override
+  public String getComponentName() {
+<span class="nc" id="L68">    return barName;</span>
+  }
+
+  @Override
+  public final WtoolBar getComponent() {
+<span class="nc" id="L73">    return this;</span>
+  }
+
+  @Override
+  public boolean isComponentEnabled() {
+<span class="nc" id="L78">    return isEnabled();</span>
+  }
+
+  @Override
+  public void setComponentEnabled(boolean enabled) {
+<span class="nc bnc" id="L83" title="All 2 branches missed.">    if (isComponentEnabled() != enabled) {</span>
+<span class="nc" id="L84">      setEnabled(enabled);</span>
+    }
+<span class="nc" id="L86">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

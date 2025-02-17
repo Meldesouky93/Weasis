@@ -1,0 +1,41 @@
+Manifest-Version: 1.0
+Bundle-License: "EPL-2.0 OR Apache-2.0";link="https://github.com/nrodu
+ it/Weasis/blob/master/LICENSE"
+Bundle-ManifestVersion: 2
+Bundle-Name: DICOM - Viewer for ECGs [weasis-dicom-wave]
+Bundle-SymbolicName: weasis-dicom-wave
+Bundle-Version: 4.6.0.SNAPSHOT
+Import-Package: org.slf4j,bibliothek.gui.dock.common;version="[1.1,2)"
+ ,bibliothek.gui.dock.common.mode;version="[1.1,2)",com.formdev.flatla
+ f.extras,java.awt,java.awt.event,java.awt.geom,java.awt.image,java.aw
+ t.print,java.beans,java.io,java.lang,java.lang.invoke,java.lang.runti
+ me,java.nio,java.text,java.util,java.util.concurrent.atomic,java.util
+ .function,java.util.stream,javax.print.attribute,javax.swing,javax.sw
+ ing.border,javax.swing.table,org.dcm4che3.data;version="[5.33,6)",org
+ .dcm4che3.img.util;version="[4.6,5)",org.dcm4che3.util;version="[5.33
+ ,6)",org.osgi.framework;version="[1.10,2)",org.osgi.service.component
+ ;version="[1.5,2)",org.weasis.core;version="[4.6,5)",org.weasis.core.
+ api.explorer;version="[4.6,5)",org.weasis.core.api.explorer.model;ver
+ sion="[4.6,5)",org.weasis.core.api.gui;version="[4.6,5)",org.weasis.c
+ ore.api.gui.util;version="[4.6,5)",org.weasis.core.api.image;version=
+ "[4.6,5)",org.weasis.core.api.image.util;version="[4.6,5)",org.weasis
+ .core.api.media.data;version="[4.6,5)",org.weasis.core.api.service;ve
+ rsion="[4.6,5)",org.weasis.core.api.util;version="[4.6,5)",org.weasis
+ .core.ui.docking;version="[4.6,5)",org.weasis.core.ui.editor;version=
+ "[4.6,5)",org.weasis.core.ui.editor.image;version="[4.6,5)",org.weasi
+ s.core.ui.editor.image.dockable;version="[4.6,5)",org.weasis.core.ui.
+ pref;version="[4.6,5)",org.weasis.core.ui.util;version="[4.6,5)",org.
+ weasis.core.util;version="[4.11,5)",org.weasis.dicom.codec;version="[
+ 4.6,5)",org.weasis.dicom.explorer;version="[4.6,5)",org.weasis.dicom.
+ macro;version="[4.6,5)"
+Private-Package: org.weasis.dicom.wave,org.weasis.dicom.wave.dockable
+Provide-Capability: osgi.service;objectClass:List<String>="org.weasis.
+ core.ui.editor.SeriesViewerFactory";uses:="org.weasis.core.ui.editor"
+ ,osgi.service;objectClass:List<String>="org.weasis.dicom.codec.DicomS
+ pecialElementFactory";uses:="org.weasis.dicom.codec"
+Require-Capability: osgi.extender;filter:="(&(osgi.extender=osgi.compo
+ nent)(version>=1.5.0)(!(version>=2.0.0)))",osgi.ee;filter:="(&(osgi.e
+ e=JavaSE)(version=23))"
+Service-Component: OSGI-INF/org.weasis.dicom.wave.WaveElementFactory.x
+ ml,OSGI-INF/org.weasis.dicom.wave.WaveFactory.xml
+

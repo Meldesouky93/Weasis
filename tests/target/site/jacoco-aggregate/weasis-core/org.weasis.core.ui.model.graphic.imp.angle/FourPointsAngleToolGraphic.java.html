@@ -1,0 +1,371 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>FourPointsAngleToolGraphic.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.graphic.imp.angle</a> &gt; <span class="el_source">FourPointsAngleToolGraphic.java</span></div><h1>FourPointsAngleToolGraphic.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.graphic.imp.angle;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlType;
+import java.awt.Shape;
+import java.awt.geom.Arc2D;
+import java.awt.geom.Line2D;
+import java.awt.geom.Path2D;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import javax.swing.Icon;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.GeomUtil;
+import org.weasis.core.api.image.measure.MeasurementsAdapter;
+import org.weasis.core.api.image.util.MeasurableLayer;
+import org.weasis.core.api.image.util.Unit;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.api.util.ResourceUtil.ActionIcon;
+import org.weasis.core.ui.model.graphic.AbstractDragGraphic;
+import org.weasis.core.ui.model.utils.bean.AdvancedShape;
+import org.weasis.core.ui.model.utils.bean.MeasureItem;
+import org.weasis.core.ui.model.utils.bean.Measurement;
+import org.weasis.core.ui.model.utils.exceptions.InvalidShapeException;
+import org.weasis.core.ui.util.MouseEventDouble;
+import org.weasis.core.util.MathUtil;
+
+@XmlType(name = &quot;fourPointsAngle&quot;)
+@XmlRootElement(name = &quot;fourPointsAngle&quot;)
+public class FourPointsAngleToolGraphic extends AbstractDragGraphic {
+
+<span class="nc" id="L43">  public static final Integer POINTS_NUMBER = 8;</span>
+
+<span class="nc" id="L45">  public static final Icon ICON = ResourceUtil.getIcon(ActionIcon.DRAW_4POINTS_ANGLE);</span>
+
+<span class="nc" id="L47">  public static final Measurement ANGLE =</span>
+<span class="nc" id="L48">      new Measurement(Messages.getString(&quot;measure.angle&quot;), 1, true);</span>
+<span class="nc" id="L49">  public static final Measurement COMPLEMENTARY_ANGLE =</span>
+<span class="nc" id="L50">      new Measurement(Messages.getString(&quot;measure.complement_angle&quot;), 2, true, true, false);</span>
+<span class="nc" id="L51">  protected static final List&lt;Measurement&gt; MEASUREMENT_LIST = new ArrayList&lt;&gt;();</span>
+
+  static {
+<span class="nc" id="L54">    MEASUREMENT_LIST.add(ANGLE);</span>
+<span class="nc" id="L55">    MEASUREMENT_LIST.add(COMPLEMENTARY_ANGLE);</span>
+<span class="nc" id="L56">  }</span>
+
+  // Let AB &amp; CD two line segments which define the median line IJ
+  Point2D ptA;
+  Point2D ptB;
+  Point2D ptC;
+  Point2D ptD;
+
+  // Let I,J be the middle points of AB &amp; CD line segments
+  Point2D ptI;
+  Point2D ptJ;
+
+  // Let EF &amp; GH two line segments which define the median line KL
+  Point2D ptE;
+  Point2D ptF;
+  Point2D ptG;
+  Point2D ptH;
+
+  // Let K,L be the middle points of EF &amp; GH line segments
+  Point2D ptK;
+  Point2D ptL;
+
+  // Let P be the intersection point, if existed, of the two line segments IJ &amp; KL
+  Point2D ptP;
+
+  Point2D[]
+      lineIJP; // (IJP) or (JIP) or (IPJ) or (JPI) &lt;= ordered array of points along IJ segment.
+  Point2D[]
+      lineKLP; // (KLP) or (LKP) or (KPL) or (LPK) &lt;= ordered array of points along KL segment.
+
+  boolean lineParallel; // estimate if IJ &amp; KL line segments are parallel not not
+  boolean
+      intersectIJsegment; // estimate if intersection point, if existed, is inside IJ segment or not
+  boolean
+      intersectKLsegment; // estimate if intersection point, if existed, is inside KL segment or not
+
+  // estimate if line segments are valid or not
+  boolean lineABvalid;
+  boolean lineCDvalid;
+  boolean lineEFvalid;
+  boolean lineGHvalid;
+  boolean lineIJvalid;
+  boolean lineKLvalid;
+
+  double angleDeg; // smallest angle in Degrees in the range of [-180 ; 180] between IJ &amp; KL line
+
+  // segments
+
+  public FourPointsAngleToolGraphic() {
+<span class="nc" id="L105">    super(POINTS_NUMBER);</span>
+<span class="nc" id="L106">  }</span>
+
+  public FourPointsAngleToolGraphic(FourPointsAngleToolGraphic graphic) {
+<span class="nc" id="L109">    super(graphic);</span>
+<span class="nc" id="L110">  }</span>
+
+  @Override
+  public FourPointsAngleToolGraphic copy() {
+<span class="nc" id="L114">    return new FourPointsAngleToolGraphic(this);</span>
+  }
+
+  @Override
+  public Icon getIcon() {
+<span class="nc" id="L119">    return ICON;</span>
+  }
+
+  @Override
+  public String getUIName() {
+<span class="nc" id="L124">    return Messages.getString(&quot;measure.four_pt_angle&quot;);</span>
+  }
+
+  @Override
+  protected void prepareShape() throws InvalidShapeException {
+<span class="nc bnc" id="L129" title="All 2 branches missed.">    if (!isShapeValid()) {</span>
+<span class="nc" id="L130">      throw new InvalidShapeException(&quot;This shape cannot be drawn&quot;);</span>
+    }
+<span class="nc" id="L132">    buildShape(null);</span>
+<span class="nc" id="L133">  }</span>
+
+  @Override
+  public void buildShape(MouseEventDouble mouseEvent) {
+<span class="nc" id="L137">    updateTool();</span>
+
+<span class="nc" id="L139">    Shape newShape = null;</span>
+<span class="nc" id="L140">    Path2D path = new Path2D.Double(Path2D.WIND_NON_ZERO, 6);</span>
+
+<span class="nc bnc" id="L142" title="All 2 branches missed.">    if (lineABvalid) {</span>
+<span class="nc" id="L143">      path.append(new Line2D.Double(ptA, ptB), false);</span>
+    }
+
+<span class="nc bnc" id="L146" title="All 2 branches missed.">    if (lineCDvalid) {</span>
+<span class="nc" id="L147">      path.append(new Line2D.Double(ptC, ptD), false);</span>
+    }
+
+<span class="nc bnc" id="L150" title="All 2 branches missed.">    if (lineIJvalid) {</span>
+<span class="nc" id="L151">      path.append(new Line2D.Double(ptI, ptJ), false);</span>
+    }
+
+<span class="nc bnc" id="L154" title="All 2 branches missed.">    if (lineEFvalid) {</span>
+<span class="nc" id="L155">      path.append(new Line2D.Double(ptE, ptF), false);</span>
+    }
+
+<span class="nc bnc" id="L158" title="All 2 branches missed.">    if (lineGHvalid) {</span>
+<span class="nc" id="L159">      path.append(new Line2D.Double(ptG, ptH), false);</span>
+    }
+
+<span class="nc bnc" id="L162" title="All 2 branches missed.">    if (lineKLvalid) {</span>
+<span class="nc" id="L163">      path.append(new Line2D.Double(ptK, ptL), false);</span>
+    }
+
+    // Do not show decoration when lines are nearly parallel
+    // Can cause stack overflow BUG on paint method when drawing infinite line with DashStroke
+<span class="nc bnc" id="L168" title="All 8 branches missed.">    if (lineIJvalid &amp;&amp; lineKLvalid &amp;&amp; !lineParallel &amp;&amp; Math.abs(angleDeg) &gt; 0.1) {</span>
+
+<span class="nc" id="L170">      newShape = new AdvancedShape(this, 4);</span>
+<span class="nc" id="L171">      AdvancedShape aShape = (AdvancedShape) newShape;</span>
+<span class="nc" id="L172">      aShape.addShape(path);</span>
+
+      // Let arcAngle be the partial section of the ellipse that represents the measured angle
+<span class="nc" id="L175">      double startingAngle = GeomUtil.getAngleDeg(ptP, lineIJP[0]);</span>
+
+<span class="nc" id="L177">      double radius = 32;</span>
+<span class="nc" id="L178">      Rectangle2D arcAngleBounds =</span>
+<span class="nc" id="L179">          new Rectangle2D.Double(ptP.getX() - radius, ptP.getY() - radius, 2 * radius, 2 * radius);</span>
+
+<span class="nc" id="L181">      Shape arcAngle = new Arc2D.Double(arcAngleBounds, startingAngle, angleDeg, Arc2D.OPEN);</span>
+
+<span class="nc" id="L183">      double rMax = Math.min(ptP.distance(lineIJP[0]), ptP.distance(lineKLP[0])) * 2 / 3;</span>
+<span class="nc" id="L184">      double scalingMin = radius / rMax;</span>
+
+<span class="nc" id="L186">      aShape.addScaleInvShape(arcAngle, ptP, scalingMin, true);</span>
+
+<span class="nc bnc" id="L188" title="All 2 branches missed.">      if (!intersectIJsegment) {</span>
+<span class="nc" id="L189">        aShape.addShape(new Line2D.Double(ptP, lineIJP[1]), getDashStroke(1.0f), true);</span>
+      }
+
+<span class="nc bnc" id="L192" title="All 2 branches missed.">      if (!intersectKLsegment) {</span>
+<span class="nc" id="L193">        aShape.addShape(new Line2D.Double(ptP, lineKLP[1]), getDashStroke(1.0f), true);</span>
+      }
+
+<span class="nc bnc" id="L196" title="All 2 branches missed.">    } else if (path.getCurrentPoint() != null) {</span>
+<span class="nc" id="L197">      newShape = path;</span>
+    }
+
+<span class="nc" id="L200">    setShape(newShape, mouseEvent);</span>
+<span class="nc" id="L201">    updateLabel(mouseEvent, getDefaultView2d(mouseEvent));</span>
+<span class="nc" id="L202">  }</span>
+
+  @Override
+  public List&lt;MeasureItem&gt; computeMeasurements(
+      MeasurableLayer layer, boolean releaseEvent, Unit displayUnit) {
+
+<span class="nc bnc" id="L208" title="All 6 branches missed.">    if (layer != null &amp;&amp; layer.hasContent() &amp;&amp; isShapeValid()) {</span>
+<span class="nc" id="L209">      MeasurementsAdapter adapter = layer.getMeasurementAdapter(displayUnit);</span>
+
+<span class="nc bnc" id="L211" title="All 2 branches missed.">      if (adapter != null) {</span>
+<span class="nc" id="L212">        ArrayList&lt;MeasureItem&gt; measVal = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L214" title="All 4 branches missed.">        if (ANGLE.getComputed() || COMPLEMENTARY_ANGLE.getComputed()) {</span>
+
+<span class="nc" id="L216">          double positiveAngle = Math.abs(angleDeg);</span>
+
+<span class="nc bnc" id="L218" title="All 2 branches missed.">          if (ANGLE.getComputed()) {</span>
+<span class="nc" id="L219">            measVal.add(new MeasureItem(ANGLE, positiveAngle, Messages.getString(&quot;measure.deg&quot;)));</span>
+          }
+
+<span class="nc bnc" id="L222" title="All 2 branches missed.">          if (COMPLEMENTARY_ANGLE.getComputed()) {</span>
+<span class="nc" id="L223">            measVal.add(</span>
+                new MeasureItem(
+<span class="nc" id="L225">                    COMPLEMENTARY_ANGLE, 180.0 - positiveAngle, Messages.getString(&quot;measure.deg&quot;)));</span>
+          }
+        }
+<span class="nc" id="L228">        return measVal;</span>
+      }
+    }
+<span class="nc" id="L231">    return Collections.emptyList();</span>
+  }
+
+  @Override
+  public boolean isShapeValid() {
+<span class="nc" id="L236">    updateTool();</span>
+<span class="nc bnc" id="L237" title="All 12 branches missed.">    return (lineABvalid &amp;&amp; lineCDvalid &amp;&amp; lineEFvalid &amp;&amp; lineGHvalid &amp;&amp; lineIJvalid &amp;&amp; lineKLvalid);</span>
+  }
+
+  // /////////////////////////////////////////////////////////////////////////////////////////////////////
+
+  protected void init() {
+<span class="nc" id="L243">    ptA = getHandlePoint(0);</span>
+<span class="nc" id="L244">    ptB = getHandlePoint(1);</span>
+<span class="nc" id="L245">    ptC = getHandlePoint(2);</span>
+<span class="nc" id="L246">    ptD = getHandlePoint(3);</span>
+
+<span class="nc" id="L248">    ptI = ptA;</span>
+<span class="nc" id="L249">    ptJ = ptC;</span>
+
+<span class="nc" id="L251">    ptE = getHandlePoint(4);</span>
+<span class="nc" id="L252">    ptF = getHandlePoint(5);</span>
+<span class="nc" id="L253">    ptG = getHandlePoint(6);</span>
+<span class="nc" id="L254">    ptH = getHandlePoint(7);</span>
+
+<span class="nc" id="L256">    ptK = ptE;</span>
+<span class="nc" id="L257">    ptL = ptG;</span>
+
+<span class="nc" id="L259">    lineIJP = lineKLP = null;</span>
+
+<span class="nc" id="L261">    lineParallel = intersectIJsegment = intersectKLsegment = false;</span>
+<span class="nc" id="L262">    lineABvalid = lineCDvalid = lineEFvalid = lineGHvalid = lineIJvalid = lineKLvalid = false;</span>
+
+<span class="nc" id="L264">    angleDeg = 0.0;</span>
+<span class="nc" id="L265">  }</span>
+
+  protected void updateTool() {
+<span class="nc" id="L268">    init();</span>
+
+<span class="nc bnc" id="L270" title="All 6 branches missed.">    lineABvalid = ptA != null &amp;&amp; ptB != null &amp;&amp; !ptB.equals(ptA);</span>
+<span class="nc bnc" id="L271" title="All 2 branches missed.">    if (lineABvalid) {</span>
+<span class="nc" id="L272">      ptI = GeomUtil.getMidPoint(ptA, ptB);</span>
+    }
+
+<span class="nc bnc" id="L275" title="All 6 branches missed.">    lineCDvalid = ptC != null &amp;&amp; ptD != null &amp;&amp; !ptC.equals(ptD);</span>
+<span class="nc bnc" id="L276" title="All 2 branches missed.">    if (lineCDvalid) {</span>
+<span class="nc" id="L277">      ptJ = GeomUtil.getMidPoint(ptC, ptD);</span>
+    }
+
+<span class="nc bnc" id="L280" title="All 6 branches missed.">    lineIJvalid = ptI != null &amp;&amp; ptJ != null &amp;&amp; !ptI.equals(ptJ);</span>
+
+<span class="nc bnc" id="L282" title="All 6 branches missed.">    lineEFvalid = ptE != null &amp;&amp; ptF != null &amp;&amp; !ptE.equals(ptF);</span>
+<span class="nc bnc" id="L283" title="All 2 branches missed.">    if (lineEFvalid) {</span>
+<span class="nc" id="L284">      ptK = GeomUtil.getMidPoint(ptE, ptF);</span>
+    }
+
+<span class="nc bnc" id="L287" title="All 6 branches missed.">    lineGHvalid = ptG != null &amp;&amp; ptH != null &amp;&amp; !ptG.equals(ptH);</span>
+<span class="nc bnc" id="L288" title="All 2 branches missed.">    if (lineGHvalid) {</span>
+<span class="nc" id="L289">      ptL = GeomUtil.getMidPoint(ptG, ptH);</span>
+<span class="nc bnc" id="L290" title="All 4 branches missed.">    } else if (ptG == null &amp;&amp; lineEFvalid) {</span>
+<span class="nc" id="L291">      ptL = GeomUtil.getPerpendicularPointFromLine(ptE, ptF, ptK, 1.0); // temporary before GHvalid</span>
+    }
+
+<span class="nc bnc" id="L294" title="All 6 branches missed.">    lineKLvalid = (ptK != null &amp;&amp; ptL != null &amp;&amp; !ptK.equals(ptL));</span>
+
+<span class="nc bnc" id="L296" title="All 4 branches missed.">    if (lineIJvalid &amp;&amp; lineKLvalid) {</span>
+
+<span class="nc" id="L298">      double denominator =</span>
+<span class="nc" id="L299">          (ptJ.getX() - ptI.getX()) * (ptL.getY() - ptK.getY())</span>
+<span class="nc" id="L300">              - (ptJ.getY() - ptI.getY()) * (ptL.getX() - ptK.getX());</span>
+
+<span class="nc" id="L302">      lineParallel =</span>
+<span class="nc" id="L303">          MathUtil.isEqualToZero(denominator); // If denominator is zero, IJ &amp; KL are parallel</span>
+
+<span class="nc bnc" id="L305" title="All 2 branches missed.">      if (!lineParallel) {</span>
+
+<span class="nc" id="L307">        double numerator1 =</span>
+<span class="nc" id="L308">            (ptI.getY() - ptK.getY()) * (ptL.getX() - ptK.getX())</span>
+<span class="nc" id="L309">                - (ptI.getX() - ptK.getX()) * (ptL.getY() - ptK.getY());</span>
+<span class="nc" id="L310">        double numerator2 =</span>
+<span class="nc" id="L311">            (ptI.getY() - ptK.getY()) * (ptJ.getX() - ptI.getX())</span>
+<span class="nc" id="L312">                - (ptI.getX() - ptK.getX()) * (ptJ.getY() - ptI.getY());</span>
+
+<span class="nc" id="L314">        double r = numerator1 / denominator; // equ1</span>
+<span class="nc" id="L315">        double s = numerator2 / denominator; // equ2</span>
+
+<span class="nc" id="L317">        ptP =</span>
+            new Point2D.Double(
+<span class="nc" id="L319">                ptI.getX() + r * (ptJ.getX() - ptI.getX()),</span>
+<span class="nc" id="L320">                ptI.getY() + r * (ptJ.getY() - ptI.getY()));</span>
+
+        // If 0&lt;=r&lt;=1 &amp; 0&lt;=s&lt;=1, segment intersection exists
+        // If r&lt;0 or r&gt;1 or s&lt;0 or s&gt;1, line segments intersect but not segments
+
+        // If r&gt;1, P is located on extension of IJ
+        // If r&lt;0, P is located on extension of JI
+        // If s&gt;1, P is located on extension of KL
+        // If s&lt;0, P is located on extension of LK
+
+<span class="nc" id="L330">        lineIJP = new Point2D[3]; // order can be IJP (r&gt;1) or JIP (r&lt;0) or IPJ / JPI (0&lt;=r&lt;=1)</span>
+<span class="nc" id="L331">        lineKLP = new Point2D[3]; // order can be KLP (s&gt;1) or LKP (s&lt;0) or KPL / LPK (0&lt;=s&lt;=1)</span>
+
+<span class="nc bnc" id="L333" title="All 4 branches missed.">        intersectIJsegment = (r &gt;= 0 &amp;&amp; r &lt;= 1); // means IJPline[1].equals(P)</span>
+<span class="nc bnc" id="L334" title="All 4 branches missed.">        intersectKLsegment = (s &gt;= 0 &amp;&amp; s &lt;= 1); // means KLPline[1].equals(P)</span>
+
+<span class="nc" id="L336">        OpenAngleToolGraphic.addToLine(r, lineIJP, ptI, ptJ, ptP);</span>
+
+<span class="nc bnc" id="L338" title="All 4 branches missed.">        if (intersectIJsegment &amp;&amp; ptP.distance(lineIJP[0]) &lt; ptP.distance(lineIJP[2])) {</span>
+<span class="nc" id="L339">          Point2D switchPt = (Point2D) lineIJP[2].clone();</span>
+<span class="nc" id="L340">          lineIJP[2] = (Point2D) lineIJP[0].clone();</span>
+<span class="nc" id="L341">          lineIJP[0] = switchPt;</span>
+<span class="nc bnc" id="L342" title="All 2 branches missed.">        } else if (ptP.distance(lineIJP[0]) &lt; ptP.distance(lineIJP[1])) {</span>
+<span class="nc" id="L343">          Point2D switchPt = (Point2D) lineIJP[1].clone();</span>
+<span class="nc" id="L344">          lineIJP[1] = (Point2D) lineIJP[0].clone();</span>
+<span class="nc" id="L345">          lineIJP[0] = switchPt;</span>
+        }
+
+<span class="nc" id="L348">        OpenAngleToolGraphic.addToLine(s, lineKLP, ptK, ptL, ptP);</span>
+
+<span class="nc bnc" id="L350" title="All 4 branches missed.">        if (intersectKLsegment &amp;&amp; ptP.distance(lineKLP[0]) &lt; ptP.distance(lineKLP[2])) {</span>
+<span class="nc" id="L351">          Point2D switchPt = (Point2D) lineKLP[2].clone();</span>
+<span class="nc" id="L352">          lineKLP[2] = (Point2D) lineKLP[0].clone();</span>
+<span class="nc" id="L353">          lineKLP[0] = switchPt;</span>
+<span class="nc bnc" id="L354" title="All 2 branches missed.">        } else if (ptP.distance(lineKLP[0]) &lt; ptP.distance(lineKLP[1])) {</span>
+<span class="nc" id="L355">          Point2D switchPt = (Point2D) lineKLP[1].clone();</span>
+<span class="nc" id="L356">          lineKLP[1] = (Point2D) lineKLP[0].clone();</span>
+<span class="nc" id="L357">          lineKLP[0] = switchPt;</span>
+        }
+
+<span class="nc" id="L360">        angleDeg =</span>
+<span class="nc" id="L361">            GeomUtil.getSmallestRotationAngleDeg(GeomUtil.getAngleDeg(lineIJP[0], ptP, lineKLP[0]));</span>
+      }
+    }
+<span class="nc" id="L364">  }</span>
+
+  @Override
+  public List&lt;Measurement&gt; getMeasurementList() {
+<span class="nc" id="L368">    return MEASUREMENT_LIST;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

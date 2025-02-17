@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>DefaultUUID.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.utils.imp</a> &gt; <span class="el_source">DefaultUUID.java</span></div><h1>DefaultUUID.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.utils.imp;
+
+import jakarta.xml.bind.annotation.XmlAttribute;
+import jakarta.xml.bind.annotation.XmlID;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+import org.weasis.core.ui.model.utils.UUIDable;
+
+public class DefaultUUID implements UUIDable {
+
+  private String uuid;
+
+<span class="nc" id="L23">  public DefaultUUID() {</span>
+<span class="nc" id="L24">    this.uuid = UUID.randomUUID().toString();</span>
+<span class="nc" id="L25">  }</span>
+
+<span class="nc" id="L27">  public DefaultUUID(String uuid) {</span>
+<span class="nc" id="L28">    setUuid(uuid);</span>
+<span class="nc" id="L29">  }</span>
+
+  @Override
+  @XmlID
+  @XmlAttribute(name = &quot;uuid&quot;, required = true)
+  public String getUuid() {
+<span class="nc" id="L35">    return uuid;</span>
+  }
+
+  @Override
+  public void setUuid(String uuid) {
+<span class="nc" id="L40">    this.uuid = Optional.ofNullable(uuid).orElseGet(UUID.randomUUID()::toString);</span>
+<span class="nc" id="L41">  }</span>
+
+  @Override
+  public boolean equals(Object o) {
+<span class="nc bnc" id="L45" title="All 2 branches missed.">    if (this == o) {</span>
+<span class="nc" id="L46">      return true;</span>
+    }
+<span class="nc bnc" id="L48" title="All 4 branches missed.">    if (o == null || getClass() != o.getClass()) {</span>
+<span class="nc" id="L49">      return false;</span>
+    }
+<span class="nc" id="L51">    DefaultUUID that = (DefaultUUID) o;</span>
+<span class="nc" id="L52">    return uuid.equals(that.uuid);</span>
+  }
+
+  @Override
+  public int hashCode() {
+<span class="nc" id="L57">    return Objects.hash(uuid);</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L62">    return this.getClass().getSimpleName() + &quot;[&quot; + this.uuid + &quot;]&quot;;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

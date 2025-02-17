@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ImageOrientation.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec.geometry</a> &gt; <span class="el_source">ImageOrientation.java</span></div><h1>ImageOrientation.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec.geometry;
+
+import java.util.Objects;
+import org.dcm4che3.data.Tag;
+import org.joml.Vector3d;
+import org.weasis.core.api.media.data.MediaSeries;
+import org.weasis.core.api.media.data.MediaSeries.MEDIA_POSITION;
+import org.weasis.core.api.media.data.TagReadable;
+import org.weasis.core.util.StringUtil;
+import org.weasis.dicom.codec.DicomImageElement;
+import org.weasis.dicom.codec.TagD;
+import org.weasis.dicom.codec.geometry.PatientOrientation.Biped;
+import org.weasis.dicom.codec.geometry.PatientOrientation.Quadruped;
+
+/**
+ * &lt;a
+ * href=&quot;https://dicom.nema.org/medical/dicom/current/output/chtml/part03/sect_C.7.6.2.html#sect_C.7.6.2.1.1&quot;&gt;Image
+ * Position and Image Orientation (Patient)&lt;/a&gt;
+ *
+ * @author Nicolas Roduit
+ * @author David A. Clunie
+ */
+<span class="nc" id="L32">public abstract class ImageOrientation {</span>
+
+<span class="nc" id="L34">  public enum Plan {</span>
+<span class="nc" id="L35">    UNKNOWN,</span>
+<span class="nc" id="L36">    AXIAL,</span>
+<span class="nc" id="L37">    SAGITTAL,</span>
+<span class="nc" id="L38">    CORONAL,</span>
+<span class="nc" id="L39">    OBLIQUE</span>
+  }
+
+  private static final double OBLIQUITY_THRESHOLD = 0.8;
+
+  public static Vector3d getRowImagePosition(TagReadable taggable) {
+<span class="nc" id="L45">    double[] imagePosition =</span>
+<span class="nc" id="L46">        TagD.getTagValue(</span>
+<span class="nc" id="L47">            Objects.requireNonNull(taggable), Tag.ImageOrientationPatient, double[].class);</span>
+<span class="nc bnc" id="L48" title="All 4 branches missed.">    if (imagePosition != null &amp;&amp; imagePosition.length == 6) {</span>
+<span class="nc" id="L49">      return new Vector3d(imagePosition);</span>
+    }
+<span class="nc" id="L51">    return null;</span>
+  }
+
+  public static Vector3d getColumnImagePosition(TagReadable taggable) {
+<span class="nc" id="L55">    double[] imagePosition =</span>
+<span class="nc" id="L56">        TagD.getTagValue(</span>
+<span class="nc" id="L57">            Objects.requireNonNull(taggable), Tag.ImageOrientationPatient, double[].class);</span>
+<span class="nc bnc" id="L58" title="All 4 branches missed.">    if (imagePosition != null &amp;&amp; imagePosition.length == 6) {</span>
+<span class="nc" id="L59">      return new Vector3d(imagePosition[3], imagePosition[4], imagePosition[5]);</span>
+    }
+<span class="nc" id="L61">    return null;</span>
+  }
+
+  /**
+   * Get the orientation describing the major axis from a unit vector (direction cosine) as found in
+   * ImageOrientationPatient.
+   *
+   * &lt;p&gt;Some degree of deviation from one of the standard orthogonal axes is allowed before deciding
+   * no major axis applies and returning null.
+   *
+   * @param v the vector (direction cosine)
+   * @return the string describing the orientation of the vector, or null if oblique
+   */
+  private static Orientation getPatientOrientation(Vector3d v, boolean quadruped) {
+<span class="nc" id="L75">    double absX = Math.abs(v.x);</span>
+<span class="nc" id="L76">    double absY = Math.abs(v.y);</span>
+<span class="nc" id="L77">    double absZ = Math.abs(v.z);</span>
+
+<span class="nc bnc" id="L79" title="All 6 branches missed.">    if (absX &gt; OBLIQUITY_THRESHOLD &amp;&amp; absX &gt; absY &amp;&amp; absX &gt; absZ) {</span>
+<span class="nc bnc" id="L80" title="All 2 branches missed.">      return quadruped</span>
+<span class="nc" id="L81">          ? PatientOrientation.getQuadrupedXOrientation(v)</span>
+<span class="nc" id="L82">          : PatientOrientation.getBipedXOrientation(v);</span>
+<span class="nc bnc" id="L83" title="All 6 branches missed.">    } else if (absY &gt; OBLIQUITY_THRESHOLD &amp;&amp; absY &gt; absX &amp;&amp; absY &gt; absZ) {</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">      return quadruped</span>
+<span class="nc" id="L85">          ? PatientOrientation.getQuadrupedYOrientation(v)</span>
+<span class="nc" id="L86">          : PatientOrientation.getBipedYOrientation(v);</span>
+<span class="nc bnc" id="L87" title="All 6 branches missed.">    } else if (absZ &gt; OBLIQUITY_THRESHOLD &amp;&amp; absZ &gt; absX &amp;&amp; absZ &gt; absY) {</span>
+<span class="nc bnc" id="L88" title="All 2 branches missed.">      return quadruped</span>
+<span class="nc" id="L89">          ? PatientOrientation.getQuadrupedZOrientation(v)</span>
+<span class="nc" id="L90">          : PatientOrientation.getBipedZOrientation(v);</span>
+    }
+<span class="nc" id="L92">    return null;</span>
+  }
+
+  /**
+   * Get a plan describing the axial, coronal or sagittal plane from row and column unit vectors
+   * (direction cosines) as found in ImageOrientationPatient.
+   *
+   * &lt;p&gt;Some degree of deviation from one of the standard orthogonal planes is allowed before
+   * deciding the plane is OBLIQUE.
+   *
+   * @param vr the row vector
+   * @param vc the column vector
+   * @return the string describing the plane of orientation, AXIAL, CORONAL, SAGITTAL or OBLIQUE
+   */
+  public static Plan getPlan(Vector3d vr, Vector3d vc) {
+<span class="nc" id="L107">    Orientation rowAxis = getPatientOrientation(vr, false);</span>
+<span class="nc" id="L108">    Orientation colAxis = getPatientOrientation(vc, false);</span>
+<span class="nc bnc" id="L109" title="All 4 branches missed.">    if (rowAxis != null &amp;&amp; colAxis != null) {</span>
+<span class="nc bnc" id="L110" title="All 2 branches missed.">      if (rowAxis.getColor().equals(PatientOrientation.blue)</span>
+<span class="nc bnc" id="L111" title="All 2 branches missed.">          &amp;&amp; colAxis.getColor().equals(PatientOrientation.red)) {</span>
+<span class="nc" id="L112">        return Plan.AXIAL;</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">      } else if (colAxis.getColor().equals(PatientOrientation.blue)</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">          &amp;&amp; rowAxis.getColor().equals(PatientOrientation.red)) {</span>
+<span class="nc" id="L115">        return Plan.AXIAL;</span>
+<span class="nc bnc" id="L116" title="All 2 branches missed.">      } else if (rowAxis.getColor().equals(PatientOrientation.blue)</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">          &amp;&amp; colAxis.getColor().equals(PatientOrientation.green)) {</span>
+<span class="nc" id="L118">        return Plan.CORONAL;</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">      } else if (colAxis.getColor().equals(PatientOrientation.blue)</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">          &amp;&amp; rowAxis.getColor().equals(PatientOrientation.green)) {</span>
+<span class="nc" id="L121">        return Plan.CORONAL;</span>
+<span class="nc bnc" id="L122" title="All 2 branches missed.">      } else if (rowAxis.getColor().equals(PatientOrientation.red)</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">          &amp;&amp; colAxis.getColor().equals(PatientOrientation.green)) {</span>
+<span class="nc" id="L124">        return Plan.SAGITTAL;</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">      } else if (colAxis.getColor().equals(PatientOrientation.red)</span>
+<span class="nc bnc" id="L126" title="All 2 branches missed.">          &amp;&amp; rowAxis.getColor().equals(PatientOrientation.green)) {</span>
+<span class="nc" id="L127">        return Plan.SAGITTAL;</span>
+      }
+    }
+<span class="nc" id="L130">    return Plan.OBLIQUE;</span>
+  }
+
+  public static Plan getPlan(TagReadable taggable) {
+<span class="nc" id="L134">    Vector3d vr = ImageOrientation.getRowImagePosition(taggable);</span>
+<span class="nc" id="L135">    Vector3d vc = ImageOrientation.getColumnImagePosition(taggable);</span>
+<span class="nc bnc" id="L136" title="All 4 branches missed.">    if (vr != null &amp;&amp; vc != null) {</span>
+<span class="nc" id="L137">      return ImageOrientation.getPlan(vr, vc);</span>
+    }
+<span class="nc" id="L139">    return null;</span>
+  }
+
+  /**
+   * Get the letter representation of the orientation of a vector.
+   *
+   * &lt;p&gt;For bipeds, R (right) or L (left), A (anterior) or P (posterior), F (feet) * or H (head).
+   *
+   * &lt;p&gt;For quadrupeds, Le or Rt, V or D, Cr or Cd (with lower case; use toUpperCase() to produce
+   * valid CodeString for PatientOrientation).
+   *
+   * @param v the orientation vector
+   * @param quadruped true if subject is a quadruped rather than a biped
+   * @return a string rendering of the orientation, more than one letter if oblique to the
+   *     orthogonal axes, or empty string (not null) if fails
+   */
+  public static String getOrientation(Vector3d v, boolean quadruped) {
+    Orientation orientationX =
+<span class="nc bnc" id="L157" title="All 2 branches missed.">        quadruped</span>
+<span class="nc" id="L158">            ? PatientOrientation.getQuadrupedXOrientation(v)</span>
+<span class="nc" id="L159">            : PatientOrientation.getBipedXOrientation(v);</span>
+    Orientation orientationY =
+<span class="nc bnc" id="L161" title="All 2 branches missed.">        quadruped</span>
+<span class="nc" id="L162">            ? PatientOrientation.getQuadrupedYOrientation(v)</span>
+<span class="nc" id="L163">            : PatientOrientation.getBipedYOrientation(v);</span>
+    Orientation orientationZ =
+<span class="nc bnc" id="L165" title="All 2 branches missed.">        quadruped</span>
+<span class="nc" id="L166">            ? PatientOrientation.getQuadrupedZOrientation(v)</span>
+<span class="nc" id="L167">            : PatientOrientation.getBipedZOrientation(v);</span>
+
+<span class="nc" id="L169">    double absX = Math.abs(v.x);</span>
+<span class="nc" id="L170">    double absY = Math.abs(v.y);</span>
+<span class="nc" id="L171">    double absZ = Math.abs(v.z);</span>
+
+<span class="nc" id="L173">    StringBuilder buffer = new StringBuilder();</span>
+<span class="nc bnc" id="L174" title="All 2 branches missed.">    for (int i = 0; i &lt; 3; ++i) {</span>
+<span class="nc bnc" id="L175" title="All 6 branches missed.">      if (absX &gt; .0001 &amp;&amp; absX &gt;= absY &amp;&amp; absX &gt;= absZ) {</span>
+<span class="nc" id="L176">        buffer.append(orientationX.name());</span>
+<span class="nc" id="L177">        buffer.append(StringUtil.SPACE);</span>
+<span class="nc" id="L178">        absX = 0;</span>
+<span class="nc bnc" id="L179" title="All 6 branches missed.">      } else if (absY &gt; .0001 &amp;&amp; absY &gt;= absX &amp;&amp; absY &gt;= absZ) {</span>
+<span class="nc" id="L180">        buffer.append(orientationY.name());</span>
+<span class="nc" id="L181">        buffer.append(StringUtil.SPACE);</span>
+<span class="nc" id="L182">        absY = 0;</span>
+<span class="nc bnc" id="L183" title="All 6 branches missed.">      } else if (absZ &gt; .0001 &amp;&amp; absZ &gt;= absX &amp;&amp; absZ &gt;= absY) {</span>
+<span class="nc" id="L184">        buffer.append(orientationZ.name());</span>
+<span class="nc" id="L185">        buffer.append(StringUtil.SPACE);</span>
+<span class="nc" id="L186">        absZ = 0;</span>
+      } else {
+        break;
+      }
+    }
+<span class="nc" id="L191">    return buffer.toString();</span>
+  }
+
+  public static String getImageOrientationOpposite(String val, boolean quadruped) {
+<span class="nc bnc" id="L195" title="All 2 branches missed.">    if (quadruped) {</span>
+<span class="nc" id="L196">      Quadruped quad = Quadruped.getQuadruped(val);</span>
+<span class="nc bnc" id="L197" title="All 2 branches missed.">      return quad == null ? &quot;&quot; : PatientOrientation.getOppositeOrientation(quad).name();</span>
+    }
+<span class="nc" id="L199">    Biped biped = Biped.getBiped(val);</span>
+<span class="nc bnc" id="L200" title="All 2 branches missed.">    return biped == null ? &quot;&quot; : PatientOrientation.getOppositeOrientation(biped).name();</span>
+  }
+
+  public static boolean hasSameOrientation(
+      MediaSeries&lt;DicomImageElement&gt; series1, MediaSeries&lt;DicomImageElement&gt; series2) {
+    // Test if the two series have the same orientation
+<span class="nc bnc" id="L206" title="All 4 branches missed.">    if (series1 != null &amp;&amp; series2 != null) {</span>
+<span class="nc" id="L207">      DicomImageElement image1 = series1.getMedia(MEDIA_POSITION.MIDDLE, null, null);</span>
+<span class="nc" id="L208">      DicomImageElement image2 = series2.getMedia(MEDIA_POSITION.MIDDLE, null, null);</span>
+<span class="nc" id="L209">      return hasSameOrientation(image1, image2);</span>
+    }
+<span class="nc" id="L211">    return false;</span>
+  }
+
+  public static boolean hasSameOrientation(DicomImageElement image1, DicomImageElement image2) {
+    // Test if the two images have the same orientation
+<span class="nc bnc" id="L216" title="All 4 branches missed.">    if (image1 != null &amp;&amp; image2 != null) {</span>
+<span class="nc" id="L217">      Vector3d vr1 = ImageOrientation.getRowImagePosition(image1);</span>
+<span class="nc" id="L218">      Vector3d vc1 = ImageOrientation.getColumnImagePosition(image1);</span>
+<span class="nc" id="L219">      Vector3d vr2 = ImageOrientation.getRowImagePosition(image2);</span>
+<span class="nc" id="L220">      Vector3d vc2 = ImageOrientation.getColumnImagePosition(image2);</span>
+<span class="nc bnc" id="L221" title="All 8 branches missed.">      if (vr1 != null &amp;&amp; vc1 != null &amp;&amp; vr2 != null &amp;&amp; vc2 != null) {</span>
+<span class="nc" id="L222">        return hasSameOrientation(vr1, vc1, vr2, vc2);</span>
+      }
+    }
+<span class="nc" id="L225">    return false;</span>
+  }
+
+  public static boolean hasSameOrientation(Vector3d vr1, Vector3d vc1, Vector3d vr2, Vector3d vc2) {
+    // Test if the two images have the same orientation
+<span class="nc bnc" id="L230" title="All 8 branches missed.">    if (vr1 != null &amp;&amp; vc1 != null &amp;&amp; vr2 != null &amp;&amp; vc2 != null) {</span>
+<span class="nc" id="L231">      Plan plan1 = ImageOrientation.getPlan(vr1, vc1);</span>
+<span class="nc" id="L232">      Plan plan2 = ImageOrientation.getPlan(vr2, vc2);</span>
+
+<span class="nc bnc" id="L234" title="All 4 branches missed.">      if (plan1 != null &amp;&amp; !plan1.equals(Plan.OBLIQUE)) {</span>
+<span class="nc" id="L235">        return plan1.equals(plan2);</span>
+      }
+      // If oblique search and if the plan has approximately the same orientation
+<span class="nc" id="L238">      Vector3d normal1 = VectorUtils.computeNormalOfSurface(vr1, vc1);</span>
+<span class="nc" id="L239">      Vector3d normal2 = VectorUtils.computeNormalOfSurface(vr2, vc2);</span>
+<span class="nc bnc" id="L240" title="All 4 branches missed.">      if (normal1 != null &amp;&amp; normal2 != null) {</span>
+<span class="nc" id="L241">        normal1.mul(normal2);</span>
+        // A little tolerance
+<span class="nc bnc" id="L243" title="All 2 branches missed.">        return normal1.x + normal1.y + normal1.z &gt; 0.95;</span>
+      }
+    }
+<span class="nc" id="L246">    return false;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

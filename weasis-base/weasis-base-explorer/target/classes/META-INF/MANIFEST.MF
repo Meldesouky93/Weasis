@@ -1,0 +1,47 @@
+Manifest-Version: 1.0
+Bundle-License: "EPL-2.0 OR Apache-2.0";link="https://github.com/nrodu
+ it/Weasis/blob/master/LICENSE"
+Bundle-ManifestVersion: 2
+Bundle-Name: Base - Media explorer [weasis-base-explorer]
+Bundle-SymbolicName: weasis-base-explorer
+Bundle-Version: 4.6.0.SNAPSHOT
+Export-Package: org.weasis.base.explorer;version="4.6.0";uses:="biblio
+ thek.gui.dock.common,javax.swing,javax.swing.tree,org.osgi.service.co
+ mponent,org.weasis.base.explorer.list,org.weasis.base.explorer.list.i
+ mpl,org.weasis.core.api.explorer,org.weasis.core.api.explorer.model,o
+ rg.weasis.core.api.media.data,org.weasis.core.ui.docking",org.weasis.
+ base.explorer.list;version="4.6.0";uses:="javax.swing,javax.swing.eve
+ nt,org.weasis.base.explorer,org.weasis.core.api.media.data",org.weasi
+ s.base.explorer.list.impl;version="4.6.0";uses:="javax.swing,org.weas
+ is.base.explorer,org.weasis.base.explorer.list,org.weasis.core.api.me
+ dia.data"
+Import-Package: org.slf4j,bibliothek.gui.dock.common;version="[1.1,2)"
+ ,bibliothek.gui.dock.common.mode;version="[1.1,2)",com.formdev.flatla
+ f.extras,com.formdev.flatlaf.ui,com.formdev.flatlaf.util,java.awt,jav
+ a.awt.datatransfer,java.awt.dnd,java.awt.event,java.awt.image,java.be
+ ans,java.io,java.lang,java.lang.invoke,java.net,java.nio.file,java.te
+ xt,java.time,java.time.temporal,java.util,java.util.concurrent,java.u
+ til.function,java.util.stream,javax.swing,javax.swing.border,javax.sw
+ ing.event,javax.swing.filechooser,javax.swing.tree,org.osgi.service.c
+ omponent;version="[1.5,2)",org.weasis.base.explorer;version="[4.6,5)"
+ ,org.weasis.base.explorer.list;version="[4.6,5)",org.weasis.base.expl
+ orer.list.impl;version="[4.6,5)",org.weasis.core.api.explorer;version
+ ="[4.6,5)",org.weasis.core.api.explorer.model;version="[4.6,5)",org.w
+ easis.core.api.gui;version="[4.6,5)",org.weasis.core.api.gui.util;ver
+ sion="[4.6,5)",org.weasis.core.api.image;version="[4.6,5)",org.weasis
+ .core.api.image.cv;version="[4.6,5)",org.weasis.core.api.media.data;v
+ ersion="[4.6,5)",org.weasis.core.api.service;version="[4.6,5)",org.we
+ asis.core.api.util;version="[4.6,5)",org.weasis.core.ui.docking;versi
+ on="[4.6,5)",org.weasis.core.ui.editor;version="[4.6,5)",org.weasis.c
+ ore.ui.editor.image;version="[4.6,5)",org.weasis.core.ui.util;version
+ ="[4.6,5)",org.weasis.core.util;version="[4.11,5)",org.weasis.opencv.
+ data;version="[4.11,5)",org.weasis.opencv.op;version="[4.11,5)"
+Provide-Capability: osgi.service;objectClass:List<String>="org.weasis.
+ core.api.explorer.DataExplorerViewFactory";uses:="org.weasis.core.api
+ .explorer"
+Require-Capability: osgi.extender;filter:="(&(osgi.extender=osgi.compo
+ nent)(version>=1.5.0)(!(version>=2.0.0)))",osgi.ee;filter:="(&(osgi.e
+ e=JavaSE)(version=23))"
+Service-Component: OSGI-INF/org.weasis.base.explorer.DefaultExplorerFa
+ ctory.xml
+

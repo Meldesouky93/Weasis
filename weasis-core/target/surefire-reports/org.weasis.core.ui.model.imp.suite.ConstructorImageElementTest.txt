@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: org.weasis.core.ui.model.imp.suite.ConstructorImageElementTest
+-------------------------------------------------------------------------------
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.017 s -- in org.weasis.core.ui.model.imp.suite.ConstructorImageElementTest

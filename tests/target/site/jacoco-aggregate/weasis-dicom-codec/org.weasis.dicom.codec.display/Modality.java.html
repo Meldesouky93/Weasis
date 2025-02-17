@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>Modality.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec.display</a> &gt; <span class="el_source">Modality.java</span></div><h1>Modality.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec.display;
+
+import java.util.Arrays;
+import org.weasis.core.util.StringUtil;
+import org.weasis.dicom.codec.Messages;
+
+<span class="nc" id="L16">public enum Modality {</span>
+<span class="nc" id="L17">  DEFAULT(Messages.getString(&quot;Modality.default&quot;)),</span>
+<span class="nc" id="L18">  ANN(&quot;Annotation&quot;), // NON-NLS</span>
+<span class="nc" id="L19">  AR(&quot;Autorefraction&quot;), // NON-NLS</span>
+<span class="nc" id="L20">  ASMT(&quot;Content Assessment Results&quot;), // NON-NLS</span>
+<span class="nc" id="L21">  AU(&quot;Audio&quot;), // NON-NLS</span>
+<span class="nc" id="L22">  BDUS(&quot;Bone Densitometry (ultrasound)&quot;), // NON-NLS</span>
+<span class="nc" id="L23">  BI(&quot;Biomagnetic imaging&quot;), // NON-NLS</span>
+<span class="nc" id="L24">  BMD(&quot;Bone Densitometry (X-Ray)&quot;), // NON-NLS</span>
+<span class="nc" id="L25">  CFM(&quot;Confocal Microscopy&quot;), // NON-NLS</span>
+<span class="nc" id="L26">  CR(&quot;Computed Radiography&quot;), // NON-NLS</span>
+<span class="nc" id="L27">  CT(&quot;Computed Tomography&quot;), // NON-NLS</span>
+<span class="nc" id="L28">  CTPROTOCOL(&quot;CT Protocol (Performed)&quot;), // NON-NLS</span>
+<span class="nc" id="L29">  DMS(&quot;Dermoscopy&quot;), // NON-NLS</span>
+<span class="nc" id="L30">  DG(&quot;Diaphanography&quot;), // NON-NLS</span>
+<span class="nc" id="L31">  DOC(&quot;Document&quot;), // NON-NLS</span>
+<span class="nc" id="L32">  DX(&quot;Digital Radiography&quot;), // NON-NLS</span>
+<span class="nc" id="L33">  ECG(&quot;Electrocardiography&quot;), // NON-NLS</span>
+<span class="nc" id="L34">  EEG(&quot;Electroencephalography&quot;), // NON-NLS</span>
+<span class="nc" id="L35">  EMG(&quot;Electromyography&quot;), // NON-NLS</span>
+<span class="nc" id="L36">  EOG(&quot;Electrooculography&quot;), // NON-NLS</span>
+<span class="nc" id="L37">  EPS(&quot;Cardiac Electrophysiology&quot;), // NON-NLS</span>
+<span class="nc" id="L38">  ES(&quot;Endoscopy&quot;), // NON-NLS</span>
+<span class="nc" id="L39">  FID(&quot;Fiducials&quot;), // NON-NLS</span>
+<span class="nc" id="L40">  GM(&quot;General Microscopy&quot;), // NON-NLS</span>
+<span class="nc" id="L41">  HC(&quot;Hard Copy&quot;), // NON-NLS</span>
+<span class="nc" id="L42">  HD(&quot;Hemodynamic Waveform&quot;), // NON-NLS</span>
+<span class="nc" id="L43">  IO(&quot;Intra-Oral Radiography&quot;), // NON-NLS</span>
+<span class="nc" id="L44">  IOL(&quot;Intraocular Lens Data&quot;), // NON-NLS</span>
+<span class="nc" id="L45">  IVOCT(&quot;Intravascular Optical Coherence Tomography&quot;), // NON-NLS</span>
+<span class="nc" id="L46">  IVUS(&quot;Intravascular Ultrasound&quot;), // NON-NLS</span>
+<span class="nc" id="L47">  KER(&quot;Keratometry&quot;), // NON-NLS</span>
+<span class="nc" id="L48">  KO(&quot;Key Object Selection&quot;), // NON-NLS</span>
+<span class="nc" id="L49">  LEN(&quot;Lensometry&quot;), // NON-NLS</span>
+<span class="nc" id="L50">  LS(&quot;Laser surface scan&quot;), // NON-NLS</span>
+<span class="nc" id="L51">  MG(&quot;Mammography&quot;), // NON-NLS</span>
+<span class="nc" id="L52">  MR(&quot;Magnetic Resonance&quot;), // NON-NLS</span>
+<span class="nc" id="L53">  M3D(&quot;Model for 3D Manufacturing&quot;), // NON-NLS</span>
+<span class="nc" id="L54">  NM(&quot;Nuclear Medicine&quot;), // NON-NLS</span>
+<span class="nc" id="L55">  OAM(&quot;Ophthalmic Axial Measurements&quot;), // NON-NLS</span>
+<span class="nc" id="L56">  OCT(&quot;Optical Coherence Tomography (non-Ophthalmic)&quot;), // NON-NLS</span>
+<span class="nc" id="L57">  OP(&quot;Ophthalmic Photography&quot;), // NON-NLS</span>
+<span class="nc" id="L58">  OPM(&quot;Ophthalmic Mapping&quot;), // NON-NLS</span>
+<span class="nc" id="L59">  OPT(&quot;Ophthalmic Tomography&quot;), // NON-NLS</span>
+<span class="nc" id="L60">  OPTBSV(&quot;Ophthalmic Tomography B-scan Volume Analysis&quot;), // NON-NLS</span>
+<span class="nc" id="L61">  OPTENF(&quot;Ophthalmic Tomography En Face&quot;), // NON-NLS</span>
+<span class="nc" id="L62">  OPV(&quot;Ophthalmic Visual Field&quot;), // NON-NLS</span>
+<span class="nc" id="L63">  OSS(&quot;Optical Surface Scan&quot;), // NON-NLS</span>
+<span class="nc" id="L64">  OT(&quot;Other&quot;), // NON-NLS</span>
+<span class="nc" id="L65">  PA(&quot;Photoacoustic&quot;), // NON-NLS</span>
+<span class="nc" id="L66">  PLAN(&quot;Plan&quot;), // NON-NLS</span>
+<span class="nc" id="L67">  POS(&quot;Position Sensor&quot;), // NON-NLS</span>
+<span class="nc" id="L68">  PR(&quot;Presentation State&quot;), // NON-NLS</span>
+<span class="nc" id="L69">  PT(&quot;Positron emission tomography (PET)&quot;), // NON-NLS</span>
+<span class="nc" id="L70">  PX(&quot;Panoramic X-Ray&quot;), // NON-NLS</span>
+<span class="nc" id="L71">  REG(&quot;Registration&quot;), // NON-NLS</span>
+<span class="nc" id="L72">  RESP(&quot;Respiratory Waveform&quot;), // NON-NLS</span>
+<span class="nc" id="L73">  RF(&quot;Radio Fluoroscopy&quot;), // NON-NLS</span>
+<span class="nc" id="L74">  RG(&quot;Radiographic imaging (conventional film/screen)&quot;), // NON-NLS</span>
+<span class="nc" id="L75">  RTDOSE(&quot;Radiotherapy Dose&quot;), // NON-NLS</span>
+<span class="nc" id="L76">  RTIMAGE(&quot;Radiotherapy Image&quot;), // NON-NLS</span>
+<span class="nc" id="L77">  RTINTENT(&quot;Radiotherapy Intent&quot;), // NON-NLS</span>
+<span class="nc" id="L78">  RTPLAN(&quot;Radiotherapy Plan&quot;), // NON-NLS</span>
+<span class="nc" id="L79">  RTRAD(&quot;RT Radiation&quot;), // NON-NLS</span>
+<span class="nc" id="L80">  RTRECORD(&quot;RT Treatment Record&quot;), // NON-NLS</span>
+<span class="nc" id="L81">  RTSEGANN(&quot;Radiotherapy Segment Annotation&quot;), // NON-NLS</span>
+<span class="nc" id="L82">  RTSTRUCT(&quot;Radiotherapy Structure Set&quot;), // NON-NLS</span>
+<span class="nc" id="L83">  RWV(&quot;Real World Value Map&quot;), // NON-NLS</span>
+<span class="nc" id="L84">  SEG(&quot;Segmentation&quot;), // NON-NLS</span>
+<span class="nc" id="L85">  SM(&quot;Slide Microscopy&quot;), // NON-NLS</span>
+<span class="nc" id="L86">  SMR(&quot;Stereometric Relationship&quot;), // NON-NLS</span>
+<span class="nc" id="L87">  SR(&quot;SR Document&quot;), // NON-NLS</span>
+<span class="nc" id="L88">  SRF(&quot;Subjective Refraction&quot;), // NON-NLS</span>
+<span class="nc" id="L89">  STAIN(&quot;Automated Slide Stainer&quot;), // NON-NLS</span>
+<span class="nc" id="L90">  TEXTUREMAP(&quot;Texture Map&quot;), // NON-NLS</span>
+<span class="nc" id="L91">  TG(&quot;Thermography&quot;), // NON-NLS</span>
+<span class="nc" id="L92">  US(&quot;Ultrasound&quot;), // NON-NLS</span>
+<span class="nc" id="L93">  VA(&quot;Visual Acuity&quot;), // NON-NLS</span>
+<span class="nc" id="L94">  XA(&quot;X-Ray Angiography&quot;), // NON-NLS</span>
+<span class="nc" id="L95">  XAPROTOCOL(&quot;XA Protocol (Performed)&quot;), // NON-NLS</span>
+<span class="nc" id="L96">  XC(&quot;External-camera Photography&quot;); // NON-NLS</span>
+
+  private final String description;
+
+<span class="nc" id="L100">  Modality(String description) {</span>
+<span class="nc" id="L101">    this.description = description;</span>
+<span class="nc" id="L102">  }</span>
+
+  public String getDescription() {
+<span class="nc" id="L105">    return description;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L110">    return this.name() + &quot; - &quot; + description;</span>
+  }
+
+  public static Modality getModality(String modality) {
+<span class="nc" id="L114">    Modality v = Modality.DEFAULT;</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">    if (StringUtil.hasText(modality)) {</span>
+      try {
+<span class="nc" id="L117">        v = Modality.valueOf(modality);</span>
+<span class="nc" id="L118">      } catch (Exception e) {</span>
+        // return DEFAULT if unknown
+<span class="nc" id="L120">      }</span>
+    }
+<span class="nc" id="L122">    return v;</span>
+  }
+
+  public static Modality[] getAllModalitiesExceptDefault() {
+<span class="nc" id="L126">    Modality[] vals = Modality.values();</span>
+<span class="nc" id="L127">    return Arrays.copyOfRange(vals, 1, vals.length);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

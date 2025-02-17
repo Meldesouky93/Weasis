@@ -1,0 +1,301 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>SplittingRules.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-dicom-codec</a> &gt; <a href="index.source.html" class="el_package">org.weasis.dicom.codec.utils</a> &gt; <span class="el_source">SplittingRules.java</span></div><h1>SplittingRules.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.dicom.codec.utils;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.util.EnumMap;
+import java.util.Map;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamConstants;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+import org.dcm4che3.data.Tag;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.util.FileUtil;
+import org.weasis.core.util.StringUtil;
+import org.weasis.dicom.codec.TagD;
+import org.weasis.dicom.codec.display.Modality;
+import org.weasis.dicom.codec.utils.SplittingModalityRules.And;
+import org.weasis.dicom.codec.utils.SplittingModalityRules.CompositeCondition;
+import org.weasis.dicom.codec.utils.SplittingModalityRules.Condition;
+import org.weasis.dicom.codec.utils.SplittingModalityRules.Condition.Type;
+import org.weasis.dicom.codec.utils.SplittingModalityRules.DefaultCondition;
+import org.weasis.dicom.codec.utils.SplittingModalityRules.Or;
+
+public class SplittingRules {
+<span class="nc" id="L38">  private static final Logger LOGGER = LoggerFactory.getLogger(SplittingRules.class);</span>
+
+  private final Map&lt;Modality, SplittingModalityRules&gt; rules;
+
+<span class="nc" id="L42">  public SplittingRules() {</span>
+<span class="nc" id="L43">    rules = new EnumMap&lt;&gt;(Modality.class);</span>
+<span class="nc" id="L44">    initDefault();</span>
+<span class="nc" id="L45">    readSplittingRulesFromResources();</span>
+<span class="nc" id="L46">  }</span>
+
+  private void initDefault() {
+<span class="nc" id="L49">    SplittingModalityRules defRules = new SplittingModalityRules(Modality.DEFAULT);</span>
+
+<span class="nc" id="L51">    defRules.addSingleFrameTags(Tag.ImageType, null);</span>
+<span class="nc" id="L52">    defRules.addSingleFrameTags(Tag.SOPClassUID, null);</span>
+<span class="nc" id="L53">    defRules.addSingleFrameTags(Tag.ContrastBolusAgent, null);</span>
+<span class="nc" id="L54">    defRules.addMultiFrameTags(Tag.ImageType, null);</span>
+<span class="nc" id="L55">    defRules.addMultiFrameTags(Tag.SOPInstanceUID, null);</span>
+<span class="nc" id="L56">    defRules.addMultiFrameTags(Tag.FrameType, null);</span>
+<span class="nc" id="L57">    defRules.addMultiFrameTags(Tag.FrameAcquisitionNumber, null);</span>
+<span class="nc" id="L58">    defRules.addMultiFrameTags(Tag.StackID, null);</span>
+<span class="nc" id="L59">    rules.put(defRules.getModality(), defRules);</span>
+
+<span class="nc" id="L61">    SplittingModalityRules ctRules = new SplittingModalityRules(Modality.CT, defRules);</span>
+<span class="nc" id="L62">    ctRules.addSingleFrameTags(Tag.ConvolutionKernel, null);</span>
+<span class="nc" id="L63">    ctRules.addSingleFrameTags(Tag.GantryDetectorTilt, null);</span>
+    // Make a condition to exclude projection image type
+<span class="nc" id="L65">    And allOf = new And();</span>
+<span class="nc" id="L66">    allOf.addChild(</span>
+        new DefaultCondition(
+<span class="nc" id="L68">            TagD.get(Tag.ImageType), Condition.Type.notContainsIgnoreCase, &quot;PROJECTION&quot;));</span>
+<span class="nc" id="L69">    ctRules.addSingleFrameTags(TagW.ImageOrientationPlane, allOf);</span>
+<span class="nc" id="L70">    rules.put(ctRules.getModality(), ctRules);</span>
+
+<span class="nc" id="L72">    SplittingModalityRules ptRules = new SplittingModalityRules(Modality.PT, defRules);</span>
+<span class="nc" id="L73">    ptRules.addSingleFrameTags(Tag.ConvolutionKernel, null);</span>
+<span class="nc" id="L74">    ptRules.addSingleFrameTags(Tag.GantryDetectorTilt, null);</span>
+<span class="nc" id="L75">    rules.put(ptRules.getModality(), ptRules);</span>
+
+<span class="nc" id="L77">    SplittingModalityRules mrRules = new SplittingModalityRules(Modality.MR, defRules);</span>
+<span class="nc" id="L78">    mrRules.addSingleFrameTags(Tag.ScanningSequence, null);</span>
+<span class="nc" id="L79">    mrRules.addSingleFrameTags(Tag.SequenceVariant, null);</span>
+<span class="nc" id="L80">    mrRules.addSingleFrameTags(Tag.ScanOptions, null);</span>
+<span class="nc" id="L81">    mrRules.addSingleFrameTags(Tag.RepetitionTime, null);</span>
+<span class="nc" id="L82">    mrRules.addSingleFrameTags(Tag.EchoTime, null);</span>
+<span class="nc" id="L83">    mrRules.addSingleFrameTags(Tag.FlipAngle, null);</span>
+    // Reuse the condition for ImageOrientationPlane
+<span class="nc" id="L85">    mrRules.addSingleFrameTags(TagW.ImageOrientationPlane, allOf);</span>
+<span class="nc" id="L86">    rules.put(mrRules.getModality(), mrRules);</span>
+<span class="nc" id="L87">  }</span>
+
+  private void readSplittingRulesFromResources() {
+<span class="nc" id="L90">    XMLStreamReader xmler = null;</span>
+<span class="nc" id="L91">    InputStream stream = null;</span>
+    try {
+<span class="nc" id="L93">      File file = ResourceUtil.getResource(DicomResource.SERIES_SPITTING_RULES);</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">      if (!file.canRead()) {</span>
+<span class="nc" id="L95">        return;</span>
+      }
+<span class="nc" id="L97">      XMLInputFactory factory = XMLInputFactory.newInstance();</span>
+      // disable external entities for security
+<span class="nc" id="L99">      factory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, Boolean.FALSE);</span>
+<span class="nc" id="L100">      factory.setProperty(XMLInputFactory.SUPPORT_DTD, Boolean.FALSE);</span>
+<span class="nc" id="L101">      stream = new FileInputStream(file);</span>
+<span class="nc" id="L102">      xmler = factory.createXMLStreamReader(stream);</span>
+
+      int eventType;
+<span class="nc bnc" id="L105" title="All 2 branches missed.">      while (xmler.hasNext()) {</span>
+<span class="nc" id="L106">        eventType = xmler.next();</span>
+<span class="nc bnc" id="L107" title="All 2 branches missed.">        if (eventType == XMLStreamConstants.START_ELEMENT) {</span>
+<span class="nc" id="L108">          String key = xmler.getName().getLocalPart();</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">          if (&quot;modalities&quot;.equals(key)) { // NON-NLS</span>
+<span class="nc" id="L110">            readModalities(xmler);</span>
+          }
+<span class="nc" id="L112">        }</span>
+      }
+<span class="nc" id="L114">    } catch (Exception e) {</span>
+<span class="nc" id="L115">      LOGGER.error(&quot;Cannot read series-splitting-rules.xml! &quot;, e);</span>
+    } finally {
+<span class="nc" id="L117">      FileUtil.safeClose(xmler);</span>
+<span class="nc" id="L118">      FileUtil.safeClose(stream);</span>
+    }
+<span class="nc" id="L120">  }</span>
+
+  private void readModalities(XMLStreamReader xmler) throws XMLStreamException {
+<span class="nc bnc" id="L123" title="All 2 branches missed.">    while (xmler.hasNext()) {</span>
+<span class="nc" id="L124">      int eventType = xmler.next();</span>
+<span class="nc bnc" id="L125" title="All 2 branches missed.">      if (eventType == XMLStreamConstants.START_ELEMENT) {</span>
+<span class="nc" id="L126">        String key = xmler.getName().getLocalPart();</span>
+<span class="nc bnc" id="L127" title="All 4 branches missed.">        if (&quot;modality&quot;.equals(key) &amp;&amp; xmler.getAttributeCount() &gt;= 1) { // NON-NLS</span>
+<span class="nc" id="L128">          String name = xmler.getAttributeValue(null, &quot;name&quot;); // NON-NLS</span>
+<span class="nc" id="L129">          Modality m = getModality(name);</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">          if (m != null) {</span>
+            try {
+<span class="nc" id="L132">              String extend = xmler.getAttributeValue(null, &quot;extend&quot;); // NON-NLS</span>
+<span class="nc" id="L133">              SplittingModalityRules splitRules =</span>
+<span class="nc" id="L134">                  new SplittingModalityRules(m, getSplittingModalityRules(extend));</span>
+<span class="nc" id="L135">              readModality(splitRules, xmler);</span>
+<span class="nc" id="L136">              rules.put(m, splitRules);</span>
+<span class="nc" id="L137">            } catch (Exception e) {</span>
+<span class="nc" id="L138">              LOGGER.error(&quot;Modality {} cannot be read from series-splitting-rules.xml&quot;, name, e);</span>
+<span class="nc" id="L139">            }</span>
+          }
+        }
+      }
+<span class="nc" id="L143">    }</span>
+<span class="nc" id="L144">  }</span>
+
+  private static void readModality(SplittingModalityRules data, XMLStreamReader xmler)
+      throws XMLStreamException {
+    int eventType;
+<span class="nc" id="L149">    boolean state = true;</span>
+<span class="nc bnc" id="L150" title="All 4 branches missed.">    while (xmler.hasNext() &amp;&amp; state) {</span>
+<span class="nc" id="L151">      eventType = xmler.next();</span>
+<span class="nc bnc" id="L152" title="All 3 branches missed.">      switch (eventType) {</span>
+        case XMLStreamConstants.START_ELEMENT:
+<span class="nc" id="L154">          String element = xmler.getName().getLocalPart();</span>
+<span class="nc bnc" id="L155" title="All 2 branches missed.">          if (&quot;splittingTags&quot;.equals(element)) {</span>
+<span class="nc" id="L156">            readTags(data, xmler, false, element);</span>
+<span class="nc bnc" id="L157" title="All 2 branches missed.">          } else if (&quot;multiframeSplittingTags&quot;.equals(element)) {</span>
+<span class="nc" id="L158">            readTags(data, xmler, true, element);</span>
+          }
+          break;
+        case XMLStreamConstants.END_ELEMENT:
+<span class="nc bnc" id="L162" title="All 2 branches missed.">          if (&quot;modality&quot;.equals(xmler.getName().getLocalPart())) { // NON-NLS</span>
+<span class="nc" id="L163">            state = false;</span>
+          }
+          break;
+        default:
+<span class="nc" id="L167">          break;</span>
+      }
+    }
+<span class="nc" id="L170">  }</span>
+
+  private static void readTags(
+      SplittingModalityRules data, XMLStreamReader xmler, boolean multiframe, String endElement)
+      throws XMLStreamException {
+    int eventType;
+<span class="nc" id="L176">    boolean state = true;</span>
+<span class="nc bnc" id="L177" title="All 4 branches missed.">    while (xmler.hasNext() &amp;&amp; state) {</span>
+<span class="nc" id="L178">      eventType = xmler.next();</span>
+<span class="nc bnc" id="L179" title="All 3 branches missed.">      switch (eventType) {</span>
+        case XMLStreamConstants.START_ELEMENT:
+<span class="nc" id="L181">          TagW tag = getTag(xmler.getName().getLocalPart());</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">          if (tag != null) {</span>
+<span class="nc" id="L183">            Condition condition = readCondition(data, xmler, tag.getKeyword());</span>
+<span class="nc bnc" id="L184" title="All 2 branches missed.">            if (multiframe) {</span>
+<span class="nc" id="L185">              data.addMultiFrameTags(tag, condition);</span>
+            } else {
+<span class="nc" id="L187">              data.addSingleFrameTags(tag, condition);</span>
+            }
+<span class="nc" id="L189">          }</span>
+          break;
+        case XMLStreamConstants.END_ELEMENT:
+<span class="nc bnc" id="L192" title="All 2 branches missed.">          if (endElement.equals(xmler.getName().getLocalPart())) {</span>
+<span class="nc" id="L193">            state = false;</span>
+          }
+          break;
+        default:
+<span class="nc" id="L197">          break;</span>
+      }
+    }
+<span class="nc" id="L200">  }</span>
+
+  private static Condition readCondition(
+      SplittingModalityRules data, XMLStreamReader xmler, String endElement)
+      throws XMLStreamException {
+
+<span class="nc" id="L206">    CompositeCondition conditions = null;</span>
+<span class="nc" id="L207">    CompositeCondition lastConditions = null;</span>
+<span class="nc" id="L208">    TagW tag = null;</span>
+<span class="nc" id="L209">    Condition.Type type = null;</span>
+<span class="nc" id="L210">    String value = null;</span>
+
+    int eventType;
+<span class="nc" id="L213">    boolean state = true;</span>
+<span class="nc bnc" id="L214" title="All 4 branches missed.">    while (xmler.hasNext() &amp;&amp; state) {</span>
+<span class="nc" id="L215">      eventType = xmler.next();</span>
+<span class="nc bnc" id="L216" title="All 4 branches missed.">      switch (eventType) {</span>
+        case XMLStreamConstants.CHARACTERS:
+<span class="nc" id="L218">          value = xmler.getText();</span>
+<span class="nc" id="L219">          break;</span>
+        case XMLStreamConstants.START_ELEMENT:
+<span class="nc bnc" id="L221" title="All 2 branches missed.">          if (&quot;condition&quot;.equals(xmler.getName().getLocalPart())) { // NON-NLS</span>
+<span class="nc" id="L222">            tag = getTag(xmler.getAttributeValue(null, &quot;tag&quot;)); // NON-NLS</span>
+<span class="nc" id="L223">            type = getConditionType(xmler.getAttributeValue(null, &quot;type&quot;)); // NON-NLS</span>
+<span class="nc bnc" id="L224" title="All 2 branches missed.">          } else if (&quot;conditions&quot;.equals(xmler.getName().getLocalPart())) { // NON-NLS</span>
+<span class="nc" id="L225">            String t = xmler.getAttributeValue(null, &quot;type&quot;);</span>
+<span class="nc bnc" id="L226" title="All 2 branches missed.">            lastConditions = &quot;anyOf&quot;.equals(t) ? new Or() : new And();</span>
+<span class="nc bnc" id="L227" title="All 2 branches missed.">            if (conditions == null) {</span>
+              // Root condition
+<span class="nc" id="L229">              conditions = lastConditions;</span>
+            } else {
+<span class="nc" id="L231">              conditions.addChild(lastConditions);</span>
+            }
+<span class="nc" id="L233">          }</span>
+          break;
+        case XMLStreamConstants.END_ELEMENT:
+<span class="nc bnc" id="L236" title="All 2 branches missed.">          if (&quot;condition&quot;.equals(xmler.getName().getLocalPart())) { // NON-NLS</span>
+<span class="nc bnc" id="L237" title="All 6 branches missed.">            if (tag == null || type == null || value == null) {</span>
+<span class="nc" id="L238">              LOGGER.error(&quot;Cannot read condition: {} {} {}&quot;, tag, type, value);</span>
+            }
+<span class="nc bnc" id="L240" title="All 2 branches missed.">            if (lastConditions != null) {</span>
+<span class="nc" id="L241">              lastConditions.addChild(new DefaultCondition(tag, type, value));</span>
+            }
+<span class="nc" id="L243">            tag = null;</span>
+<span class="nc" id="L244">            type = null;</span>
+<span class="nc" id="L245">            value = null;</span>
+<span class="nc bnc" id="L246" title="All 2 branches missed.">          } else if (endElement.equals(xmler.getName().getLocalPart())) {</span>
+<span class="nc" id="L247">            state = false;</span>
+          }
+          break;
+        default:
+<span class="nc" id="L251">          break;</span>
+      }
+    }
+<span class="nc" id="L254">    return conditions;</span>
+  }
+
+  private SplittingModalityRules getSplittingModalityRules(String extend) {
+<span class="nc bnc" id="L258" title="All 2 branches missed.">    if (StringUtil.hasText(extend)) {</span>
+<span class="nc" id="L259">      SplittingModalityRules val = rules.get(getModality(extend));</span>
+<span class="nc bnc" id="L260" title="All 2 branches missed.">      if (val == null) {</span>
+<span class="nc" id="L261">        LOGGER.error(&quot;Modality {} doesn't exist! Cannot inherit the rules.&quot;, extend);</span>
+      }
+    }
+<span class="nc" id="L264">    return null;</span>
+  }
+
+  public SplittingModalityRules getSplittingModalityRules(Modality key, Modality defaultKey) {
+<span class="nc" id="L268">    SplittingModalityRules val = rules.get(key);</span>
+<span class="nc bnc" id="L269" title="All 2 branches missed.">    if (val == null) {</span>
+<span class="nc" id="L270">      val = rules.get(defaultKey);</span>
+    }
+<span class="nc" id="L272">    return val;</span>
+  }
+
+  private static Type getConditionType(String type) {
+    try {
+<span class="nc" id="L277">      return Condition.Type.valueOf(type);</span>
+<span class="nc" id="L278">    } catch (Exception e) {</span>
+<span class="nc" id="L279">      LOGGER.error(&quot;{} is not a valid condition type&quot;, type, e);</span>
+    }
+<span class="nc" id="L281">    return null;</span>
+  }
+
+  private static Modality getModality(String name) {
+    try {
+<span class="nc" id="L286">      return Modality.valueOf(name);</span>
+<span class="nc" id="L287">    } catch (Exception e) {</span>
+<span class="nc" id="L288">      LOGGER.error(&quot;Modality reference of {} is missing&quot;, name, e);</span>
+    }
+<span class="nc" id="L290">    return null;</span>
+  }
+
+  private static TagW getTag(String tagKey) {
+<span class="nc" id="L294">    TagW tag = TagW.get(tagKey);</span>
+<span class="nc bnc" id="L295" title="All 2 branches missed.">    if (tag == null) {</span>
+<span class="nc" id="L296">      LOGGER.error(&quot;Cannot find a tag with the keyword {}&quot;, tagKey);</span>
+    }
+<span class="nc" id="L298">    return tag;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

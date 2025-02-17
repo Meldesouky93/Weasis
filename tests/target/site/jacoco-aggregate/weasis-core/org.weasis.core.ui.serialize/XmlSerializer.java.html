@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>XmlSerializer.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.serialize</a> &gt; <span class="el_source">XmlSerializer.java</span></div><h1>XmlSerializer.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.serialize;
+
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBElement;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Marshaller;
+import jakarta.xml.bind.Unmarshaller;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.Reader;
+import java.io.Writer;
+import java.util.Map;
+import javax.xml.stream.XMLStreamReader;
+import org.glassfish.jaxb.runtime.v2.ContextFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.media.data.TagW;
+import org.weasis.core.api.util.GzipManager;
+import org.weasis.core.ui.model.GraphicModel;
+import org.weasis.core.ui.model.imp.XmlGraphicModel;
+
+public class XmlSerializer {
+<span class="nc" id="L33">  private static final Logger LOGGER = LoggerFactory.getLogger(XmlSerializer.class);</span>
+
+  private XmlSerializer() {}
+
+  public static GraphicModel readPresentationModel(File gpxFile) {
+<span class="nc bnc" id="L38" title="All 2 branches missed.">    if (gpxFile.canRead()) {</span>
+      try {
+<span class="nc" id="L40">        JAXBContext jaxbContext = getJaxbContext(XmlGraphicModel.class);</span>
+<span class="nc" id="L41">        Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();</span>
+<span class="nc" id="L42">        return getGraphicModel((GraphicModel) jaxbUnmarshaller.unmarshal(gpxFile));</span>
+<span class="nc" id="L43">      } catch (Exception e) {</span>
+<span class="nc" id="L44">        LOGGER.error(&quot;Cannot load xml: &quot;, e);</span>
+      }
+    }
+<span class="nc" id="L47">    return null;</span>
+  }
+
+  public static void writePresentation(ImageElement img, File destinationFile) {
+<span class="nc" id="L51">    GraphicModel model = (GraphicModel) img.getTagValue(TagW.PresentationModel);</span>
+<span class="nc bnc" id="L52" title="All 4 branches missed.">    if (model != null &amp;&amp; !model.getModels().isEmpty()) {</span>
+<span class="nc" id="L53">      File gpxFile = new File(destinationFile.getParent(), destinationFile.getName() + &quot;.xml&quot;);</span>
+
+      try {
+<span class="nc" id="L56">        JAXBContext jaxbContext = getJaxbContext(model.getClass());</span>
+<span class="nc" id="L57">        Marshaller jaxbMarshaller = jaxbContext.createMarshaller();</span>
+
+        // output pretty printed
+<span class="nc" id="L60">        jaxbMarshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);</span>
+
+        // jaxbMarshaller.marshal(model, System.out);
+<span class="nc" id="L63">        jaxbMarshaller.marshal(model, gpxFile);</span>
+<span class="nc" id="L64">      } catch (Exception e) {</span>
+<span class="nc" id="L65">        LOGGER.error(&quot;Cannot save xml: &quot;, e);</span>
+<span class="nc" id="L66">      }</span>
+    }
+<span class="nc" id="L68">  }</span>
+
+  public static void writePresentation(ImageElement img, Writer writer) {
+<span class="nc" id="L71">    GraphicModel model = (GraphicModel) img.getTagValue(TagW.PresentationModel);</span>
+<span class="nc" id="L72">    writePresentation(model, writer);</span>
+<span class="nc" id="L73">  }</span>
+
+  public static void writePresentation(GraphicModel model, Writer writer) {
+<span class="nc bnc" id="L76" title="All 4 branches missed.">    if (model != null &amp;&amp; model.hasSerializableGraphics()) {</span>
+      try {
+<span class="nc" id="L78">        JAXBContext jaxbContext = getJaxbContext(model.getClass());</span>
+<span class="nc" id="L79">        Marshaller jaxbMarshaller = jaxbContext.createMarshaller();</span>
+        // Remove the xml header tag
+<span class="nc" id="L81">        jaxbMarshaller.setProperty(Marshaller.JAXB_FRAGMENT, Boolean.TRUE);</span>
+<span class="nc" id="L82">        jaxbMarshaller.marshal(model, writer);</span>
+<span class="nc" id="L83">      } catch (Exception e) {</span>
+<span class="nc" id="L84">        LOGGER.error(&quot;Cannot write GraphicModel&quot;, e);</span>
+<span class="nc" id="L85">      }</span>
+    }
+<span class="nc" id="L87">  }</span>
+
+  public static GraphicModel readPresentation(XMLStreamReader xmler) {
+    try {
+<span class="nc" id="L91">      JAXBContext jaxbContext = getJaxbContext(XmlGraphicModel.class);</span>
+<span class="nc" id="L92">      Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();</span>
+<span class="nc" id="L93">      JAXBElement&lt;XmlGraphicModel&gt; unmarshalledObj =</span>
+<span class="nc" id="L94">          jaxbUnmarshaller.unmarshal(</span>
+              new NoNamespaceStreamReaderDelegate(xmler), XmlGraphicModel.class);
+<span class="nc" id="L96">      return getGraphicModel(unmarshalledObj.getValue());</span>
+<span class="nc" id="L97">    } catch (Exception e) {</span>
+<span class="nc" id="L98">      LOGGER.error(&quot;Cannot write GraphicModel&quot;, e);</span>
+    }
+<span class="nc" id="L100">    return null;</span>
+  }
+
+  @SuppressWarnings(&quot;unchecked&quot;)
+  public static &lt;T&gt; T deserialize(Reader reader, Class&lt;T&gt; clazz) throws JAXBException {
+<span class="nc" id="L105">    JAXBContext context = getJaxbContext(clazz);</span>
+<span class="nc" id="L106">    Unmarshaller unmarshaller = context.createUnmarshaller();</span>
+
+<span class="nc" id="L108">    return (T) unmarshaller.unmarshal(reader);</span>
+  }
+
+  public static GraphicModel buildPresentationModel(byte[] gzipData) {
+    try {
+<span class="nc" id="L113">      JAXBContext jaxbContext = getJaxbContext(XmlGraphicModel.class);</span>
+<span class="nc" id="L114">      Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();</span>
+<span class="nc" id="L115">      ByteArrayInputStream inputStream =</span>
+<span class="nc" id="L116">          new ByteArrayInputStream(GzipManager.gzipUncompressToByte(gzipData));</span>
+<span class="nc" id="L117">      return getGraphicModel((GraphicModel) jaxbUnmarshaller.unmarshal(inputStream));</span>
+<span class="nc" id="L118">    } catch (Exception e) {</span>
+<span class="nc" id="L119">      LOGGER.error(&quot;Cannot load xml graphic model: &quot;, e);</span>
+    }
+<span class="nc" id="L121">    return null;</span>
+  }
+
+  private static GraphicModel getGraphicModel(GraphicModel model) {
+<span class="nc" id="L125">    int length = model.getModels().size();</span>
+<span class="nc bnc" id="L126" title="All 2 branches missed.">    model.getModels().removeIf(g -&gt; g.getLayer() == null);</span>
+<span class="nc bnc" id="L127" title="All 2 branches missed.">    if (length &gt; model.getModels().size()) {</span>
+<span class="nc" id="L128">      LOGGER.error(</span>
+<span class="nc" id="L129">          &quot;Removing {} graphics without a attached layer&quot;, model.getModels().size() - length);</span>
+    }
+<span class="nc" id="L131">    return model;</span>
+  }
+
+  public static JAXBContext getJaxbContext(Class&lt;?&gt;... clazz) throws JAXBException {
+<span class="nc" id="L135">    return ContextFactory.createContext(clazz, null);</span>
+  }
+
+  public static JAXBContext getJaxbContext(Map&lt;String, Object&gt; properties, Class&lt;?&gt;... clazz)
+      throws JAXBException {
+<span class="nc" id="L140">    return ContextFactory.createContext(clazz, properties);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>LineWithGapGraphic.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.graphic.imp.line</a> &gt; <span class="el_source">LineWithGapGraphic.java</span></div><h1>LineWithGapGraphic.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.graphic.imp.line;
+
+import jakarta.xml.bind.annotation.XmlAttribute;
+import jakarta.xml.bind.annotation.XmlElement;
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlType;
+import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
+import java.awt.Shape;
+import java.awt.geom.Path2D;
+import java.awt.geom.Point2D;
+import java.util.Optional;
+import javax.swing.Icon;
+import org.weasis.core.api.gui.util.GeomUtil;
+import org.weasis.core.ui.model.graphic.AbstractDragGraphic;
+import org.weasis.core.ui.model.graphic.Graphic;
+import org.weasis.core.ui.model.utils.exceptions.InvalidShapeException;
+import org.weasis.core.ui.serialize.PointAdapter;
+import org.weasis.core.ui.util.MouseEventDouble;
+
+@XmlType(name = &quot;lineWithGap&quot;)
+@XmlRootElement(name = &quot;lineWithGap&quot;)
+public class LineWithGapGraphic extends AbstractDragGraphic {
+
+<span class="nc" id="L33">  public static final Integer POINTS_NUMBER = 2;</span>
+<span class="nc" id="L34">  public static final Integer DEFAULT_GAP_SIZE = 0;</span>
+
+<span class="nc" id="L36">  protected Integer gapSize = DEFAULT_GAP_SIZE;</span>
+
+  // Let AB be a simple a line segment
+  protected Point2D ptA;
+  protected Point2D ptB;
+  protected Point2D centerGap;
+
+  // estimate if line segment is valid or not
+  protected Boolean lineABvalid;
+
+  public LineWithGapGraphic() {
+<span class="nc" id="L47">    super(POINTS_NUMBER);</span>
+<span class="nc" id="L48">  }</span>
+
+  public LineWithGapGraphic(LineWithGapGraphic graphic) {
+<span class="nc" id="L51">    super(graphic);</span>
+<span class="nc" id="L52">  }</span>
+
+  @Override
+  public LineWithGapGraphic copy() {
+<span class="nc" id="L56">    return new LineWithGapGraphic(this);</span>
+  }
+
+  @Override
+  protected void initCopy(Graphic graphic) {
+<span class="nc" id="L61">    super.initCopy(graphic);</span>
+<span class="nc" id="L62">    this.gapSize = ((LineWithGapGraphic) graphic).gapSize;</span>
+<span class="nc" id="L63">  }</span>
+
+  @Override
+  protected void prepareShape() throws InvalidShapeException {
+<span class="nc bnc" id="L67" title="All 2 branches missed.">    if (!isShapeValid()) {</span>
+<span class="nc" id="L68">      throw new InvalidShapeException(&quot;This shape cannot be drawn&quot;);</span>
+    }
+<span class="nc" id="L70">    buildShape(null);</span>
+<span class="nc" id="L71">  }</span>
+
+  @Override
+  public boolean isShapeValid() {
+<span class="nc" id="L75">    updateTool();</span>
+<span class="nc" id="L76">    return super.isShapeValid();</span>
+  }
+
+  @XmlElement(name = &quot;centerGap&quot;)
+  @XmlJavaTypeAdapter(PointAdapter.Point2DAdapter.class)
+  public Point2D getCenterGap() {
+<span class="nc" id="L82">    return centerGap;</span>
+  }
+
+  public void setCenterGap(Point2D centerGap) {
+<span class="nc" id="L86">    this.centerGap = centerGap;</span>
+<span class="nc" id="L87">  }</span>
+
+  @XmlAttribute(name = &quot;gapSize&quot;)
+  public Integer getGapSize() {
+<span class="nc" id="L91">    return gapSize;</span>
+  }
+
+  public void setGapSize(Integer gapSize) {
+<span class="nc" id="L95">    this.gapSize = Optional.ofNullable(gapSize).orElse(DEFAULT_GAP_SIZE);</span>
+<span class="nc" id="L96">  }</span>
+
+  protected void setHandlePointList(Point2D ptStart, Point2D ptEnd) {
+<span class="nc bnc" id="L99" title="All 2 branches missed.">    setHandlePoint(0, ptStart == null ? null : (Point2D) ptStart.clone());</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">    setHandlePoint(1, ptEnd == null ? null : (Point2D) ptEnd.clone());</span>
+<span class="nc" id="L101">    buildShape(null);</span>
+<span class="nc" id="L102">  }</span>
+
+  @Override
+  public Icon getIcon() {
+<span class="nc" id="L106">    return LineGraphic.ICON;</span>
+  }
+
+  @Override
+  public String getUIName() {
+<span class="nc" id="L111">    return &quot;&quot;;</span>
+  }
+
+  @Override
+  public void buildShape(MouseEventDouble mouseEvent) {
+<span class="nc" id="L116">    updateTool();</span>
+<span class="nc" id="L117">    Shape newShape = null;</span>
+
+<span class="nc bnc" id="L119" title="All 2 branches missed.">    if (lineABvalid) {</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">      if (centerGap == null) {</span>
+<span class="nc" id="L121">        centerGap = GeomUtil.getCollinearPointWithRatio(ptA, ptB, 0.5);</span>
+      }
+<span class="nc" id="L123">      double dist = ptA.distance(ptB);</span>
+<span class="nc" id="L124">      double distCenterGap = ptA.distance(centerGap);</span>
+<span class="nc" id="L125">      double distCenterB = ptB.distance(centerGap);</span>
+
+<span class="nc" id="L127">      Point2D ptap = null;</span>
+<span class="nc" id="L128">      Point2D ptbp = null;</span>
+<span class="nc bnc" id="L129" title="All 4 branches missed.">      if (distCenterGap &lt; dist &amp;&amp; distCenterB &lt; dist) {</span>
+<span class="nc" id="L130">        double distGap = 0.5 * gapSize / dist;</span>
+<span class="nc" id="L131">        ptap = GeomUtil.getCollinearPointWithRatio(ptA, ptB, distCenterGap / dist - distGap);</span>
+<span class="nc" id="L132">        ptbp = GeomUtil.getCollinearPointWithRatio(ptA, ptB, distCenterGap / dist + distGap);</span>
+      }
+
+<span class="nc" id="L135">      Path2D path = new Path2D.Double(Path2D.WIND_NON_ZERO, 4);</span>
+<span class="nc" id="L136">      path.moveTo(ptA.getX(), ptA.getY());</span>
+<span class="nc bnc" id="L137" title="All 2 branches missed.">      if (ptap != null) {</span>
+<span class="nc" id="L138">        path.lineTo(ptap.getX(), ptap.getY());</span>
+<span class="nc" id="L139">        path.moveTo(ptbp.getX(), ptbp.getY());</span>
+      }
+<span class="nc" id="L141">      path.lineTo(ptB.getX(), ptB.getY());</span>
+
+<span class="nc" id="L143">      newShape = path;</span>
+    }
+
+<span class="nc" id="L146">    setShape(newShape, mouseEvent);</span>
+<span class="nc" id="L147">    updateLabel(mouseEvent, getDefaultView2d(mouseEvent));</span>
+<span class="nc" id="L148">  }</span>
+
+  protected void updateTool() {
+<span class="nc" id="L151">    ptA = getHandlePoint(0);</span>
+<span class="nc" id="L152">    ptB = getHandlePoint(1);</span>
+
+<span class="nc bnc" id="L154" title="All 6 branches missed.">    lineABvalid = ptA != null &amp;&amp; ptB != null &amp;&amp; !ptB.equals(ptA);</span>
+<span class="nc" id="L155">  }</span>
+
+  public Point2D getStartPoint() {
+<span class="nc" id="L158">    updateTool();</span>
+<span class="nc bnc" id="L159" title="All 2 branches missed.">    return ptA == null ? null : (Point2D) ptA.clone();</span>
+  }
+
+  public Point2D getEndPoint() {
+<span class="nc" id="L163">    updateTool();</span>
+<span class="nc bnc" id="L164" title="All 2 branches missed.">    return ptB == null ? null : (Point2D) ptB.clone();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

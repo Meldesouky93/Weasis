@@ -1,0 +1,539 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>PolygonGraphic.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.model.graphic.imp.area</a> &gt; <span class="el_source">PolygonGraphic.java</span></div><h1>PolygonGraphic.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.model.graphic.imp.area;
+
+import static java.lang.Double.NaN;
+
+import jakarta.xml.bind.annotation.XmlRootElement;
+import jakarta.xml.bind.annotation.XmlType;
+import java.awt.Shape;
+import java.awt.event.KeyEvent;
+import java.awt.geom.Area;
+import java.awt.geom.Line2D;
+import java.awt.geom.Path2D;
+import java.awt.geom.PathIterator;
+import java.awt.geom.Point2D;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import javax.swing.Icon;
+import org.weasis.core.Messages;
+import org.weasis.core.api.image.measure.MeasurementsAdapter;
+import org.weasis.core.api.image.util.MeasurableLayer;
+import org.weasis.core.api.image.util.Unit;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.api.util.ResourceUtil.ActionIcon;
+import org.weasis.core.ui.model.graphic.AbstractDragGraphicArea;
+import org.weasis.core.ui.model.utils.algo.MinimumEnclosingRectangle;
+import org.weasis.core.ui.model.utils.bean.MeasureItem;
+import org.weasis.core.ui.model.utils.bean.Measurement;
+import org.weasis.core.ui.model.utils.exceptions.InvalidShapeException;
+import org.weasis.core.ui.util.MouseEventDouble;
+import org.weasis.core.util.MathUtil;
+
+@XmlType(name = &quot;polygon&quot;)
+@XmlRootElement(name = &quot;polygon&quot;)
+public class PolygonGraphic extends AbstractDragGraphicArea {
+
+<span class="nc" id="L51">  public static final Integer POINTS_NUMBER = UNDEFINED;</span>
+
+<span class="nc" id="L53">  public static final Icon ICON = ResourceUtil.getIcon(ActionIcon.DRAW_POLYGON);</span>
+
+<span class="nc" id="L55">  public static final Measurement AREA =</span>
+<span class="nc" id="L56">      new Measurement(Messages.getString(&quot;measure.area&quot;), 1, true, true, true);</span>
+<span class="nc" id="L57">  public static final Measurement PERIMETER =</span>
+<span class="nc" id="L58">      new Measurement(Messages.getString(&quot;measure.perimeter&quot;), 2, true, true, false);</span>
+<span class="nc" id="L59">  public static final Measurement WIDTH =</span>
+<span class="nc" id="L60">      new Measurement(Messages.getString(&quot;measure.width&quot;), 3, true, true, false);</span>
+<span class="nc" id="L61">  public static final Measurement HEIGHT =</span>
+<span class="nc" id="L62">      new Measurement(Messages.getString(&quot;measure.height&quot;), 4, true, true, false);</span>
+<span class="nc" id="L63">  public static final Measurement TOP_LEFT_POINT_X =</span>
+<span class="nc" id="L64">      new Measurement(Messages.getString(&quot;measure.topx&quot;), 5, true, true, false);</span>
+<span class="nc" id="L65">  public static final Measurement TOP_LEFT_POINT_Y =</span>
+<span class="nc" id="L66">      new Measurement(Messages.getString(&quot;measure.topy&quot;), 6, true, true, false);</span>
+<span class="nc" id="L67">  public static final Measurement CENTROID_X =</span>
+<span class="nc" id="L68">      new Measurement(Messages.getString(&quot;measure.centerx&quot;), 7, true, true, false);</span>
+<span class="nc" id="L69">  public static final Measurement CENTROID_Y =</span>
+<span class="nc" id="L70">      new Measurement(Messages.getString(&quot;measure.centery&quot;), 8, true, true, false);</span>
+<span class="nc" id="L71">  public static final Measurement WIDTH_OMBB =</span>
+      new Measurement(
+<span class="nc" id="L73">          Messages.getString(&quot;measure.width&quot;) + &quot; (OMBB)&quot;, 9, false, true, false); // NON-NLS</span>
+<span class="nc" id="L74">  public static final Measurement LENGTH_OMBB =</span>
+      new Measurement(
+<span class="nc" id="L76">          Messages.getString(&quot;measure.length&quot;) + &quot; (OMBB)&quot;, 10, false, true, false); // NON-NLS</span>
+<span class="nc" id="L77">  public static final Measurement ORIENTATION_OMBB =</span>
+      new Measurement(
+<span class="nc" id="L79">          Messages.getString(&quot;measure.orientation&quot;) + &quot; (OMBB)&quot;, 10, false, true, false); // NON-NLS</span>
+
+<span class="nc" id="L81">  protected static final List&lt;Measurement&gt; MEASUREMENT_LIST = new ArrayList&lt;&gt;();</span>
+
+  static {
+<span class="nc" id="L84">    MEASUREMENT_LIST.add(TOP_LEFT_POINT_X);</span>
+<span class="nc" id="L85">    MEASUREMENT_LIST.add(TOP_LEFT_POINT_Y);</span>
+<span class="nc" id="L86">    MEASUREMENT_LIST.add(WIDTH);</span>
+<span class="nc" id="L87">    MEASUREMENT_LIST.add(HEIGHT);</span>
+<span class="nc" id="L88">    MEASUREMENT_LIST.add(CENTROID_X);</span>
+<span class="nc" id="L89">    MEASUREMENT_LIST.add(CENTROID_Y);</span>
+<span class="nc" id="L90">    MEASUREMENT_LIST.add(AREA);</span>
+<span class="nc" id="L91">    MEASUREMENT_LIST.add(PERIMETER);</span>
+<span class="nc" id="L92">  }</span>
+
+  public PolygonGraphic() {
+<span class="nc" id="L95">    super(POINTS_NUMBER);</span>
+<span class="nc" id="L96">  }</span>
+
+  public PolygonGraphic(PolygonGraphic graphic) {
+<span class="nc" id="L99">    super(graphic);</span>
+<span class="nc" id="L100">  }</span>
+
+  @Override
+  public PolygonGraphic copy() {
+<span class="nc" id="L104">    return new PolygonGraphic(this);</span>
+  }
+
+  @Override
+  public Icon getIcon() {
+<span class="nc" id="L109">    return ICON;</span>
+  }
+
+  @Override
+  public String getUIName() {
+<span class="nc" id="L114">    return Messages.getString(&quot;MeasureToolBar.polygon&quot;);</span>
+  }
+
+  @Override
+  public int getKeyCode() {
+<span class="nc" id="L119">    return KeyEvent.VK_Y;</span>
+  }
+
+  @Override
+  public int getModifier() {
+<span class="nc" id="L124">    return 0;</span>
+  }
+
+  @Override
+  protected void prepareShape() throws InvalidShapeException {
+    // Do not draw points anymore
+<span class="nc" id="L130">    setPointNumber(pts.size());</span>
+<span class="nc" id="L131">    buildShape(null);</span>
+
+<span class="nc bnc" id="L133" title="All 2 branches missed.">    if (!isShapeValid()) {</span>
+<span class="nc" id="L134">      int lastPointIndex = pts.size() - 1;</span>
+<span class="nc bnc" id="L135" title="All 2 branches missed.">      if (lastPointIndex &gt; 1) {</span>
+<span class="nc" id="L136">        Point2D checkPoint = pts.get(lastPointIndex);</span>
+        /*
+         * Must not have two or several points with the same position at the end of the list (two points is the
+         * convention to have an uncompleted shape when drawing)
+         */
+<span class="nc bnc" id="L141" title="All 2 branches missed.">        for (int i = lastPointIndex - 1; i &gt;= 0; i--) {</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">          if (Objects.equals(checkPoint, pts.get(i))) {</span>
+<span class="nc" id="L143">            pts.remove(i);</span>
+          } else {
+            break;
+          }
+        }
+        // Not useful to close the shape
+<span class="nc bnc" id="L149" title="All 2 branches missed.">        if (Objects.equals(checkPoint, pts.get(0))) {</span>
+<span class="nc" id="L150">          pts.remove(0);</span>
+        }
+<span class="nc" id="L152">        setPointNumber(pts.size());</span>
+      }
+
+<span class="nc bnc" id="L155" title="All 4 branches missed.">      if (!isShapeValid() || pts.size() &lt; 3) {</span>
+<span class="nc" id="L156">        throw new InvalidShapeException(&quot;This Polygon cannot be drawn&quot;);</span>
+      }
+<span class="nc" id="L158">      buildShape(null);</span>
+    }
+<span class="nc" id="L160">  }</span>
+
+  @Override
+  public void buildShape(MouseEventDouble mouseEvent) {
+<span class="nc" id="L164">    Shape newShape = null;</span>
+<span class="nc" id="L165">    Optional&lt;Point2D&gt; firstHandlePoint = pts.stream().findFirst();</span>
+
+<span class="nc bnc" id="L167" title="All 2 branches missed.">    if (firstHandlePoint.isPresent()) {</span>
+<span class="nc" id="L168">      Point2D p = firstHandlePoint.get();</span>
+
+<span class="nc" id="L170">      Path2D polygonPath = new Path2D.Double(Path2D.WIND_NON_ZERO, pts.size());</span>
+<span class="nc" id="L171">      polygonPath.moveTo(p.getX(), p.getY());</span>
+
+<span class="nc bnc" id="L173" title="All 2 branches missed.">      for (Point2D pt : pts) {</span>
+<span class="nc bnc" id="L174" title="All 2 branches missed.">        if (pt == null) {</span>
+<span class="nc" id="L175">          break;</span>
+        }
+<span class="nc" id="L177">        polygonPath.lineTo(pt.getX(), pt.getY());</span>
+<span class="nc" id="L178">      }</span>
+<span class="nc" id="L179">      polygonPath.closePath();</span>
+<span class="nc" id="L180">      newShape = polygonPath;</span>
+    }
+
+<span class="nc" id="L183">    setShape(newShape, mouseEvent);</span>
+<span class="nc" id="L184">    updateLabel(mouseEvent, getDefaultView2d(mouseEvent));</span>
+<span class="nc" id="L185">  }</span>
+
+  @Override
+  public boolean isShapeValid() {
+<span class="nc bnc" id="L189" title="All 2 branches missed.">    if (!isGraphicComplete()) {</span>
+<span class="nc" id="L190">      return false;</span>
+    }
+
+<span class="nc" id="L193">    int lastPointIndex = pts.size() - 1;</span>
+
+<span class="nc bnc" id="L195" title="All 2 branches missed.">    if (lastPointIndex &gt; 0) {</span>
+<span class="nc" id="L196">      Point2D checkPoint = pts.get(lastPointIndex);</span>
+<span class="nc bnc" id="L197" title="All 2 branches missed.">      return !Objects.equals(checkPoint, pts.get(--lastPointIndex));</span>
+    }
+<span class="nc" id="L199">    return true;</span>
+  }
+
+  @Override
+  public List&lt;MeasureItem&gt; computeMeasurements(
+      MeasurableLayer layer, boolean releaseEvent, Unit displayUnit) {
+
+<span class="nc bnc" id="L206" title="All 6 branches missed.">    if (layer != null &amp;&amp; layer.hasContent() &amp;&amp; isShapeValid()) {</span>
+<span class="nc" id="L207">      MeasurementsAdapter adapter = layer.getMeasurementAdapter(displayUnit);</span>
+
+<span class="nc bnc" id="L209" title="All 2 branches missed.">      if (adapter != null) {</span>
+<span class="nc" id="L210">        ArrayList&lt;MeasureItem&gt; measVal = new ArrayList&lt;&gt;(12);</span>
+
+<span class="nc" id="L212">        double ratio = adapter.getCalibRatio();</span>
+<span class="nc" id="L213">        String unitStr = adapter.getUnit();</span>
+
+<span class="nc" id="L215">        Area pathArea = getPathArea();</span>
+<span class="nc" id="L216">        List&lt;Line2D.Double&gt; lineSegmentList = null;</span>
+
+<span class="nc bnc" id="L218" title="All 2 branches missed.">        if (TOP_LEFT_POINT_X.getComputed()) {</span>
+<span class="nc" id="L219">          Double val =</span>
+<span class="nc" id="L220">              Optional.ofNullable(pathArea)</span>
+<span class="nc" id="L221">                  .map(pa -&gt; adapter.getXCalibratedValue(pa.getBounds2D().getX()))</span>
+<span class="nc" id="L222">                  .orElse(null);</span>
+<span class="nc" id="L223">          measVal.add(new MeasureItem(TOP_LEFT_POINT_X, val, unitStr));</span>
+        }
+<span class="nc bnc" id="L225" title="All 2 branches missed.">        if (TOP_LEFT_POINT_Y.getComputed()) {</span>
+<span class="nc" id="L226">          Double val =</span>
+<span class="nc" id="L227">              Optional.ofNullable(pathArea)</span>
+<span class="nc" id="L228">                  .map(pa -&gt; adapter.getYCalibratedValue(pa.getBounds2D().getY()))</span>
+<span class="nc" id="L229">                  .orElse(null);</span>
+<span class="nc" id="L230">          measVal.add(new MeasureItem(TOP_LEFT_POINT_Y, val, unitStr));</span>
+        }
+<span class="nc bnc" id="L232" title="All 2 branches missed.">        if (WIDTH.getComputed()) {</span>
+<span class="nc" id="L233">          Double val =</span>
+<span class="nc" id="L234">              Optional.ofNullable(pathArea)</span>
+<span class="nc" id="L235">                  .map(pa -&gt; ratio * pa.getBounds2D().getWidth())</span>
+<span class="nc" id="L236">                  .orElse(null);</span>
+<span class="nc" id="L237">          measVal.add(new MeasureItem(WIDTH, val, unitStr));</span>
+        }
+<span class="nc bnc" id="L239" title="All 2 branches missed.">        if (HEIGHT.getComputed()) {</span>
+<span class="nc" id="L240">          Double val =</span>
+<span class="nc" id="L241">              Optional.ofNullable(pathArea)</span>
+<span class="nc" id="L242">                  .map(pa -&gt; ratio * pa.getBounds2D().getHeight())</span>
+<span class="nc" id="L243">                  .orElse(null);</span>
+<span class="nc" id="L244">          measVal.add(new MeasureItem(HEIGHT, val, unitStr));</span>
+        }
+
+<span class="nc" id="L247">        Point2D centroid = null;</span>
+<span class="nc bnc" id="L248" title="All 2 branches missed.">        if (CENTROID_X.getComputed()) {</span>
+<span class="nc bnc" id="L249" title="All 2 branches missed.">          if (lineSegmentList == null) {</span>
+<span class="nc" id="L250">            lineSegmentList = getClosedPathSegments(pathArea);</span>
+          }
+<span class="nc bnc" id="L252" title="All 2 branches missed.">          centroid = (centroid == null) ? getCentroid(lineSegmentList) : centroid;</span>
+<span class="nc bnc" id="L253" title="All 2 branches missed.">          Double val = (centroid != null) ? adapter.getXCalibratedValue(centroid.getX()) : null;</span>
+<span class="nc" id="L254">          measVal.add(new MeasureItem(CENTROID_X, val, unitStr));</span>
+        }
+<span class="nc bnc" id="L256" title="All 2 branches missed.">        if (CENTROID_Y.getComputed()) {</span>
+<span class="nc bnc" id="L257" title="All 2 branches missed.">          if (lineSegmentList == null) {</span>
+<span class="nc" id="L258">            lineSegmentList = getClosedPathSegments(pathArea);</span>
+          }
+<span class="nc bnc" id="L260" title="All 2 branches missed.">          centroid = (centroid == null) ? getCentroid(lineSegmentList) : centroid;</span>
+<span class="nc bnc" id="L261" title="All 2 branches missed.">          Double val = (centroid != null) ? adapter.getYCalibratedValue(centroid.getY()) : null;</span>
+<span class="nc" id="L262">          measVal.add(new MeasureItem(CENTROID_Y, val, unitStr));</span>
+        }
+<span class="nc bnc" id="L264" title="All 2 branches missed.">        if (AREA.getComputed()) {</span>
+<span class="nc bnc" id="L265" title="All 2 branches missed.">          if (lineSegmentList == null) {</span>
+<span class="nc" id="L266">            lineSegmentList = getClosedPathSegments(pathArea);</span>
+          }
+          Double val =
+<span class="nc bnc" id="L269" title="All 2 branches missed.">              (lineSegmentList != null) ? getAreaValue(lineSegmentList) * ratio * ratio : null;</span>
+<span class="nc bnc" id="L270" title="All 2 branches missed.">          String unit = &quot;pix&quot;.equals(unitStr) ? unitStr : unitStr + &quot;2&quot;; // NON-NLS</span>
+<span class="nc" id="L271">          measVal.add(new MeasureItem(AREA, val, unit));</span>
+        }
+<span class="nc bnc" id="L273" title="All 2 branches missed.">        if (PERIMETER.getComputed()) {</span>
+<span class="nc bnc" id="L274" title="All 2 branches missed.">          if (lineSegmentList == null) {</span>
+<span class="nc" id="L275">            lineSegmentList = getClosedPathSegments(pathArea);</span>
+          }
+<span class="nc bnc" id="L277" title="All 2 branches missed.">          Double val = (lineSegmentList != null) ? getPerimeter(lineSegmentList) * ratio : null;</span>
+<span class="nc" id="L278">          measVal.add(new MeasureItem(PERIMETER, val, unitStr));</span>
+        }
+<span class="nc bnc" id="L280" title="All 6 branches missed.">        if (releaseEvent &amp;&amp; (WIDTH_OMBB.getComputed() || LENGTH_OMBB.getComputed())) {</span>
+<span class="nc" id="L281">          Double l = null;</span>
+<span class="nc" id="L282">          Double w = null;</span>
+<span class="nc" id="L283">          Double o = null;</span>
+
+<span class="nc" id="L285">          MinimumEnclosingRectangle rect = new MinimumEnclosingRectangle(pts, false);</span>
+<span class="nc" id="L286">          List&lt;java.awt.geom.Point2D&gt; minRect = rect.getMinimumRectangle();</span>
+<span class="nc bnc" id="L287" title="All 2 branches missed.">          if (minRect.size() == 4) {</span>
+<span class="nc" id="L288">            l = ratio * minRect.get(0).distance(minRect.get(1));</span>
+<span class="nc" id="L289">            w = ratio * minRect.get(1).distance(minRect.get(2));</span>
+<span class="nc" id="L290">            o = MathUtil.getOrientation(minRect.get(0), minRect.get(1));</span>
+<span class="nc bnc" id="L291" title="All 2 branches missed.">            if (l &lt; w) {</span>
+<span class="nc" id="L292">              double tmp = l;</span>
+<span class="nc" id="L293">              l = w;</span>
+<span class="nc" id="L294">              w = tmp;</span>
+<span class="nc" id="L295">              o = MathUtil.getOrientation(minRect.get(1), minRect.get(2));</span>
+            }
+          }
+<span class="nc" id="L298">          measVal.add(new MeasureItem(LENGTH_OMBB, l, unitStr));</span>
+<span class="nc" id="L299">          measVal.add(new MeasureItem(WIDTH_OMBB, w, unitStr));</span>
+<span class="nc" id="L300">          measVal.add(new MeasureItem(ORIENTATION_OMBB, o, Messages.getString(&quot;measure.deg&quot;)));</span>
+        }
+
+<span class="nc" id="L303">        List&lt;MeasureItem&gt; stats = getImageStatistics(layer, releaseEvent);</span>
+
+<span class="nc bnc" id="L305" title="All 2 branches missed.">        if (stats != null) {</span>
+<span class="nc" id="L306">          measVal.addAll(stats);</span>
+        }
+
+<span class="nc" id="L309">        return measVal;</span>
+      }
+    }
+<span class="nc" id="L312">    return Collections.emptyList();</span>
+  }
+
+  @Override
+  public List&lt;Measurement&gt; getMeasurementList() {
+<span class="nc" id="L317">    return MEASUREMENT_LIST;</span>
+  }
+
+  protected final Area getPathArea() {
+<span class="nc" id="L321">    return getPathArea(pts);</span>
+  }
+
+  /**
+   * Construct a polygon Area which represents a non-self-intersecting shape using a path Winding
+   * Rule : WIND_NON_ZERO
+   *
+   * @return area of the closed polygon, or null if shape is invalid
+   */
+  public static Area getPathArea(List&lt;Point2D&gt; pts) {
+
+<span class="nc" id="L332">    Optional&lt;Point2D&gt; firstHandlePoint = pts.stream().findFirst();</span>
+
+<span class="nc bnc" id="L334" title="All 2 branches missed.">    if (firstHandlePoint.isPresent()) {</span>
+<span class="nc" id="L335">      Point2D p = firstHandlePoint.get();</span>
+<span class="nc" id="L336">      Path2D polygonPath = new Path2D.Double(Path2D.WIND_NON_ZERO, pts.size());</span>
+<span class="nc" id="L337">      polygonPath.moveTo(p.getX(), p.getY());</span>
+
+<span class="nc bnc" id="L339" title="All 2 branches missed.">      for (Point2D pt : pts) {</span>
+<span class="nc bnc" id="L340" title="All 2 branches missed.">        if (pt == null) {</span>
+<span class="nc" id="L341">          return null;</span>
+        }
+<span class="nc" id="L343">        polygonPath.lineTo(pt.getX(), pt.getY());</span>
+<span class="nc" id="L344">      }</span>
+<span class="nc" id="L345">      return new Area(polygonPath);</span>
+    }
+<span class="nc" id="L347">    return null;</span>
+  }
+
+  /**
+   * Construct a list of line segments which defines the outside path of a given polygon Area with
+   * each vertex ordered in the same direction&lt;br&gt;
+   *
+   * @return list of line segments around the closed polygon, or null if shape is invalid
+   */
+  public final List&lt;Line2D.Double&gt; getClosedPathSegments() {
+<span class="nc" id="L357">    return getClosedPathSegments(getPathArea());</span>
+  }
+
+  protected final List&lt;Line2D.Double&gt; getClosedPathSegments(Area pathArea) {
+
+<span class="nc" id="L362">    List&lt;Line2D.Double&gt; lineSegmentList = null;</span>
+
+<span class="nc bnc" id="L364" title="All 2 branches missed.">    if (pathArea != null) {</span>
+
+<span class="nc" id="L366">      lineSegmentList = new ArrayList&lt;&gt;(pts.size());</span>
+<span class="nc" id="L367">      PathIterator pathIt = pathArea.getPathIterator(null);</span>
+
+<span class="nc" id="L369">      double[] coords = new double[6];</span>
+<span class="nc" id="L370">      Double curX = NaN;</span>
+<span class="nc" id="L371">      Double curY = NaN;</span>
+
+<span class="nc" id="L373">      Set&lt;Point2D&gt; ptSet = HashSet.newHashSet(pts.size() * 2);</span>
+
+<span class="nc bnc" id="L375" title="All 2 branches missed.">      while (!pathIt.isDone()) {</span>
+
+<span class="nc" id="L377">        int segType = pathIt.currentSegment(coords);</span>
+<span class="nc" id="L378">        Double lastX = coords[0];</span>
+<span class="nc" id="L379">        Double lastY = coords[1];</span>
+
+<span class="nc bnc" id="L381" title="All 4 branches missed.">        switch (segType) {</span>
+          case PathIterator.SEG_CLOSE:
+<span class="nc" id="L383">            break;</span>
+          case PathIterator.SEG_LINETO:
+<span class="nc" id="L385">            Point2D ptP1 = new Point2D.Double(curX, curY);</span>
+<span class="nc" id="L386">            Point2D ptP2 = new Point2D.Double(lastX, lastY);</span>
+
+<span class="nc" id="L388">            BigDecimal dist =</span>
+<span class="nc" id="L389">                BigDecimal.valueOf(ptP1.distance(ptP2)).setScale(10, RoundingMode.DOWN);</span>
+<span class="nc bnc" id="L390" title="All 2 branches missed.">            if (dist.compareTo(BigDecimal.ZERO) != 0) {</span>
+<span class="nc bnc" id="L391" title="All 2 branches missed.">              for (Point2D pt : new Point2D[] {ptP1, ptP2}) {</span>
+<span class="nc" id="L392">                boolean newPt = true;</span>
+<span class="nc bnc" id="L393" title="All 2 branches missed.">                for (Point2D p : ptSet) {</span>
+<span class="nc" id="L394">                  dist = BigDecimal.valueOf(p.distance(pt)).setScale(10, RoundingMode.DOWN);</span>
+<span class="nc bnc" id="L395" title="All 2 branches missed.">                  if (dist.compareTo(BigDecimal.ZERO) == 0) {</span>
+<span class="nc" id="L396">                    pt.setLocation(p);</span>
+<span class="nc" id="L397">                    newPt = false;</span>
+<span class="nc" id="L398">                    break;</span>
+                  }
+<span class="nc" id="L400">                }</span>
+<span class="nc bnc" id="L401" title="All 2 branches missed.">                if (newPt) {</span>
+<span class="nc" id="L402">                  ptSet.add(pt);</span>
+                }
+              }
+<span class="nc" id="L405">              lineSegmentList.add(new Line2D.Double(ptP1, ptP2));</span>
+            }
+
+<span class="nc" id="L408">            curX = lastX;</span>
+<span class="nc" id="L409">            curY = lastY;</span>
+<span class="nc" id="L410">            break;</span>
+          case PathIterator.SEG_MOVETO:
+<span class="nc" id="L412">            curX = lastX;</span>
+<span class="nc" id="L413">            curY = lastY;</span>
+<span class="nc" id="L414">            break;</span>
+
+          default:
+            break;
+        }
+<span class="nc" id="L419">        pathIt.next();</span>
+<span class="nc" id="L420">      }</span>
+    }
+
+<span class="nc" id="L423">    return lineSegmentList;</span>
+  }
+
+  /**
+   * @return perimeter the closed polygon, or null if shape is invalid
+   */
+  public Double getPerimeter() {
+<span class="nc" id="L430">    return getPerimeter(getClosedPathSegments());</span>
+  }
+
+  protected Double getPerimeter(List&lt;Line2D.Double&gt; lineSegmentList) {
+<span class="nc bnc" id="L434" title="All 2 branches missed.">    if (lineSegmentList != null) {</span>
+<span class="nc" id="L435">      double perimeter = 0.0;</span>
+
+<span class="nc bnc" id="L437" title="All 2 branches missed.">      for (Line2D line : lineSegmentList) {</span>
+<span class="nc" id="L438">        perimeter += line.getP1().distance(line.getP2());</span>
+<span class="nc" id="L439">      }</span>
+
+<span class="nc" id="L441">      return perimeter;</span>
+    }
+<span class="nc" id="L443">    return null;</span>
+  }
+
+  /**
+   * The centroid (a.k.a. the center of mass, or center of gravity) of a polygon can be computed as
+   * the weighted sum of the centroids of a partition of the polygon into triangles. &lt;br&gt;
+   * This suggests first triangulating the polygon, then forming a sum of the centroids of each
+   * triangle, weighted by the area of each triangle, the whole sum normalized by the total polygon
+   * area. &lt;br&gt;
+   * &lt;br&gt;
+   * Simpler method: the triangulation need not be a partition, but rather can use positively and
+   * negatively oriented triangles (with positive and negative areas), as is used when computing the
+   * area of a polygon. Then, simple algorithm for computing the centroid is based on a sum of
+   * triangle centroids weighted with their signed area. The triangles can be taken to be those
+   * formed by one fixed vertex v0 of the polygon, and the two endpoints of consecutive edges of the
+   * polygon: (v1,v2), (v2,v3), etc.&lt;br&gt;
+   *
+   * @return position of the centroid assuming the polygon is closed, or null if shape is not valid
+   */
+  public Point2D getCentroid() {
+<span class="nc" id="L463">    return getCentroid(getClosedPathSegments());</span>
+  }
+
+  protected Point2D getCentroid(List&lt;Line2D.Double&gt; lineSegmentList) {
+<span class="nc bnc" id="L467" title="All 2 branches missed.">    if (lineSegmentList != null) {</span>
+<span class="nc" id="L468">      double area = 0d;</span>
+<span class="nc" id="L469">      double cx = 0d;</span>
+<span class="nc" id="L470">      double cy = 0d;</span>
+
+<span class="nc bnc" id="L472" title="All 2 branches missed.">      for (Line2D.Double line : lineSegmentList) {</span>
+<span class="nc" id="L473">        Point2D p1 = line.getP1();</span>
+<span class="nc" id="L474">        Point2D p2 = line.getP2();</span>
+
+<span class="nc" id="L476">        double tmp = (p1.getX() * p2.getY()) - (p2.getX() * p1.getY());</span>
+<span class="nc" id="L477">        area += tmp;</span>
+<span class="nc" id="L478">        cx += (p1.getX() + p2.getX()) * tmp;</span>
+<span class="nc" id="L479">        cy += (p1.getY() + p2.getY()) * tmp;</span>
+<span class="nc" id="L480">      }</span>
+<span class="nc" id="L481">      area /= 2.0;</span>
+<span class="nc bnc" id="L482" title="All 4 branches missed.">      if (area == 0.0 || MathUtil.isEqualToZero(area)) {</span>
+<span class="nc" id="L483">        return null;</span>
+      }
+<span class="nc" id="L485">      cx /= (6.0 * area);</span>
+<span class="nc" id="L486">      cy /= (6.0 * area);</span>
+
+<span class="nc" id="L488">      return new Point2D.Double(cx, cy);</span>
+    }
+<span class="nc" id="L490">    return null;</span>
+  }
+
+  /**
+   * &lt;b&gt;Algorithm&lt;/b&gt;&lt;br&gt;
+   * &lt;br&gt;
+   * -1- List the x and y coordinates of each vertex of the polygon in counterclockwise order about
+   * the normal. Repeat the coordinates of the first point at the end of the list. &lt;br&gt;
+   * -2- Multiply the x coordinate of each vertex by the y coordinate of the next vertex.&lt;br&gt;
+   * -3- Multiply the y coordinate of each vertex by the x coordinate of the next vertex &lt;br&gt;
+   * -4- Subtract the sum of the products computed in step 3 from the sum of the products from step
+   * 2 &lt;br&gt;
+   * -5- Divide this difference by 2 to get the area of the polygon. &lt;br&gt;
+   * &lt;br&gt;
+   * &lt;b&gt; Warning &lt;/b&gt;&lt;br&gt;
+   * &lt;br&gt;
+   * This formula computes area with orientation. When listing the points in a clockwise order
+   * instead of counterclockwise, result is the negative of the area. &lt;br&gt;
+   * The method produces the wrong answer for crossed polygons, where one side crosses over another.
+   * &lt;br&gt;
+   * For instance, when two lines of the drawing path cross like a figure eight, result is the area
+   * surrounded counterclockwise minus the area surrounded clockwise.&lt;br&gt;
+   * It works correctly however for triangles, regular, irregular, convex and concave polygons. &lt;br&gt;
+   * &lt;br&gt;
+   * Solution is to compute area only from the outside path of the polygon with each vertices
+   * ordered in the same direction.&lt;br&gt;
+   * This can be achieved trough Area() constructors which decompose the shape into
+   * non-self-intersecting shape.
+   */
+  public Double getAreaValue() {
+<span class="nc" id="L520">    return getAreaValue(getClosedPathSegments());</span>
+  }
+
+  protected Double getAreaValue(List&lt;Line2D.Double&gt; lineSegmentList) {
+<span class="nc bnc" id="L524" title="All 2 branches missed.">    if (lineSegmentList != null) {</span>
+<span class="nc" id="L525">      double area = 0d;</span>
+
+<span class="nc bnc" id="L527" title="All 2 branches missed.">      for (Line2D.Double line : lineSegmentList) {</span>
+<span class="nc" id="L528">        Point2D p1 = line.getP1();</span>
+<span class="nc" id="L529">        Point2D p2 = line.getP2();</span>
+
+<span class="nc" id="L531">        area += (p1.getX() * p2.getY()) - (p2.getX() * p1.getY());</span>
+<span class="nc" id="L532">      }</span>
+
+<span class="nc" id="L534">      return Math.abs(area) / 2.0;</span>
+    }
+<span class="nc" id="L536">    return null;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

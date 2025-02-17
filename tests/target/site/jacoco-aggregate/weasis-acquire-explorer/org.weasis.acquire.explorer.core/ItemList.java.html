@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ItemList.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer.core</a> &gt; <span class="el_source">ItemList.java</span></div><h1>ItemList.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer.core;
+
+import java.util.ArrayList;
+import java.util.List;
+import org.weasis.acquire.explorer.util.AbstractBean;
+
+public class ItemList&lt;T&gt; extends AbstractBean&lt;ItemList.eProperty&gt; {
+
+<span class="nc" id="L18">  public enum eProperty {</span>
+<span class="nc" id="L19">    INTERVAL_ADDED,</span>
+<span class="nc" id="L20">    INTERVAL_REMOVED,</span>
+<span class="nc" id="L21">    CONTENT_CHANGED</span>
+  }
+
+  protected final ArrayList&lt;T&gt; itemList;
+
+<span class="nc" id="L26">  public ItemList() {</span>
+<span class="nc" id="L27">    itemList = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L28">  }</span>
+
+<span class="nc" id="L30">  public ItemList(List&lt;T&gt; itemList) {</span>
+<span class="nc" id="L31">    this.itemList = new ArrayList&lt;&gt;(itemList);</span>
+<span class="nc" id="L32">  }</span>
+
+  public int getSize() {
+<span class="nc" id="L35">    return itemList.size();</span>
+  }
+
+  public boolean isEmpty() {
+<span class="nc" id="L39">    return itemList.isEmpty();</span>
+  }
+
+  public T getFirstItem() {
+<span class="nc" id="L43">    return getItem(0);</span>
+  }
+
+  public T getLastItem() {
+<span class="nc" id="L47">    return getItem(itemList.size() - 1);</span>
+  }
+
+  public T getItem(int index) {
+<span class="nc bnc" id="L51" title="All 4 branches missed.">    if (index &gt;= 0 &amp;&amp; index &lt; itemList.size()) {</span>
+<span class="nc" id="L52">      return itemList.get(index);</span>
+    } else {
+<span class="nc" id="L54">      return null;</span>
+    }
+  }
+
+  public int getIndex(T item) {
+<span class="nc" id="L59">    return itemList.indexOf(item);</span>
+  }
+
+  public boolean containsItem(T item) {
+<span class="nc" id="L63">    return itemList.contains(item);</span>
+  }
+
+  public List&lt;T&gt; getList() {
+<span class="nc" id="L67">    return itemList;</span>
+  }
+
+  public void addItem(T item) {
+<span class="nc" id="L71">    insertItem(Integer.MAX_VALUE, item); // append to the end of list</span>
+<span class="nc" id="L72">  }</span>
+
+  public void insertItem(int index, T item) {
+<span class="nc bnc" id="L75" title="All 4 branches missed.">    if (item != null &amp;&amp; !itemList.contains(item)) {</span>
+<span class="nc bnc" id="L76" title="All 2 branches missed.">      int insert = index &lt; 0 ? 0 : Math.min(index, itemList.size());</span>
+<span class="nc" id="L77">      itemList.add(insert, item);</span>
+<span class="nc" id="L78">      firePropertyChange(eProperty.INTERVAL_ADDED, null, new Interval(insert, insert));</span>
+    }
+<span class="nc" id="L80">  }</span>
+
+  public void addItems(List&lt;T&gt; list) {
+<span class="nc bnc" id="L83" title="All 4 branches missed.">    if (list != null &amp;&amp; !list.isEmpty()) {</span>
+<span class="nc bnc" id="L84" title="All 2 branches missed.">      for (T item : list) {</span>
+<span class="nc bnc" id="L85" title="All 2 branches missed.">        if (item != null) {</span>
+<span class="nc" id="L86">          itemList.add(item);</span>
+        }
+<span class="nc" id="L88">      }</span>
+<span class="nc" id="L89">      firePropertyChange(</span>
+          eProperty.INTERVAL_ADDED,
+          null,
+<span class="nc" id="L92">          new Interval(itemList.size() - list.size(), itemList.size() - 1));</span>
+    }
+<span class="nc" id="L94">  }</span>
+
+  public void removeItem(T item) {
+<span class="nc" id="L97">    removeItem(itemList.indexOf(item));</span>
+<span class="nc" id="L98">  }</span>
+
+  public void removeItem(int index) {
+<span class="nc bnc" id="L101" title="All 4 branches missed.">    if (index &gt;= 0 &amp;&amp; index &lt; itemList.size()) {</span>
+<span class="nc" id="L102">      firePropertyChange(eProperty.INTERVAL_REMOVED, null, new Interval(index, index));</span>
+<span class="nc" id="L103">      itemList.remove(index);</span>
+    }
+<span class="nc" id="L105">  }</span>
+
+  public void removeItems(List&lt;T&gt; list) {
+<span class="nc bnc" id="L108" title="All 4 branches missed.">    if (list != null &amp;&amp; !list.isEmpty()) {</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">      for (T item : list) {</span>
+<span class="nc" id="L110">        removeItem(item);</span>
+<span class="nc" id="L111">      }</span>
+    }
+<span class="nc" id="L113">  }</span>
+
+  public void clear() {
+<span class="nc" id="L116">    int size = itemList.size();</span>
+<span class="nc bnc" id="L117" title="All 2 branches missed.">    if (size &gt; 0) {</span>
+<span class="nc" id="L118">      firePropertyChange(eProperty.INTERVAL_REMOVED, null, new Interval(0, size - 1));</span>
+<span class="nc" id="L119">      itemList.clear();</span>
+    }
+<span class="nc" id="L121">  }</span>
+
+  public void notifyItemUpdate(T item) {
+<span class="nc" id="L124">    notifyItemUpdate(itemList.indexOf(item));</span>
+<span class="nc" id="L125">  }</span>
+
+  public void notifyItemUpdate(int index) {
+<span class="nc bnc" id="L128" title="All 4 branches missed.">    if (index &gt;= 0 &amp;&amp; index &lt; itemList.size()) {</span>
+<span class="nc" id="L129">      firePropertyChange(eProperty.CONTENT_CHANGED, null, new Interval(index, index));</span>
+    }
+<span class="nc" id="L131">  }</span>
+
+  public void notifyItemsUpdate(List&lt;T&gt; list) {
+<span class="nc bnc" id="L134" title="All 2 branches missed.">    for (T item : list) {</span>
+<span class="nc" id="L135">      notifyItemUpdate(item);</span>
+<span class="nc" id="L136">    }</span>
+<span class="nc" id="L137">  }</span>
+
+  public static class Interval {
+    private final int min;
+    private final int max;
+
+<span class="nc" id="L143">    public Interval(int index0, int index1) {</span>
+<span class="nc" id="L144">      this.min = Math.min(index0, index1);</span>
+<span class="nc" id="L145">      this.max = Math.max(index0, index1);</span>
+<span class="nc" id="L146">    }</span>
+
+    public int getMin() {
+<span class="nc" id="L149">      return min;</span>
+    }
+
+    public int getMax() {
+<span class="nc" id="L153">      return max;</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

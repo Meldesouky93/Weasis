@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>GridBagLayoutModel.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.image</a> &gt; <span class="el_source">GridBagLayoutModel.java</span></div><h1>GridBagLayoutModel.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.image;
+
+import com.formdev.flatlaf.ui.FlatUIUtils;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GridBagConstraints;
+import java.awt.geom.Rectangle2D;
+import java.io.InputStream;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import javax.swing.Icon;
+import javax.xml.XMLConstants;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.api.gui.util.GUIEntry;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.gui.util.GuiUtils.IconColor;
+import org.weasis.core.api.gui.util.RadioMenuItem;
+import org.weasis.core.api.service.WProperties;
+import org.weasis.core.api.util.Copyable;
+import org.weasis.core.api.util.ResourceUtil;
+import org.weasis.core.util.StringUtil;
+import org.xml.sax.Attributes;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
+
+/** GridBagLayoutModel is the model for the plugin container. */
+public class GridBagLayoutModel implements GUIEntry, Copyable&lt;GridBagLayoutModel&gt; {
+
+<span class="nc" id="L44">  private static final Logger LOGGER = LoggerFactory.getLogger(GridBagLayoutModel.class);</span>
+  public static final int ICON_SIZE = 22;
+
+  private String title;
+  private Icon icon;
+  private final String id;
+
+  private final Map&lt;LayoutConstraints, Component&gt; constraints;
+
+<span class="nc" id="L53">  public GridBagLayoutModel(String id, String title, int rows, int cols, String defaultClass) {</span>
+<span class="nc" id="L54">    this.title = title;</span>
+<span class="nc" id="L55">    this.id = id;</span>
+<span class="nc" id="L56">    this.constraints = new LinkedHashMap&lt;&gt;(cols * rows);</span>
+<span class="nc" id="L57">    double weightX = 1.0 / cols;</span>
+<span class="nc" id="L58">    double weightY = 1.0 / rows;</span>
+<span class="nc bnc" id="L59" title="All 2 branches missed.">    for (int y = 0; y &lt; rows; y++) {</span>
+<span class="nc bnc" id="L60" title="All 2 branches missed.">      for (int x = 0; x &lt; cols; x++) {</span>
+<span class="nc" id="L61">        constraints.put(</span>
+            new LayoutConstraints(
+                defaultClass,
+                y * cols + cols,
+                x,
+                y,
+                1,
+                1,
+                weightX,
+                weightY,
+                GridBagConstraints.CENTER,
+                GridBagConstraints.BOTH),
+            null);
+      }
+    }
+<span class="nc" id="L76">    this.icon = buildIcon();</span>
+<span class="nc" id="L77">  }</span>
+
+  public GridBagLayoutModel(
+<span class="nc" id="L80">      Map&lt;LayoutConstraints, Component&gt; constraints, String id, String title) {</span>
+<span class="nc bnc" id="L81" title="All 2 branches missed.">    if (constraints == null) {</span>
+<span class="nc" id="L82">      throw new IllegalArgumentException(&quot;constraints cannot be null&quot;);</span>
+    }
+<span class="nc" id="L84">    this.title = title;</span>
+<span class="nc" id="L85">    this.id = id;</span>
+<span class="nc" id="L86">    this.constraints = constraints;</span>
+<span class="nc" id="L87">    this.icon = buildIcon();</span>
+<span class="nc" id="L88">  }</span>
+
+<span class="nc" id="L90">  public GridBagLayoutModel(InputStream stream, String id, String title) {</span>
+<span class="nc" id="L91">    this.title = title;</span>
+<span class="nc" id="L92">    this.id = id;</span>
+<span class="nc" id="L93">    this.constraints = new LinkedHashMap&lt;&gt;();</span>
+    try {
+<span class="nc" id="L95">      SAXParserFactory factory = SAXParserFactory.newInstance();</span>
+<span class="nc" id="L96">      factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);</span>
+<span class="nc" id="L97">      SAXParser parser = factory.newSAXParser();</span>
+<span class="nc" id="L98">      parser.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, &quot;&quot;);</span>
+<span class="nc" id="L99">      parser.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, &quot;&quot;);</span>
+<span class="nc" id="L100">      parser.parse(stream, new SAXAdapter());</span>
+<span class="nc" id="L101">    } catch (Exception e) {</span>
+<span class="nc" id="L102">      LOGGER.error(&quot;Loading layout xml&quot;, e);</span>
+<span class="nc" id="L103">    }</span>
+<span class="nc bnc" id="L104" title="All 2 branches missed.">    this.icon = icon == null ? buildIcon() : icon;</span>
+<span class="nc" id="L105">  }</span>
+
+<span class="nc" id="L107">  public GridBagLayoutModel(GridBagLayoutModel layoutModel) {</span>
+<span class="nc" id="L108">    this.title = layoutModel.title;</span>
+<span class="nc" id="L109">    this.id = layoutModel.id;</span>
+<span class="nc" id="L110">    this.icon = layoutModel.icon;</span>
+
+<span class="nc" id="L112">    this.constraints = new LinkedHashMap&lt;&gt;(layoutModel.constraints.size());</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">    for (LayoutConstraints layoutConstraints : layoutModel.constraints.keySet()) {</span>
+<span class="nc" id="L114">      this.constraints.put(layoutConstraints.copy(), null);</span>
+<span class="nc" id="L115">    }</span>
+<span class="nc" id="L116">  }</span>
+
+  private Icon buildIcon() {
+<span class="nc" id="L119">    return new Icon() {</span>
+
+      @Override
+      public void paintIcon(Component c, Graphics g, int x, int y) {
+<span class="nc" id="L123">        Graphics2D g2d = (Graphics2D) g;</span>
+<span class="nc" id="L124">        Color oldColor = g.getColor();</span>
+<span class="nc" id="L125">        Object[] hints = GuiUtils.setRenderingHints(g, true, true, false);</span>
+
+<span class="nc" id="L127">        Color background = IconColor.ACTIONS_GREY.color;</span>
+<span class="nc" id="L128">        Color foreground = FlatUIUtils.getUIColor(&quot;MenuItem.background&quot;, Color.WHITE);</span>
+<span class="nc bnc" id="L129" title="All 4 branches missed.">        if (c instanceof RadioMenuItem menuItem &amp;&amp; menuItem.isArmed()) {</span>
+<span class="nc" id="L130">          background = FlatUIUtils.getUIColor(&quot;MenuItem.selectionForeground&quot;, Color.DARK_GRAY);</span>
+<span class="nc" id="L131">          foreground = FlatUIUtils.getUIColor(&quot;MenuItem.selectionBackground&quot;, Color.LIGHT_GRAY);</span>
+<span class="nc bnc" id="L132" title="All 4 branches missed.">        } else if (c instanceof RadioMenuItem menuItem &amp;&amp; menuItem.isSelected()) {</span>
+<span class="nc" id="L133">          foreground = FlatUIUtils.getUIColor(&quot;MenuItem.checkBackground&quot;, Color.BLUE);</span>
+        }
+<span class="nc" id="L135">        g2d.setColor(background);</span>
+<span class="nc" id="L136">        g2d.fillRect(x, y, getIconWidth(), getIconHeight());</span>
+<span class="nc" id="L137">        g2d.setColor(foreground);</span>
+<span class="nc" id="L138">        Dimension dim = getGridSize();</span>
+<span class="nc" id="L139">        double stepX = getIconWidth() / dim.getWidth();</span>
+<span class="nc" id="L140">        double stepY = getIconHeight() / dim.getHeight();</span>
+
+<span class="nc bnc" id="L142" title="All 2 branches missed.">        for (LayoutConstraints l : constraints.keySet()) {</span>
+<span class="nc" id="L143">          Rectangle2D rect =</span>
+              new Rectangle2D.Double(
+                  x + l.gridx * stepX,
+                  y + l.gridy * stepY,
+                  l.gridwidth * stepX,
+                  l.gridheight * stepY);
+<span class="nc" id="L149">          Color color = l.getColor();</span>
+<span class="nc bnc" id="L150" title="All 2 branches missed.">          if (color != null) {</span>
+<span class="nc" id="L151">            g2d.setColor(color);</span>
+<span class="nc" id="L152">            g2d.fill(rect);</span>
+<span class="nc" id="L153">            g2d.setColor(foreground);</span>
+          }
+<span class="nc" id="L155">          g2d.draw(rect);</span>
+<span class="nc" id="L156">        }</span>
+<span class="nc" id="L157">        g2d.setColor(oldColor);</span>
+<span class="nc" id="L158">        GuiUtils.resetRenderingHints(g, hints);</span>
+<span class="nc" id="L159">      }</span>
+
+      @Override
+      public int getIconWidth() {
+<span class="nc" id="L163">        return GuiUtils.getScaleLength(ICON_SIZE);</span>
+      }
+
+      @Override
+      public int getIconHeight() {
+<span class="nc" id="L168">        return GuiUtils.getScaleLength(ICON_SIZE);</span>
+      }
+    };
+  }
+
+  public String getId() {
+<span class="nc" id="L174">    return id;</span>
+  }
+
+  @Override
+  public String toString() {
+<span class="nc" id="L179">    return title;</span>
+  }
+
+  public Map&lt;LayoutConstraints, Component&gt; getConstraints() {
+<span class="nc" id="L183">    return constraints;</span>
+  }
+
+  public Dimension getGridSize() {
+<span class="nc" id="L187">    int lastx = 0;</span>
+<span class="nc" id="L188">    int lasty = 0;</span>
+<span class="nc bnc" id="L189" title="All 2 branches missed.">    for (LayoutConstraints key : constraints.keySet()) {</span>
+<span class="nc bnc" id="L190" title="All 2 branches missed.">      if (key.gridx &gt; lastx) {</span>
+<span class="nc" id="L191">        lastx = key.gridx;</span>
+      }
+<span class="nc bnc" id="L193" title="All 2 branches missed.">      if (key.gridy &gt; lasty) {</span>
+<span class="nc" id="L194">        lasty = key.gridy;</span>
+      }
+<span class="nc" id="L196">    }</span>
+<span class="nc" id="L197">    return new Dimension(lastx + 1, lasty + 1);</span>
+  }
+
+  @Override
+  public String getDescription() {
+<span class="nc" id="L202">    return null;</span>
+  }
+
+  @Override
+  public Icon getIcon() {
+<span class="nc" id="L207">    return icon;</span>
+  }
+
+  public void setIcon(Icon icon) {
+<span class="nc" id="L211">    this.icon = icon;</span>
+<span class="nc" id="L212">  }</span>
+
+  @Override
+  public String getUIName() {
+<span class="nc" id="L216">    return title;</span>
+  }
+
+  public void setTitle(String title) {
+<span class="nc" id="L220">    this.title = title;</span>
+<span class="nc" id="L221">  }</span>
+
+  @Override
+  public GridBagLayoutModel copy() {
+<span class="nc" id="L225">    return new GridBagLayoutModel(this);</span>
+  }
+
+<span class="nc" id="L228">  private final class SAXAdapter extends DefaultHandler {</span>
+    /**
+     * @see java.awt.GridBagConstraints#gridx
+     */
+    private int x;
+
+    /**
+     * @see java.awt.GridBagConstraints#gridy
+     */
+    private int y;
+
+    /**
+     * @see java.awt.GridBagConstraints#gridwidth
+     */
+    private int width;
+
+    /**
+     * @see java.awt.GridBagConstraints#gridheight
+     */
+    private int height;
+
+    /**
+     * @see java.awt.GridBagConstraints#weightx
+     */
+    private double weightx;
+
+    /**
+     * @see java.awt.GridBagConstraints#weighty
+     */
+    private double weighty;
+
+    /**
+     * @see java.awt.GridBagConstraints#anchor
+     */
+    private int position;
+
+    /**
+     * @see java.awt.GridBagConstraints#fill
+     */
+    private int expand;
+
+    /** The component class */
+    private String type;
+
+    /** ID of the component */
+<span class="nc" id="L273">    private int increment = 0;</span>
+
+    private Color color;
+
+<span class="nc" id="L277">    private int tag = -1;</span>
+<span class="nc" id="L278">    private final StringBuilder name = new StringBuilder(80);</span>
+
+    @Override
+    public void characters(char[] ch, int start, int length) throws SAXException {
+<span class="nc bnc" id="L282" title="All 2 branches missed.">      if (tag != -1) {</span>
+<span class="nc" id="L283">        name.append(ch, start, length);</span>
+      }
+<span class="nc" id="L285">    }</span>
+
+    @Override
+    public void startElement(String uri, String localName, String qName, Attributes attributes)
+        throws SAXException {
+<span class="nc bnc" id="L290" title="All 2 branches missed.">      if (&quot;element&quot;.equals(qName)) { // NON-NLS</span>
+<span class="nc" id="L291">        type = attributes.getValue(&quot;type&quot;);</span>
+<span class="nc" id="L292">        x = Integer.parseInt(attributes.getValue(&quot;x&quot;)); // NON-NLS</span>
+<span class="nc" id="L293">        y = Integer.parseInt(attributes.getValue(&quot;y&quot;)); // NON-NLS</span>
+<span class="nc" id="L294">        width = Integer.parseInt(attributes.getValue(&quot;width&quot;)); // NON-NLS</span>
+<span class="nc" id="L295">        height = Integer.parseInt(attributes.getValue(&quot;height&quot;)); // NON-NLS</span>
+<span class="nc" id="L296">        weightx = getDoubleValue(attributes.getValue(&quot;weightx&quot;)); // NON-NLS</span>
+<span class="nc" id="L297">        weighty = getDoubleValue(attributes.getValue(&quot;weighty&quot;)); // NON-NLS</span>
+<span class="nc" id="L298">        position = Integer.parseInt(attributes.getValue(&quot;position&quot;)); // NON-NLS</span>
+<span class="nc" id="L299">        expand = Integer.parseInt(attributes.getValue(&quot;expand&quot;)); // NON-NLS</span>
+<span class="nc" id="L300">        String ctype = attributes.getValue(&quot;typeColor&quot;);</span>
+<span class="nc bnc" id="L301" title="All 2 branches missed.">        if (StringUtil.hasText(ctype)) {</span>
+<span class="nc" id="L302">          color = WProperties.hexadecimal2Color(ctype);</span>
+        }
+<span class="nc bnc" id="L304" title="All 2 branches missed.">      } else if (&quot;layoutModel&quot;.equals(qName)) {</span>
+<span class="nc bnc" id="L305" title="All 2 branches missed.">        if (title == null) {</span>
+<span class="nc" id="L306">          title = attributes.getValue(&quot;name&quot;); // NON-NLS</span>
+        }
+<span class="nc" id="L308">        String path = attributes.getValue(&quot;icon&quot;);</span>
+<span class="nc bnc" id="L309" title="All 2 branches missed.">        if (StringUtil.hasText(path)) {</span>
+<span class="nc" id="L310">          icon = ResourceUtil.getIcon(path).derive(ICON_SIZE, ICON_SIZE);</span>
+        }
+      }
+<span class="nc" id="L313">    }</span>
+
+    @Override
+    public void endElement(String uri, String localName, String qName) throws SAXException {
+<span class="nc bnc" id="L317" title="All 2 branches missed.">      if (&quot;element&quot;.equals(qName)) { // NON-NLS</span>
+<span class="nc" id="L318">        increment++;</span>
+<span class="nc" id="L319">        LayoutConstraints c =</span>
+            new LayoutConstraints(
+                type, increment, x, y, width, height, weightx, weighty, position, expand);
+<span class="nc" id="L322">        c.setColor(color);</span>
+<span class="nc" id="L323">        constraints.put(c, null);</span>
+<span class="nc" id="L324">        name.setLength(0);</span>
+<span class="nc" id="L325">        tag = -1;</span>
+      }
+<span class="nc" id="L327">    }</span>
+
+    private double getDoubleValue(String val) {
+<span class="nc bnc" id="L330" title="All 2 branches missed.">      if (!StringUtil.hasText(val)) {</span>
+<span class="nc" id="L331">        return 0.0;</span>
+      }
+      // handle fraction format
+<span class="nc" id="L334">      int index = val.indexOf('/');</span>
+<span class="nc bnc" id="L335" title="All 2 branches missed.">      if (index != -1) {</span>
+<span class="nc" id="L336">        return (double) Integer.parseInt(val.substring(0, index))</span>
+<span class="nc" id="L337">            / Integer.parseInt(val.substring(index + 1));</span>
+      }
+<span class="nc" id="L339">      return Double.parseDouble(val);</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

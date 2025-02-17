@@ -1,0 +1,672 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>GuiUtils.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.gui.util</a> &gt; <span class="el_source">GuiUtils.java</span></div><h1>GuiUtils.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.gui.util;
+
+import com.formdev.flatlaf.FlatIconColors;
+import com.formdev.flatlaf.extras.FlatSVGIcon;
+import com.formdev.flatlaf.extras.FlatSVGIcon.ColorFilter;
+import com.formdev.flatlaf.icons.FlatTreeCollapsedIcon;
+import com.formdev.flatlaf.ui.FlatUIUtils;
+import com.formdev.flatlaf.util.SystemInfo;
+import com.formdev.flatlaf.util.UIScale;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.ComponentOrientation;
+import java.awt.Container;
+import java.awt.Desktop;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.GraphicsEnvironment;
+import java.awt.Insets;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.RenderingHints;
+import java.awt.Window;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.text.ParseException;
+import javax.swing.AbstractAction;
+import javax.swing.AbstractButton;
+import javax.swing.Box;
+import javax.swing.Box.Filler;
+import javax.swing.BoxLayout;
+import javax.swing.Icon;
+import javax.swing.JButton;
+import javax.swing.JComponent;
+import javax.swing.JFormattedTextField;
+import javax.swing.JFormattedTextField.AbstractFormatterFactory;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JPopupMenu;
+import javax.swing.JSlider;
+import javax.swing.JSpinner;
+import javax.swing.JTextPane;
+import javax.swing.KeyStroke;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingConstants;
+import javax.swing.UIManager;
+import javax.swing.border.Border;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.TitledBorder;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.HyperlinkEvent;
+import javax.swing.event.HyperlinkListener;
+import javax.swing.text.DefaultFormatterFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.Messages;
+import org.weasis.core.api.service.UICore;
+import org.weasis.core.api.util.FontItem;
+import org.weasis.core.util.StringUtil;
+
+public class GuiUtils {
+<span class="nc" id="L82">  private static final Logger LOGGER = LoggerFactory.getLogger(GuiUtils.class);</span>
+
+  public static final String HTML_START = &quot;&lt;html&gt;&quot;;
+
+  public static final String HTML_COLOR_START = &quot;&lt;html&gt;&lt;font color='&quot;; // NON-NLS
+
+  public static final String HTML_COLOR_PATTERN =
+      &quot;&quot;&quot;
+          &lt;html&gt;&lt;font color=&quot;%s&quot;&gt;%s&lt;/font&gt;&lt;/html&gt;
+          &quot;&quot;&quot;;
+  public static final String HTML_END = &quot;&lt;/html&gt;&quot;;
+  public static final String HTML_BR = &quot;&lt;br&gt;&quot;;
+
+  public static final String NEWLINE = &quot;newline&quot;; // NON-NLS
+
+<span class="nc" id="L97">  public enum IconColor {</span>
+    // see https://jetbrains.design/intellij/principles/icons/#action-icons
+<span class="nc" id="L99">    ACTIONS_RED(UIManager.getColor(FlatIconColors.ACTIONS_RED.key)),</span>
+<span class="nc" id="L100">    ACTIONS_YELLOW(UIManager.getColor(FlatIconColors.ACTIONS_YELLOW.key)),</span>
+<span class="nc" id="L101">    ACTIONS_GREEN(UIManager.getColor(FlatIconColors.ACTIONS_GREEN.key)),</span>
+<span class="nc" id="L102">    ACTIONS_BLUE(UIManager.getColor(FlatIconColors.ACTIONS_BLUE.key)),</span>
+<span class="nc" id="L103">    ACTIONS_GREY(UIManager.getColor(FlatIconColors.ACTIONS_GREY.key)),</span>
+<span class="nc" id="L104">    ACTIONS_GREY_INLINE(UIManager.getColor(FlatIconColors.ACTIONS_GREYINLINE.key));</span>
+
+    public final Color color;
+
+<span class="nc" id="L108">    IconColor(Color color) {</span>
+<span class="nc" id="L109">      this.color = color;</span>
+<span class="nc" id="L110">    }</span>
+
+    public Color getColor() {
+<span class="nc" id="L113">      return color;</span>
+    }
+
+    public String getHtmlCode() {
+<span class="nc" id="L117">      return String.format(</span>
+<span class="nc" id="L118">          &quot;rgb(%d,%d,%d)&quot;, color.getRed(), color.getGreen(), color.getBlue()); // NON-NLS</span>
+    }
+  }
+
+  private GuiUtils() {}
+
+  public static UICore getUICore() {
+<span class="nc" id="L125">    return UICore.getInstance();</span>
+  }
+
+  public static Dimension getBigIconButtonSize(JComponent c) {
+<span class="nc" id="L129">    Insets insets = c.getInsets();</span>
+<span class="nc" id="L130">    int size = c.getFontMetrics(c.getFont()).getHeight() + insets.top + insets.bottom;</span>
+<span class="nc" id="L131">    return new Dimension(size, size);</span>
+  }
+
+  public static Dimension getComponentSizeFromText(JComponent c, String text) {
+<span class="nc" id="L135">    Font font = c.getFont();</span>
+<span class="nc bnc" id="L136" title="All 2 branches missed.">    if (font == null) {</span>
+<span class="nc" id="L137">      font = FontItem.DEFAULT.getFont();</span>
+    }
+<span class="nc" id="L139">    Insets insets = c.getInsets();</span>
+<span class="nc" id="L140">    int width = c.getFontMetrics(font).stringWidth(text) + insets.left + insets.right;</span>
+<span class="nc" id="L141">    int height = c.getFontMetrics(font).getHeight() + insets.top + insets.bottom;</span>
+<span class="nc" id="L142">    return new Dimension(width, height);</span>
+  }
+
+  public static int getComponentWidthFromText(JComponent c, String text) {
+<span class="nc" id="L146">    Font font = c.getFont();</span>
+<span class="nc bnc" id="L147" title="All 2 branches missed.">    if (font == null) {</span>
+<span class="nc" id="L148">      font = FontItem.DEFAULT.getFont();</span>
+    }
+<span class="nc" id="L150">    Insets insets = c.getInsets();</span>
+<span class="nc" id="L151">    return c.getFontMetrics(font).stringWidth(text) + insets.left + insets.right;</span>
+  }
+
+  public static FlatSVGIcon getDerivedIcon(FlatSVGIcon flatSVGIcon, ColorFilter filter) {
+<span class="nc" id="L155">    FlatSVGIcon icon = new FlatSVGIcon(flatSVGIcon);</span>
+<span class="nc" id="L156">    icon.setColorFilter(filter);</span>
+<span class="nc" id="L157">    return icon;</span>
+  }
+
+  public static void applySelectedIconEffect(AbstractButton button) {
+<span class="nc bnc" id="L161" title="All 2 branches missed.">    if (button.getIcon() instanceof FlatSVGIcon flatSVGIcon) {</span>
+<span class="nc" id="L162">      button.setSelectedIcon(</span>
+<span class="nc" id="L163">          GuiUtils.getDerivedIcon(flatSVGIcon, GuiUtils.getSelectedColorFilter(button)));</span>
+    }
+<span class="nc" id="L165">  }</span>
+
+  public static ColorFilter getSelectedColorFilter(JComponent c) {
+<span class="nc" id="L168">    ColorFilter colorFilter = new ColorFilter();</span>
+<span class="nc" id="L169">    Color color = IconColor.ACTIONS_BLUE.color;</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">    if (c instanceof JMenuItem) {</span>
+<span class="nc" id="L171">      color = FlatUIUtils.getUIColor(&quot;MenuItem.selectionForeground&quot;, color);</span>
+    }
+
+<span class="nc" id="L174">    colorFilter.add(new Color(0x6E6E6E), color);</span>
+<span class="nc" id="L175">    return colorFilter;</span>
+  }
+
+  public static Icon getUpArrowIcon() {
+<span class="nc" id="L179">    return new FlatTreeCollapsedIcon() {</span>
+      @Override
+      protected void paintIcon(Component c, Graphics2D g) {
+<span class="nc" id="L182">        g.rotate(Math.toRadians(-90), width / 2., height / 2.);</span>
+<span class="nc" id="L183">        super.paintIcon(c, g);</span>
+<span class="nc" id="L184">      }</span>
+    };
+  }
+
+  public static Icon getDownArrowIcon() {
+<span class="nc" id="L189">    return UIManager.getIcon(&quot;Tree.expandedIcon&quot;);</span>
+  }
+
+  public static int getScaleLength(int length) {
+<span class="nc" id="L193">    return (int) (length * UIScale.getUserScaleFactor());</span>
+  }
+
+  public static float getScaleLength(float length) {
+<span class="nc" id="L197">    return length * UIScale.getUserScaleFactor();</span>
+  }
+
+  public static double getScaleLength(double length) {
+<span class="nc" id="L201">    return length * UIScale.getUserScaleFactor();</span>
+  }
+
+  public static void rightToLeftChanged(Container c, boolean rightToLeft) {
+<span class="nc" id="L205">    c.applyComponentOrientation(</span>
+<span class="nc bnc" id="L206" title="All 2 branches missed.">        rightToLeft ? ComponentOrientation.RIGHT_TO_LEFT : ComponentOrientation.LEFT_TO_RIGHT);</span>
+<span class="nc" id="L207">    c.revalidate();</span>
+<span class="nc" id="L208">    c.repaint();</span>
+<span class="nc" id="L209">  }</span>
+
+  public static TitledBorder getTitledBorder(String title) {
+<span class="nc" id="L212">    return new TitledBorder(</span>
+        null,
+        title,
+        TitledBorder.DEFAULT_JUSTIFICATION,
+        TitledBorder.DEFAULT_POSITION,
+<span class="nc" id="L217">        FontItem.DEFAULT_SEMIBOLD.getFont(),</span>
+        null);
+  }
+
+  public static Border getEmptyBorder(int gap) {
+<span class="nc" id="L222">    int g = getScaleLength(gap);</span>
+<span class="nc" id="L223">    return new EmptyBorder(g, g, g, g);</span>
+  }
+
+  public static Border getEmptyBorder(int horizontal, int vertical) {
+<span class="nc" id="L227">    int h = getScaleLength(horizontal);</span>
+<span class="nc" id="L228">    int v = getScaleLength(vertical);</span>
+<span class="nc" id="L229">    return new EmptyBorder(v, h, v, h);</span>
+  }
+
+  public static Border getEmptyBorder(int top, int left, int bottom, int right) {
+<span class="nc" id="L233">    return new EmptyBorder(</span>
+<span class="nc" id="L234">        getScaleLength(top), getScaleLength(left), getScaleLength(bottom), getScaleLength(right));</span>
+  }
+
+  public static JPanel getFlowLayoutPanel(JComponent... items) {
+<span class="nc" id="L238">    return getFlowLayoutPanel(FlowLayout.LEADING, 5, 5, items);</span>
+  }
+
+  public static JPanel getFlowLayoutPanel(int horizontalGap, int verticalGap, JComponent... items) {
+<span class="nc" id="L242">    return getFlowLayoutPanel(FlowLayout.LEADING, horizontalGap, verticalGap, items);</span>
+  }
+
+  public static JPanel getFlowLayoutPanel(
+      int align, int horizontalGap, int verticalGap, JComponent... items) {
+<span class="nc" id="L247">    int h = getScaleLength(horizontalGap);</span>
+<span class="nc" id="L248">    int v = getScaleLength(verticalGap);</span>
+<span class="nc" id="L249">    JPanel panel = new JPanel();</span>
+<span class="nc" id="L250">    panel.setLayout(new FlowLayout(align, h, v));</span>
+<span class="nc bnc" id="L251" title="All 2 branches missed.">    for (JComponent item : items) {</span>
+<span class="nc" id="L252">      panel.add(item);</span>
+    }
+<span class="nc" id="L254">    return panel;</span>
+  }
+
+  public static JPanel getHorizontalBoxLayoutPanel(JComponent... items) {
+<span class="nc" id="L258">    return getBoxLayoutPanel(BoxLayout.LINE_AXIS, 0, false, items);</span>
+  }
+
+  public static JPanel getVerticalBoxLayoutPanel(JComponent... items) {
+<span class="nc" id="L262">    return getBoxLayoutPanel(BoxLayout.PAGE_AXIS, 0, false, items);</span>
+  }
+
+  public static JPanel getHorizontalBoxLayoutPanel(int gap, JComponent... items) {
+<span class="nc" id="L266">    return getBoxLayoutPanel(BoxLayout.LINE_AXIS, gap, true, items);</span>
+  }
+
+  public static JPanel getVerticalBoxLayoutPanel(int gap, JComponent... items) {
+<span class="nc" id="L270">    return getBoxLayoutPanel(BoxLayout.PAGE_AXIS, gap, true, items);</span>
+  }
+
+  private static JPanel getBoxLayoutPanel(
+      int axis, int gap, boolean externalGap, JComponent... items) {
+<span class="nc" id="L275">    JPanel panel = new JPanel();</span>
+<span class="nc" id="L276">    panel.setLayout(new BoxLayout(panel, axis));</span>
+<span class="nc bnc" id="L277" title="All 4 branches missed.">    boolean vertical = axis == BoxLayout.PAGE_AXIS || axis == BoxLayout.Y_AXIS;</span>
+<span class="nc bnc" id="L278" title="All 4 branches missed.">    if (externalGap &amp;&amp; gap &gt; 0) {</span>
+<span class="nc bnc" id="L279" title="All 2 branches missed.">      panel.add(vertical ? boxVerticalStrut(gap) : boxHorizontalStrut(gap));</span>
+    }
+
+<span class="nc bnc" id="L282" title="All 2 branches missed.">    for (JComponent item : items) {</span>
+<span class="nc" id="L283">      panel.add(item);</span>
+<span class="nc bnc" id="L284" title="All 2 branches missed.">      if (gap &gt; 0) {</span>
+<span class="nc bnc" id="L285" title="All 2 branches missed.">        panel.add(vertical ? boxVerticalStrut(gap) : boxHorizontalStrut(gap));</span>
+      }
+    }
+<span class="nc bnc" id="L288" title="All 4 branches missed.">    if (gap &gt; 0 &amp;&amp; !externalGap) {</span>
+<span class="nc" id="L289">      panel.remove(panel.getComponentCount() - 1);</span>
+    }
+<span class="nc" id="L291">    return panel;</span>
+  }
+
+  public static JComponent boxVerticalStrut(int height) {
+<span class="nc" id="L295">    int v = getScaleLength(height);</span>
+<span class="nc" id="L296">    return new Filler(new Dimension(0, v), new Dimension(0, v), new Dimension(Short.MAX_VALUE, v));</span>
+  }
+
+  public static JComponent boxHorizontalStrut(int width) {
+<span class="nc" id="L300">    int w = getScaleLength(width);</span>
+<span class="nc" id="L301">    return new Filler(new Dimension(w, 0), new Dimension(w, 0), new Dimension(w, Short.MAX_VALUE));</span>
+  }
+
+  public static Filler boxXLastElement(int minimumWidth) {
+<span class="nc" id="L305">    int w = getScaleLength(minimumWidth);</span>
+<span class="nc" id="L306">    return new Box.Filler(</span>
+        new Dimension(w, 0), new Dimension(w, 0), new Dimension(Integer.MAX_VALUE, 0));
+  }
+
+  public static Filler boxYLastElement(int minimumHeight) {
+<span class="nc" id="L311">    int h = getScaleLength(minimumHeight);</span>
+<span class="nc" id="L312">    return new Box.Filler(</span>
+        new Dimension(0, h), new Dimension(0, h), new Dimension(0, Integer.MAX_VALUE));
+  }
+
+  public static Dimension getDimension(int width, int height) {
+<span class="nc" id="L317">    int w = getScaleLength(width);</span>
+<span class="nc" id="L318">    int h = getScaleLength(height);</span>
+<span class="nc" id="L319">    return new Dimension(w, h);</span>
+  }
+
+  public static void setPreferredWidth(Component component, int width, int minWidth) {
+<span class="nc" id="L323">    Dimension dim = component.getPreferredSize();</span>
+<span class="nc" id="L324">    dim.width = getScaleLength(width);</span>
+<span class="nc" id="L325">    component.setPreferredSize(dim);</span>
+<span class="nc" id="L326">    dim = component.getMinimumSize();</span>
+<span class="nc" id="L327">    dim.width = getScaleLength(minWidth);</span>
+<span class="nc" id="L328">    component.setMinimumSize(dim);</span>
+<span class="nc" id="L329">    component.setMaximumSize(new Dimension(Short.MAX_VALUE, dim.height));</span>
+<span class="nc" id="L330">  }</span>
+
+  public static void setWidth(Component component, int width) {
+<span class="nc" id="L333">    int sWidth = getScaleLength(width);</span>
+<span class="nc" id="L334">    Dimension dim = component.getMinimumSize();</span>
+<span class="nc" id="L335">    dim.width = sWidth;</span>
+<span class="nc" id="L336">    component.setMinimumSize(dim);</span>
+<span class="nc" id="L337">    dim = component.getPreferredSize();</span>
+<span class="nc" id="L338">    dim.width = sWidth;</span>
+<span class="nc" id="L339">    component.setPreferredSize(dim);</span>
+<span class="nc" id="L340">    component.setMaximumSize(dim);</span>
+<span class="nc" id="L341">  }</span>
+
+  public static void setPreferredWidth(Component component, int width) {
+<span class="nc" id="L344">    setPreferredWidth(component, width, 50);</span>
+<span class="nc" id="L345">  }</span>
+
+  public static void setPreferredHeight(Component component, int height) {
+<span class="nc" id="L348">    setPreferredHeight(component, height, 50);</span>
+<span class="nc" id="L349">  }</span>
+
+  public static void setPreferredHeight(Component component, int height, int minHeight) {
+<span class="nc" id="L352">    Dimension dim = component.getPreferredSize();</span>
+<span class="nc" id="L353">    dim.height = getScaleLength(height);</span>
+<span class="nc" id="L354">    component.setPreferredSize(dim);</span>
+<span class="nc" id="L355">    dim = component.getMinimumSize();</span>
+<span class="nc" id="L356">    dim.height = getScaleLength(minHeight);</span>
+<span class="nc" id="L357">    component.setMinimumSize(dim);</span>
+<span class="nc" id="L358">  }</span>
+
+  public static void showCenterScreen(Window window) {
+    try {
+      Rectangle bound =
+<span class="nc" id="L363">          GraphicsEnvironment.getLocalGraphicsEnvironment()</span>
+<span class="nc" id="L364">              .getDefaultScreenDevice()</span>
+<span class="nc" id="L365">              .getDefaultConfiguration()</span>
+<span class="nc" id="L366">              .getBounds();</span>
+<span class="nc" id="L367">      window.setLocation(</span>
+<span class="nc" id="L368">          bound.x + (bound.width - window.getWidth()) / 2,</span>
+<span class="nc" id="L369">          bound.y + (bound.height - window.getHeight()) / 2);</span>
+<span class="nc" id="L370">    } catch (Exception e) {</span>
+<span class="nc" id="L371">      LOGGER.error(&quot;Cannot center the window to the screen&quot;, e);</span>
+<span class="nc" id="L372">    }</span>
+<span class="nc" id="L373">    window.setVisible(true);</span>
+<span class="nc" id="L374">  }</span>
+
+  public static void showCenterScreen(Window window, Component parent) {
+<span class="nc bnc" id="L377" title="All 2 branches missed.">    if (parent == null) {</span>
+<span class="nc" id="L378">      showCenterScreen(window);</span>
+    } else {
+<span class="nc" id="L380">      Dimension sSize = parent.getSize();</span>
+<span class="nc" id="L381">      Dimension wSize = window.getSize();</span>
+<span class="nc" id="L382">      Point p = parent.getLocationOnScreen();</span>
+<span class="nc" id="L383">      window.setLocation(</span>
+          p.x + ((sSize.width - wSize.width) / 2), p.y + ((sSize.height - wSize.height) / 2));
+<span class="nc" id="L385">      window.setVisible(true);</span>
+    }
+<span class="nc" id="L387">  }</span>
+
+  public static void addChangeListener(JSlider slider, ChangeListener listener) {
+<span class="nc" id="L390">    ChangeListener[] listeners = slider.getChangeListeners();</span>
+<span class="nc bnc" id="L391" title="All 2 branches missed.">    for (ChangeListener changeListener : listeners) {</span>
+<span class="nc bnc" id="L392" title="All 2 branches missed.">      if (listener == changeListener) {</span>
+<span class="nc" id="L393">        return;</span>
+      }
+    }
+<span class="nc" id="L396">    slider.addChangeListener(listener);</span>
+<span class="nc" id="L397">  }</span>
+
+  private static void addCheckActionToJFormattedTextField(final JFormattedTextField textField) {
+<span class="nc" id="L400">    textField.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), &quot;check&quot;); // NON-NLS</span>
+<span class="nc" id="L401">    textField</span>
+<span class="nc" id="L402">        .getActionMap()</span>
+<span class="nc" id="L403">        .put(</span>
+            &quot;check&quot;, // NON-NLS
+<span class="nc" id="L405">            new AbstractAction() {</span>
+
+              @Override
+              public void actionPerformed(ActionEvent e) {
+                try {
+<span class="nc" id="L410">                  textField.commitEdit(); // so use it.</span>
+<span class="nc" id="L411">                  textField.postActionEvent(); // stop editing //for DefaultCellEditor</span>
+<span class="nc" id="L412">                } catch (java.text.ParseException pe) {</span>
+<span class="nc" id="L413">                  LOGGER.error(</span>
+<span class="nc" id="L414">                      &quot;Exception when commit value in {}&quot;, textField.getClass().getName(), pe);</span>
+<span class="nc" id="L415">                }</span>
+<span class="nc" id="L416">                textField.setValue(textField.getValue());</span>
+<span class="nc" id="L417">              }</span>
+            });
+<span class="nc" id="L419">  }</span>
+
+  public static void addCheckAction(final JFormattedTextField textField) {
+<span class="nc" id="L422">    textField.setHorizontalAlignment(SwingConstants.RIGHT);</span>
+<span class="nc" id="L423">    addCheckActionToJFormattedTextField(textField);</span>
+<span class="nc" id="L424">  }</span>
+
+  public static void setNumberModel(JSpinner spin, int val, int min, int max, int delta) {
+<span class="nc bnc" id="L427" title="All 2 branches missed.">    spin.setModel(new SpinnerNumberModel(val &lt; min ? min : Math.min(val, max), min, max, delta));</span>
+<span class="nc" id="L428">    JFormattedTextField ftf = ((JSpinner.DefaultEditor) spin.getEditor()).getTextField();</span>
+<span class="nc" id="L429">    addCheckActionToJFormattedTextField(ftf);</span>
+<span class="nc" id="L430">  }</span>
+
+  public static void setSpinnerWidth(JSpinner spin, int valueWidth) {
+<span class="nc" id="L433">    Component mySpinnerEditor = spin.getEditor();</span>
+<span class="nc" id="L434">    JFormattedTextField ftf = ((JSpinner.DefaultEditor) mySpinnerEditor).getTextField();</span>
+<span class="nc" id="L435">    ftf.setColumns(valueWidth);</span>
+<span class="nc" id="L436">  }</span>
+
+  public static void formatCheckAction(JSpinner spin) {
+<span class="nc" id="L439">    formatCheckAction(spin, null);</span>
+<span class="nc" id="L440">  }</span>
+
+  public static void formatCheckAction(
+      JSpinner spin, JFormattedTextField.AbstractFormatter defaultFormat) {
+<span class="nc" id="L444">    final JFormattedTextField ftf = ((JSpinner.DefaultEditor) spin.getEditor()).getTextField();</span>
+<span class="nc bnc" id="L445" title="All 2 branches missed.">    if (defaultFormat != null) {</span>
+<span class="nc" id="L446">      ftf.setFormatterFactory(new DefaultFormatterFactory(defaultFormat));</span>
+    }
+<span class="nc" id="L448">    addCheckActionToJFormattedTextField(ftf);</span>
+<span class="nc" id="L449">  }</span>
+
+  public static Number getFormattedValue(JFormattedTextField textField) {
+<span class="nc" id="L452">    AbstractFormatterFactory formatter = textField.getFormatterFactory();</span>
+<span class="nc bnc" id="L453" title="All 2 branches missed.">    if (formatter instanceof DefaultFormatterFactory factory</span>
+<span class="nc bnc" id="L454" title="All 2 branches missed.">        &amp;&amp; textField.getFormatter().equals(factory.getEditFormatter())) {</span>
+      try {
+        // to be sure that the value is commit (by default it is when the JFormattedTextField losing
+        // the focus)
+<span class="nc" id="L458">        textField.commitEdit();</span>
+<span class="nc" id="L459">      } catch (ParseException pe) {</span>
+<span class="nc" id="L460">        LOGGER.error(&quot;Exception when commit value in {}&quot;, textField.getClass().getName(), pe);</span>
+<span class="nc" id="L461">      }</span>
+    }
+<span class="nc" id="L463">    Number val = null;</span>
+    try {
+<span class="nc" id="L465">      val = (Number) textField.getValue();</span>
+<span class="nc" id="L466">    } catch (Exception e) {</span>
+<span class="nc" id="L467">      LOGGER.error(&quot;Cannot get number form textField&quot;, e);</span>
+<span class="nc" id="L468">    }</span>
+<span class="nc" id="L469">    return val;</span>
+  }
+
+  // A convenience method for creating menu items
+  public static JMenuItem menuItem(
+      String label, ActionListener listener, String command, int mnemonic, int acceleratorKey) {
+<span class="nc" id="L475">    JMenuItem item = new JMenuItem(label);</span>
+<span class="nc" id="L476">    item.addActionListener(listener);</span>
+<span class="nc" id="L477">    item.setActionCommand(command);</span>
+<span class="nc bnc" id="L478" title="All 2 branches missed.">    if (mnemonic != 0) {</span>
+<span class="nc" id="L479">      item.setMnemonic((char) mnemonic);</span>
+    }
+<span class="nc bnc" id="L481" title="All 2 branches missed.">    if (acceleratorKey != 0) {</span>
+<span class="nc" id="L482">      item.setAccelerator(KeyStroke.getKeyStroke(acceleratorKey, java.awt.Event.CTRL_MASK));</span>
+    }
+<span class="nc" id="L484">    return item;</span>
+  }
+
+  public static JButton createHelpButton(String topic) {
+<span class="nc" id="L488">    JButton jButtonHelp = new JButton();</span>
+<span class="nc" id="L489">    jButtonHelp.putClientProperty(&quot;JButton.buttonType&quot;, &quot;help&quot;);</span>
+<span class="nc" id="L490">    jButtonHelp.setToolTipText(Messages.getString(&quot;online.documentation&quot;));</span>
+<span class="nc" id="L491">    jButtonHelp.addActionListener(createHelpActionListener(jButtonHelp, topic));</span>
+<span class="nc" id="L492">    return jButtonHelp;</span>
+  }
+
+  public static ActionListener createHelpActionListener(JButton jButtonHelp, String topic) {
+<span class="nc" id="L496">    return e -&gt; {</span>
+      try {
+<span class="nc" id="L498">        GuiUtils.openInDefaultBrowser(</span>
+            jButtonHelp,
+            new URL(
+<span class="nc" id="L501">                GuiUtils.getUICore().getSystemPreferences().getProperty(&quot;weasis.help.online&quot;)</span>
+                    + topic));
+<span class="nc" id="L503">      } catch (MalformedURLException e1) {</span>
+<span class="nc" id="L504">        LOGGER.error(&quot;Cannot open online help&quot;, e1);</span>
+<span class="nc" id="L505">      }</span>
+<span class="nc" id="L506">    };</span>
+  }
+
+  public static int getMaxLength(Rectangle bounds) {
+<span class="nc" id="L510">    return Math.max(bounds.width, bounds.height);</span>
+  }
+
+  public static void openInDefaultBrowser(Component parent, URL url) {
+<span class="nc bnc" id="L514" title="All 2 branches missed.">    if (url != null) {</span>
+      try {
+<span class="nc" id="L516">        openInDefaultBrowser(parent, url.toURI());</span>
+<span class="nc" id="L517">      } catch (URISyntaxException e) {</span>
+<span class="nc" id="L518">        throw new RuntimeException(e);</span>
+<span class="nc" id="L519">      }</span>
+    }
+<span class="nc" id="L521">  }</span>
+
+  public static void openInDefaultBrowser(Component parent, URI uri) {
+<span class="nc bnc" id="L524" title="All 2 branches missed.">    if (uri != null) {</span>
+<span class="nc bnc" id="L525" title="All 2 branches missed.">      if (SystemInfo.isLinux) {</span>
+        try {
+<span class="nc" id="L527">          String[] cmd = new String[] {&quot;xdg-open&quot;, uri.toString()}; // NON-NLS</span>
+<span class="nc" id="L528">          Runtime.getRuntime().exec(cmd);</span>
+<span class="nc" id="L529">        } catch (IOException e) {</span>
+<span class="nc" id="L530">          LOGGER.error(&quot;Cannot open URL to the system browser&quot;, e);</span>
+<span class="nc" id="L531">        }</span>
+<span class="nc bnc" id="L532" title="All 2 branches missed.">      } else if (Desktop.isDesktopSupported()) {</span>
+<span class="nc" id="L533">        final Desktop desktop = Desktop.getDesktop();</span>
+<span class="nc bnc" id="L534" title="All 2 branches missed.">        if (desktop.isSupported(Desktop.Action.BROWSE)) {</span>
+          try {
+<span class="nc" id="L536">            desktop.browse(uri);</span>
+<span class="nc" id="L537">          } catch (IOException e) {</span>
+<span class="nc" id="L538">            LOGGER.error(&quot;Cannot open URL to the desktop browser&quot;, e);</span>
+<span class="nc" id="L539">          }</span>
+        }
+<span class="nc" id="L541">      } else {</span>
+<span class="nc" id="L542">        JOptionPane.showMessageDialog(</span>
+<span class="nc" id="L543">            WinUtil.getValidComponent(parent),</span>
+<span class="nc" id="L544">            Messages.getString(&quot;JMVUtils.browser&quot;) + StringUtil.COLON_AND_SPACE + uri,</span>
+<span class="nc" id="L545">            Messages.getString(&quot;JMVUtils.error&quot;),</span>
+            JOptionPane.ERROR_MESSAGE);
+      }
+    }
+<span class="nc" id="L549">  }</span>
+
+  public static void openSystemExplorer(Component parent, File file) {
+<span class="nc bnc" id="L552" title="All 2 branches missed.">    if (file != null) {</span>
+<span class="nc bnc" id="L553" title="All 2 branches missed.">      if (SystemInfo.isLinux) {</span>
+<span class="nc" id="L554">        openCommand(&quot;xdg-open&quot;, file); // NON-NLS</span>
+<span class="nc bnc" id="L555" title="All 2 branches missed.">      } else if (Desktop.isDesktopSupported()</span>
+<span class="nc bnc" id="L556" title="All 2 branches missed.">          &amp;&amp; Desktop.getDesktop().isSupported(Desktop.Action.BROWSE_FILE_DIR)) {</span>
+<span class="nc" id="L557">        Desktop.getDesktop().browseFileDirectory(file);</span>
+<span class="nc bnc" id="L558" title="All 2 branches missed.">      } else if (SystemInfo.isWindows) {</span>
+<span class="nc" id="L559">        openCommand(&quot;explorer&quot;, file); // NON-NLS</span>
+<span class="nc bnc" id="L560" title="All 2 branches missed.">      } else if (SystemInfo.isMacOS) {</span>
+<span class="nc" id="L561">        openCommand(&quot;/usr/bin/open&quot;, file); // NON-NLS</span>
+      } else {
+<span class="nc" id="L563">        JOptionPane.showMessageDialog(</span>
+<span class="nc" id="L564">            WinUtil.getValidComponent(parent),</span>
+<span class="nc" id="L565">            Messages.getString(&quot;JMVUtils.browser&quot;) + StringUtil.COLON_AND_SPACE + file.getPath(),</span>
+<span class="nc" id="L566">            Messages.getString(&quot;JMVUtils.error&quot;),</span>
+            JOptionPane.ERROR_MESSAGE);
+      }
+    }
+<span class="nc" id="L570">  }</span>
+
+  private static void openCommand(String cmd, File file) {
+    try {
+<span class="nc" id="L574">      String[] command = new String[] {cmd, file.getPath()}; // NON-NLS</span>
+<span class="nc" id="L575">      Runtime.getRuntime().exec(command);</span>
+<span class="nc" id="L576">    } catch (IOException e) {</span>
+<span class="nc" id="L577">      LOGGER.error(&quot;Cannot open a file to the system explorer&quot;, e);</span>
+<span class="nc" id="L578">    }</span>
+<span class="nc" id="L579">  }</span>
+
+  public static HyperlinkListener buildHyperlinkListener() {
+<span class="nc" id="L582">    return e -&gt; {</span>
+<span class="nc" id="L583">      JTextPane pane = (JTextPane) e.getSource();</span>
+<span class="nc bnc" id="L584" title="All 2 branches missed.">      if (e.getEventType() == HyperlinkEvent.EventType.ENTERED) {</span>
+<span class="nc" id="L585">        pane.setToolTipText(e.getDescription());</span>
+<span class="nc bnc" id="L586" title="All 2 branches missed.">      } else if (e.getEventType() == HyperlinkEvent.EventType.EXITED) {</span>
+<span class="nc" id="L587">        pane.setToolTipText(null);</span>
+<span class="nc bnc" id="L588" title="All 2 branches missed.">      } else if (e.getEventType() == HyperlinkEvent.EventType.ACTIVATED) {</span>
+<span class="nc bnc" id="L589" title="All 2 branches missed.">        Component parent = e.getSource() instanceof Component c ? c : null;</span>
+<span class="nc" id="L590">        openInDefaultBrowser(WinUtil.getValidComponent(parent), e.getURL());</span>
+      }
+<span class="nc" id="L592">    };</span>
+  }
+
+  public static JTextPane getPanelWithHyperlink(String html) {
+<span class="nc" id="L596">    JTextPane jTextPane1 = new JTextPane();</span>
+<span class="nc" id="L597">    jTextPane1.setContentType(&quot;text/html&quot;);</span>
+<span class="nc" id="L598">    jTextPane1.setEditable(false);</span>
+<span class="nc" id="L599">    jTextPane1.addHyperlinkListener(buildHyperlinkListener());</span>
+<span class="nc" id="L600">    jTextPane1.setText(html);</span>
+<span class="nc" id="L601">    return jTextPane1;</span>
+  }
+
+  public static void addItemToMenu(JMenu menu, JMenuItem item) {
+<span class="nc bnc" id="L605" title="All 4 branches missed.">    if (menu != null &amp;&amp; item != null) {</span>
+<span class="nc" id="L606">      menu.add(item);</span>
+    }
+<span class="nc" id="L608">  }</span>
+
+  public static void addItemToMenu(JPopupMenu menu, Component item) {
+<span class="nc bnc" id="L611" title="All 4 branches missed.">    if (menu != null &amp;&amp; item != null) {</span>
+<span class="nc" id="L612">      menu.add(item);</span>
+    }
+<span class="nc" id="L614">  }</span>
+
+  public static Object[] setRenderingHints(
+      Graphics g, boolean antialiasing, boolean stroke, boolean text) {
+<span class="nc" id="L618">    Graphics2D g2 = (Graphics2D) g;</span>
+<span class="nc" id="L619">    Object[] oldRenderingHints =</span>
+        new Object[] {
+<span class="nc" id="L621">          g2.getRenderingHint(RenderingHints.KEY_ANTIALIASING),</span>
+<span class="nc" id="L622">          g2.getRenderingHint(RenderingHints.KEY_STROKE_CONTROL),</span>
+<span class="nc" id="L623">          g2.getRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING)</span>
+        };
+
+<span class="nc bnc" id="L626" title="All 2 branches missed.">    if (antialiasing) {</span>
+<span class="nc" id="L627">      g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);</span>
+    }
+<span class="nc bnc" id="L629" title="All 2 branches missed.">    if (stroke) {</span>
+<span class="nc" id="L630">      boolean useQuartz = Boolean.getBoolean(&quot;apple.awt.graphics.UseQuartz&quot;);</span>
+<span class="nc" id="L631">      g2.setRenderingHint(</span>
+          RenderingHints.KEY_STROKE_CONTROL,
+<span class="nc bnc" id="L633" title="All 2 branches missed.">          useQuartz ? RenderingHints.VALUE_STROKE_PURE : RenderingHints.VALUE_STROKE_NORMALIZE);</span>
+    }
+<span class="nc bnc" id="L635" title="All 2 branches missed.">    if (text) {</span>
+<span class="nc" id="L636">      g2.setRenderingHint(</span>
+          RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+    }
+
+<span class="nc" id="L640">    return oldRenderingHints;</span>
+  }
+
+  public static void resetRenderingHints(Graphics g, Object[] oldRenderingHints) {
+<span class="nc bnc" id="L644" title="All 2 branches missed.">    if (oldRenderingHints.length == 3) {</span>
+<span class="nc" id="L645">      Graphics2D g2 = (Graphics2D) g;</span>
+<span class="nc" id="L646">      g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, oldRenderingHints[0]);</span>
+<span class="nc" id="L647">      g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, oldRenderingHints[1]);</span>
+<span class="nc" id="L648">      g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, oldRenderingHints[2]);</span>
+    }
+<span class="nc" id="L650">  }</span>
+
+  public static int insetWidth(JPanel panel) {
+<span class="nc bnc" id="L653" title="All 2 branches missed.">    if (panel != null) {</span>
+<span class="nc" id="L654">      Insets insets = panel.getInsets();</span>
+<span class="nc bnc" id="L655" title="All 2 branches missed.">      if (insets != null) {</span>
+<span class="nc" id="L656">        return insets.left + insets.right;</span>
+      }
+    }
+<span class="nc" id="L659">    return 0;</span>
+  }
+
+  public static int insetHeight(JPanel panel) {
+<span class="nc bnc" id="L663" title="All 2 branches missed.">    if (panel != null) {</span>
+<span class="nc" id="L664">      Insets insets = panel.getInsets();</span>
+<span class="nc bnc" id="L665" title="All 2 branches missed.">      if (insets != null) {</span>
+<span class="nc" id="L666">        return insets.top + insets.bottom;</span>
+      }
+    }
+<span class="nc" id="L669">    return 0;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

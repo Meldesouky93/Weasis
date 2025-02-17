@@ -1,0 +1,448 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>HistogramPanel.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.editor.image</a> &gt; <span class="el_source">HistogramPanel.java</span></div><h1>HistogramPanel.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.editor.image;
+
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Stroke;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+import java.awt.geom.Line2D;
+import java.awt.geom.Line2D.Float;
+import java.awt.geom.Rectangle2D;
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
+import java.util.Objects;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.Popup;
+import javax.swing.PopupFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.weasis.core.Messages;
+import org.weasis.core.api.gui.util.DecFormatter;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.gui.util.GuiUtils.IconColor;
+import org.weasis.core.api.image.util.WindLevelParameters;
+import org.weasis.core.api.util.FontItem;
+import org.weasis.core.api.util.FontTools;
+import org.weasis.core.ui.editor.image.HistogramData.Model;
+import org.weasis.core.util.StringUtil;
+import org.weasis.opencv.op.lut.WlParams;
+
+public class HistogramPanel extends JPanel {
+<span class="nc" id="L49">  private static final Logger LOGGER = LoggerFactory.getLogger(HistogramPanel.class);</span>
+
+  private static final int SLIDER_HEIGHT = 15;
+  private static final int SLIDER_WIDTH = 10;
+  private static final int SLIDER_X = SLIDER_WIDTH / 2 + 5;
+  private static final int SLIDER_Y = SLIDER_HEIGHT + 5;
+
+  private HistogramData data;
+<span class="nc" id="L57">  private boolean showIntensity = true;</span>
+<span class="nc" id="L58">  private boolean logarithmic = false;</span>
+<span class="nc" id="L59">  private boolean accumulate = false;</span>
+
+<span class="nc" id="L61">  private float zoom = 1.0f;</span>
+<span class="nc" id="L62">  private float xAxisHistoRescaleRatio = 1.0f;</span>
+
+<span class="nc" id="L64">  public HistogramPanel() {</span>
+<span class="nc" id="L65">    init();</span>
+<span class="nc" id="L66">    InternalMouseListener listener = new InternalMouseListener();</span>
+<span class="nc" id="L67">    this.addMouseListener(listener);</span>
+<span class="nc" id="L68">    this.addMouseMotionListener(listener);</span>
+<span class="nc" id="L69">  }</span>
+
+  private void init() {
+<span class="nc" id="L72">    this.setPreferredSize(new Dimension(255 + SLIDER_WIDTH + 10, 70));</span>
+<span class="nc" id="L73">    this.setBackground(new Color(235, 236, 210));</span>
+<span class="nc" id="L74">  }</span>
+
+  @Override
+  protected void paintComponent(Graphics g) {
+<span class="nc" id="L78">    super.paintComponent(g);</span>
+<span class="nc bnc" id="L79" title="All 6 branches missed.">    if (!(g instanceof Graphics2D g2d) || data.getHistValues() == null || data.getLut() == null) {</span>
+<span class="nc" id="L80">      return;</span>
+    }
+<span class="nc" id="L82">    Color oldColor = g2d.getColor();</span>
+<span class="nc" id="L83">    Stroke oldStroke = g2d.getStroke();</span>
+<span class="nc" id="L84">    Font oldFont = g2d.getFont();</span>
+<span class="nc" id="L85">    Font font = FontItem.DEFAULT_SEMIBOLD.getFont();</span>
+<span class="nc" id="L86">    g2d.setFont(font.deriveFont(font.getSize() - 3f));</span>
+<span class="nc" id="L87">    drawHistogramPane(g2d);</span>
+<span class="nc" id="L88">    g2d.setFont(oldFont);</span>
+<span class="nc" id="L89">    g2d.setColor(oldColor);</span>
+<span class="nc" id="L90">    g2d.setStroke(oldStroke);</span>
+<span class="nc" id="L91">  }</span>
+
+  private void drawHistogramPane(Graphics2D g2d) {
+<span class="nc" id="L94">    float sum = 0.0f;</span>
+<span class="nc" id="L95">    float maxHistogramCounts = 1.0f;</span>
+<span class="nc" id="L96">    float[] histValues = data.getHistValues();</span>
+<span class="nc" id="L97">    int nbBins = histValues.length;</span>
+<span class="nc bnc" id="L98" title="All 2 branches missed.">    for (float histValue : histValues) {</span>
+<span class="nc bnc" id="L99" title="All 2 branches missed.">      float val = logarithmic ? (float) Math.log1p(histValue) : histValue;</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">      if (accumulate) {</span>
+<span class="nc" id="L101">        sum += val;</span>
+      } else {
+<span class="nc" id="L103">        maxHistogramCounts = Math.max(maxHistogramCounts, val);</span>
+      }
+    }
+<span class="nc bnc" id="L106" title="All 2 branches missed.">    if (accumulate) {</span>
+<span class="nc" id="L107">      maxHistogramCounts = sum;</span>
+    }
+<span class="nc" id="L109">    FontMetrics fontMetrics = g2d.getFontMetrics();</span>
+<span class="nc" id="L110">    final int fontHeight = fontMetrics.getHeight();</span>
+<span class="nc" id="L111">    final int midFontHeight = fontHeight + 3;</span>
+
+<span class="nc" id="L113">    float bCanvas = this.getHeight() - 1.0f;</span>
+<span class="nc" id="L114">    float tLut = bCanvas - (SLIDER_Y + fontHeight + 15f);</span>
+<span class="nc" id="L115">    float bLut = tLut + SLIDER_Y + 5f;</span>
+<span class="nc" id="L116">    float fj = (tLut - SLIDER_Y) * zoom / maxHistogramCounts;</span>
+<span class="nc" id="L117">    float lutLength = getWidth() - SLIDER_X * 2.0f;</span>
+<span class="nc" id="L118">    this.xAxisHistoRescaleRatio = lutLength / nbBins;</span>
+
+<span class="nc" id="L120">    WlParams windLevel = data.getWindLevel();</span>
+<span class="nc" id="L121">    double min = data.getPixMin();</span>
+<span class="nc" id="L122">    double max = data.getPixMax();</span>
+<span class="nc" id="L123">    double low = windLevel.getLevel() - windLevel.getWindow() / 2.0;</span>
+<span class="nc" id="L124">    double high = windLevel.getLevel() + windLevel.getWindow() / 2.0;</span>
+<span class="nc" id="L125">    float firstLevel = (float) min;</span>
+<span class="nc" id="L126">    float hRange = (float) (max - min);</span>
+<span class="nc" id="L127">    float spaceFactor = (lutLength - xAxisHistoRescaleRatio) / hRange;</span>
+<span class="nc" id="L128">    float x = SLIDER_X;</span>
+<span class="nc" id="L129">    int piLow = nbBins + 1;</span>
+<span class="nc" id="L130">    int piHigh = -1;</span>
+<span class="nc" id="L131">    double diffLow = Double.MAX_VALUE;</span>
+<span class="nc" id="L132">    double diffHigh = Double.MAX_VALUE;</span>
+
+<span class="nc" id="L134">    g2d.setStroke(</span>
+        new BasicStroke(
+            xAxisHistoRescaleRatio + 0.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_BEVEL));
+
+<span class="nc" id="L138">    double binFactor = (max - min) / (nbBins - 1);</span>
+<span class="nc" id="L139">    sum = 0.0f;</span>
+<span class="nc bnc" id="L140" title="All 2 branches missed.">    for (int i = 0; i &lt; nbBins; i++) {</span>
+<span class="nc bnc" id="L141" title="All 2 branches missed.">      float val = logarithmic ? (float) Math.log1p(histValues[i]) : histValues[i];</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">      if (accumulate) {</span>
+<span class="nc" id="L143">        sum += val;</span>
+<span class="nc" id="L144">        val = sum;</span>
+      }
+<span class="nc" id="L146">      float y1 = tLut - fj * val;</span>
+<span class="nc" id="L147">      float xVal = SLIDER_X + i * xAxisHistoRescaleRatio;</span>
+<span class="nc" id="L148">      double level = data.getLayer().pixelToRealValue(i * binFactor + min);</span>
+<span class="nc" id="L149">      Color cLut = data.getFinalVoiLutColor(level);</span>
+<span class="nc" id="L150">      double diff = Math.abs(level - low);</span>
+<span class="nc bnc" id="L151" title="All 2 branches missed.">      if (diff &lt; diffLow) {</span>
+<span class="nc" id="L152">        diffLow = diff;</span>
+<span class="nc" id="L153">        piLow = i;</span>
+      }
+<span class="nc" id="L155">      diff = Math.abs(level - high);</span>
+<span class="nc bnc" id="L156" title="All 2 branches missed.">      if (diff &lt; diffHigh) {</span>
+<span class="nc" id="L157">        diffHigh = diff;</span>
+<span class="nc" id="L158">        piHigh = i;</span>
+      }
+
+<span class="nc bnc" id="L161" title="All 2 branches missed.">      if (showIntensity) {</span>
+<span class="nc" id="L162">        g2d.setPaint(cLut);</span>
+      } else {
+<span class="nc" id="L164">        g2d.setPaint(Color.BLACK);</span>
+      }
+<span class="nc" id="L166">      g2d.draw(new Line2D.Float(xVal, y1, xVal, tLut));</span>
+<span class="nc" id="L167">      g2d.setPaint(cLut);</span>
+<span class="nc" id="L168">      g2d.draw(new Line2D.Float(xVal, tLut + 7.0f, xVal, bLut));</span>
+    }
+
+<span class="nc" id="L171">    g2d.setStroke(new BasicStroke(1.0f));</span>
+
+<span class="nc" id="L173">    float offsetThick = (xAxisHistoRescaleRatio + 0.5f) / 2f;</span>
+
+<span class="nc" id="L175">    int separation =</span>
+<span class="nc" id="L176">        (int) (lutLength / (g2d.getFontMetrics().stringWidth(String.valueOf(max)) * 3));</span>
+<span class="nc" id="L177">    separation = Math.max(separation, 1);</span>
+<span class="nc" id="L178">    float stepWindow = hRange / separation;</span>
+
+<span class="nc" id="L180">    g2d.setPaint(Color.BLACK);</span>
+<span class="nc" id="L181">    Rectangle2D.Float rect = new Rectangle2D.Float();</span>
+<span class="nc bnc" id="L182" title="All 2 branches missed.">    for (int i = 0; i &lt;= separation; i++) {</span>
+<span class="nc" id="L183">      float val = firstLevel + i * stepWindow;</span>
+<span class="nc" id="L184">      float posX = x + (val - firstLevel) * spaceFactor;</span>
+<span class="nc" id="L185">      rect.setRect(posX - 2f, bLut - 1f, 2f, 7f);</span>
+<span class="nc" id="L186">      g2d.draw(rect);</span>
+    }
+<span class="nc" id="L188">    rect.setRect(x - 2f - offsetThick, tLut + 5f, lutLength + 3f, 20f);</span>
+<span class="nc" id="L189">    g2d.draw(rect);</span>
+
+<span class="nc" id="L191">    g2d.setPaint(Color.WHITE);</span>
+
+<span class="nc" id="L193">    Object[] oldRenderingHints = GuiUtils.setRenderingHints(g2d, true, false, true);</span>
+<span class="nc" id="L194">    Line2D.Float line = new Line2D.Float();</span>
+<span class="nc bnc" id="L195" title="All 2 branches missed.">    for (int i = 0; i &lt;= separation; i++) {</span>
+<span class="nc" id="L196">      float val = firstLevel + i * stepWindow;</span>
+<span class="nc" id="L197">      float posX = x + (val - firstLevel) * spaceFactor;</span>
+<span class="nc" id="L198">      line.setLine(posX - 1f, bLut, posX - 1f, bLut + 5f);</span>
+<span class="nc" id="L199">      g2d.draw(line);</span>
+<span class="nc" id="L200">      String str =</span>
+<span class="nc" id="L201">          DecFormatter.allNumber(data.getLayer().pixelToRealValue(firstLevel + i * stepWindow));</span>
+      float offsetLabel =
+<span class="nc bnc" id="L203" title="All 2 branches missed.">          i == separation</span>
+<span class="nc" id="L204">              ? g2d.getFontMetrics().stringWidth(str) - SLIDER_X / 2f</span>
+<span class="nc" id="L205">              : g2d.getFontMetrics().stringWidth(str) / 2f;</span>
+<span class="nc bnc" id="L206" title="All 2 branches missed.">      float xlabel = i == 0 ? posX / 2f : posX - offsetLabel;</span>
+<span class="nc" id="L207">      FontTools.paintFontOutline(g2d, str, xlabel, bLut + midFontHeight);</span>
+    }
+
+<span class="nc" id="L210">    rect.setRect(x - 1f - offsetThick, tLut + 6f, lutLength + 1f, 18f);</span>
+<span class="nc" id="L211">    g2d.draw(rect);</span>
+
+<span class="nc" id="L213">    Color yellow = IconColor.ACTIONS_YELLOW.getColor();</span>
+<span class="nc" id="L214">    g2d.setPaint(yellow);</span>
+
+<span class="nc" id="L216">    g2d.setStroke(</span>
+        new BasicStroke(
+            0.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 5f, new float[] {5.0f}, 0.0f));
+
+<span class="nc" id="L220">    Model m = data.getColorModel();</span>
+<span class="nc bnc" id="L221" title="All 4 branches missed.">    boolean hls = HistogramData.Model.HLS.equals(m) || HistogramData.Model.HSV.equals(m);</span>
+<span class="nc bnc" id="L222" title="All 2 branches missed.">    if (!hls) {</span>
+<span class="nc" id="L223">      boolean drawWl = false;</span>
+<span class="nc" id="L224">      float plow = x + (piLow * (float) binFactor) * spaceFactor;</span>
+<span class="nc" id="L225">      float phigh = x + (piHigh * (float) binFactor) * spaceFactor;</span>
+<span class="nc bnc" id="L226" title="All 2 branches missed.">      if (low &gt; windLevel.getLevelMin()) {</span>
+<span class="nc" id="L227">        drawWl = winLevelLine(g2d, midFontHeight, tLut, min, piLow, binFactor, line, plow);</span>
+      }
+<span class="nc bnc" id="L229" title="All 2 branches missed.">      if (high &lt; windLevel.getLevelMax()) {</span>
+<span class="nc" id="L230">        g2d.setPaint(yellow);</span>
+<span class="nc" id="L231">        drawWl = winLevelLine(g2d, midFontHeight, tLut, min, piHigh, binFactor, line, phigh);</span>
+      }
+
+<span class="nc bnc" id="L234" title="All 2 branches missed.">      if (drawWl) {</span>
+<span class="nc" id="L235">        g2d.setPaint(yellow);</span>
+<span class="nc" id="L236">        line.setLine(plow, SLIDER_Y, phigh, SLIDER_Y);</span>
+<span class="nc" id="L237">        g2d.draw(line);</span>
+      }
+    }
+<span class="nc" id="L240">    GuiUtils.resetRenderingHints(g2d, oldRenderingHints);</span>
+<span class="nc" id="L241">  }</span>
+
+  private boolean winLevelLine(
+      Graphics2D g2d,
+      float midFontHeight,
+      float tLut,
+      double min,
+      int piLow,
+      double binFactor,
+      Float line,
+      float plow) {
+<span class="nc" id="L252">    line.setLine(plow, SLIDER_Y, plow, tLut);</span>
+<span class="nc" id="L253">    g2d.draw(line);</span>
+<span class="nc" id="L254">    String label =</span>
+<span class="nc" id="L255">        DecFormatter.allNumber(data.getLayer().pixelToRealValue(piLow * binFactor + min));</span>
+<span class="nc" id="L256">    FontTools.paintFontOutline(</span>
+<span class="nc" id="L257">        g2d, label, plow - g2d.getFontMetrics().stringWidth(label) / 2.f, SLIDER_Y + midFontHeight);</span>
+<span class="nc" id="L258">    return true;</span>
+  }
+
+  public void setHistogram(
+      HistogramData data, boolean accumulate, boolean logarithmic, boolean showIntensity) {
+<span class="nc" id="L263">    this.data = data;</span>
+<span class="nc" id="L264">    this.accumulate = accumulate;</span>
+<span class="nc" id="L265">    this.logarithmic = logarithmic;</span>
+<span class="nc" id="L266">    this.showIntensity = showIntensity;</span>
+<span class="nc" id="L267">  }</span>
+
+  public void setWindLevelParameters(WindLevelParameters p) {
+<span class="nc" id="L270">    this.data.setWindLevel(p);</span>
+<span class="nc" id="L271">  }</span>
+
+  public void updateZoom(boolean in) {
+<span class="nc bnc" id="L274" title="All 2 branches missed.">    if (in) {</span>
+<span class="nc" id="L275">      zoom *= 1.4f;</span>
+    } else {
+<span class="nc" id="L277">      zoom *= (1 / 1.4f);</span>
+    }
+<span class="nc" id="L279">    repaint();</span>
+<span class="nc" id="L280">  }</span>
+
+  public boolean isLogarithmic() {
+<span class="nc" id="L283">    return logarithmic;</span>
+  }
+
+  public void setLogarithmic(boolean logarithmic) {
+<span class="nc bnc" id="L287" title="All 2 branches missed.">    boolean update = !Objects.equals(this.logarithmic, logarithmic);</span>
+<span class="nc" id="L288">    this.logarithmic = logarithmic;</span>
+<span class="nc bnc" id="L289" title="All 2 branches missed.">    if (update) {</span>
+<span class="nc" id="L290">      this.zoom = 1.0f;</span>
+<span class="nc" id="L291">      repaint();</span>
+    }
+<span class="nc" id="L293">  }</span>
+
+  public boolean isShowIntensity() {
+<span class="nc" id="L296">    return showIntensity;</span>
+  }
+
+  public void setShowIntensity(boolean showIntensity) {
+<span class="nc bnc" id="L300" title="All 2 branches missed.">    boolean update = !Objects.equals(this.showIntensity, showIntensity);</span>
+<span class="nc" id="L301">    this.showIntensity = showIntensity;</span>
+<span class="nc bnc" id="L302" title="All 2 branches missed.">    if (update) {</span>
+<span class="nc" id="L303">      repaint();</span>
+    }
+<span class="nc" id="L305">  }</span>
+
+  public boolean isAccumulate() {
+<span class="nc" id="L308">    return accumulate;</span>
+  }
+
+  public void setAccumulate(boolean accumulate) {
+<span class="nc bnc" id="L312" title="All 2 branches missed.">    boolean update = !Objects.equals(this.accumulate, accumulate);</span>
+<span class="nc" id="L313">    this.accumulate = accumulate;</span>
+<span class="nc bnc" id="L314" title="All 2 branches missed.">    if (update) {</span>
+<span class="nc" id="L315">      this.zoom = 1.0f;</span>
+<span class="nc" id="L316">      repaint();</span>
+    }
+<span class="nc" id="L318">  }</span>
+
+  public void resetDisplay() {
+<span class="nc" id="L321">    this.zoom = 1.0f;</span>
+<span class="nc" id="L322">    this.accumulate = false;</span>
+<span class="nc" id="L323">    this.logarithmic = false;</span>
+<span class="nc" id="L324">    this.showIntensity = true;</span>
+<span class="nc" id="L325">    repaint();</span>
+<span class="nc" id="L326">  }</span>
+
+  public float getZoom() {
+<span class="nc" id="L329">    return zoom;</span>
+  }
+
+  public HistogramData getData() {
+<span class="nc" id="L333">    return data;</span>
+  }
+
+  public void saveHistogramInCSV(File csvOutputFile) {
+<span class="nc" id="L337">    try (PrintWriter pw = new PrintWriter(csvOutputFile, StandardCharsets.UTF_8)) {</span>
+<span class="nc" id="L338">      pw.println(&quot;Class,Occurrences&quot;); // NON-NLS</span>
+<span class="nc" id="L339">      float[] histValues = data.getHistValues();</span>
+<span class="nc" id="L340">      WlParams windLevel = data.getWindLevel();</span>
+<span class="nc" id="L341">      double min = windLevel.getLevelMin();</span>
+<span class="nc" id="L342">      double max = windLevel.getLevelMax() + 1.0;</span>
+<span class="nc" id="L343">      double factor = (max - min) / histValues.length;</span>
+<span class="nc bnc" id="L344" title="All 2 branches missed.">      for (int i = 0; i &lt; histValues.length; i++) {</span>
+        // TODO convert in real value (modality lut)
+<span class="nc" id="L346">        int val = (int) Math.ceil(i * factor + min);</span>
+<span class="nc" id="L347">        int val2 = (int) Math.floor((i + 1) * factor + min);</span>
+<span class="nc" id="L348">        StringBuilder buf = new StringBuilder();</span>
+<span class="nc" id="L349">        buf.append(val);</span>
+<span class="nc bnc" id="L350" title="All 4 branches missed.">        if (val2 != val &amp;&amp; val2 &lt; max) {</span>
+<span class="nc" id="L351">          buf.append(&quot;...&quot;);</span>
+<span class="nc" id="L352">          buf.append(val2);</span>
+        }
+<span class="nc" id="L354">        buf.append(&quot;,&quot;);</span>
+<span class="nc" id="L355">        buf.append(histValues[i]);</span>
+<span class="nc" id="L356">        pw.println(buf);</span>
+      }
+<span class="nc" id="L358">    } catch (IOException e) {</span>
+<span class="nc" id="L359">      LOGGER.error(&quot;Cannot save histogram values&quot;, e);</span>
+<span class="nc" id="L360">    }</span>
+<span class="nc" id="L361">  }</span>
+
+<span class="nc" id="L363">  private class InternalMouseListener implements MouseListener, MouseMotionListener {</span>
+    private Popup popup;
+
+    @Override
+    public void mouseClicked(MouseEvent e) {
+      // Do nothing
+<span class="nc" id="L369">    }</span>
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+<span class="nc" id="L373">      showPopup(e);</span>
+<span class="nc" id="L374">    }</span>
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+<span class="nc bnc" id="L378" title="All 2 branches missed.">      if (popup != null) {</span>
+<span class="nc" id="L379">        popup.hide();</span>
+      }
+<span class="nc" id="L381">    }</span>
+
+    private void showPopup(MouseEvent e) {
+<span class="nc" id="L384">      float[] histValues = data.getHistValues();</span>
+<span class="nc" id="L385">      float lpos = (e.getX() - SLIDER_X) / xAxisHistoRescaleRatio;</span>
+<span class="nc" id="L386">      int i = Math.round(lpos);</span>
+<span class="nc bnc" id="L387" title="All 4 branches missed.">      if (i &gt;= 0 &amp;&amp; i &lt; histValues.length) {</span>
+<span class="nc" id="L388">        WlParams windLevel = data.getWindLevel();</span>
+<span class="nc" id="L389">        double min = windLevel.getLevelMin();</span>
+<span class="nc" id="L390">        double max = windLevel.getLevelMax() + 1.0;</span>
+<span class="nc" id="L391">        int val = (int) Math.ceil(i * (max - min) / histValues.length + min);</span>
+<span class="nc" id="L392">        int val2 = (int) Math.floor((i + 1) * (max - min) / histValues.length + min);</span>
+
+<span class="nc" id="L394">        StringBuilder buf = new StringBuilder();</span>
+<span class="nc" id="L395">        buf.append(GuiUtils.HTML_START);</span>
+<span class="nc" id="L396">        buf.append(Messages.getString(&quot;HistogramPanel.intensity&quot;));</span>
+<span class="nc" id="L397">        buf.append(StringUtil.COLON_AND_SPACE);</span>
+<span class="nc" id="L398">        buf.append(val);</span>
+<span class="nc bnc" id="L399" title="All 4 branches missed.">        if (val2 != val &amp;&amp; val2 &lt; max) {</span>
+<span class="nc" id="L400">          buf.append(&quot;...&quot;);</span>
+<span class="nc" id="L401">          buf.append(val2);</span>
+        }
+<span class="nc" id="L403">        buf.append(GuiUtils.HTML_BR);</span>
+<span class="nc" id="L404">        buf.append(Messages.getString(&quot;HistogramPanel.pixels&quot;));</span>
+<span class="nc" id="L405">        buf.append(StringUtil.COLON_AND_SPACE);</span>
+<span class="nc" id="L406">        buf.append((int) histValues[i]);</span>
+<span class="nc" id="L407">        JLabel text = new JLabel(buf.toString());</span>
+<span class="nc bnc" id="L408" title="All 2 branches missed.">        if (popup != null) {</span>
+<span class="nc" id="L409">          popup.hide();</span>
+        }
+<span class="nc" id="L411">        text.setBorder(GuiUtils.getEmptyBorder(3, 5, 3, 5));</span>
+<span class="nc" id="L412">        popup =</span>
+<span class="nc" id="L413">            PopupFactory.getSharedInstance()</span>
+<span class="nc" id="L414">                .getPopup(</span>
+<span class="nc" id="L415">                    e.getComponent(),</span>
+                    text,
+<span class="nc" id="L417">                    e.getXOnScreen() + 15,</span>
+<span class="nc" id="L418">                    e.getYOnScreen() - GuiUtils.getScaleLength(40));</span>
+<span class="nc" id="L419">        popup.show();</span>
+<span class="nc" id="L420">      } else {</span>
+<span class="nc bnc" id="L421" title="All 2 branches missed.">        if (popup != null) {</span>
+<span class="nc" id="L422">          popup.hide();</span>
+        }
+      }
+<span class="nc" id="L425">    }</span>
+
+    @Override
+    public void mouseEntered(MouseEvent e) {
+<span class="nc" id="L429">      setCursor(DefaultView2d.CROSS_CURSOR);</span>
+<span class="nc" id="L430">    }</span>
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+<span class="nc" id="L434">      setCursor(DefaultView2d.DEFAULT_CURSOR);</span>
+<span class="nc" id="L435">    }</span>
+
+    @Override
+    public void mouseDragged(MouseEvent e) {
+<span class="nc" id="L439">      showPopup(e);</span>
+<span class="nc" id="L440">    }</span>
+
+    @Override
+    public void mouseMoved(MouseEvent e) {
+      // Do nothing
+<span class="nc" id="L445">    }</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

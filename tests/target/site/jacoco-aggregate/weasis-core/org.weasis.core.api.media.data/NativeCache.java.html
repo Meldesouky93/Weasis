@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>NativeCache.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.media.data</a> &gt; <span class="el_source">NativeCache.java</span></div><h1>NativeCache.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.media.data;
+
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+import org.weasis.opencv.data.PlanarImage;
+
+public abstract class NativeCache&lt;K, V extends PlanarImage&gt; extends AbstractMap&lt;K, V&gt; {
+
+  protected final Map&lt;K, V&gt; hash;
+  private final long maxNativeMemory;
+  private final AtomicLong useNativeMemory;
+
+<span class="nc" id="L28">  protected NativeCache(long maxNativeMemory) {</span>
+<span class="nc" id="L29">    this.maxNativeMemory = maxNativeMemory;</span>
+<span class="nc" id="L30">    this.useNativeMemory = new AtomicLong(0);</span>
+<span class="nc" id="L31">    this.hash = Collections.synchronizedMap(new LinkedHashMap&lt;&gt;(64, 0.75f, true));</span>
+<span class="nc" id="L32">  }</span>
+
+  @Override
+  public V get(Object key) {
+<span class="nc" id="L36">    return hash.get(key);</span>
+  }
+
+  public boolean isMemoryAvailable() {
+<span class="nc bnc" id="L40" title="All 2 branches missed.">    return useNativeMemory.get() &lt; maxNativeMemory;</span>
+  }
+
+  public void expungeStaleEntries() {
+<span class="nc bnc" id="L44" title="All 2 branches missed.">    if (!isMemoryAvailable()) {</span>
+<span class="nc" id="L45">      synchronized (hash) {</span>
+<span class="nc" id="L46">        List&lt;K&gt; remKeys = new ArrayList&lt;&gt;();</span>
+        // 5% of max memory + diff
+<span class="nc" id="L48">        long maxfreeSize = maxNativeMemory / 20 + (useNativeMemory.get() - maxNativeMemory);</span>
+<span class="nc" id="L49">        long freeSize = 0;</span>
+
+<span class="nc bnc" id="L51" title="All 2 branches missed.">        for (Map.Entry&lt;K, V&gt; e : hash.entrySet()) {</span>
+<span class="nc" id="L52">          freeSize += physicalBytes(e.getValue());</span>
+<span class="nc bnc" id="L53" title="All 2 branches missed.">          if (freeSize &gt; maxfreeSize) {</span>
+<span class="nc" id="L54">            break;</span>
+          }
+<span class="nc" id="L56">          remKeys.add(e.getKey());</span>
+<span class="nc" id="L57">        }</span>
+
+<span class="nc bnc" id="L59" title="All 2 branches missed.">        for (K key : remKeys) {</span>
+<span class="nc" id="L60">          V val = hash.remove(key);</span>
+<span class="nc" id="L61">          useNativeMemory.addAndGet(-physicalBytes(val));</span>
+<span class="nc" id="L62">          afterEntryRemove(key, val);</span>
+<span class="nc" id="L63">        }</span>
+<span class="nc" id="L64">      }</span>
+    }
+<span class="nc" id="L66">  }</span>
+
+  private long physicalBytes(V val) {
+<span class="nc bnc" id="L69" title="All 2 branches missed.">    if (val != null) {</span>
+<span class="nc" id="L70">      return val.physicalBytes();</span>
+    }
+<span class="nc" id="L72">    return 0;</span>
+  }
+
+  protected abstract void afterEntryRemove(K key, V val);
+
+  @Override
+  public V put(K key, V value) {
+<span class="nc" id="L79">    expungeStaleEntries();</span>
+<span class="nc" id="L80">    V result = hash.put(key, value);</span>
+<span class="nc" id="L81">    useNativeMemory.addAndGet(physicalBytes(value));</span>
+<span class="nc" id="L82">    useNativeMemory.addAndGet(-physicalBytes(result));</span>
+<span class="nc" id="L83">    return result;</span>
+  }
+
+  @SuppressWarnings(&quot;unchecked&quot;)
+  @Override
+  public V remove(Object key) {
+<span class="nc" id="L89">    V val = hash.remove(key);</span>
+<span class="nc" id="L90">    useNativeMemory.addAndGet(-physicalBytes(val));</span>
+<span class="nc" id="L91">    afterEntryRemove((K) key, val);</span>
+<span class="nc" id="L92">    return val;</span>
+  }
+
+  @Override
+  public void clear() {
+<span class="nc" id="L97">    hash.clear();</span>
+<span class="nc" id="L98">    useNativeMemory.set(0);</span>
+<span class="nc" id="L99">  }</span>
+
+  @Override
+  public int size() {
+<span class="nc" id="L103">    return hash.size();</span>
+  }
+
+  @Override
+  public Set&lt;Entry&lt;K, V&gt;&gt; entrySet() {
+<span class="nc" id="L108">    return hash.entrySet();</span>
+  }
+
+  @Override
+  public boolean containsKey(Object key) {
+<span class="nc" id="L113">    return hash.containsKey(key);</span>
+  }
+
+  @Override
+  public boolean containsValue(Object value) {
+<span class="nc" id="L118">    return hash.containsValue(value);</span>
+  }
+
+  @Override
+  public int hashCode() {
+<span class="nc" id="L123">    return hash.hashCode();</span>
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+<span class="nc bnc" id="L128" title="All 2 branches missed.">    if (this == obj) return true;</span>
+<span class="nc bnc" id="L129" title="All 2 branches missed.">    if (!super.equals(obj)) return false;</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">    if (getClass() != obj.getClass()) return false;</span>
+    @SuppressWarnings(&quot;rawtypes&quot;)
+<span class="nc" id="L132">    NativeCache other = (NativeCache) obj;</span>
+<span class="nc" id="L133">    return hash.equals(other.hash);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

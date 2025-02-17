@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>URLParameters.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.api.util</a> &gt; <span class="el_source">URLParameters.java</span></div><h1>URLParameters.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.api.util;
+
+import java.net.URL;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
+public class URLParameters {
+
+  private final Map&lt;String, String&gt; headers;
+  private final long ifModifiedSince;
+  private final int connectTimeout;
+  private final int readTimeout;
+  private final boolean httpPost;
+  private final boolean useCaches;
+  private final boolean allowUserInteraction;
+
+  public URLParameters() {
+<span class="nc" id="L32">    this(null, null, null, null, null, null, null);</span>
+<span class="nc" id="L33">  }</span>
+
+  public URLParameters(Map&lt;String, String&gt; headers) {
+<span class="nc" id="L36">    this(headers, null, null, null, null, null, null);</span>
+<span class="nc" id="L37">  }</span>
+
+  public URLParameters(Map&lt;String, String&gt; headers, boolean httpPost) {
+<span class="nc" id="L40">    this(headers, null, null, httpPost, null, null, null);</span>
+<span class="nc" id="L41">  }</span>
+
+  public URLParameters(Map&lt;String, String&gt; headers, int connectTimeout, int readTimeout) {
+<span class="nc" id="L44">    this(headers, connectTimeout, readTimeout, null, null, null, null);</span>
+<span class="nc" id="L45">  }</span>
+
+  public URLParameters(
+      Map&lt;String, String&gt; headers,
+      Integer connectTimeout,
+      Integer readTimeout,
+      Boolean httpPost,
+      Boolean useCaches,
+      Long ifModifiedSince,
+<span class="nc" id="L54">      Boolean allowUserInteraction) {</span>
+<span class="nc bnc" id="L55" title="All 2 branches missed.">    this.headers = headers == null ? Collections.emptyMap() : Collections.unmodifiableMap(headers);</span>
+<span class="nc bnc" id="L56" title="All 2 branches missed.">    this.ifModifiedSince = ifModifiedSince == null ? 0L : ifModifiedSince;</span>
+<span class="nc" id="L57">    this.connectTimeout =</span>
+<span class="nc bnc" id="L58" title="All 2 branches missed.">        connectTimeout == null ? NetworkUtil.getUrlConnectionTimeout() : connectTimeout;</span>
+<span class="nc bnc" id="L59" title="All 2 branches missed.">    this.readTimeout = readTimeout == null ? NetworkUtil.getUrlReadTimeout() : readTimeout;</span>
+<span class="nc bnc" id="L60" title="All 2 branches missed.">    this.httpPost = httpPost == null ? Boolean.FALSE : httpPost;</span>
+<span class="nc bnc" id="L61" title="All 2 branches missed.">    this.useCaches = useCaches == null ? Boolean.TRUE : useCaches;</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">    this.allowUserInteraction = allowUserInteraction == null ? Boolean.FALSE : allowUserInteraction;</span>
+<span class="nc" id="L63">  }</span>
+
+  public Map&lt;String, String&gt; getUnmodifiableHeaders() {
+<span class="nc" id="L66">    return headers;</span>
+  }
+
+  public long getIfModifiedSince() {
+<span class="nc" id="L70">    return ifModifiedSince;</span>
+  }
+
+  public int getConnectTimeout() {
+<span class="nc" id="L74">    return connectTimeout;</span>
+  }
+
+  public int getReadTimeout() {
+<span class="nc" id="L78">    return readTimeout;</span>
+  }
+
+  public boolean isHttpPost() {
+<span class="nc" id="L82">    return httpPost;</span>
+  }
+
+  public boolean isUseCaches() {
+<span class="nc" id="L86">    return useCaches;</span>
+  }
+
+  public boolean isAllowUserInteraction() {
+<span class="nc" id="L90">    return allowUserInteraction;</span>
+  }
+
+  public static Map&lt;String, String&gt; splitParameter(URL url) {
+<span class="nc" id="L94">    Map&lt;String, String&gt; queryPairs = new LinkedHashMap&lt;&gt;();</span>
+<span class="nc" id="L95">    String query = url.getQuery();</span>
+<span class="nc" id="L96">    String[] pairs = query.split(&quot;&amp;&quot;);</span>
+<span class="nc bnc" id="L97" title="All 2 branches missed.">    for (String pair : pairs) {</span>
+<span class="nc" id="L98">      int idx = pair.indexOf(&quot;=&quot;);</span>
+<span class="nc" id="L99">      queryPairs.put(</span>
+<span class="nc" id="L100">          URLDecoder.decode(pair.substring(0, idx), StandardCharsets.UTF_8),</span>
+<span class="nc" id="L101">          URLDecoder.decode(pair.substring(idx + 1), StandardCharsets.UTF_8));</span>
+    }
+<span class="nc" id="L103">    return queryPairs;</span>
+  }
+
+  public static Map&lt;String, List&lt;String&gt;&gt; splitMultipleValuesParameter(URL url) {
+<span class="nc" id="L107">    final Map&lt;String, List&lt;String&gt;&gt; queryPairs = new LinkedHashMap&lt;&gt;();</span>
+<span class="nc" id="L108">    final String[] pairs = url.getQuery().split(&quot;&amp;&quot;);</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">    for (String pair : pairs) {</span>
+<span class="nc" id="L110">      final int idx = pair.indexOf(&quot;=&quot;);</span>
+      final String key =
+<span class="nc bnc" id="L112" title="All 2 branches missed.">          idx &gt; 0 ? URLDecoder.decode(pair.substring(0, idx), StandardCharsets.UTF_8) : pair;</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">      if (!queryPairs.containsKey(key)) {</span>
+<span class="nc" id="L114">        queryPairs.put(key, new LinkedList&lt;&gt;());</span>
+      }
+      final String value =
+<span class="nc bnc" id="L117" title="All 4 branches missed.">          idx &gt; 0 &amp;&amp; pair.length() &gt; idx + 1</span>
+<span class="nc" id="L118">              ? URLDecoder.decode(pair.substring(idx + 1), StandardCharsets.UTF_8)</span>
+<span class="nc" id="L119">              : null;</span>
+<span class="nc" id="L120">      queryPairs.get(key).add(value);</span>
+    }
+<span class="nc" id="L122">    return queryPairs;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

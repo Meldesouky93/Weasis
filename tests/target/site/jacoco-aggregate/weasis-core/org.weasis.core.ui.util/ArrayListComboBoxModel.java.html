@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ArrayListComboBoxModel.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-core</a> &gt; <a href="index.source.html" class="el_package">org.weasis.core.ui.util</a> &gt; <span class="el_source">ArrayListComboBoxModel.java</span></div><h1>ArrayListComboBoxModel.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.core.ui.util;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import javax.swing.AbstractListModel;
+import javax.swing.ComboBoxModel;
+import javax.swing.MutableComboBoxModel;
+
+public class ArrayListComboBoxModel&lt;E&gt; extends AbstractListModel&lt;E&gt;
+    implements MutableComboBoxModel&lt;E&gt;, ComboBoxModel&lt;E&gt; {
+
+  private Object selectedItem;
+  private final List&lt;E&gt; items;
+  private final Comparator&lt;E&gt; comparator;
+
+  public ArrayListComboBoxModel() {
+<span class="nc" id="L28">    this(null, null);</span>
+<span class="nc" id="L29">  }</span>
+
+  public ArrayListComboBoxModel(List&lt;E&gt; items) {
+<span class="nc" id="L32">    this(items, null);</span>
+<span class="nc" id="L33">  }</span>
+
+  public ArrayListComboBoxModel(Comparator&lt;E&gt; comparator) {
+<span class="nc" id="L36">    this(null, comparator);</span>
+<span class="nc" id="L37">  }</span>
+
+<span class="nc" id="L39">  public ArrayListComboBoxModel(List&lt;E&gt; items, Comparator&lt;E&gt; comparator) {</span>
+<span class="nc bnc" id="L40" title="All 2 branches missed.">    this.items = items == null ? new ArrayList&lt;&gt;() : items;</span>
+<span class="nc" id="L41">    this.comparator = comparator;</span>
+<span class="nc" id="L42">  }</span>
+
+  @Override
+  public Object getSelectedItem() {
+<span class="nc" id="L46">    return selectedItem;</span>
+  }
+
+  @Override
+  public void setSelectedItem(Object newValue) {
+<span class="nc bnc" id="L51" title="All 8 branches missed.">    if ((selectedItem != null &amp;&amp; !selectedItem.equals(newValue))</span>
+        || selectedItem == null &amp;&amp; newValue != null) {
+<span class="nc" id="L53">      selectedItem = newValue;</span>
+<span class="nc" id="L54">      fireContentsChanged(this, -1, -1);</span>
+    }
+<span class="nc" id="L56">  }</span>
+
+  @Override
+  public int getSize() {
+<span class="nc" id="L60">    return items.size();</span>
+  }
+
+  @Override
+  public E getElementAt(int index) {
+<span class="nc bnc" id="L65" title="All 4 branches missed.">    if (index &gt;= 0 &amp;&amp; index &lt; items.size()) {</span>
+<span class="nc" id="L66">      return items.get(index);</span>
+    } else {
+<span class="nc" id="L68">      return null;</span>
+    }
+  }
+
+  public int getIndexOf(Object anObject) {
+<span class="nc" id="L73">    return items.indexOf(anObject);</span>
+  }
+
+  @Override
+  public void addElement(E anObject) {
+<span class="nc" id="L78">    int index = Collections.binarySearch(items, anObject, comparator);</span>
+<span class="nc bnc" id="L79" title="All 2 branches missed.">    if (index &lt; 0) {</span>
+<span class="nc" id="L80">      insertElementAt(anObject, -(index + 1));</span>
+    } else {
+<span class="nc" id="L82">      insertElementAt(anObject, index);</span>
+    }
+<span class="nc" id="L84">  }</span>
+
+  @Override
+  public void insertElementAt(E anObject, int index) {
+<span class="nc" id="L88">    items.add(index, anObject);</span>
+<span class="nc" id="L89">    fireIntervalAdded(this, index, index);</span>
+<span class="nc" id="L90">  }</span>
+
+  @Override
+  public void removeElementAt(int index) {
+<span class="nc bnc" id="L94" title="All 2 branches missed.">    if (getElementAt(index) == selectedItem) {</span>
+<span class="nc bnc" id="L95" title="All 2 branches missed.">      if (index == 0) {</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">        setSelectedItem(getSize() == 1 ? null : getElementAt(index + 1));</span>
+      } else {
+<span class="nc" id="L98">        setSelectedItem(getElementAt(index - 1));</span>
+      }
+    }
+<span class="nc" id="L101">    items.remove(index);</span>
+<span class="nc" id="L102">    fireIntervalRemoved(this, index, index);</span>
+<span class="nc" id="L103">  }</span>
+
+  @Override
+  public void removeElement(Object anObject) {
+<span class="nc" id="L107">    int index = items.indexOf(anObject);</span>
+<span class="nc bnc" id="L108" title="All 2 branches missed.">    if (index != -1) {</span>
+<span class="nc" id="L109">      removeElementAt(index);</span>
+    }
+<span class="nc" id="L111">  }</span>
+
+  /** Empties the list. */
+  public void removeAllElements() {
+<span class="nc bnc" id="L115" title="All 2 branches missed.">    if (!items.isEmpty()) {</span>
+<span class="nc" id="L116">      int firstIndex = 0;</span>
+<span class="nc" id="L117">      int lastIndex = items.size() - 1;</span>
+<span class="nc" id="L118">      items.clear();</span>
+<span class="nc" id="L119">      selectedItem = null;</span>
+<span class="nc" id="L120">      fireIntervalRemoved(this, firstIndex, lastIndex);</span>
+<span class="nc" id="L121">    } else {</span>
+<span class="nc" id="L122">      selectedItem = null;</span>
+    }
+<span class="nc" id="L124">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

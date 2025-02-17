@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>AcquireCentralThumbnailModel.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer.gui.central.tumbnail</a> &gt; <span class="el_source">AcquireCentralThumbnailModel.java</span></div><h1>AcquireCentralThumbnailModel.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer.gui.central.tumbnail;
+
+import java.nio.file.Path;
+import javax.swing.JList;
+import org.weasis.base.explorer.JIThumbnailCache;
+import org.weasis.base.explorer.list.AThumbnailModel;
+import org.weasis.core.api.media.data.MediaElement;
+
+public class AcquireCentralThumbnailModel&lt;E extends MediaElement&gt; extends AThumbnailModel&lt;E&gt; {
+
+  public AcquireCentralThumbnailModel(JList&lt;E&gt; list, JIThumbnailCache thumbCache) {
+<span class="nc" id="L21">    super(list, thumbCache);</span>
+<span class="nc" id="L22">  }</span>
+
+  @Override
+  public void setData(Path path) {
+    // Only get images from model
+<span class="nc" id="L27">  }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

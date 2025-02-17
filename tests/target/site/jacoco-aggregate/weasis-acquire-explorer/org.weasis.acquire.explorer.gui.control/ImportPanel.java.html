@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ImportPanel.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">Tests</a> &gt; <a href="../index.html" class="el_bundle">weasis-acquire-explorer</a> &gt; <a href="index.source.html" class="el_package">org.weasis.acquire.explorer.gui.control</a> &gt; <span class="el_source">ImportPanel.java</span></div><h1>ImportPanel.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2009-2020 Weasis Team and other contributors.
+ *
+ * This program and the accompanying materials are made available under the terms of the Eclipse
+ * Public License 2.0 which is available at https://www.eclipse.org/legal/epl-2.0, or the Apache
+ * License, Version 2.0 which is available at https://www.apache.org/licenses/LICENSE-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0 OR Apache-2.0
+ */
+package org.weasis.acquire.explorer.gui.control;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import javax.swing.JButton;
+import javax.swing.JPanel;
+import javax.swing.SwingWorker.StateValue;
+import org.weasis.acquire.explorer.AcquireManager;
+import org.weasis.acquire.explorer.ImportTask;
+import org.weasis.acquire.explorer.Messages;
+import org.weasis.acquire.explorer.core.bean.SeriesGroup;
+import org.weasis.acquire.explorer.gui.central.ImageGroupPane;
+import org.weasis.acquire.explorer.gui.dialog.AcquireImportDialog;
+import org.weasis.acquire.explorer.gui.list.AcquireThumbnailListPane;
+import org.weasis.core.api.gui.task.CircularProgressBar;
+import org.weasis.core.api.gui.util.GuiUtils;
+import org.weasis.core.api.gui.util.WinUtil;
+import org.weasis.core.api.media.data.ImageElement;
+import org.weasis.core.api.media.data.MediaElement;
+import org.weasis.core.api.util.ThreadUtil;
+
+public class ImportPanel extends JPanel {
+
+<span class="nc" id="L34">  public static final ExecutorService IMPORT_IMAGES =</span>
+<span class="nc" id="L35">      ThreadUtil.buildNewSingleThreadExecutor(&quot;ImportImage&quot;);</span>
+
+<span class="nc" id="L37">  private final JButton importBtn = new JButton(Messages.getString(&quot;ImportPanel.import&quot;));</span>
+<span class="nc" id="L38">  private final CircularProgressBar progressBar = new CircularProgressBar(0, 100);</span>
+
+  private final ImageGroupPane centralPane;
+
+  // TODO create ACTION object fpr import
+  // so wherever it's called (button / popup/ menuBar ,,) it can be disabled/enabled from the ACTION
+  // object
+
+<span class="nc" id="L46">  public ImportPanel(AcquireThumbnailListPane&lt;MediaElement&gt; mainPanel, ImageGroupPane centralPane) {</span>
+<span class="nc" id="L47">    this.centralPane = centralPane;</span>
+
+<span class="nc" id="L49">    importBtn.setPreferredSize(GuiUtils.getDimension(150, 40));</span>
+<span class="nc" id="L50">    importBtn.addActionListener(</span>
+        e -&gt; {
+<span class="nc" id="L52">          List&lt;ImageElement&gt; selected =</span>
+<span class="nc" id="L53">              AcquireManager.toImageElement(mainPanel.getSelectedValuesList());</span>
+<span class="nc bnc" id="L54" title="All 2 branches missed.">          if (!selected.isEmpty()) {</span>
+<span class="nc" id="L55">            AcquireImportDialog dialog = new AcquireImportDialog(this, selected);</span>
+<span class="nc" id="L56">            GuiUtils.showCenterScreen(dialog, WinUtil.getParentWindow(mainPanel));</span>
+          }
+<span class="nc" id="L58">        });</span>
+<span class="nc" id="L59">    add(importBtn);</span>
+<span class="nc" id="L60">    add(progressBar);</span>
+
+<span class="nc" id="L62">    progressBar.setVisible(false);</span>
+<span class="nc" id="L63">  }</span>
+
+  public ImageGroupPane getCentralPane() {
+<span class="nc" id="L66">    return centralPane;</span>
+  }
+
+  public void importImageList(
+      Collection&lt;ImageElement&gt; toImport, SeriesGroup searchedSeries, int maxRangeInMinutes) {
+
+<span class="nc" id="L72">    ImportTask importTask = new ImportTask(toImport, searchedSeries, maxRangeInMinutes);</span>
+
+<span class="nc" id="L74">    importTask.addPropertyChangeListener(</span>
+        evt -&gt; {
+<span class="nc bnc" id="L76" title="All 2 branches missed.">          if (&quot;progress&quot;.equals(evt.getPropertyName())) {</span>
+<span class="nc" id="L77">            int progress = (Integer) evt.getNewValue();</span>
+<span class="nc" id="L78">            progressBar.setValue(progress);</span>
+
+<span class="nc bnc" id="L80" title="All 2 branches missed.">          } else if (&quot;state&quot;.equals(evt.getPropertyName())) {</span>
+
+<span class="nc bnc" id="L82" title="All 2 branches missed.">            if (StateValue.STARTED == evt.getNewValue()) {</span>
+<span class="nc" id="L83">              importBtn.setEnabled(false);</span>
+<span class="nc" id="L84">              progressBar.setVisible(true);</span>
+<span class="nc" id="L85">              progressBar.setValue(0);</span>
+
+<span class="nc bnc" id="L87" title="All 2 branches missed.">            } else if (StateValue.DONE == evt.getNewValue()) {</span>
+<span class="nc" id="L88">              importBtn.setEnabled(true);</span>
+<span class="nc" id="L89">              progressBar.setVisible(false);</span>
+            }
+          }
+<span class="nc" id="L92">        });</span>
+
+<span class="nc" id="L94">    IMPORT_IMAGES.execute(importTask);</span>
+<span class="nc" id="L95">  }</span>
+
+  public boolean isLoading() {
+<span class="nc bnc" id="L98" title="All 2 branches missed.">    return !importBtn.isEnabled();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
