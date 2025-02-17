@@ -2,6 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+  
   <parent>
     <artifactId>weasis-parent</artifactId>
     <groupId>org.weasis</groupId>
@@ -9,26 +10,32 @@
     <version>${revision}${changelist}</version>
     <relativePath>weasis-parent/pom.xml</relativePath>
   </parent>
+  
   <modelVersion>4.0.0</modelVersion>
   <artifactId>weasis-framework</artifactId>
   <packaging>pom</packaging>
   <name>Weasis framework</name>
+  
   <scm>
     <connection>scm:git:git@github.com:nroduit/Weasis.git</connection>
-    <developerConnection>scm:git:https://weasis.repositoryhosting.com/git/weasis/weasis-dev.git
-    </developerConnection>
+    <developerConnection>scm:git:https://weasis.repositoryhosting.com/git/weasis/weasis-dev.git</developerConnection>
     <url>https://github.com/nroduit/Weasis</url>
   </scm>
+
   <properties>
+    <!-- SonarCloud Integration -->
     <sonar.moduleKey>${project.artifactId}</sonar.moduleKey>
     <sonar.organization>nroduit-github</sonar.organization>
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
     <sonar.language>java</sonar.language>
     <sonar.java.source>${java-version}</sonar.java.source>
     <sonar.exclusions>**/src/test/**</sonar.exclusions>
-    <!--suppress UnresolvedMavenProperty -->
     <sonar.coverage.jacoco.xmlReportPaths>${maven.multiModuleProjectDirectory}/tests/target/site/jacoco-aggregate/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+    
+    <!-- Add SonarCloud Token -->
+    <sonar.login>${env.SONAR_TOKEN}</sonar.login> <!-- This will be injected from the environment variable -->
   </properties>
+
   <modules>
     <module>weasis-parent</module>
     <module>weasis-opencv</module>
@@ -40,4 +47,22 @@
     <module>weasis-launcher</module>
     <module>tests</module>
   </modules>
+
+  <build>
+    <pluginManagement>
+      <plugins>
+        <!-- SonarCloud plugin -->
+        <plugin>
+          <groupId>org.sonarsource.scanner.maven</groupId>
+          <artifactId>sonar-maven-plugin</artifactId>
+          <version>3.9.1.2184</version>
+        </plugin>
+      </plugins>
+    </pluginManagement>
+
+    <plugins>
+      <!-- Other necessary plugins for building and testing -->
+    </plugins>
+  </build>
+
 </project>

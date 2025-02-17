@@ -36,3 +36,10 @@ jobs:
         with:
           name: installer
           path: src/main/wix/installer.msi
+
+      # SonarCloud analysis step
+      - name: SonarCloud Analysis
+        uses: sonarsource/sonarcloud-github-action@v2
+        with:
+          organization: nroduit-github
+          token: ${{ secrets.SONAR_TOKEN }}
